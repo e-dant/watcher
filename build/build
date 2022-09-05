@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+build::build() {
+  local ok;
+  local lastdir="$PWD"
+  cd "$(dirname "$0")"
+  local thisdir="$PWD"
+  local llvm_version=14
+
+  cc::init() {
+    local ok;
+    local llvm_dir="$thisdir/../../../tools/compilers/llvm"
+    if ! test -n "$CC" -a -n "$CXX"
+    then
+      if ! test -x "$llvm_dir/build/out/$llvm_version/bin/clang"
+      then
+        "$llvm_dir/tools/version/set" $llvm_version
+        "$llvm_dir/build/build"
+        ok=$?
+      fi
+      export CC="$llvm_dir/build/out/$llvm_version/bin/clang"
+      export CXX="$llvm_dir/build/out/$llvm_version/bin/clang++"
+    fi
+    return $ok
+  }
+
+  cmake::build() {
+    cmake \
+      -D CMAKE_C_COMPILER="$CC" \
+      -D CMAKE_CXX_COMPILER="$CXX" \
+      -S 'in' -B 'out' -G 'Ninja' -Wno-dev \
+      && cmake --build out --config Release
+    return $?
+  }
+
+  compdb::ln() {
+    local from="$PWD/out/compile_commands.json"
+    local to='../'
+    ln -sf "$from" "$to"
+    return $?
+  }
+
+  cc::init \
+    && cmake::build \
+    && compdb::ln
+  ok=$?
+
+  cd "$lastdir"
+  return $ok
+}
+
+build::build
+
+exit $?

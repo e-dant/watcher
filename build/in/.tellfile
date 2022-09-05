@@ -1,0 +1,8 @@
+- given name
+echo watcher
+ build input directory
+- given build
+echo ../build
+- given run
+echo ./water.watcher
+

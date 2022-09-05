@@ -1,0 +1,9 @@
+- given name
+echo watcher
+- given build
+echo build/build
+- given run
+echo build/out/water.watcher
+- given clean
+echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_* ; unlink compile_commands.json'
+

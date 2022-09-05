@@ -1,0 +1,8 @@
+- given name
+echo watcher
+ source
+- given build
+echo ../build/build
+- given run
+echo ../build/out/water.watcher
+

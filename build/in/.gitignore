@@ -1,0 +1,7 @@
+*
+!.gitignore
+!.tellfile
+!conanfile.txt
+!CMakeLists.txt
+!README.md
+
