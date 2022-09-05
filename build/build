@@ -26,8 +26,6 @@ build::build() {
 
   cmake::build() {
     cmake \
-      -D CMAKE_C_COMPILER="$CC" \
-      -D CMAKE_CXX_COMPILER="$CXX" \
       -S 'in' -B 'out' -G 'Ninja' -Wno-dev \
       && cmake --build out --config Release
     return $?
@@ -40,9 +38,10 @@ build::build() {
     return $?
   }
 
-  cc::init \
-    && cmake::build \
-    && compdb::ln
+  # cc::init && \
+  cmake::build && \
+    compdb::ln
+
   ok=$?
 
   cd "$lastdir"
