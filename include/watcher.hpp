@@ -95,7 +95,7 @@ void populate(const Path auto& path = {"."}) {
  * Removes non-existent files
  * from our bucket. */
 auto prune(const Path auto& path,
-           const Callback auto callback) {
+           const Callback auto& callback) {
   using std::filesystem::exists;
 
   // first of all
@@ -131,7 +131,7 @@ auto prune(const Path auto& path,
  * Updates the bucket.
  * Calls the callback. */
 bool scan_file(const Path auto& file,
-               const Callback auto callback) {
+               const Callback auto& callback) {
   using namespace std::filesystem;
   if (is_regular_file(file)) {
     auto ec              = std::error_code{};
@@ -174,7 +174,7 @@ bool scan_file(const Path auto& file,
 }
 
 bool scan_directory(const Path auto& dir,
-                    const Callback auto callback) {
+                    const Callback auto& callback) {
   using namespace std::filesystem;
   using dir_iter = recursive_directory_iterator;
 
@@ -221,7 +221,7 @@ bool scan_directory(const Path auto& dir,
  * contents. otherwise, this `path` is a
  * file,å so scan it alone. */
 bool scan(const Path auto& path,
-          const Callback auto callback) {
+          const Callback auto& callback) {
   using namespace std::filesystem;
   // keep ourselves clean
   prune(path, callback);
@@ -247,7 +247,7 @@ bool scan(const Path auto& path,
  * happen. */
 template <const auto delay_ms = 16>
 bool run(const Path auto& path,
-         const Callback auto callback) requires
+         const Callback auto& callback) requires
     std::is_integral_v<decltype(delay_ms)> {
   using std::this_thread::sleep_for,
       std::chrono::milliseconds;
