@@ -3,6 +3,7 @@
 #include <thread>
 #include <type_traits>
 #include <watcher.hpp>
+#include <concepts.hpp>
 
 using namespace water;
 using namespace watcher;

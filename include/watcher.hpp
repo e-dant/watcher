@@ -1,4 +1,5 @@
 #include <chrono>
+#include <concepts.hpp>
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -7,37 +8,6 @@
 #include <unordered_map>
 
 namespace water {
-
-namespace concepts {
-template <typename From>
-concept String = requires(From str) {
-  { str } -> std::convertible_to<std::string>;
-};
-
-template <typename From>
-concept Path = String<From>;
-
-template <typename Type, typename... Types>
-concept Same = std::is_same<Type, Types...>::value;
-
-template <typename... Types>
-concept Invocable = requires(Types... values) {
-  std::is_invocable<Types...>(values...)
-      or std::is_invocable_v<Types...>(values...)
-      or std::is_invocable_r_v<Types...>(values...);
-};
-
-template <typename Returns, typename... Accepts>
-concept Callback = requires(Returns fn, Accepts... args) {
-  // A callback doesn't return a value,
-  Same<void, Returns>
-      // takes one or more arguments,
-      and not Same<void, Accepts...>
-      // and is callable.
-      and Invocable<Returns, Accepts...>;
-};
-
-}  // namespace concepts
 
 namespace watcher {
 
@@ -124,7 +94,7 @@ void populate(const Path auto path = {"."}) {
 /* @brief prune
  * Removes non-existent files
  * from our bucket. */
-auto prune(const Path auto path,
+auto prune(const Path auto& path,
            const Callback auto callback) {
   using std::filesystem::exists;
 
@@ -160,7 +130,7 @@ auto prune(const Path auto path,
  * Scans a single file.
  * Updates the bucket.
  * Calls the callback. */
-bool scan_file(const Path auto file,
+bool scan_file(const Path auto& file,
                const Callback auto callback) {
   using namespace std::filesystem;
   if (is_regular_file(file)) {
@@ -203,7 +173,7 @@ bool scan_file(const Path auto file,
     return false;
 }
 
-bool scan_directory(const Path auto dir,
+bool scan_directory(const Path auto& dir,
                     const Callback auto callback) {
   using namespace std::filesystem;
   using dir_iter = recursive_directory_iterator;
@@ -214,7 +184,7 @@ bool scan_directory(const Path auto dir,
     // contents
     try {
       for (const auto& file : dir_iter(dir, dir_opt)) {
-        scan_file(file.path(), callback);
+        scan_file(file.path().c_str(), callback);
       }
     }  // and catching the error(s?)
     catch (const std::exception& e) {
@@ -250,7 +220,7 @@ bool scan_directory(const Path auto dir,
  * scan recursively through its
  * contents. otherwise, this `path` is a
  * file,å so scan it alone. */
-bool scan(const Path auto path,
+bool scan(const Path auto& path,
           const Callback auto callback) {
   using namespace std::filesystem;
   // keep ourselves clean
@@ -276,7 +246,7 @@ bool scan(const Path auto path,
  * Executes the given closure when they
  * happen. */
 template <const auto delay_ms = 16>
-bool run(const Path auto path,
+bool run(const Path auto& path,
          const Callback auto callback) requires
     std::is_integral_v<decltype(delay_ms)> {
   using std::this_thread::sleep_for,
