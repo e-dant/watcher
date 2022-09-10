@@ -28,21 +28,14 @@ include(FetchContent)
 #       conan
 #       cpack
 FetchContent_Declare(
-  _project_options 
+  water_watcher_project_options 
   URL "https://github.com/aminya/project_options/archive/refs/tags/v0.24.0.zip"
   DOWNLOAD_EXTRACT_TIMESTAMP
 )
-#FetchContent_Declare(
-#  json
-#  URL "https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz"
-#  DOWNLOAD_EXTRACT_TIMESTAMP
-#)
-#FetchContent_MakeAvailable(_project_options json)
+FetchContent_MakeAvailable(water_watcher_project_options)
 
-FetchContent_MakeAvailable(_project_options)
-
-include("${_project_options_SOURCE_DIR}/Index.cmake")
-include("${_project_options_SOURCE_DIR}/src/DynamicProjectOptions.cmake")
+include("${water_watcher_project_options_SOURCE_DIR}/Index.cmake")
+include("${water_watcher_project_options_SOURCE_DIR}/src/DynamicProjectOptions.cmake")
 
 # [vcpkg]
 #   - notes:
