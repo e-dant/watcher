@@ -52,7 +52,7 @@ static bucket_t bucket;  // NOLINT
  * @see watcher::status
  * Creates a file map from the
  * given path. */
-void populate(const Path auto path = {"."}) {
+void populate(const Path auto& path = {"."}) {
   using namespace std::filesystem;
   using dir_iter  = recursive_directory_iterator;
 
