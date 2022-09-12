@@ -1,19 +1,23 @@
 #include <chrono>
-#include <concepts.hpp>
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <watcher/concepts.hpp>
+#include <watcher/platform.hpp>
+#include <watcher/status.hpp>
 
 namespace water {
 
 namespace watcher {
 
-using namespace concepts;
+namespace adapter {
 
-enum class status { created, modified, erased };
+namespace hog {
+
+using namespace concepts;
 
 // anonymous namespace
 // for "private" variables
@@ -41,11 +45,10 @@ using bucket_t
 // right? well, maybe this should be an
 // object, I'm not sure, I just like
 // functions is all.
-static constexpr dir_opt_t dir_opt  // NOLINT
+inline constexpr dir_opt_t dir_opt
     = skip_permission_denied & follow_directory_symlink;
 
 static bucket_t bucket;  // NOLINT
-}  // namespace
 
 /* @brief watcher/constructor
  * @param path - path to monitor for
@@ -196,31 +199,64 @@ bool scan_directory(const Path auto& dir,
       // try `block` inside of a `while`
       // loop (instead of above a
       // `for`).
-      //
-      // uh oh! the file disappeared
-      // while we were (trying to) get a
-      // look at it. it's gone, that's
-      // ok, now let's call the closure,
-      // indicating erasure,
-      //
-      // callback(file.path(),
-      // status::erased);
-      //// and get it out of the bucket.
-      // if
-      // (bucket.contains(file.path()))
-      //   bucket.erase(file.path());
     }
     return true;
   } else
     return false;
 }
 
-/* @briref watcher/scan
+}  // namespace
+
+/* @brief watcher/run
+ * @param closure (optional):
+ *  A callback to perform when the files
+ *  being watched change.
+ *  @see Callback
+ * Monitor `path` for changes.
+ * Execute `callback` when they
+ * happen. */
+template <const auto delay_ms = 16>
+inline bool run(const Path auto& path,
+         const Callback auto& callback) requires
+    std::is_integral_v<decltype(delay_ms)> {
+  // clang-format off
+  using
+    std::this_thread::sleep_for,
+    std::chrono::milliseconds,
+    std::filesystem::exists;
+
+  if constexpr (delay_ms > 0)
+    sleep_for(milliseconds(delay_ms));
+
+  prune(path, callback);
+
+  return 
+    exists(path) 
+      ? scan_directory(path, callback)
+        ? true
+        : scan_file(path, callback)
+          ? true
+          : false
+      : false
+    // if no errors present,
+    // keep running
+    ? run(path, callback)
+    // otherwise, leave
+    : false;
+  // clang-format on
+
+  /* @note
+  alternatively,
+  we could use this syntax:
+
+ *
+ * @brief watcher/scan
  * if this `path` is a directory,
  * scan recursively through its
  * contents. otherwise, this `path` is a
- * file,å so scan it alone. */
-bool scan(const Path auto& path,
+ * file, so scan it alone.
+ *
+bool scan = [](const Path auto& path,
           const Callback auto& callback) {
   using namespace std::filesystem;
   // keep ourselves clean
@@ -237,42 +273,33 @@ bool scan(const Path auto& path,
   // clang-format on
 }
 
-/* @brief watcher/run
- * @param closure (optional):
- *  A callback to perform when the files
- *  being watched change.
- *  @see Callback
- * Monitors `path_to_watch` for changes.
- * Executes the given closure when they
- * happen. */
-template <const auto delay_ms = 16>
-bool run(const Path auto& path,
-         const Callback auto& callback) requires
-    std::is_integral_v<decltype(delay_ms)> {
-  using std::this_thread::sleep_for,
-      std::chrono::milliseconds;
-
+  ```
   while (scan(path, callback))
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
 
   return false;
+  ```
 
-  /* @note
-  alternatively,
-  we could use this syntax:
+  or this syntax:
 
-    return scan(path, callback)
-               // if no errors present,
-               // keep running
-               ? run(path, callback)
-               // otherwise, leave
-               : false;
+  ```
+  if constexpr (delay_ms > 0)
+    sleep_for(milliseconds(delay_ms));
 
+  return scan(path, callback)
+             // if no errors present,
+             // keep running
+             ? run(path, callback)
+             // otherwise, leave
+             : false;
+  ```
   which may or may not be more clear.
   i don't know.
   */
 }
 
+}  // namespace hog
+}  // namespace adapter
 }  // namespace watcher
 }  // namespace water
