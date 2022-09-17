@@ -1,8 +1,14 @@
+#pragma once
+
+/* @brief watcher/adapter/hog
+ * a dumb adapter that works on any platform. */
+
 #include <chrono>
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <unordered_map>
 #include <watcher/concepts.hpp>
@@ -136,7 +142,7 @@ auto prune(const Path auto& path,
 bool scan_file(const Path auto& file,
                const Callback auto& callback) {
   using namespace std::filesystem;
-  if (is_regular_file(file)) {
+  if (exists(file) && is_regular_file(file)) {
     auto ec              = std::error_code{};
     // grabbing the last write times
     const auto timestamp = last_write_time(file, ec);
@@ -184,22 +190,13 @@ bool scan_directory(const Path auto& dir,
   // if this thing is a directory
   if (is_directory(dir)) {
     // trying to iterate through its
-    // contents
-    try {
-      for (const auto& file : dir_iter(dir, dir_opt)) {
+    // contents and handling errors
+    std::error_code ec{};
+    for (const auto& file : dir_iter(dir, dir_opt, ec))
+      if (ec)
+        return false;
+      else
         scan_file(file.path().c_str(), callback);
-      }
-    }  // and catching the error(s?)
-    catch (const std::exception& e) {
-      // @todo
-      // figure out how to grab the file
-      // the directory iterator was
-      // looking at and remove it from
-      // our bucket. maybe putting this
-      // try `block` inside of a `while`
-      // loop (instead of above a
-      // `for`).
-    }
     return true;
   } else
     return false;
@@ -217,8 +214,9 @@ bool scan_directory(const Path auto& dir,
  * happen. */
 template <const auto delay_ms = 16>
 inline bool run(const Path auto& path,
-         const Callback auto& callback) requires
-    std::is_integral_v<decltype(delay_ms)> {
+                const Callback auto& callback)
+  requires std::is_integral_v<decltype(delay_ms)>
+{
   // clang-format off
   using
     std::this_thread::sleep_for,
@@ -230,19 +228,14 @@ inline bool run(const Path auto& path,
 
   prune(path, callback);
 
+  // if no errors present, keep running.
+  // otherwise, leave.
   return 
-    exists(path) 
-      ? scan_directory(path, callback)
-        ? true
-        : scan_file(path, callback)
-          ? true
-          : false
-      : false
-    // if no errors present,
-    // keep running
-    ? run(path, callback)
-    // otherwise, leave
-    : false;
+    scan_directory(path, callback)
+      ? run(path, callback)
+      : scan_file(path, callback)
+        ? run(path, callback)
+        : false;
   // clang-format on
 
   /* @note

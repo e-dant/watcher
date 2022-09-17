@@ -1,3 +1,9 @@
+#pragma once
+
+/* @brief watcher/adapter
+ * an adaptor "switch" that chooses the ideal adaptor for
+ * the host platform (at compile-time). */
+
 #include <watcher/adapter/hog.hpp>
 #include <watcher/concepts.hpp>
 #include <watcher/platform.hpp>
@@ -7,31 +13,24 @@ namespace watcher {
 namespace adapter {
 
 template <const auto delay_ms = 16>
-inline bool run(
-    const concepts::Path auto& path,
-    const concepts::Callback auto& callback) requires
-    std::is_integral_v<decltype(delay_ms)> {
+inline bool run(const concepts::Path auto& path,
+                const concepts::Callback auto& callback)
+  requires std::is_integral_v<decltype(delay_ms)>
+{
   using water::watcher::platform;
-  if constexpr (water::watcher::platform
-                == platform_t::mac_catalyst) {
+  if constexpr (platform == platform_t::mac_catalyst) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::macos) {
+  } else if constexpr (platform == platform_t::macos) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::ios) {
+  } else if constexpr (platform == platform_t::ios) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::android) {
+  } else if constexpr (platform == platform_t::android) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::linux) {
+  } else if constexpr (platform == platform_t::linux) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::windows) {
+  } else if constexpr (platform == platform_t::windows) {
     return hog::run<delay_ms>(path, callback);
-  } else if constexpr (water::watcher::platform
-                       == platform_t::unknown) {
+  } else if constexpr (platform == platform_t::unknown) {
     return hog::run<delay_ms>(path, callback);
   } else {
     return hog::run<delay_ms>(path, callback);
