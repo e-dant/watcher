@@ -36,7 +36,7 @@ bool run(const concepts::Path auto& path,
     std::is_integral_v<decltype(delay_ms)> {
   using water::watcher::platform;
 
-  static_assert(delay_ms > 0);
+  static_assert(delay_ms >= 0);
 
   if constexpr (platform == platform_t::unknown) {
     return adapter::hog::run<delay_ms>(path, callback);
