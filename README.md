@@ -44,9 +44,9 @@ water::watcher::run<16>(
   // providing it with a callback,
   // that does whatever you'd like...
   [](
-    const water::concepts::Path auto file,
-    const water::watcher::status s) {
-      const auto pf = [&file](const auto s) {
+    const water::concepts::Path auto& file,
+    const water::watcher::status& s) {
+      const auto pf = [&file](const auto& s) {
         std::cout << s << ": " << file << std::endl;
       };
       // such as printing what happened.
@@ -80,13 +80,13 @@ using namespace watcher;
 using namespace concepts;
 
 const auto stutter_print
-    = [](const Path auto file, const status s)
+    = [](const Path auto& file, const status& s)
   {
 
   using status::created, status::modified, status::erased,
       std::endl, std::cout;
 
-  const auto pf = [&file](const auto s) {
+  const auto pf = [&file](const auto& s) {
     cout << s << ": " << file << endl;
   };
 

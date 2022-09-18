@@ -1,49 +1,29 @@
+#pragma once
+
+/* @brief watcher/adapter/hog
+ * a dumb adapter that works on any platform. */
+
 #include <chrono>
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <unordered_map>
+#include <watcher/concepts.hpp>
+#include <watcher/platform.hpp>
+#include <watcher/status.hpp>
 
 namespace water {
 
-namespace concepts {
-template <typename From>
-concept String = requires(From str) {
-  { str } -> std::convertible_to<std::string>;
-};
-
-template <typename From>
-concept Path = String<From>;
-
-template <typename Type, typename... Types>
-concept Same = std::is_same<Type, Types...>::value;
-
-template <typename... Types>
-concept Invocable = requires(Types... values) {
-  std::is_invocable<Types...>(values...)
-      or std::is_invocable_v<Types...>(values...)
-      or std::is_invocable_r_v<Types...>(values...);
-};
-
-template <typename Returns, typename... Accepts>
-concept Callback = requires(Returns fn, Accepts... args) {
-  // A callback doesn't return a value,
-  Same<void, Returns>
-      // takes one or more arguments,
-      and not Same<void, Accepts...>
-      // and is callable.
-      and Invocable<Returns, Accepts...>;
-};
-
-}  // namespace concepts
-
 namespace watcher {
 
-using namespace concepts;
+namespace adapter {
 
-enum class status { created, modified, erased };
+namespace hog {
+
+using namespace concepts;
 
 // anonymous namespace
 // for "private" variables
@@ -71,18 +51,17 @@ using bucket_t
 // right? well, maybe this should be an
 // object, I'm not sure, I just like
 // functions is all.
-static constexpr dir_opt_t dir_opt  // NOLINT
+inline constexpr dir_opt_t dir_opt
     = skip_permission_denied & follow_directory_symlink;
 
 static bucket_t bucket;  // NOLINT
-}  // namespace
 
 /* @brief watcher/constructor
  * @param path - path to monitor for
  * @see watcher::status
  * Creates a file map from the
  * given path. */
-void populate(const Path auto path = {"."}) {
+void populate(const Path auto& path = {"."}) {
   using namespace std::filesystem;
   using dir_iter  = recursive_directory_iterator;
 
@@ -124,8 +103,8 @@ void populate(const Path auto path = {"."}) {
 /* @brief prune
  * Removes non-existent files
  * from our bucket. */
-auto prune(const Path auto path,
-           const Callback auto callback) {
+auto prune(const Path auto& path,
+           const Callback auto& callback) {
   using std::filesystem::exists;
 
   // first of all
@@ -160,10 +139,10 @@ auto prune(const Path auto path,
  * Scans a single file.
  * Updates the bucket.
  * Calls the callback. */
-bool scan_file(const Path auto file,
-               const Callback auto callback) {
+bool scan_file(const Path auto& file,
+               const Callback auto& callback) {
   using namespace std::filesystem;
-  if (is_regular_file(file)) {
+  if (exists(file) && is_regular_file(file)) {
     auto ec              = std::error_code{};
     // grabbing the last write times
     const auto timestamp = last_write_time(file, ec);
@@ -203,55 +182,75 @@ bool scan_file(const Path auto file,
     return false;
 }
 
-bool scan_directory(const Path auto dir,
-                    const Callback auto callback) {
+bool scan_directory(const Path auto& dir,
+                    const Callback auto& callback) {
   using namespace std::filesystem;
   using dir_iter = recursive_directory_iterator;
 
   // if this thing is a directory
   if (is_directory(dir)) {
     // trying to iterate through its
-    // contents
-    try {
-      for (const auto& file : dir_iter(dir, dir_opt)) {
-        scan_file(file.path(), callback);
-      }
-    }  // and catching the error(s?)
-    catch (const std::exception& e) {
-      // @todo
-      // figure out how to grab the file
-      // the directory iterator was
-      // looking at and remove it from
-      // our bucket. maybe putting this
-      // try `block` inside of a `while`
-      // loop (instead of above a
-      // `for`).
-      //
-      // uh oh! the file disappeared
-      // while we were (trying to) get a
-      // look at it. it's gone, that's
-      // ok, now let's call the closure,
-      // indicating erasure,
-      //
-      // callback(file.path(),
-      // status::erased);
-      //// and get it out of the bucket.
-      // if
-      // (bucket.contains(file.path()))
-      //   bucket.erase(file.path());
-    }
+    // contents and handling errors
+    std::error_code ec{};
+    for (const auto& file : dir_iter(dir, dir_opt, ec))
+      if (ec)
+        return false;
+      else
+        scan_file(file.path().c_str(), callback);
     return true;
   } else
     return false;
 }
 
-/* @briref watcher/scan
+}  // namespace
+
+/* @brief watcher/run
+ * @param closure (optional):
+ *  A callback to perform when the files
+ *  being watched change.
+ *  @see Callback
+ * Monitor `path` for changes.
+ * Execute `callback` when they
+ * happen. */
+template <const auto delay_ms = 16>
+inline bool run(const Path auto& path,
+                const Callback auto& callback)
+  requires std::is_integral_v<decltype(delay_ms)>
+{
+  // clang-format off
+  using
+    std::this_thread::sleep_for,
+    std::chrono::milliseconds,
+    std::filesystem::exists;
+
+  if constexpr (delay_ms > 0)
+    sleep_for(milliseconds(delay_ms));
+
+  prune(path, callback);
+
+  // if no errors present, keep running.
+  // otherwise, leave.
+  return 
+    scan_directory(path, callback)
+      ? run(path, callback)
+      : scan_file(path, callback)
+        ? run(path, callback)
+        : false;
+  // clang-format on
+
+  /* @note
+  alternatively,
+  we could use this syntax:
+
+ *
+ * @brief watcher/scan
  * if this `path` is a directory,
  * scan recursively through its
  * contents. otherwise, this `path` is a
- * file,å so scan it alone. */
-bool scan(const Path auto path,
-          const Callback auto callback) {
+ * file, so scan it alone.
+ *
+bool scan = [](const Path auto& path,
+          const Callback auto& callback) {
   using namespace std::filesystem;
   // keep ourselves clean
   prune(path, callback);
@@ -267,42 +266,33 @@ bool scan(const Path auto path,
   // clang-format on
 }
 
-/* @brief watcher/run
- * @param closure (optional):
- *  A callback to perform when the files
- *  being watched change.
- *  @see Callback
- * Monitors `path_to_watch` for changes.
- * Executes the given closure when they
- * happen. */
-template <const auto delay_ms = 16>
-bool run(const Path auto path,
-         const Callback auto callback) requires
-    std::is_integral_v<decltype(delay_ms)> {
-  using std::this_thread::sleep_for,
-      std::chrono::milliseconds;
-
+  ```
   while (scan(path, callback))
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
 
   return false;
+  ```
 
-  /* @note
-  alternatively,
-  we could use this syntax:
+  or this syntax:
 
-    return scan(path, callback)
-               // if no errors present,
-               // keep running
-               ? run(path, callback)
-               // otherwise, leave
-               : false;
+  ```
+  if constexpr (delay_ms > 0)
+    sleep_for(milliseconds(delay_ms));
 
+  return scan(path, callback)
+             // if no errors present,
+             // keep running
+             ? run(path, callback)
+             // otherwise, leave
+             : false;
+  ```
   which may or may not be more clear.
   i don't know.
   */
 }
 
+}  // namespace hog
+}  // namespace adapter
 }  // namespace watcher
 }  // namespace water

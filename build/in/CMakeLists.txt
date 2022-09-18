@@ -130,6 +130,15 @@ target_link_libraries(
       project_warnings
 )
 
+if(APPLE)
+target_link_libraries(
+  "${PROJECT_NAME}"
+    PRIVATE
+      "-framework CoreFoundation"
+      "-framework CoreServices"
+)
+endif()
+
 # [package]
 #   TODO
 #package_project(
