@@ -1,7 +1,17 @@
 #pragma once
 
-/* @brief watcher/adapter/hog
- * a dumb adapter that works on any platform. */
+/*
+  @brief watcher/adapter/hog
+  
+  A reasonably dumb adapter that works on any platform.
+
+  This adapter beats `kqueue`, but it doesn't bean recieving
+  filesystem events directly from the OS.
+
+  This is the fallback adapter on platforms that either
+    - Only support `kqueue`
+    - Only support the C++ standard library
+*/
 
 #include <chrono>
 #include <filesystem>

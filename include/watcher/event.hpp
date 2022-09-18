@@ -1,5 +1,12 @@
 #pragma once
 
+/*
+  @brief watcher/event
+
+  A structure for passing around event information.
+  Intended to be passed to callback provided to `run`.
+*/
+
 namespace water {
 namespace watcher {
 namespace event {

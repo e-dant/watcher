@@ -2,8 +2,11 @@
 
 /*
   @brief watcher/watcher
-  the public interface.
-  include and use this file.
+
+  This is the public interface,
+  and it's probably what you're looking for.
+  
+  Include and use this file.
 */
 
 #include <watcher/adapter/hog.hpp>

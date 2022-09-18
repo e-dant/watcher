@@ -1,8 +1,10 @@
 #pragma once
 
-// #include <unistd.h>  // isatty()
-// #include <cstdio>  // fileno()
-// #include <mutex>
+/*
+  @brief watcher/adapter/macos
+
+  An efficient adapter for macos.
+*/
 
 #include <CoreServices/CoreServices.h>
 #include <array>
