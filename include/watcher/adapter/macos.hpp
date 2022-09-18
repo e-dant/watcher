@@ -20,22 +20,7 @@ namespace adapter {
 namespace macos {
 namespace {
 
-enum class type {
-  attr_owner,
-  attr_other,
-  other,
-  path_rename,
-  path_modify,
-  path_create,
-  path_destroy,
-  path_other,
-  path_is_dir,
-  path_is_file,
-  path_is_hard_link,
-  path_is_sym_link,
-};
-
-using flag_pair = std::pair<FSEventStreamEventFlags, type>;
+using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
 // clang-format off
 inline constexpr auto flag_pair_count = 26;
@@ -43,38 +28,38 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
   {
     /* basic information about what happened to some path.
        for now, this group is the important one. */
-    flag_pair(kFSEventStreamEventFlagItemCreated,        type::path_create),
-    flag_pair(kFSEventStreamEventFlagItemModified,       type::path_modify),
-    flag_pair(kFSEventStreamEventFlagItemRemoved,        type::path_destroy),
-    flag_pair(kFSEventStreamEventFlagItemRenamed,        type::path_rename),
+    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::path_create),
+    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::path_modify),
+    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::path_destroy),
+    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::path_rename),
 
     /* path information, i.e. whether the path is a file, directory, etc. */
-    flag_pair(kFSEventStreamEventFlagItemIsDir,          type::path_is_dir),
-    flag_pair(kFSEventStreamEventFlagItemIsFile,         type::path_is_file),
-    flag_pair(kFSEventStreamEventFlagItemIsSymlink,      type::path_is_sym_link),
-    flag_pair(kFSEventStreamEventFlagItemIsHardlink,     type::path_is_hard_link),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, type::path_is_hard_link),
+    flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::path_is_dir),
+    flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::path_is_file),
+    flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::path_is_sym_link),
+    flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::path_is_hard_link),
+    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::path_is_hard_link),
 
     /* path attribute events, such as the owner and some xattr data. */
-    flag_pair(kFSEventStreamEventFlagItemXattrMod,       type::attr_other),
-    flag_pair(kFSEventStreamEventFlagOwnEvent,           type::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  type::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   type::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    type::attr_owner),
+    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::attr_other),
+    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::attr_other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::attr_other),
+    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::attr_other),
+    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::attr_owner),
 
     /* some edge-cases which may be interesting later on. */
-    flag_pair(kFSEventStreamEventFlagNone,               type::other),
-    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    type::other),
-    flag_pair(kFSEventStreamEventFlagUserDropped,        type::other),
-    flag_pair(kFSEventStreamEventFlagKernelDropped,      type::other),
-    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    type::other),
-    flag_pair(kFSEventStreamEventFlagHistoryDone,        type::other),
-    flag_pair(kFSEventStreamEventFlagRootChanged,        type::other),
-    flag_pair(kFSEventStreamEventFlagMount,              type::other),
-    flag_pair(kFSEventStreamEventFlagUnmount,            type::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  type::other),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, type::other),
-    flag_pair(kFSEventStreamEventFlagItemCloned,         type::other),
+    flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
+    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
+    flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
+    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
+    flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
+    flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
 };
 // clang-format on
 
@@ -85,7 +70,7 @@ void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
                    const FSEventStreamEventFlags os_event_flags[],
                    const FSEventStreamEventId*) {
   auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
-    std::vector<type> translation;
+    std::vector<event::what> translation;
     // this is a slow, dumb search.
     for (const flag_pair& it : flag_pair_container)
       if (flag_recv & it.first)
@@ -93,45 +78,45 @@ void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
     return translation;
   };
 
-  auto log_event = [](const std::vector<type>& evs, const char* os_path) {
+  auto log_event = [](const std::vector<event::what>& evs, const char* os_path) {
     std::cout << os_path << ": ";
     for (const auto& ev : evs) {
       switch (ev) {
-        case (type::attr_other):
-          std::cout << "type::attr_other\n";
+        case (event::what::attr_other):
+          std::cout << "event::what::attr_other\n";
           break;
-        case (type::attr_owner):
-          std::cout << "type::attr_owner\n";
+        case (event::what::attr_owner):
+          std::cout << "event::what::attr_owner\n";
           break;
-        case (type::other):
-          std::cout << "type::other\n";
+        case (event::what::other):
+          std::cout << "event::what::other\n";
           break;
-        case (type::path_create):
-          std::cout << "type::path_create\n";
+        case (event::what::path_create):
+          std::cout << "event::what::path_create\n";
           break;
-        case (type::path_destroy):
-          std::cout << "type::path_destroy\n";
+        case (event::what::path_destroy):
+          std::cout << "event::what::path_destroy\n";
           break;
-        case (type::path_is_dir):
-          std::cout << "type::path_is_dir\n";
+        case (event::what::path_is_dir):
+          std::cout << "event::what::path_is_dir\n";
           break;
-        case (type::path_is_file):
-          std::cout << "type::path_is_file\n";
+        case (event::what::path_is_file):
+          std::cout << "event::what::path_is_file\n";
           break;
-        case (type::path_is_hard_link):
-          std::cout << "type::path_is_hard_link\n";
+        case (event::what::path_is_hard_link):
+          std::cout << "event::what::path_is_hard_link\n";
           break;
-        case (type::path_is_sym_link):
-          std::cout << "type::path_is_sym_link\n";
+        case (event::what::path_is_sym_link):
+          std::cout << "event::what::path_is_sym_link\n";
           break;
-        case (type::path_rename):
-          std::cout << "type::path_rename\n";
+        case (event::what::path_rename):
+          std::cout << "event::what::path_rename\n";
           break;
-        case (type::path_modify):
-          std::cout << "type::path_modify\n";
+        case (event::what::path_modify):
+          std::cout << "event::what::path_modify\n";
           break;
-        case (type::path_other):
-          std::cout << "type::path_other\n";
+        case (event::what::path_other):
+          std::cout << "event::what::path_other\n";
           break;
       }
     }

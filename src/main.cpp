@@ -8,7 +8,7 @@ using
   water::watcher::event::what::path_destroy,
   water::watcher::event::what::path_create,
   water::watcher::event::what::path_modify,
-  water::watcher::event,
+  water::watcher::event::event,
   water::watcher::run;
 
 const auto stutter_print = [](const event& ev) {
