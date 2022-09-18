@@ -2,19 +2,22 @@
 
 #include <CoreServices/CoreServices.h>
 #include <unistd.h>  // isatty()
-#include <cstdio>    // fileno()
+#include <chrono>
+#include <cstdio>  // fileno()
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <watcher/concepts.hpp>
 
 namespace water {
+namespace watcher {
+namespace adapter {
+namespace macos {
 namespace {
 using std::string;
 using std::vector;
-
-inline constexpr auto latency_ms = 1000;
 
 enum class fsevent_type {
   attr_modify,
@@ -104,7 +107,7 @@ void fsevent_callback(
   };
 
   auto log_event = [](vector<fsevent_type> evs) {
-    for (const auto ev : evs) {
+    for (const auto& ev : evs) {
       switch (ev) {
         case (fsevent_type::attr_modify):
           std::cout << "fsevent_type::attr_modify\n";
@@ -170,7 +173,8 @@ void fsevent_callback(
   }
 }
 
-auto fsevent_create_stream(CFArrayRef paths) {
+template <const auto delay_ms = 16>
+auto fsevent_create_stream(CFArrayRef& paths) {
   // std::unique_ptr<FSEventStreamContext> context(
   //     new FSEventStreamContext());
   // context->version         = 0;
@@ -178,29 +182,38 @@ auto fsevent_create_stream(CFArrayRef paths) {
   // context->retain          = nullptr;
   // context->release         = nullptr;
   // context->copyDescription = nullptr;
-
   const auto event_stream_flag
       = kFSEventStreamCreateFlagFileEvents
         | kFSEventStreamCreateFlagUseExtendedData
         | kFSEventStreamCreateFlagUseCFTypes
         | kFSEventStreamCreateFlagNoDefer;
-  const auto latency_s = latency_ms / 1000.0;
-  const auto time_flag = kFSEventStreamEventIdSinceNow;
-  std::cout << "Creating FSEvent stream...\n";
-  return FSEventStreamCreate(
-      nullptr, &fsevent_callback, nullptr, paths,
-      time_flag, latency_s, event_stream_flag);
+  const auto mk_stream = [&](const auto& delay_s) {
+    std::cout << "Creating FSEvent stream...\n";
+    const auto time_flag = kFSEventStreamEventIdSinceNow;
+    return FSEventStreamCreate(nullptr, &fsevent_callback,
+                               nullptr, paths, time_flag,
+                               delay_s, event_stream_flag);
+  };
+
+  if constexpr (delay_ms > 0)
+    return mk_stream(delay_ms / 1000.0);
+  else
+    return mk_stream(0);
 }
 }  // namespace
 
-void fsevent_run(const char* path) {
-  const auto mk_cfstring = [](const auto p) {
+template <const auto delay_ms = 16>
+inline auto run(const char* path,
+                const concepts::Callback auto& callback) {
+  const auto mk_cfstring = [](const auto& p) {
     return CFStringCreateWithCString(nullptr, p,
                                      kCFStringEncodingUTF8);
   };
+  using std::this_thread::sleep_for,
+      std::chrono::milliseconds;
 
   const auto rm_event_stream
-      = [](FSEventStreamRef event_stream_ref) {
+      = [](FSEventStreamRef& event_stream_ref) {
           std::cout << "Stopping event stream...\n";
           FSEventStreamStop(event_stream_ref);
           std::cout << "Invalidating event stream...\n";
@@ -210,18 +223,20 @@ void fsevent_run(const char* path) {
           event_stream_ref = nullptr;
         };
 
-  const auto rm_event_queue = [](auto event_queue) {
+  const auto rm_event_queue = [](const auto& event_queue) {
     dispatch_release(event_queue);
   };
 
-  vector<CFStringRef> path_container_basic{mk_cfstring(path)};
+  vector<CFStringRef> path_container_basic{
+      mk_cfstring(path)};
 
   if (path_container_basic.empty())
-    return;
+    return false;
 
   CFArrayRef path_container = CFArrayCreate(
       nullptr,
-      reinterpret_cast<const void**>(&path_container_basic[0]),
+      reinterpret_cast<const void**>(
+          &path_container_basic[0]),
       static_cast<CFIndex>(path_container_basic.size()),
       &kCFTypeArrayCallBacks);
 
@@ -239,13 +254,17 @@ void fsevent_run(const char* path) {
   std::cout << "Starting event stream...\n";
   FSEventStreamStart(event_stream);
 
-  for (;;) {
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(latency_ms));
-  }
+  while (true)
+    if constexpr (delay_ms > 0)
+      sleep_for(milliseconds(delay_ms));
 
   rm_event_stream(event_stream);
   rm_event_queue(fsevent_queue);
+
+  return true;
 }
 
+}  // namespace macos
+}  // namespace adapter
+}  // namespace watcher
 }  // namespace water
