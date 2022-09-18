@@ -1,8 +1,10 @@
 #pragma once
 
-/* @brief watcher/watcher
- * the public interface.
- * include and use this file. */
+/*
+  @brief watcher/watcher
+  the public interface.
+  include and use this file.
+*/
 
 #include <watcher/adapter/hog.hpp>
 #include <watcher/adapter/macos.hpp>
@@ -15,19 +17,20 @@ namespace water {
 namespace watcher {
 
 /*
- @brief watcher/run
+  @brief watcher/run
 
- @param closure (optional):
-  A callback to call when the files being watched change.
-  @see Callback
+  @param closure (optional):
+    A callback to call when the files being watched change.
+    @see Callback
 
- @param path: The root path to watch for filesystem events.
+  @param path:
+    The root path to watch for filesystem events.
 
- This is an adaptor "switch" that chooses the ideal adaptor
- for the host platform.
+  This is an adaptor "switch" that chooses the ideal adaptor
+  for the host platform.
 
- Every adapter monitors `path_to_watch` for changes and
- executes the `closure` when they happen.
+  Every adapter monitors `path_to_watch` for changes and
+  executes the `closure` when they happen.
 */
 
 template <const auto delay_ms = 16>
@@ -38,7 +41,6 @@ bool run(const concepts::Path auto& path,
   // negative time considered harmful.
 
   static_assert(delay_ms >= 0);
-  return water::watcher::adapter::hog::run<delay_ms>(path, callback);
 
   if constexpr (platform == platform_t::unknown)
     return adapter::hog::run<delay_ms>(path, callback);
