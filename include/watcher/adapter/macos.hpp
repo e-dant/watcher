@@ -195,24 +195,24 @@ inline auto run(const concepts::Path auto& path,
     return CFStringCreateWithCString(nullptr, p, kCFStringEncodingUTF8);
   };
   using std::this_thread::sleep_for, std::chrono::milliseconds;
-  const auto rm_os_resources = [](const FSEventStreamRef& event_stream_ref,
-                                  const auto& event_queue) {
-    FSEventStreamStop(event_stream_ref);
-    FSEventStreamInvalidate(event_stream_ref);
-    FSEventStreamRelease(event_stream_ref);
-    // does event_stream_ref *need* to be made a nullptr here?
+  const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                    const auto& event_queue) {
+    FSEventStreamSetDispatchQueue(event_stream, event_queue);
+    FSEventStreamStart(event_stream);
+    return event_queue ? true : false;
+  };
+  const auto dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                   const auto& event_queue) {
+    FSEventStreamStop(event_stream);
+    FSEventStreamInvalidate(event_stream);
+    FSEventStreamRelease(event_stream);
+    // does event_stream *need* to be made a nullptr here?
     // we would need to lose the const qualifier on it...
     dispatch_release(event_queue);
+    return event_queue ? false : true;
   };
   const array<CFStringRef, 1> path_as_refref{mk_cfstring(path)};
   // check if empty? not sure it needs to...
-  // const void** path_container_basic{mk_cfstring(path)};
-  // CFArrayRef path_container = CFArrayCreate(
-  //    nullptr,                                                // not sure
-  //    reinterpret_cast<const void**>(&path_container_basic),  // path strings
-  //    1,                      // number of paths
-  //    &kCFTypeArrayCallBacks  // we have a callback
-  // );
   const auto event_stream = create_stream(CFArrayCreate(
       nullptr,                          // not sure
       (const void**)(&path_as_refref),  // path strings
@@ -222,20 +222,14 @@ inline auto run(const concepts::Path auto& path,
   if (!event_stream)
     return false;
   // request a high priority queue.
-  auto queue = dispatch_queue_create(
+  auto event_queue = dispatch_queue_create(
       "water.watcher.event_queue",
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
-  FSEventStreamSetDispatchQueue(event_stream, queue);
-  FSEventStreamStart(event_stream);
-
-  while (true)
+  while (alive_os_ev_queue(event_stream, event_queue))
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
-
-  rm_os_resources(event_stream, queue);
-
-  return true;
+  return dead_os_ev_queue(event_stream, event_queue);
 }
 
 }  // namespace macos
