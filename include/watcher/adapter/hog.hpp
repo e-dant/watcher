@@ -196,27 +196,36 @@ bool scan_directory(const Path auto& dir, const Callback auto& callback) {
 
 }  // namespace
 
-/* @brief watcher/run
- * @param closure (optional):
- *  A callback to perform when the files
- *  being watched change.
- *  @see Callback
- * Monitor `path` for changes.
- * Execute `callback` when they
- * happen. */
+/*
+  @brief watcher/run
+
+  @param closure (optional):
+   A callback to perform when the files
+   being watched change.
+   @see Callback
+
+  Monitors `path` for changes.
+
+  Executes `callback` when they
+  happen.
+
+  Unless it should stop, or errors present,
+  `run` recurses into itself.
+*/
+// clang-format off
 template <const auto delay_ms = 16>
 inline bool run(const Path auto& path, const Callback auto& callback) requires
     std::is_integral_v<decltype(delay_ms)> {
-  // clang-format off
+  /* see note [alternative run loop syntax] */
   using
     std::this_thread::sleep_for,
     std::chrono::milliseconds,
     std::filesystem::exists;
 
+  prune(path, callback);
+
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
-
-  prune(path, callback);
 
   // if no errors present, keep running.
   // otherwise, leave.
@@ -226,61 +235,26 @@ inline bool run(const Path auto& path, const Callback auto& callback) requires
       : scan_file(path, callback)
         ? run(path, callback)
         : false;
-  // clang-format on
-
-  /* @note
-  alternatively,
-  we could use this syntax:
-
- *
- * @brief watcher/scan
- * if this `path` is a directory,
- * scan recursively through its
- * contents. otherwise, this `path` is a
- * file, so scan it alone.
- *
-bool scan = [](const Path auto& path,
-          const Callback auto& callback) {
-  using namespace std::filesystem;
-  // keep ourselves clean
-  prune(path, callback);
-  // clang-format off
-  // and scan, if the path exists.
-  return exists(path)
-         ? scan_directory(path, callback)
-           ? true
-           : scan_file(path, callback)
-             ? true
-             : false
-         : false;
-  // clang-format on
 }
+// clang-format on
 
-  ```
+/*
+# Notes
+
+## Alternative `run` loop syntax
+
+  The syntax currently being used is short, but somewhat irregular.
+  An quivalent pattern is provided here, in case we want to change it.
+  This may or may not be more clear. I'm not sure.
+
+  ```cpp
   while (scan(path, callback))
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
 
   return false;
   ```
-
-  or this syntax:
-
-  ```
-  if constexpr (delay_ms > 0)
-    sleep_for(milliseconds(delay_ms));
-
-  return scan(path, callback)
-             // if no errors present,
-             // keep running
-             ? run(path, callback)
-             // otherwise, leave
-             : false;
-  ```
-  which may or may not be more clear.
-  i don't know.
-  */
-}
+*/
 
 }  // namespace hog
 }  // namespace adapter
