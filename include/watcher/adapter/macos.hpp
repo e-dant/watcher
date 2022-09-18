@@ -74,12 +74,12 @@ inline constexpr array<flag_pair, 26> flags{
     //clang-format on
 };
 
-void callback(ConstFSEventStreamRef, /* stream_ref (required) */
-              auto*,                 /* callback_info (required for cb) */
-              size_t numEvents,
-              auto* eventPaths,
-              const FSEventStreamEventFlags eventFlags[],
-              const FSEventStreamEventId*) {
+void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
+                   auto*,                 /* callback_info (required for cb) */
+                   size_t numEvents,
+                   auto* eventPaths,
+                   const FSEventStreamEventFlags eventFlags[],
+                   const FSEventStreamEventId*) {
   auto decode_flags =
       [](const FSEventStreamEventFlags& flag_recv) -> std::vector<type> {
     std::vector<type> evt_flags;
@@ -156,7 +156,16 @@ void callback(ConstFSEventStreamRef, /* stream_ref (required) */
 }
 
 template <const auto delay_ms = 16>
-auto create_stream(const CFArrayRef& paths) {
+auto mk_event_stream(const concepts::Path auto& p,
+                     const concepts::Callback auto& callback) {
+  const void* _path_ref =
+      CFStringCreateWithCString(nullptr, p, kCFStringEncodingUTF8);
+  const void** _path_refref{&_path_ref};
+  const auto path = CFArrayCreate(nullptr,                // not sure
+                                  _path_refref,           // path string(s)
+                                  1,                      // number of paths
+                                  &kCFTypeArrayCallBacks  // callback
+  );
   // std::unique_ptr<FSEventStreamContext> context(
   //     new FSEventStreamContext());
   // context->version         = 0;
@@ -164,35 +173,38 @@ auto create_stream(const CFArrayRef& paths) {
   // context->retain          = nullptr;
   // context->release         = nullptr;
   // context->copyDescription = nullptr;
-  const auto event_stream_flag = kFSEventStreamCreateFlagFileEvents |
-                                 kFSEventStreamCreateFlagUseExtendedData |
-                                 kFSEventStreamCreateFlagUseCFTypes |
-                                 kFSEventStreamCreateFlagNoDefer;
-  const auto mk_stream = [&](const auto& delay_s) {
+
+  const auto mk_stream = [](const auto& path) {
+    const auto event_stream_flag = kFSEventStreamCreateFlagFileEvents |
+                                   kFSEventStreamCreateFlagUseExtendedData |
+                                   kFSEventStreamCreateFlagUseCFTypes |
+                                   kFSEventStreamCreateFlagNoDefer;
     const auto time_flag = kFSEventStreamEventIdSinceNow;
     return FSEventStreamCreate(
-        nullptr,           // allocator
-        &callback,         // callback; what to do
-        nullptr,           // context (see note at top of this fn)
-        paths,             // where to watch
-        time_flag,         // since when (we choose since now)
-        delay_s,           // "stutter" frequency; latency between polls
+        nullptr,         // allocator
+        &dumb_callback,  // callback; what to do
+        nullptr,         // context (see note at top of this fn)
+        path,            // where to watch
+        time_flag,       // since when (we choose since now)
+        []() {
+          if constexpr (delay_ms > 0)
+            return (delay_ms / 1000.0);
+          else
+            return (0);
+        }(),               // "stutter" frequency; latency between polls
         event_stream_flag  // what data to gather and how
     );
   };
 
-  if constexpr (delay_ms > 0)
-    return mk_stream(delay_ms / 1000.0);
-  else
-    return mk_stream(0);
+  return mk_stream(path);
 }
 }  // namespace
 
 template <const auto delay_ms = 16>
 inline auto run(const concepts::Path auto& path,
                 const concepts::Callback auto& callback) {
-  const auto mk_cfstring = [](const auto& p) {
-    return CFStringCreateWithCString(nullptr, p, kCFStringEncodingUTF8);
+  const auto mk_cfstring = [](const auto& s) {
+    return CFStringCreateWithCString(nullptr, s, kCFStringEncodingUTF8);
   };
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
@@ -210,28 +222,22 @@ inline auto run(const concepts::Path auto& path,
     return event_queue ? false : true;
   };
   // the contortions here are to please darwin.
-  // old-style cast because using a reinterpret_cast
-  // would discard the path reference's const qualifier.
   // importantly, `path_as_refref` and its underlying types
-  // *are* const qualified. using this old-style cast is ugly,
-  // but it's also ok.
-  const array<CFStringRef, 1> path_as_refref{mk_cfstring(path)};
-  const auto event_stream = create_stream(CFArrayCreate(
-      nullptr,                          // not sure
-      (const void**)(&path_as_refref),  // path string(s)
-      1,                                // number of paths
-      &kCFTypeArrayCallBacks            // callback
-      ));
+  // *are* const qualified. using void** is not ok. but it's also ok.
+  // const void* tmp = mk_cfstring(path);
+  // const void** path_as_refref{&tmp};
+  const auto event_stream = mk_event_stream<delay_ms>(path, callback);
   if (!event_stream)
     return false;
   // request a high priority queue.
-  auto event_queue = dispatch_queue_create(
+  const auto event_queue = dispatch_queue_create(
       "water.watcher.event_queue",
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
-  while (alive_os_ev_queue(event_stream, event_queue))
-    if constexpr (delay_ms > 0)
-      sleep_for(milliseconds(delay_ms));
+  if (!event_queue)
+    return false;
+  while (alive_os_ev_queue(event_stream, event_queue)) {
+  }
   return dead_os_ev_queue(event_stream, event_queue);
 }
 
