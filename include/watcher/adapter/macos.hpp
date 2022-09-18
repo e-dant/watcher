@@ -2,6 +2,7 @@
 
 #include <CoreServices/CoreServices.h>
 #include <unistd.h>  // isatty()
+#include <array>
 #include <chrono>
 #include <cstdio>  // fileno()
 #include <iostream>
@@ -19,7 +20,7 @@ namespace {
 using std::string;
 using std::vector;
 
-enum class fsevent_type {
+enum class type {
   attr_modify,
   other,
   path_create,
@@ -33,72 +34,70 @@ enum class fsevent_type {
   perm_owner,
 };
 
-using fsevent_flag_pair
-    = std::pair<FSEventStreamEventFlags, fsevent_type>;
+using flag_pair = std::pair<FSEventStreamEventFlags, type>;
 
-static const vector<fsevent_flag_pair> fsevent_flags{
-    {kFSEventStreamEventFlagNone, fsevent_type::other},
-    {kFSEventStreamEventFlagMustScanSubDirs,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagUserDropped,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagKernelDropped,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagEventIdsWrapped,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagHistoryDone,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagRootChanged,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagMount, fsevent_type::other},
-    {kFSEventStreamEventFlagUnmount, fsevent_type::other},
-    {kFSEventStreamEventFlagItemChangeOwner,
-     fsevent_type::perm_owner},
-    {kFSEventStreamEventFlagItemCreated,
-     fsevent_type::path_create},
-    {kFSEventStreamEventFlagItemFinderInfoMod,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagItemFinderInfoMod,
-     fsevent_type::attr_modify},
-    {kFSEventStreamEventFlagItemInodeMetaMod,
-     fsevent_type::attr_modify},
-    {kFSEventStreamEventFlagItemIsDir,
-     fsevent_type::path_is_dir},
-    {kFSEventStreamEventFlagItemIsFile,
-     fsevent_type::path_is_file},
-    {kFSEventStreamEventFlagItemIsSymlink,
-     fsevent_type::path_is_sym_link},
-    {kFSEventStreamEventFlagItemModified,
-     fsevent_type::path_update},
-    {kFSEventStreamEventFlagItemRemoved,
-     fsevent_type::path_destroy},
-    {kFSEventStreamEventFlagItemRenamed,
-     fsevent_type::path_rename},
-    {kFSEventStreamEventFlagItemXattrMod,
-     fsevent_type::attr_modify},
-    {kFSEventStreamEventFlagOwnEvent,
-     fsevent_type::attr_modify},
-    {kFSEventStreamEventFlagItemIsHardlink,
-     fsevent_type::path_is_hard_link},
-    {kFSEventStreamEventFlagItemIsLastHardlink,
-     fsevent_type::path_is_hard_link},
-    {kFSEventStreamEventFlagItemIsLastHardlink,
-     fsevent_type::other},
-    {kFSEventStreamEventFlagItemCloned,
-     fsevent_type::other},
+inline constexpr std::array<flag_pair, 26> flags{
+    flag_pair(kFSEventStreamEventFlagNone, type::other),
+    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagUserDropped,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagKernelDropped,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagHistoryDone,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagRootChanged,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagMount, type::other),
+    flag_pair(kFSEventStreamEventFlagUnmount, type::other),
+    flag_pair(kFSEventStreamEventFlagItemChangeOwner,
+              type::perm_owner),
+    flag_pair(kFSEventStreamEventFlagItemCreated,
+              type::path_create),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,
+              type::attr_modify),
+    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,
+              type::attr_modify),
+    flag_pair(kFSEventStreamEventFlagItemIsDir,
+              type::path_is_dir),
+    flag_pair(kFSEventStreamEventFlagItemIsFile,
+              type::path_is_file),
+    flag_pair(kFSEventStreamEventFlagItemIsSymlink,
+              type::path_is_sym_link),
+    flag_pair(kFSEventStreamEventFlagItemModified,
+              type::path_update),
+    flag_pair(kFSEventStreamEventFlagItemRemoved,
+              type::path_destroy),
+    flag_pair(kFSEventStreamEventFlagItemRenamed,
+              type::path_rename),
+    flag_pair(kFSEventStreamEventFlagItemXattrMod,
+              type::attr_modify),
+    flag_pair(kFSEventStreamEventFlagOwnEvent,
+              type::attr_modify),
+    flag_pair(kFSEventStreamEventFlagItemIsHardlink,
+              type::path_is_hard_link),
+    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink,
+              type::path_is_hard_link),
+    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink,
+              type::other),
+    flag_pair(kFSEventStreamEventFlagItemCloned,
+              type::other),
 };
 
-void fsevent_callback(
+void callback(
     ConstFSEventStreamRef /* stream_ref (required) */,
     auto* /* callback_info (required for cb) */,
     size_t numEvents, auto* eventPaths,
     const FSEventStreamEventFlags eventFlags[],
     const FSEventStreamEventId*) {
   auto decode_flags = [](FSEventStreamEventFlags flag_recv)
-      -> vector<fsevent_type> {
-    vector<fsevent_type> evt_flags;
-    for (const fsevent_flag_pair& flag_pair :
-         fsevent_flags) {
+      -> vector<type> {
+    vector<type> evt_flags;
+    for (const flag_pair& flag_pair : flags) {
       if (flag_recv & flag_pair.first) {
         evt_flags.push_back(flag_pair.second);
       }
@@ -106,41 +105,41 @@ void fsevent_callback(
     return evt_flags;
   };
 
-  auto log_event = [](vector<fsevent_type> evs) {
+  auto log_event = [](vector<type> evs) {
     for (const auto& ev : evs) {
       switch (ev) {
-        case (fsevent_type::attr_modify):
-          std::cout << "fsevent_type::attr_modify\n";
+        case (type::attr_modify):
+          std::cout << "type::attr_modify\n";
           break;
-        case (fsevent_type::other):
-          std::cout << "fsevent_type::other\n";
+        case (type::other):
+          std::cout << "type::other\n";
           break;
-        case (fsevent_type::path_create):
-          std::cout << "fsevent_type::path_create\n";
+        case (type::path_create):
+          std::cout << "type::path_create\n";
           break;
-        case (fsevent_type::path_destroy):
-          std::cout << "fsevent_type::path_destroy\n";
+        case (type::path_destroy):
+          std::cout << "type::path_destroy\n";
           break;
-        case (fsevent_type::path_is_dir):
-          std::cout << "fsevent_type::path_is_dir\n";
+        case (type::path_is_dir):
+          std::cout << "type::path_is_dir\n";
           break;
-        case (fsevent_type::path_is_file):
-          std::cout << "fsevent_type::path_is_file\n";
+        case (type::path_is_file):
+          std::cout << "type::path_is_file\n";
           break;
-        case (fsevent_type::path_is_hard_link):
-          std::cout << "fsevent_type::path_is_hard_link\n";
+        case (type::path_is_hard_link):
+          std::cout << "type::path_is_hard_link\n";
           break;
-        case (fsevent_type::path_is_sym_link):
-          std::cout << "fsevent_type::path_is_sym_link\n";
+        case (type::path_is_sym_link):
+          std::cout << "type::path_is_sym_link\n";
           break;
-        case (fsevent_type::path_rename):
-          std::cout << "fsevent_type::path_rename\n";
+        case (type::path_rename):
+          std::cout << "type::path_rename\n";
           break;
-        case (fsevent_type::path_update):
-          std::cout << "fsevent_type::path_update\n";
+        case (type::path_update):
+          std::cout << "type::path_update\n";
           break;
-        case (fsevent_type::perm_owner):
-          std::cout << "fsevent_type::perm_owner\n";
+        case (type::perm_owner):
+          std::cout << "type::perm_owner\n";
           break;
       }
     }
@@ -174,7 +173,7 @@ void fsevent_callback(
 }
 
 template <const auto delay_ms = 16>
-auto fsevent_create_stream(CFArrayRef& paths) {
+auto create_stream(CFArrayRef& paths) {
   // std::unique_ptr<FSEventStreamContext> context(
   //     new FSEventStreamContext());
   // context->version         = 0;
@@ -190,9 +189,9 @@ auto fsevent_create_stream(CFArrayRef& paths) {
   const auto mk_stream = [&](const auto& delay_s) {
     std::cout << "Creating FSEvent stream...\n";
     const auto time_flag = kFSEventStreamEventIdSinceNow;
-    return FSEventStreamCreate(nullptr, &fsevent_callback,
-                               nullptr, paths, time_flag,
-                               delay_s, event_stream_flag);
+    return FSEventStreamCreate(nullptr, &callback, nullptr,
+                               paths, time_flag, delay_s,
+                               event_stream_flag);
   };
 
   if constexpr (delay_ms > 0)
@@ -227,29 +226,30 @@ inline auto run(const concepts::Path auto& path,
     dispatch_release(event_queue);
   };
 
-  vector<CFStringRef> path_container_basic{
+  // vector<CFStringRef>
+  std::array<CFStringRef, 1> path_container_basic{
       mk_cfstring(path)};
 
   if (path_container_basic.empty())
     return false;
 
-  CFArrayRef path_container = CFArrayCreate(
-      nullptr,
-      reinterpret_cast<const void**>(
-          &path_container_basic[0]),
-      static_cast<CFIndex>(path_container_basic.size()),
-      &kCFTypeArrayCallBacks);
+  CFArrayRef path_container
+      = CFArrayCreate(nullptr,
+                      reinterpret_cast<const void**>(
+                          &path_container_basic[0]),
+                      static_cast<const CFIndex>(
+                          path_container_basic.size()),
+                      &kCFTypeArrayCallBacks);
 
-  auto event_stream = fsevent_create_stream(path_container);
+  auto event_stream = create_stream(path_container);
 
   if (!event_stream)
     std::cerr << "Event stream could not be created.";
 
   // Creating dispatch queue
-  auto fsevent_queue = dispatch_queue_create(
-      "fswatch_event_queue", nullptr);
-  FSEventStreamSetDispatchQueue(event_stream,
-                                fsevent_queue);
+  auto queue = dispatch_queue_create("fswatch_event_queue",
+                                     nullptr);
+  FSEventStreamSetDispatchQueue(event_stream, queue);
 
   std::cout << "Starting event stream...\n";
   FSEventStreamStart(event_stream);
@@ -259,7 +259,7 @@ inline auto run(const concepts::Path auto& path,
       sleep_for(milliseconds(delay_ms));
 
   rm_event_stream(event_stream);
-  rm_event_queue(fsevent_queue);
+  rm_event_queue(queue);
 
   return true;
 }
