@@ -122,9 +122,6 @@ void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
     }
   };
 
-  time_t curr_time;
-  time(&curr_time);
-
   for (size_t i = 0; i < os_event_count; ++i) {
     const auto _path_info_dict =
         static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
@@ -248,6 +245,8 @@ To grab the inode and time information about an event, something like this, also
 from `fswatch`, could be used:
 
   ```cpp
+  time_t curr_time;
+  time(&curr_time);
   auto cf_inode = static_cast<CFNumberRef>(CFDictionaryGetValue(
       _path_info_dict, kFSEventStreamEventExtendedFileIDKey));
   unsigned long inode;

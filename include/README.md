@@ -3,13 +3,14 @@
 
 ## Summary
 
-Public header interface for *Watcher
-*.
+Public (single) header interface for *Watcher*: An arbitrary path watcher.
 
-Arbitrary path watcher.
+To use:
 
+```cpp
+#include <watcher/watcher.hpp>
+```
 
 ## Content
 
-{{skeleton.include.readme.content}}
-
+`watcher.hpp`
