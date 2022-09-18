@@ -75,6 +75,7 @@ auto populate(const Path auto& path = {"."}) {
       bucket[path] = last_write_time(path);
   else
     return false;
+  return true;
 }
 
 /* @brief prune
@@ -110,6 +111,7 @@ auto prune(const Path auto& path, const Callback auto& callback) {
                   }();
           }
         }();
+  return true;
 }
 
 /* @brief scan_file
@@ -205,18 +207,18 @@ inline bool run(const Path auto& path, const Callback auto& callback) requires
     std::chrono::milliseconds,
     std::filesystem::exists;
 
-  prune(path, callback);
-
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
 
   /* if no errors present, keep running. otherwise, leave. */
-  return 
-    scan_directory(path, callback)
-      ? run(path, callback)
-      : scan_file(path, callback)
+  return
+    prune(path, callback)
+      ? scan_directory(path, callback)
         ? run(path, callback)
-        : false;
+        : scan_file(path, callback)
+          ? run(path, callback)
+          : false
+      : false;
 }
 // clang-format on
 
@@ -230,10 +232,10 @@ inline bool run(const Path auto& path, const Callback auto& callback) requires
   This may or may not be more clear. I'm not sure.
 
   ```cpp
+  prune(path, callback);
   while (scan(path, callback))
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
-
   return false;
   ```
 */
