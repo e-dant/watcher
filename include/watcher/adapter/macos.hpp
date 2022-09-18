@@ -162,19 +162,19 @@ void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
 }
 
 template <const auto delay_ms = 16>
-auto mk_event_stream(const concepts::Path auto& os_path) {
+auto mk_event_stream(const char* path) {
   // the contortions here are to please darwin.
   // importantly, `path_as_refref` and its underlying types
   // *are* const qualified. using void** is not ok. but it's also ok.
   const void* _path_ref =
-      CFStringCreateWithCString(nullptr, os_path, kCFStringEncodingUTF8);
+      CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
   const void** _path_refref{&_path_ref};
 
   /* We pass along the path we were asked to watch, */
-  const auto path = CFArrayCreate(nullptr,                // not sure
-                                  _path_refref,           // path string(s)
-                                  1,                      // number of paths
-                                  &kCFTypeArrayCallBacks  // callback
+  const auto translated_path = CFArrayCreate(nullptr,       // not sure
+                                             _path_refref,  // path string(s)
+                                             1,             // number of paths
+                                             &kCFTypeArrayCallBacks  // callback
   );
   /* the time point from which we want to monitor events (which is now), */
   const auto time_flag = kFSEventStreamEventIdSinceNow;
@@ -185,6 +185,7 @@ auto mk_event_stream(const concepts::Path auto& os_path) {
     else
       return (0);
   }();
+  std::cout << delay_s << "/delay_s" << std::endl;
   /* and the event stream flags */
   const auto event_stream_flags = kFSEventStreamCreateFlagFileEvents |
                                   kFSEventStreamCreateFlagUseExtendedData |
@@ -195,7 +196,7 @@ auto mk_event_stream(const concepts::Path auto& os_path) {
       nullptr,            // allocator
       &dumb_callback,     // callback; what to do
       nullptr,            // context (see note [event stream context])
-      path,               // where to watch
+      translated_path,    // where to watch
       time_flag,          // since when (we choose since now)
       delay_s,            // time between fs event scans
       event_stream_flags  // what data to gather and how
@@ -207,10 +208,9 @@ auto mk_event_stream(const concepts::Path auto& os_path) {
 template <const auto delay_ms = 16>
 inline auto run(const concepts::Path auto& path,
                 const concepts::Callback auto& callback) {
-  const auto mk_cfstring = [](const auto& s) {
-    return CFStringCreateWithCString(nullptr, s, kCFStringEncodingUTF8);
-  };
-  using std::this_thread::sleep_for, std::chrono::milliseconds;
+  using std::chrono::seconds, std::chrono::milliseconds,
+      std::this_thread::sleep_for;
+
   const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
                                     const auto& event_queue) {
     if (!event_stream || !event_queue)
@@ -219,6 +219,7 @@ inline auto run(const concepts::Path auto& path,
     FSEventStreamStart(event_stream);
     return event_queue ? true : false;
   };
+
   const auto dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
                                    const auto& event_queue) {
     FSEventStreamStop(event_stream);
@@ -227,6 +228,7 @@ inline auto run(const concepts::Path auto& path,
     dispatch_release(event_queue);
     return event_queue ? false : true;
   };
+
   // @todo use callback
   const auto event_stream = mk_event_stream<delay_ms>(path /*, dumb_callback*/);
   // request a high priority queue.
@@ -234,8 +236,16 @@ inline auto run(const concepts::Path auto& path,
       "water.watcher.event_queue",
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
-  while (alive_os_ev_queue(event_stream, event_queue)) {
-  }
+
+  while (alive_os_ev_queue(event_stream, event_queue))
+    /* this does nothing to affect processing, but this thread doesn't need to
+       run an infinite loop aggressively. It can wait, with some latency, until
+       the queue stops, and then clean itself up. */
+    if constexpr (delay_ms > 0)
+      sleep_for(milliseconds(delay_ms));
+    else
+      sleep_for(seconds(1));
+
   return dead_os_ev_queue(event_stream, event_queue);
 }
 

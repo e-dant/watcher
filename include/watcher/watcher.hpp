@@ -4,13 +4,6 @@
  * the public interface.
  * include and use this file. */
 
-#include <chrono>
-#include <filesystem>
-#include <functional>
-#include <iostream>
-#include <string>
-#include <thread>
-#include <unordered_map>
 #include <watcher/adapter/hog.hpp>
 #include <watcher/adapter/macos.hpp>
 #include <watcher/concepts.hpp>
