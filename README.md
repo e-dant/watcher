@@ -80,13 +80,13 @@ using namespace watcher;
 using namespace concepts;
 
 const auto stutter_print
-    = [](const Path auto file, const status s)
+    = [](const Path auto& file, const status& s)
   {
 
   using status::created, status::modified, status::erased,
       std::endl, std::cout;
 
-  const auto pf = [&file](const auto s) {
+  const auto pf = [&file](const auto& s) {
     cout << s << ": " << file << endl;
   };
 
