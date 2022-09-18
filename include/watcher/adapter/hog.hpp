@@ -19,9 +19,7 @@ namespace water {
 namespace watcher {
 namespace adapter {
 namespace hog {
-
-/* anonymous namespace for "private" variables */
-namespace {
+namespace { /* anonymous namespace for "private" variables */
 /*  shorthands for:
       - Path
       - Callback
@@ -112,7 +110,6 @@ auto prune(const Path auto& path, const Callback auto& callback) {
   Scans a single `file` for changes. Updates our bucket. Calls `callback`.
 */
 bool scan_file(const Path auto& file, const Callback auto& callback) {
-  using namespace std::filesystem;
   if (exists(file) && is_regular_file(file)) {
     auto ec = std::error_code{};
     /* grabbing the file's last write time */
