@@ -38,9 +38,7 @@ bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) {
   using water::watcher::platform;
 
-  // negative time considered harmful.
-
-  static_assert(delay_ms >= 0);
+  static_assert(delay_ms >= 0, "Negative time is considered harmful.");
 
   if constexpr (platform == platform_t::unknown)
     return adapter::hog::run<delay_ms>(path, callback);
