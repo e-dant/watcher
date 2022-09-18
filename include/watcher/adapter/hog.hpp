@@ -33,7 +33,12 @@ namespace {
 using
   concepts::Path,
   concepts::Callback,
+  std::filesystem::exists,
+  std::filesystem::is_directory,
+  std::filesystem::last_write_time,
+  std::filesystem::is_regular_file,
   std::filesystem::directory_options,
+  std::filesystem::recursive_directory_iterator,
   std::filesystem::directory_options::follow_directory_symlink,
   std::filesystem::directory_options::skip_permission_denied;
 
@@ -55,12 +60,10 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
   Creates a file map, the "bucket", from `path`.
 */
 auto populate(const Path auto& path = {"."}) {
-  using namespace std::filesystem;
-  using dir_iter = recursive_directory_iterator;
   if (exists(path))
     if (is_directory(path))
       try {
-        for (const auto& file : dir_iter(path, dir_opt))
+        for (const auto& file : recursive_directory_iterator(path, dir_opt))
           if (exists(file))
             bucket[file.path().string()] = last_write_time(file);
       } catch (const std::exception& e) {
@@ -76,41 +79,38 @@ auto populate(const Path auto& path = {"."}) {
 
 /*
   @brief prune
-  Removes dead files from the bucket.
+  Removes files which no longer exist from our bucket.
 */
 auto prune(const Path auto& path, const Callback auto& callback) {
   using std::filesystem::exists;
+  const auto do_prune = [](const auto& callback) {
+    auto file = bucket.begin();
+    /* while look through the bucket's contents, */
+    while (file != bucket.end()) {
+      /* check if the stuff in our bucket exists anymore. */
+      exists(file->first)
+          /* if so, move on. */
+          ? std::advance(file, 1)
+          /* if not, call the closure, indicating destruction,
+             and remove it from our bucket. */
+          : [&]() {
+              callback(
+                  event::event(file->first.c_str(), event::what::path_destroy));
+              /* bucket, erase it! */
+              file = bucket.erase(file);
+            }();
+    }
+    return true;
+  };
 
-  /* first of all */
-  auto file = bucket.begin();
-  file == bucket.end()
-      /* if the beginning is the end, try to populate the files */
-      ? populate(path)
-      /* otherwise, look through the bucket's contents, */
-      : [&]() {
-          while (file != bucket.end()) {
-            /* checking if the stuff in our bucket exists anymore. */
-            exists(file->first)
-                /* if so, we move on. */
-                ? std::advance(file, 1)
-                /*  if not, we call the closue on it,
-                    indicating destruction,
-                    and remove it from the bucket. */
-                : [&]() {
-                    callback(event::event(file->first.c_str(),
-                                          event::what::path_destroy));
-                    /* bucket, erase it! */
-                    file = bucket.erase(file);
-                  }();
-          }
-        }();
-  return true;
+  /* if the bucket is empty, try to populate it. otherwise, prune it. */
+  return bucket.empty() ? populate(path) : do_prune(callback);
 }
 
-/* @brief scan_file
- * Scans a single file.
- * Updates the bucket.
- * Calls the callback. */
+/*
+  @brief scan_file
+  Scans a single `file` for changes. Updates our bucket. Calls `callback`.
+*/
 bool scan_file(const Path auto& file, const Callback auto& callback) {
   using namespace std::filesystem;
   if (exists(file) && is_regular_file(file)) {
@@ -146,14 +146,11 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
 }
 
 bool scan_directory(const Path auto& dir, const Callback auto& callback) {
-  using namespace std::filesystem;
-  using dir_iter = recursive_directory_iterator;
-
   /* if this thing is a directory */
   if (is_directory(dir)) {
     /* try to iterate through its contents */
     auto ec = std::error_code{};
-    for (const auto& file : dir_iter(dir, dir_opt, ec))
+    for (const auto& file : recursive_directory_iterator(dir, dir_opt, ec))
       /* while handling errors */
       if (ec)
         return false;
@@ -184,8 +181,7 @@ bool scan_directory(const Path auto& dir, const Callback auto& callback) {
 */
 // clang-format off
 template <const auto delay_ms = 16>
-inline bool run(const Path auto& path, const Callback auto& callback) requires
-    std::is_integral_v<decltype(delay_ms)> {
+inline bool run(const Path auto& path, const Callback auto& callback) {
   /* see note [alternative run loop syntax] */
   using
     std::this_thread::sleep_for,
@@ -194,35 +190,36 @@ inline bool run(const Path auto& path, const Callback auto& callback) requires
 
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
-
   /* if no errors present, keep running. otherwise, leave. */
   return
     prune(path, callback)
       ? scan_directory(path, callback)
-        ? run(path, callback)
+        ? water::watcher::adapter::hog::
+          run<delay_ms>(path, callback)
         : scan_file(path, callback)
-          ? run(path, callback)
+          ? water::watcher::adapter::hog::
+            run<delay_ms>(path, callback)
           : false
       : false;
 }
 // clang-format on
 
 /*
-# Notes
+  # Notes
 
-## Alternative `run` loop syntax
+  ## Alternative `run` loop syntax
 
-  The syntax currently being used is short, but somewhat irregular.
-  An quivalent pattern is provided here, in case we want to change it.
-  This may or may not be more clear. I'm not sure.
+    The syntax currently being used is short, but somewhat irregular.
+    An quivalent pattern is provided here, in case we want to change it.
+    This may or may not be more clear. I'm not sure.
 
-  ```cpp
-  prune(path, callback);
-  while (scan(path, callback))
-    if constexpr (delay_ms > 0)
-      sleep_for(milliseconds(delay_ms));
-  return false;
-  ```
+    ```cpp
+    prune(path, callback);
+    while (scan(path, callback))
+      if constexpr (delay_ms > 0)
+        sleep_for(milliseconds(delay_ms));
+    return false;
+    ```
 */
 
 }  // namespace hog
