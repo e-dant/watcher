@@ -206,16 +206,19 @@ inline auto run(const concepts::Path auto& path,
     FSEventStreamStop(event_stream);
     FSEventStreamInvalidate(event_stream);
     FSEventStreamRelease(event_stream);
-    // does event_stream *need* to be made a nullptr here?
-    // we would need to lose the const qualifier on it...
     dispatch_release(event_queue);
     return event_queue ? false : true;
   };
+  // the contortions here are to please darwin.
+  // old-style cast because using a reinterpret_cast
+  // would discard the path reference's const qualifier.
+  // importantly, `path_as_refref` and its underlying types
+  // *are* const qualified. using this old-style cast is ugly,
+  // but it's also ok.
   const array<CFStringRef, 1> path_as_refref{mk_cfstring(path)};
-  // check if empty? not sure it needs to...
   const auto event_stream = create_stream(CFArrayCreate(
       nullptr,                          // not sure
-      (const void**)(&path_as_refref),  // path strings
+      (const void**)(&path_as_refref),  // path string(s)
       1,                                // number of paths
       &kCFTypeArrayCallBacks            // callback
       ));
