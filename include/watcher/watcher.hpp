@@ -42,24 +42,23 @@ bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) requires
     std::is_integral_v<decltype(delay_ms)> {
   using water::watcher::platform;
-  return adapter::hog::run<delay_ms>(path, callback);
-  //if constexpr (platform == platform_t::unknown) {
-  //  return adapter::hog::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::mac_catalyst) {
-  //  return adapter::macos::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::macos) {
-  //  return adapter::macos::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::ios) {
-  //  return adapter::macos::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::android) {
-  //  return adapter::hog::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::linux) {
-  //  return adapter::hog::run<delay_ms>(path, callback);
-  //} else if constexpr (platform == platform_t::windows) {
-  //  return adapter::hog::run<delay_ms>(path, callback);
-  //} else {
-  //  return adapter::hog::run<delay_ms>(path, callback);
-  //}
+  if constexpr (platform == platform_t::unknown) {
+    return adapter::hog::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::mac_catalyst) {
+    return adapter::macos::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::macos) {
+    return adapter::macos::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::ios) {
+    return adapter::macos::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::android) {
+    return adapter::hog::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::linux) {
+    return adapter::hog::run<delay_ms>(path, callback);
+  } else if constexpr (platform == platform_t::windows) {
+    return adapter::hog::run<delay_ms>(path, callback);
+  } else {
+    return adapter::hog::run<delay_ms>(path, callback);
+  }
 }
 
 }  // namespace watcher
