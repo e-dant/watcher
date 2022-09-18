@@ -159,7 +159,7 @@ auto mk_event_stream(const char* path) {
     else
       return (0);
   }();
-  std::cout << delay_s << "/delay_s" << std::endl;
+
   /* and the event stream flags */
   const auto event_stream_flags = kFSEventStreamCreateFlagFileEvents |
                                   kFSEventStreamCreateFlagUseExtendedData |
