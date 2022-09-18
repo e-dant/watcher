@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <watcher/concepts.hpp>
 #include <watcher/platform.hpp>
-#include <watcher/status.hpp>
+#include <watcher/event.hpp>
 
 namespace water {
 
@@ -127,7 +127,8 @@ auto prune(const Path auto& path,
                 // indicating erasure,
                 // and remove it from our bucket.
                 : [&]() {
-                    callback(file->first, status::erased);
+                    callback(event(file->first.c_str(),
+                      event::what::path_destroy));
                     // bucket, erase it!
                     file = bucket.erase(file);
                   }();
@@ -153,7 +154,7 @@ bool scan_file(const Path auto& file,
       // look at it. it's gone, that's
       // ok, now let's call the closure,
       // indicating erasure,
-      callback(file, status::erased);
+      callback(event(file, event::what::path_destroy));
       // and get it out of the bucket.
       if (bucket.contains(file))
         bucket.erase(file);
@@ -164,7 +165,7 @@ bool scan_file(const Path auto& file,
       bucket[file] = timestamp;
       // and calling the closure on
       // them, indicating creation
-      callback(file, status::created);
+      callback(event(file, event::what::path_create));
     }
     // if it is in our map
     else {
@@ -174,7 +175,7 @@ bool scan_file(const Path auto& file,
         bucket[file] = timestamp;
         // and call the closure on them,
         // indicating modification
-        callback(file, status::modified);
+        callback(event(file, event::what::path_modify));
       }
     }
     return true;

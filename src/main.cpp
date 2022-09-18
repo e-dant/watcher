@@ -11,30 +11,30 @@ using namespace concepts;
 
 // clang-format off
 const auto stutter_print
-    = [](const Path auto& file, const status& s) {
+    = [](const watcher::event& ev) {
   using
-    status::created,
-    status::modified,
-    status::erased,
+    watcher::event::what::path_create,
+    watcher::event::what::path_modify,
+    watcher::event::what::path_destroy,
     std::endl,
     std::cout;
 
-  const auto pf = [&file](const auto& s) {
-    cout << s << ": " << file << endl;
+  const auto show_event = [ev](const auto& s) {
+    cout << s << ": " << ev.where << endl;
   };
 
-  switch (s) {
-    case created:
-      pf("created");
+  switch (ev.what) {
+    case path_create:
+      show_event("created");
       break;
-    case modified:
-      pf("modified");
+    case path_modify:
+      show_event("modified");
       break;
-    case erased:
-      pf("erased");
+    case path_destroy:
+      show_event("erased");
       break;
     default:
-      pf("unknown");
+      show_event("unknown");
   }
 };
 // clang-format on
