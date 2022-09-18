@@ -3,7 +3,7 @@
 
 ## Summary
 
-Public (single) header interface for *Watcher*: An arbitrary path watcher.
+Public header interface for *Watcher*.
 
 To use:
 

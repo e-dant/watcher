@@ -1,8 +1,9 @@
 # Watcher
 
 This project is trivially easy to use, include,
-and run. (I hope.) This is a single-header,
-use-it-anywhere, pass-it-anything kind of library.
+and run. (I hope.) This is a header-only,
+use-it-anywhere, pass-it-anything, highly efficient,
+easy to use kind of library.
 
 *Watcher* is often extremely efficient. In most cases,
 even when scanning millions of files and directories,
