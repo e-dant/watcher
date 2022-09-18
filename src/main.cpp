@@ -11,16 +11,16 @@ using
   water::watcher::event::event,
   water::watcher::run;
 
-const auto stutter_print = [](const event& ev) {
+const auto show_event = [](const event& ev) {
 
-  const auto show_event = [ev](const auto& what)
+  const auto do_show = [ev](const auto& what)
   { std::cout << what << ": " << ev.where << std::endl; };
 
   switch (ev.what) {
-    case path_create:  return show_event("created");
-    case path_modify:  return show_event("modified");
-    case path_destroy: return show_event("erased");
-    default:           return show_event("unknown");
+    case path_create:  return do_show("created");
+    case path_modify:  return do_show("modified");
+    case path_destroy: return do_show("erased");
+    default:           return do_show("unknown");
   }
 };
 
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
       path,
       // printing what we find,
       // every 16 milliseconds.
-      stutter_print);
+      show_event);
 }
 
 // clang-format on

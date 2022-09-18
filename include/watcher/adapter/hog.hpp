@@ -23,7 +23,6 @@
 #include <unordered_map>
 #include <watcher/concepts.hpp>
 #include <watcher/event.hpp>
-#include <watcher/platform.hpp>
 
 namespace water {
 namespace watcher {
