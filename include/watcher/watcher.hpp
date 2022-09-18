@@ -36,25 +36,35 @@ bool run(const concepts::Path auto& path,
     std::is_integral_v<decltype(delay_ms)> {
   using water::watcher::platform;
 
+  // negative time considered harmful.
+
   static_assert(delay_ms >= 0);
 
-  if constexpr (platform == platform_t::unknown) {
+  // is there a constexpr switch block?
+
+  if constexpr (platform == platform_t::unknown)
     return adapter::hog::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::mac_catalyst) {
+
+  else if constexpr (platform == platform_t::mac_catalyst)
     return adapter::macos::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::macos) {
+
+  else if constexpr (platform == platform_t::macos)
     return adapter::macos::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::ios) {
+
+  else if constexpr (platform == platform_t::ios)
     return adapter::macos::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::android) {
+
+  else if constexpr (platform == platform_t::android)
     return adapter::hog::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::linux) {
+
+  else if constexpr (platform == platform_t::linux)
     return adapter::hog::run<delay_ms>(path, callback);
-  } else if constexpr (platform == platform_t::windows) {
+
+  else if constexpr (platform == platform_t::windows)
     return adapter::hog::run<delay_ms>(path, callback);
-  } else {
+
+  else
     return adapter::hog::run<delay_ms>(path, callback);
-  }
 }
 
 }  // namespace watcher
