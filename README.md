@@ -162,7 +162,7 @@ cd out
 
 There are two cases where *Watcher*'s efficiency takes a hit:
 
-1. On Solaris, where the slow adapter (`hog`) will be used
+1. On Solaris, where the slow adapter (`warthog`) will be used
    because no better alternative exists (`kqueue` is worse).
 2. On embedded systems (where resources matter).
 

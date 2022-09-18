@@ -1,8 +1,8 @@
 #pragma once
 
 /*
-  @brief watcher/adapter/hog
-  
+  @brief watcher/adapter/warthog
+
   A reasonably dumb adapter that works on any platform.
 
   This adapter beats `kqueue`, but it doesn't bean recieving
@@ -27,7 +27,7 @@
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace hog {
+namespace warthog {
 namespace { /* anonymous namespace for "private" variables */
 /*  shorthands for:
       - Path
@@ -200,10 +200,10 @@ inline bool run(const Path auto& path, const Callback auto& callback) {
   return
     prune(path, callback)
       ? scan_directory(path, callback)
-        ? water::watcher::adapter::hog::
+        ? water::watcher::adapter::warthog::
           run<delay_ms>(path, callback)
         : scan_file(path, callback)
-          ? water::watcher::adapter::hog::
+          ? water::watcher::adapter::warthog::
             run<delay_ms>(path, callback)
           : false
       : false;
@@ -228,7 +228,7 @@ inline bool run(const Path auto& path, const Callback auto& callback) {
     ```
 */
 
-}  // namespace hog
+}  // namespace warthog
 }  // namespace adapter
 }  // namespace watcher
 }  // namespace water

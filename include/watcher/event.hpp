@@ -11,26 +11,52 @@ namespace water {
 namespace watcher {
 namespace event {
 
+/*
+  @brief water/watcher/event/what
+
+  A structure intended to represent
+  what has happened to some path
+  at the moment of some affecting event.
+*/
+
 enum class what {
-  other,
-  attr_owner,
-  attr_other,
+  /* the essential happenings */
   path_rename,
   path_modify,
   path_create,
   path_destroy,
   path_other,
-  path_is_dir,
-  path_is_file,
-  path_is_hard_link,
-  path_is_sym_link,
+
+  /* extended happenings:
+     path attributes */
+  attr_owner,
+  attr_other,
+
+  /* catch-all */
+  other,
 };
+
+// /*
+//   @brief water/watcher/event/kind
+// 
+//   The essential path types
+// */
+// enum class kind {
+//   /* the essential path types */
+//   path_is_dir,
+//   path_is_file,
+//   path_is_hard_link,
+//   path_is_sym_link,
+// 
+//   /* catch-all */
+//   other,
+// };
 
 struct event {
   const char* where{};
   const what what{};
-  event(const char* path, const enum what happen) noexcept
-      : where{path}, what{happen} {}
+  event(const char* where, const enum what happen) noexcept
+      : where{where}, what{happen} {}
   ~event() noexcept = default;
 };
 

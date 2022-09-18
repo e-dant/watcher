@@ -1,9 +1,9 @@
 #pragma once
 
 /*
-  @brief watcher/adapter/macos
+  @brief watcher/adapter/darwin
 
-  An efficient adapter for macos.
+  An efficient adapter for darwin.
 */
 
 #include <CoreServices/CoreServices.h>
@@ -19,7 +19,7 @@
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace macos {
+namespace darwin {
 namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
@@ -35,12 +35,12 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::path_destroy),
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::path_rename),
 
-    /* path information, i.e. whether the path is a file, directory, etc. */
-    flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::path_is_dir),
-    flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::path_is_file),
-    flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::path_is_sym_link),
-    flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::path_is_hard_link),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::path_is_hard_link),
+    // /* path information, i.e. whether the path is a file, directory, etc. */
+    // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::path_is_dir),
+    // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::path_is_file),
+    // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::path_is_sym_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::path_is_hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::path_is_hard_link),
 
     /* path attribute events, such as the owner and some xattr data. */
     flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::attr_other),
@@ -65,80 +65,8 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 // clang-format on
 
-void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
-                   auto*,                 /* callback_info (required for cb) */
-                   size_t os_event_count,
-                   auto* os_event_paths,
-                   const FSEventStreamEventFlags os_event_flags[],
-                   const FSEventStreamEventId*) {
-  auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
-    std::vector<event::what> translation;
-    // this is a slow, dumb search.
-    for (const flag_pair& it : flag_pair_container)
-      if (flag_recv & it.first)
-        translation.push_back(it.second);
-    return translation;
-  };
-
-  auto log_event = [](const std::vector<event::what>& evs, const char* os_path) {
-    std::cout << os_path << ": ";
-    for (const auto& ev : evs) {
-      switch (ev) {
-        case (event::what::attr_other):
-          std::cout << "event::what::attr_other\n";
-          break;
-        case (event::what::attr_owner):
-          std::cout << "event::what::attr_owner\n";
-          break;
-        case (event::what::other):
-          std::cout << "event::what::other\n";
-          break;
-        case (event::what::path_create):
-          std::cout << "event::what::path_create\n";
-          break;
-        case (event::what::path_destroy):
-          std::cout << "event::what::path_destroy\n";
-          break;
-        case (event::what::path_is_dir):
-          std::cout << "event::what::path_is_dir\n";
-          break;
-        case (event::what::path_is_file):
-          std::cout << "event::what::path_is_file\n";
-          break;
-        case (event::what::path_is_hard_link):
-          std::cout << "event::what::path_is_hard_link\n";
-          break;
-        case (event::what::path_is_sym_link):
-          std::cout << "event::what::path_is_sym_link\n";
-          break;
-        case (event::what::path_rename):
-          std::cout << "event::what::path_rename\n";
-          break;
-        case (event::what::path_modify):
-          std::cout << "event::what::path_modify\n";
-          break;
-        case (event::what::path_other):
-          std::cout << "event::what::path_other\n";
-          break;
-      }
-    }
-  };
-
-  for (size_t i = 0; i < os_event_count; ++i) {
-    const auto _path_info_dict =
-        static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
-            static_cast<CFArrayRef>(os_event_paths), static_cast<CFIndex>(i)));
-    const auto _path_cfstring = static_cast<CFStringRef>(CFDictionaryGetValue(
-        _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
-    const auto translated_path =
-        CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-    /* see note [inode and time] for some extra stuff that can be done here. */
-    log_event(decode_flags(os_event_flags[i]), translated_path);
-  }
-}
-
 template <const auto delay_ms = 16>
-auto mk_event_stream(const char* path) {
+auto mk_event_stream(const char* path, const auto& callback) {
   // the contortions here are to please darwin.
   // importantly, `path_as_refref` and its underlying types
   // *are* const qualified. using void** is not ok. but it's also ok.
@@ -170,7 +98,7 @@ auto mk_event_stream(const char* path) {
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
       nullptr,            // allocator
-      &dumb_callback,     // callback; what to do
+      callback,           // callback; what to do
       nullptr,            // context (see note [event stream context])
       translated_path,    // where to watch
       time_flag,          // since when (we choose since now)
@@ -186,6 +114,37 @@ inline auto run(const concepts::Path auto& path,
                 const concepts::Callback auto& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for;
+  static auto callback_hook = callback;
+  const auto callback_adapter = [](ConstFSEventStreamRef, /* stream_ref
+                                                             (required) */
+                                   auto*, /* callback_info (required) */
+                                   size_t os_event_count, auto* os_event_paths,
+                                   const FSEventStreamEventFlags
+                                       os_event_flags[],
+                                   const FSEventStreamEventId*) {
+    auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
+      std::vector<event::what> translation;
+      /* @todo this is a slow, dumb search. fix it. */
+      for (const flag_pair& it : flag_pair_container)
+        if (flag_recv & it.first)
+          translation.push_back(it.second);
+      return translation;
+    };
+
+    for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
+      const auto _path_info_dict = static_cast<CFDictionaryRef>(
+          CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
+                                 static_cast<CFIndex>(i)));
+      const auto _path_cfstring = static_cast<CFStringRef>(CFDictionaryGetValue(
+          _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
+      const char* translated_path =
+          CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
+      /* see note [inode and time] for some extra stuff that can be done
+       * here. */
+      for (const auto& flag_it : decode_flags(os_event_flags[i]))
+        callback_hook(water::watcher::event::event{translated_path, flag_it});
+    }
+  };
 
   const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
                                     const auto& event_queue) {
@@ -205,9 +164,11 @@ inline auto run(const concepts::Path auto& path,
     return event_queue ? false : true;
   };
 
-  // @todo use callback
-  const auto event_stream = mk_event_stream<delay_ms>(path /*, dumb_callback*/);
-  // request a high priority queue.
+  // const auto cba = callback_adapter{callback};
+
+  const auto event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
+
+  /* request a high priority queue */
   const auto event_queue = dispatch_queue_create(
       "water.watcher.event_queue",
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
@@ -261,7 +222,7 @@ from `fswatch`, could be used:
   ```
 */
 
-}  // namespace macos
+}  // namespace darwin
 }  // namespace adapter
 }  // namespace watcher
 }  // namespace water

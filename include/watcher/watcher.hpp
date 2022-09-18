@@ -5,12 +5,13 @@
 
   This is the public interface,
   and it's probably what you're looking for.
-
+  
   Include and use this file.
 */
 
-#include <watcher/adapter/hog.hpp>
-#include <watcher/adapter/macos.hpp>
+#include <functional>
+#include <watcher/adapter/warthog.hpp>
+#include <watcher/adapter/darwin.hpp>
 #include <watcher/concepts.hpp>
 #include <watcher/event.hpp>
 #include <watcher/platform.hpp>
@@ -39,34 +40,34 @@ namespace watcher {
 template <const auto delay_ms = 16>
 bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) {
+  static_assert(delay_ms >= 0, "Negative time considered harmful.");
+
   using namespace water::watcher::adapter;
-  using water::watcher::platform;
+  using namespace water::watcher::literal;
 
-  static_assert(delay_ms >= 0, "Negative time is considered harmful.");
+  if constexpr (platform == unknown)
+    return warthog::run<delay_ms>(path, callback);
 
-  if constexpr (platform == platform_t::unknown)
-    return hog::run<delay_ms>(path, callback);
+  else if constexpr (platform == mac_catalyst)
+    return darwin::run<delay_ms>(path, callback);
 
-  else if constexpr (platform == platform_t::mac_catalyst)
-    return macos::run<delay_ms>(path, callback);
+  else if constexpr (platform == macos)
+    return darwin::run<delay_ms>(path, callback);
 
-  else if constexpr (platform == platform_t::macos)
-    return macos::run<delay_ms>(path, callback);
+  else if constexpr (platform == ios)
+    return darwin::run<delay_ms>(path, callback);
 
-  else if constexpr (platform == platform_t::ios)
-    return macos::run<delay_ms>(path, callback);
+  else if constexpr (platform == android)
+    return warthog::run<delay_ms>(path, callback);
 
-  else if constexpr (platform == platform_t::android)
-    return hog::run<delay_ms>(path, callback);
+  else if constexpr (platform == linux)
+    return warthog::run<delay_ms>(path, callback);
 
-  else if constexpr (platform == platform_t::linux)
-    return hog::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == platform_t::windows)
-    return hog::run<delay_ms>(path, callback);
+  else if constexpr (platform == windows)
+    return warthog::run<delay_ms>(path, callback);
 
   else
-    return hog::run<delay_ms>(path, callback);
+    return warthog::run<delay_ms>(path, callback);
 }
 
 }  // namespace watcher
