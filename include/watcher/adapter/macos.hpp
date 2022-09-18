@@ -203,7 +203,7 @@ auto fsevent_create_stream(CFArrayRef& paths) {
 }  // namespace
 
 template <const auto delay_ms = 16>
-inline auto run(const char* path,
+inline auto run(const concepts::Path auto& path,
                 const concepts::Callback auto& callback) {
   const auto mk_cfstring = [](const auto& p) {
     return CFStringCreateWithCString(nullptr, p,
