@@ -65,7 +65,7 @@ water::watcher::run<16>(
   });
 ```
 
-### Detailed
+### Detail
 
 ```cpp
 #include <iostream>             // std::cout, std::endl
