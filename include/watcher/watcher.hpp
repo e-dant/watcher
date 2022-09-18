@@ -5,7 +5,7 @@
 
   This is the public interface,
   and it's probably what you're looking for.
-  
+
   Include and use this file.
 */
 
@@ -39,33 +39,34 @@ namespace watcher {
 template <const auto delay_ms = 16>
 bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) {
+  using namespace water::watcher::adapter;
   using water::watcher::platform;
 
   static_assert(delay_ms >= 0, "Negative time is considered harmful.");
 
   if constexpr (platform == platform_t::unknown)
-    return adapter::hog::run<delay_ms>(path, callback);
+    return hog::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::mac_catalyst)
-    return water::watcher::adapter::macos::run<delay_ms>(path, callback);
+    return macos::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::macos)
-    return water::watcher::adapter::macos::run<delay_ms>(path, callback);
+    return macos::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::ios)
-    return water::watcher::adapter::macos::run<delay_ms>(path, callback);
+    return macos::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::android)
-    return water::watcher::adapter::hog::run<delay_ms>(path, callback);
+    return hog::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::linux)
-    return water::watcher::adapter::hog::run<delay_ms>(path, callback);
+    return hog::run<delay_ms>(path, callback);
 
   else if constexpr (platform == platform_t::windows)
-    return water::watcher::adapter::hog::run<delay_ms>(path, callback);
+    return hog::run<delay_ms>(path, callback);
 
   else
-    return water::watcher::adapter::hog::run<delay_ms>(path, callback);
+    return hog::run<delay_ms>(path, callback);
 }
 
 }  // namespace watcher
