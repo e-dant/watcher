@@ -58,40 +58,23 @@ static bucket_t bucket;  // NOLINT
  * @see watcher::status
  * Creates a file map from the
  * given path. */
-void populate(const Path auto& path = {"."}) {
+auto populate(const Path auto& path = {"."}) {
   using namespace std::filesystem;
   using dir_iter = recursive_directory_iterator;
-
-  auto good_count = 1;
-  auto bad_count = 1;
-
-  if (exists(path)) {
-    if (is_directory(path)) {
+  if (exists(path))
+    if (is_directory(path))
       try {
-        for (const auto& file : dir_iter(path, dir_opt)) {
-          if (exists(file)) {
-            good_count++;
+        for (const auto& file : dir_iter(path, dir_opt))
+          if (exists(file))
             bucket[file.path().string()] = last_write_time(file);
-          } else {
-            bad_count++;
-          }
-        }
       } catch (const std::exception& e) {
-        bad_count++;
+        /* this happens when a path was changed while we were reading it.
+           there is nothing to do here; we prune later. */
       }
-    } else {
-      good_count++;
+    else
       bucket[path] = last_write_time(path);
-    }
-  } else {
-    throw std::runtime_error{"path does not exist."};
-  }
-
-  std::cout << "watching " << good_count << " files." << std::endl;
-  if (bad_count > 1)
-    std::cout << "skipped " << bad_count << " files." << std::endl;
-  else if (bad_count == 0)
-    std::cout << "skipped 1 file." << std::endl;
+  else
+    return false;
 }
 
 /* @brief prune
@@ -227,8 +210,7 @@ inline bool run(const Path auto& path, const Callback auto& callback) requires
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
 
-  // if no errors present, keep running.
-  // otherwise, leave.
+  /* if no errors present, keep running. otherwise, leave. */
   return 
     scan_directory(path, callback)
       ? run(path, callback)
