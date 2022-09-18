@@ -40,8 +40,6 @@ bool run(const concepts::Path auto& path,
 
   static_assert(delay_ms >= 0);
 
-  // is there a constexpr switch block?
-
   if constexpr (platform == platform_t::unknown)
     return adapter::hog::run<delay_ms>(path, callback);
 
