@@ -148,15 +148,7 @@ void dumb_callback(ConstFSEventStreamRef, /* stream_ref (required) */
         _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
     const auto translated_path =
         CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-    // auto cf_inode = static_cast<CFNumberRef>(CFDictionaryGetValue(
-    //     _path_info_dict, kFSEventStreamEventExtendedFileIDKey));
-    // unsigned long inode;
-    // CFNumberGetValue(cf_inode, kCFNumberLongType, &inode);
-    // std::cout << "_path_cfstring "
-    //           << std::string(CFStringGetCStringPtr(_path_cfstring,
-    //           kCFStringEncodingUTF8))
-    //           << " (time/inode " << curr_time << "/" << inode << ")"
-    //           << std::endl;
+    /* see note [inode and time] for some extra stuff that can be done here. */
     log_event(decode_flags(os_event_flags[i]), translated_path);
   }
 }
@@ -191,7 +183,7 @@ auto mk_event_stream(const char* path) {
                                   kFSEventStreamCreateFlagUseExtendedData |
                                   kFSEventStreamCreateFlagUseCFTypes |
                                   kFSEventStreamCreateFlagNoDefer;
-  /* to the OS, in the form of a request for an event stream. */
+  /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
       nullptr,            // allocator
       &dumb_callback,     // callback; what to do
@@ -243,8 +235,6 @@ inline auto run(const concepts::Path auto& path,
        the queue stops, and then clean itself up. */
     if constexpr (delay_ms > 0)
       sleep_for(milliseconds(delay_ms));
-    else
-      sleep_for(seconds(1));
 
   return dead_os_ev_queue(event_stream, event_queue);
 }
@@ -254,9 +244,10 @@ inline auto run(const concepts::Path auto& path,
 
 ## Event Stream Context
 
-To set up a context with some parameters, something like (loosely from
-`fswatch`) this could be used:
-  ```
+To set up a context with some parameters, something like this, from the
+`fswatch` project repo, could be used:
+
+  ```cpp
   std::unique_ptr<FSEventStreamContext> context(
       new FSEventStreamContext());
   context->version         = 0;
@@ -264,6 +255,23 @@ To set up a context with some parameters, something like (loosely from
   context->retain          = nullptr;
   context->release         = nullptr;
   context->copyDescription = nullptr;
+  ```
+
+## Inode and Time
+
+To grab the inode and time information about an event, something like this, also
+from `fswatch`, could be used:
+
+  ```cpp
+  auto cf_inode = static_cast<CFNumberRef>(CFDictionaryGetValue(
+      _path_info_dict, kFSEventStreamEventExtendedFileIDKey));
+  unsigned long inode;
+  CFNumberGetValue(cf_inode, kCFNumberLongType, &inode);
+  std::cout << "_path_cfstring "
+            << std::string(CFStringGetCStringPtr(_path_cfstring,
+            kCFStringEncodingUTF8))
+            << " (time/inode " << curr_time << "/" << inode << ")"
+            << std::endl;
   ```
 */
 
