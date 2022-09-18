@@ -12,8 +12,8 @@
 #include <thread>
 #include <unordered_map>
 #include <watcher/concepts.hpp>
-#include <watcher/platform.hpp>
 #include <watcher/event.hpp>
+#include <watcher/platform.hpp>
 
 namespace water {
 
@@ -37,13 +37,10 @@ namespace {
 //  - bucket_t, a map of strings and
 //  times
 using dir_opt_t = std::filesystem::directory_options;
-using std::filesystem::directory_options::
-    follow_directory_symlink;
-using std::filesystem::directory_options::
-    skip_permission_denied;
-using bucket_t
-    = std::unordered_map<std::string,
-                         std::filesystem::file_time_type>;
+using std::filesystem::directory_options::follow_directory_symlink;
+using std::filesystem::directory_options::skip_permission_denied;
+using bucket_t =
+    std::unordered_map<std::string, std::filesystem::file_time_type>;
 
 // we need these variables to make
 // caching state easier
@@ -51,8 +48,8 @@ using bucket_t
 // right? well, maybe this should be an
 // object, I'm not sure, I just like
 // functions is all.
-inline constexpr dir_opt_t dir_opt
-    = skip_permission_denied & follow_directory_symlink;
+inline constexpr dir_opt_t dir_opt =
+    skip_permission_denied & follow_directory_symlink;
 
 static bucket_t bucket;  // NOLINT
 
@@ -63,10 +60,10 @@ static bucket_t bucket;  // NOLINT
  * given path. */
 void populate(const Path auto& path = {"."}) {
   using namespace std::filesystem;
-  using dir_iter  = recursive_directory_iterator;
+  using dir_iter = recursive_directory_iterator;
 
   auto good_count = 1;
-  auto bad_count  = 1;
+  auto bad_count = 1;
 
   if (exists(path)) {
     if (is_directory(path)) {
@@ -74,8 +71,7 @@ void populate(const Path auto& path = {"."}) {
         for (const auto& file : dir_iter(path, dir_opt)) {
           if (exists(file)) {
             good_count++;
-            bucket[file.path().string()]
-                = last_write_time(file);
+            bucket[file.path().string()] = last_write_time(file);
           } else {
             bad_count++;
           }
@@ -91,11 +87,9 @@ void populate(const Path auto& path = {"."}) {
     throw std::runtime_error{"path does not exist."};
   }
 
-  std::cout << "watching " << good_count << " files."
-            << std::endl;
+  std::cout << "watching " << good_count << " files." << std::endl;
   if (bad_count > 1)
-    std::cout << "skipped " << bad_count << " files."
-              << std::endl;
+    std::cout << "skipped " << bad_count << " files." << std::endl;
   else if (bad_count == 0)
     std::cout << "skipped 1 file." << std::endl;
 }
@@ -103,8 +97,7 @@ void populate(const Path auto& path = {"."}) {
 /* @brief prune
  * Removes non-existent files
  * from our bucket. */
-auto prune(const Path auto& path,
-           const Callback auto& callback) {
+auto prune(const Path auto& path, const Callback auto& callback) {
   using std::filesystem::exists;
 
   // first of all
@@ -127,8 +120,8 @@ auto prune(const Path auto& path,
                 // indicating erasure,
                 // and remove it from our bucket.
                 : [&]() {
-                    callback(event(file->first.c_str(),
-                      event::what::path_destroy));
+                    callback(
+                        event(file->first.c_str(), event::what::path_destroy));
                     // bucket, erase it!
                     file = bucket.erase(file);
                   }();
@@ -140,11 +133,10 @@ auto prune(const Path auto& path,
  * Scans a single file.
  * Updates the bucket.
  * Calls the callback. */
-bool scan_file(const Path auto& file,
-               const Callback auto& callback) {
+bool scan_file(const Path auto& file, const Callback auto& callback) {
   using namespace std::filesystem;
   if (exists(file) && is_regular_file(file)) {
-    auto ec              = std::error_code{};
+    auto ec = std::error_code{};
     // grabbing the last write times
     const auto timestamp = last_write_time(file, ec);
     // and checking for errors...
@@ -183,8 +175,7 @@ bool scan_file(const Path auto& file,
     return false;
 }
 
-bool scan_directory(const Path auto& dir,
-                    const Callback auto& callback) {
+bool scan_directory(const Path auto& dir, const Callback auto& callback) {
   using namespace std::filesystem;
   using dir_iter = recursive_directory_iterator;
 
@@ -214,10 +205,8 @@ bool scan_directory(const Path auto& dir,
  * Execute `callback` when they
  * happen. */
 template <const auto delay_ms = 16>
-inline bool run(const Path auto& path,
-                const Callback auto& callback)
-  requires std::is_integral_v<decltype(delay_ms)>
-{
+inline bool run(const Path auto& path, const Callback auto& callback) requires
+    std::is_integral_v<decltype(delay_ms)> {
   // clang-format off
   using
     std::this_thread::sleep_for,
