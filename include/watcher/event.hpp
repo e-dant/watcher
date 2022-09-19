@@ -137,15 +137,15 @@ struct event {
     const auto k = [&]() {
       switch (e.kind) {
         case kind::dir:
-          return "kind::dir";
+          return "dir";
         case kind::file:
-          return "kind::file";
+          return "file";
         case kind::hard_link:
-          return "kind::hard_link";
+          return "hard_link";
         case kind::sym_link:
-          return "kind::sym_link";
+          return "sym_link";
         case kind::other:
-          return "kind::other";
+          return "other";
       }
     }();
 
