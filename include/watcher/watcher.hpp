@@ -41,7 +41,7 @@ bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
 
-  using namespace water::watcher::adapter;
+  using namespace water::watcher::adapter::literal;
   using namespace water::watcher::literal;
 
   if constexpr (platform == unknown)
