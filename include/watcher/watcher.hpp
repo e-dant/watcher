@@ -17,7 +17,6 @@
 #include <watcher/platform.hpp>
 
 namespace water {
-
 namespace watcher {
 
 /*
