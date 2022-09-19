@@ -9,7 +9,7 @@
   Include and use this file.
 */
 
-#include <functional>
+// #include <functional> @todo invoke
 #include <watcher/adapter/darwin.hpp>
 #include <watcher/adapter/warthog.hpp>
 #include <watcher/concepts.hpp>
