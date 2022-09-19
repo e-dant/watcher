@@ -85,12 +85,12 @@ struct event {
   ~event() noexcept = default;
 };
 
+}  // namespace event
 namespace literal {
 using                              // NOLINT
+    water::watcher::event::kind,   // NOLINT
     water::watcher::event::what,   // NOLINT
     water::watcher::event::event;  // NOLINT
-}
-
-}  // namespace event
+}  // namespace literal
 }  // namespace watcher
 }  // namespace water

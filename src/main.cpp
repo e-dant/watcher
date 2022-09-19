@@ -4,12 +4,13 @@
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
-using
-  water::watcher::event::what::path_destroy,
-  water::watcher::event::what::path_create,
-  water::watcher::event::what::path_modify,
-  water::watcher::event::event,
-  water::watcher::run;
+//using
+//  water::watcher::event::what::path_destroy,
+//  water::watcher::event::what::path_create,
+//  water::watcher::event::what::path_modify,
+//  water::watcher::event::event,
+//  water::watcher::run;
+using namespace water::watcher::literal;
 
 const auto show_event = [](const event& ev) {
 
@@ -17,10 +18,10 @@ const auto show_event = [](const event& ev) {
   { std::cout << what << ": " << ev.where << std::endl; };
 
   switch (ev.what) {
-    case path_create:  return do_show("created");
-    case path_modify:  return do_show("modified");
-    case path_destroy: return do_show("erased");
-    default:           return do_show("unknown");
+    case what::path_create:  return do_show("created");
+    case what::path_modify:  return do_show("modified");
+    case what::path_destroy: return do_show("erased");
+    default:                 return do_show("unknown");
   }
 };
 

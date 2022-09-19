@@ -223,6 +223,9 @@ from `fswatch`, could be used:
 */
 
 }  // namespace darwin
+namespace literal {
+using water::watcher::adapter::darwin::run;  // NOLINT
+}  // namespace literal
 }  // namespace adapter
 }  // namespace watcher
 }  // namespace water

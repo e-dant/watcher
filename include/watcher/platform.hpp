@@ -47,6 +47,6 @@ using                                          // NOLINT
     water::watcher::platform_t::android,       // NOLINT
     water::watcher::platform_t::linux,         // NOLINT
     water::watcher::platform_t::windows;       // NOLINT
-}
+}  // namespace literal
 }  // namespace watcher
 }  // namespace water
