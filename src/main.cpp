@@ -4,12 +4,6 @@
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
-//using
-//  water::watcher::event::what::path_destroy,
-//  water::watcher::event::what::path_create,
-//  water::watcher::event::what::path_modify,
-//  water::watcher::event::event,
-//  water::watcher::run;
 using namespace water::watcher::literal;
 
 const auto show_event = [](const event& ev) {

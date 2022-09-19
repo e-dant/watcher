@@ -38,11 +38,11 @@ error.
 ### Brief
 
 ```cpp
-using water::watcher::event::event;
+using water::watcher::literal;
 /* at some point, create a 'run'
    with some millisecond delay.
    the default is 16 ms, */
-water::watcher::run<16>(
+run<16>(
   /* provide it with some path
      to scan, forever.
      the default is the current
@@ -58,9 +58,9 @@ water::watcher::run<16>(
 
     /* such as printing what happened. */
     switch (ev.what) {
-      case path_create:  return show_event("created");
-      case path_modify:  return show_event("modified");
-      case path_destroy: return show_event("erased");
+      case what::path_create:  return show_event("created");
+      case what::path_modify:  return show_event("modified");
+      case what::path_destroy: return show_event("erased");
       default:           return show_event("unknown");
     }
   });
@@ -73,23 +73,18 @@ water::watcher::run<16>(
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
-using
-  water::watcher::event::what::path_destroy,
-  water::watcher::event::what::path_create,
-  water::watcher::event::what::path_modify,
-  water::watcher::event::event,
-  water::watcher::run;
+using namespace water::watcher::literal;
 
-const auto stutter_print = [](const event& ev) {
+const auto show_event = [](const event& ev) {
 
-  const auto show_event = [ev](const auto& what)
+  const auto do_show = [ev](const auto& what)
   { std::cout << what << ": " << ev.where << std::endl; };
 
   switch (ev.what) {
-    case path_create:  return show_event("created");
-    case path_modify:  return show_event("modified");
-    case path_destroy: return show_event("erased");
-    default:           return show_event("unknown");
+    case what::path_create:  return do_show("created");
+    case what::path_modify:  return do_show("modified");
+    case what::path_destroy: return do_show("erased");
+    default:                 return do_show("unknown");
   }
 };
 
@@ -107,7 +102,7 @@ int main(int argc, char** argv) {
       path,
       // printing what we find,
       // every 16 milliseconds.
-      stutter_print);
+      show_event);
 }
 ```
 
