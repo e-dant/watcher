@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 /*
   @brief watcher/event
 
@@ -36,29 +38,58 @@ enum class what {
   other,
 };
 
-// /*
-//   @brief water/watcher/event/kind
-// 
-//   The essential path types
-// */
-// enum class kind {
-//   /* the essential path types */
-//   path_is_dir,
-//   path_is_file,
-//   path_is_hard_link,
-//   path_is_sym_link,
-// 
-//   /* catch-all */
-//   other,
-// };
+/*
+  @brief water/watcher/event/kind
+
+  The essential path types
+*/
+enum class kind {
+  /* the essential path types */
+  dir,
+  file,
+  hard_link,
+  sym_link,
+  unknown,
+
+  /* catch-all */
+  other,
+};
 
 struct event {
-  const char* where{};
-  const what what{};
+  const char* where;
+  const enum what what;
+  const enum kind kind;
   event(const char* where, const enum what happen) noexcept
-      : where{where}, what{happen} {}
+      : where{where}, what{happen}, kind{[&]() {
+          using std::filesystem::is_regular_file, std::filesystem::is_directory,
+              std::filesystem::is_symlink, std::filesystem::exists;
+          return
+              // exists?
+              exists(where)
+                  // file?
+                  ? is_regular_file(where)
+                        // -> kind/file
+                        ? kind::file
+                        // dir?
+                        : is_directory(where)
+                              // -> kind/dir
+                              ? kind::dir
+                              // sym link?
+                              : is_symlink(where)
+                                    // kind/sym_link
+                                    ? kind::sym_link
+                                    // default -> kind/unknown
+                                    : kind::unknown
+                  : kind::unknown;
+        }()} {}
   ~event() noexcept = default;
 };
+
+namespace literal {
+using                              // NOLINT
+    water::watcher::event::what,   // NOLINT
+    water::watcher::event::event;  // NOLINT
+}
 
 }  // namespace event
 }  // namespace watcher

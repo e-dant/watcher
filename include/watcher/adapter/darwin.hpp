@@ -36,11 +36,11 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::path_rename),
 
     // /* path information, i.e. whether the path is a file, directory, etc. */
-    // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::path_is_dir),
-    // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::path_is_file),
-    // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::path_is_sym_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::path_is_hard_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::path_is_hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
+    // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
+    // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
 
     /* path attribute events, such as the owner and some xattr data. */
     flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::attr_other),
