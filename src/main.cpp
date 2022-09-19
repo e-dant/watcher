@@ -9,7 +9,7 @@ using namespace water::watcher::literal;
 const auto show_event = [](const event& ev) {
 
   /* The event's << operator will print as json. */
-  std::cout << "{" << ev << "}" << std::endl;
+  std::cout << "'" << ev << "'" << std::endl;
 
   /*
     // Or, parse manually like this:

@@ -41,6 +41,9 @@ bool run(const concepts::Path auto& path,
          const concepts::Callback auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
   using namespace water::watcher::literal;
+
+  /* ternary if tempting. */
+
   if constexpr (platform == unknown)
     return adapter::warthog::run<delay_ms>(path, callback);
 

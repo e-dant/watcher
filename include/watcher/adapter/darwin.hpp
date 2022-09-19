@@ -35,14 +35,17 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
 
-    // /* path information, i.e. whether the path is a file, directory, etc. */
+    /* path information, i.e. whether the path is a file, directory, etc.
+       we can get this info much more easily later on in `water/watcher/event`. */
     // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
     // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
     // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),
     // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
     // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
 
-    /* path attribute events, such as the owner and some xattr data. */
+    /* path attribute events, such as the owner and some xattr data. 
+       will be worthwhile soon to implement these.
+       @todo(next weekend) this. */
     flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
     flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
     flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
