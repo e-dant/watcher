@@ -8,17 +8,24 @@ using namespace water::watcher::literal;
 
 const auto show_event = [](const event& ev) {
 
+  /* The event's << operator will print as json. */
   std::cout << ev << std::endl;
 
-  // const auto do_show = [ev](const auto& what, const auto& kind)
-  // { std::cout << what << kind << ": " << ev.where << std::endl; };
+  /*
+    Or, parse manually (more useful for when you want to
+    *do* something with event other than pushing it into
+    stdout) like this:
+    
+    const auto do_show = [ev](const auto& what, const auto& kind)
+    { std::cout << what << kind << ": " << ev.where << std::endl; };
 
-  // switch (ev.what) {
-  //   case what::path_create:  return do_show("created");
-  //   case what::path_modify:  return do_show("modified");
-  //   case what::path_destroy: return do_show("erased");
-  //   default:                 return do_show("unknown");
-  // }
+    switch (ev.what) {
+      case what::path_create:  return do_show("created");
+      case what::path_modify:  return do_show("modified");
+      case what::path_destroy: return do_show("erased");
+      default:                 return do_show("unknown");
+    }
+  */
 };
 
 int main(int argc, char** argv) {
