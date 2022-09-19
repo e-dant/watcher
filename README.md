@@ -1,24 +1,25 @@
 # Watcher
 
-This project is trivially easy to use, include,
-and run. (I hope.) This is a header-only,
-use-it-anywhere, pass-it-anything, highly efficient,
-easy to use kind of library.
+An arbitrary path watcher.
 
-*Watcher* is often extremely efficient. In most cases,
-even when scanning millions of files and directories,
-*Watcher* uses a near-zero amount of resources are used.
-*[Notes:1]*
+*Watcher* is:
+
+- highly-efficient
+- use-it-anywhere
+- include-to-use
+- pass-it-anything
+
+*Watcher* is extremely efficient. In most cases,
+even when scanning millions of paths, this library
+uses a near-zero amount of resources. *[1]*
 
 If you don't want to use it in another project,
 don't worry, because it comes with one. Just build
 and run and you've got yourself a filesystem
 watcher, which is pretty cool.
 
-## Summary
-
-The source code and build system for *Watcher*,
-an arbitrary path watcher.
+*Watcher* is trivially easy to use, include,
+and run. (I hope. If not, let me know.)
 
 ## Usage
 
@@ -35,9 +36,8 @@ nicely.
 until it is asked to stop or it hits an unrecoverable
 error.
 
-Because *Watcher* has a stream operator, it is trivial
-to quickly build programs that yield some useful information,
-such as this:
+It is trivial to quickly build programs that yield some
+useful information:
 
 ```json
 "water.watcher.stream": {
@@ -113,22 +113,17 @@ run<16>(
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
 using namespace water::watcher::literal;
+using std::cout, std::flush, std::endl;
 
 const auto show_event = [](const event& ev) {
-
-  const auto do_show = [ev](const auto& what)
-  { std::cout << what << ": " << ev.where << std::endl; };
-
-  switch (ev.what) {
-    case what::create:  return do_show("created");
-    case what::modify:  return do_show("modified");
-    case what::destroy: return do_show("erased");
-    default:                 return do_show("unknown");
-  }
+  /* The event's << operator will print as json. */
+  cout << ev << "," << endl;
 };
 
 int main(int argc, char** argv) {
+
   static constexpr auto delay_ms = 16;
+
   const auto path = argc > 1
                         // we have been given a path,
                         // and we will use it
@@ -136,12 +131,19 @@ int main(int argc, char** argv) {
                         // otherwise, default to the
                         // current directory
                         : ".";
-  return run<delay_ms>(
-      // scan the path, forever...
-      path,
-      // printing what we find,
-      // every 16 milliseconds.
-      show_event);
+
+  cout << "{\"water.watcher.stream\":{";
+
+  const auto isok = run<delay_ms>(
+                        // scan the path, forever...
+                        path,
+                        // printing what we find,
+                        // every 16 milliseconds.
+                        show_event);
+
+  cout << "}}" << endl << flush;
+
+  return isok;
 }
 ```
 
@@ -169,7 +171,9 @@ cd water/water/watcher
 # watches the current directory
 `tell run`
 # watches some path
-# `tell run` 'your/favorite/path'
+# `tell run` your/favorite/path
+# or, to do all of the above:
+# `tell bun` your/favorite/path
 ```
 
 This will take care of:
@@ -196,9 +200,16 @@ cd out
 
 There are two cases where *Watcher*'s efficiency takes a hit:
 
-1. On Solaris, where the slow adapter (`warthog`) will be used
-   because no better alternative exists (`kqueue` is worse).
+1. The platform-independant `warthog` adapter will be used on
+platforms which lack better alternative. This will also on
+systems which I haven't implemented OS-level calls into just yet.
 2. On embedded systems (where resources matter).
 
-*Watcher* is still efficient in these cases, but a longer
-`delay_ms` might be necessary.
+*Watcher* is still efficient in these cases. However, depending
+on your hardware and whether you need to watch 10-million paths
+or not, a longer `delay_ms` (such as in the seconds-range) might
+be necessary to prevent your machine from entering-the-atmosphere
+temperature.
+
+In all cases, this is a best-in-class filesystem watcher.
+The `warthog` is a capable watcher.

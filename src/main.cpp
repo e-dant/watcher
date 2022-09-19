@@ -1,7 +1,6 @@
 // clang-format off
 
 #include <iostream>             // std::cout, std::endl
-#include <ostream>
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
@@ -11,29 +10,10 @@ using std::cout, std::flush, std::endl;
 const auto show_event = [](const event& ev) {
 
   /* The event's << operator will print as json. */
-  cout << ev << "," << flush;
+  cout << ev << "," << endl;
 
-  /*
-    // Or, parse manually like this:
-    
-    const auto do_show = [ev](const auto& what, const auto& kind)
-    { std::cout << what << kind << ": " << ev.where << std::endl; };
+  /* see note [manual parsing] */
 
-    // See water/watcher/event.hpp for more documentation on these
-    // and all other values.
-
-    switch (ev.what) {
-      case what::create:  return do_show("created");
-      case what::modify:  return do_show("modified");
-      case what::destroy: return do_show("erased");
-      default:                 return do_show("unknown");
-    }
-
-    // Manual parsing is useful for further event filtering.
-    // You could, for example, send `create` events to some
-    // notification service and send `modify` events to some
-    // database.
-  */
 };
 
 int main(int argc, char** argv) {
@@ -57,3 +37,33 @@ int main(int argc, char** argv) {
 }
 
 // clang-format on
+
+/*
+
+# Notes
+
+## Manual Parsing
+
+  Manual parsing is useful for further event filtering.
+  You could, for example, send `create` events to some
+  notification service and send `modify` events to some
+  database.
+
+  To parse out meaning without an output stream:
+
+  ```cpp
+  const auto do_show = [ev](const auto& what, const auto& kind)
+  { std::cout << what << kind << ": " << ev.where << std::endl; };
+
+  // See water/watcher/event.hpp for more documentation on these
+  // and all other values.
+
+  switch (ev.what) {
+    case what::create:  return do_show("created");
+    case what::modify:  return do_show("modified");
+    case what::destroy: return do_show("erased");
+    default:                 return do_show("unknown");
+  }
+
+  ```
+*/
