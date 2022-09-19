@@ -40,7 +40,7 @@ to quickly build programs that yield some useful information,
 such as this:
 
 ```json
-"water.watcher.stream":{
+"water.watcher.stream": {
     "1663556133054707000": {
       "where": "water/watcher/.git/objects/cc/tmp_obj_sfbyd6",
       "what": "destroy",
