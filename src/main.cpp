@@ -1,8 +1,8 @@
 // clang-format off
 
-#include <iostream>             // std::cout, std::endl
-#include <thread>               // std::this_thread::sleep_for
-#include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
+#include <iostream>             /* std::cout, std::endl */
+#include <thread>               /* std::this_thread::sleep_for */
+#include <watcher/watcher.hpp>  /* water::watcher::run, water::watcher::event */
 
 using namespace water::watcher::literal;
 using std::cout, std::flush, std::endl;
