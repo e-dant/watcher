@@ -102,7 +102,7 @@ auto prune(const Path auto& path, const Callback auto& callback) {
              and remove it from our bucket. */
           : [&]() {
               callback(
-                  event::event(file->first.c_str(), event::what::path_destroy));
+                  event::event(file->first.c_str(), event::what::destroy));
               /* bucket, erase it! */
               file = bucket.erase(file);
             }();
@@ -126,7 +126,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
     if (ec) {
       /* the file changed while we were looking at it. so, we call the closure,
        * indicating destruction, and remove it from the bucket. */
-      callback(event::event(file, event::what::path_destroy));
+      callback(event::event(file, event::what::destroy));
       if (bucket.contains(file))
         bucket.erase(file);
     }
@@ -134,7 +134,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
     else if (!bucket.contains(file)) {
       /* we put it in there and call the closure, indicating creation. */
       bucket[file] = timestamp;
-      callback(event::event(file, event::what::path_create));
+      callback(event::event(file, event::what::create));
     }
     /* otherwise, it is already in our bucket. */
     else {
@@ -142,7 +142,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
       if (bucket[file] != timestamp) {
         bucket[file] = timestamp;
         /* and call the closure on them, indicating modification */
-        callback(event::event(file, event::what::path_modify));
+        callback(event::event(file, event::what::modify));
       }
     }
     return true;

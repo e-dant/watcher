@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <filesystem>
 
 /*
@@ -23,16 +24,14 @@ namespace event {
 
 enum class what {
   /* the essential happenings */
-  path_rename,
-  path_modify,
-  path_create,
-  path_destroy,
-  path_other,
+  rename,
+  modify,
+  create,
+  destroy,
 
   /* extended happenings:
      path attributes */
-  attr_owner,
-  attr_other,
+  owner,
 
   /* catch-all */
   other,
@@ -49,20 +48,35 @@ enum class kind {
   file,
   hard_link,
   sym_link,
-  unknown,
 
   /* catch-all */
   other,
 };
 
 struct event {
+  /*
+    I like these names. Very human.
+    'what happen'
+    'event kind'
+  */
   const char* where;
   const enum what what;
   const enum kind kind;
+
   event(const char* where, const enum what happen) noexcept
       : where{where}, what{happen}, kind{[&]() {
           using std::filesystem::is_regular_file, std::filesystem::is_directory,
               std::filesystem::is_symlink, std::filesystem::exists;
+          /*
+            There is only enough room in this world
+            for two control flow operators:
+
+            1. `if constexpr`
+            2. `ternary if`
+
+            I should write a proposal for the
+            `constexpr ternary if`.
+          */
           return
               // exists?
               exists(where)
@@ -78,72 +92,74 @@ struct event {
                               : is_symlink(where)
                                     // kind/sym_link
                                     ? kind::sym_link
-                                    // default -> kind/unknown
-                                    : kind::unknown
-                  : kind::unknown;
+                                    // default -> kind/other
+                                    : kind::other
+                  // default -> kind/other
+                  : kind::other;
         }()} {}
   ~event() noexcept = default;
-  // ostream operator << prints out where, what and kind
-  friend std::ostream& operator<<(std::ostream& os, const enum what& w) {
-    return os;
-    switch (w) {
-      case what::path_rename:
-        return os << "path_rename";
-      case what::path_modify:
-        return os << "path_modify";
-      case what::path_create:
-        return os << "path_create";
-      case what::path_destroy:
-        return os << "path_destroy";
-      case what::path_other:
-        return os << "path_other";
-      case what::attr_owner:
-        return os << "attr_owner";
-      case what::attr_other:
-        return os << "attr_other";
-      case what::other:
-        return os << "other";
-    }
-  }
+
+  /* @brief water/watcher/event/<<
+
+     prints out where, what and kind.
+     formats the output as a json object. */
+
+  /* @note water/watcher/event/<<
+
+     the only way to get this object is through one of the `run`s.
+     If that were not the case, the time would not be correct,
+     and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
-    return os << "{event{where:" << e.where << ",what:" <<
-           [&]() {
-             switch (e.what) {
-               case what::path_rename:
-                 return "path_rename";
-               case what::path_modify:
-                 return "path_modify";
-               case what::path_create:
-                 return "path_create";
-               case what::path_destroy:
-                 return "path_destroy";
-               case what::path_other:
-                 return "path_other";
-               case what::attr_owner:
-                 return "attr_owner";
-               case what::attr_other:
-                 return "attr_other";
-               case what::other:
-                 return "other";
-             }
-           }()
-              << ",kind:" <<
-           [&]() {
-             switch (e.kind) {
-               case kind::dir:
-                 return "kind::dir";
-               case kind::file:
-                 return "kind::file";
-               case kind::hard_link:
-                 return "kind::hard_link";
-               case kind::sym_link:
-                 return "kind::sym_link";
-               case kind::unknown:
-                 return "kind::unknown";
-               case kind::other:
-                 return "kind::other";
-             }
-           }() << "}}";
+    /* wow! thanks chrono! */
+    const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         std::chrono::time_point<std::chrono::system_clock>{
+                             std::chrono::system_clock::now()}
+                             .time_since_epoch())
+                         .count();
+
+    const auto w = [&]() {
+      switch (e.what) {
+        case what::rename:
+          return "rename";
+        case what::modify:
+          return "modify";
+        case what::create:
+          return "create";
+        case what::destroy:
+          return "destroy";
+        case what::owner:
+          return "owner";
+        case what::other:
+          return "other";
+      }
+    }();
+
+    const auto k = [&]() {
+      switch (e.kind) {
+        case kind::dir:
+          return "kind::dir";
+        case kind::file:
+          return "kind::file";
+        case kind::hard_link:
+          return "kind::hard_link";
+        case kind::sym_link:
+          return "kind::sym_link";
+        case kind::other:
+          return "kind::other";
+      }
+    }();
+
+    return os
+
+           << "{\"event" << now
+
+           << "\":{\"where\":\"" << e.where
+
+           << "\",\"what\":\"" << w
+
+           << "\",\"kind\":\"" << k
+
+           << "\"}}";
   }
 };
 

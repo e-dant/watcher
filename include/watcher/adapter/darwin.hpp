@@ -30,10 +30,10 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
   {
     /* basic information about what happened to some path.
        for now, this group is the important one. */
-    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::path_create),
-    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::path_modify),
-    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::path_destroy),
-    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::path_rename),
+    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
+    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
+    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
+    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
 
     // /* path information, i.e. whether the path is a file, directory, etc. */
     // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
@@ -43,11 +43,11 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
 
     /* path attribute events, such as the owner and some xattr data. */
-    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::attr_other),
-    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::attr_other),
-    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::attr_owner),
+    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
+    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
+    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
 
     /* some edge-cases which may be interesting later on. */
     flag_pair(kFSEventStreamEventFlagNone,               event::what::other),

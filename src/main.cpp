@@ -9,7 +9,7 @@ using namespace water::watcher::literal;
 const auto show_event = [](const event& ev) {
 
   /* The event's << operator will print as json. */
-  std::cout << ev << std::endl;
+  std::cout << "{" << ev << "}" << std::endl;
 
   /*
     // Or, parse manually like this:
@@ -21,9 +21,9 @@ const auto show_event = [](const event& ev) {
     // and all other values.
 
     switch (ev.what) {
-      case what::path_create:  return do_show("created");
-      case what::path_modify:  return do_show("modified");
-      case what::path_destroy: return do_show("erased");
+      case what::create:  return do_show("created");
+      case what::modify:  return do_show("modified");
+      case what::destroy: return do_show("erased");
       default:                 return do_show("unknown");
     }
 

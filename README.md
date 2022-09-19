@@ -58,9 +58,9 @@ run<16>(
 
     /* such as printing what happened. */
     switch (ev.what) {
-      case what::path_create:  return show_event("created");
-      case what::path_modify:  return show_event("modified");
-      case what::path_destroy: return show_event("erased");
+      case what::create:  return show_event("created");
+      case what::modify:  return show_event("modified");
+      case what::destroy: return show_event("erased");
       default:           return show_event("unknown");
     }
   });
@@ -81,9 +81,9 @@ const auto show_event = [](const event& ev) {
   { std::cout << what << ": " << ev.where << std::endl; };
 
   switch (ev.what) {
-    case what::path_create:  return do_show("created");
-    case what::path_modify:  return do_show("modified");
-    case what::path_destroy: return do_show("erased");
+    case what::create:  return do_show("created");
+    case what::modify:  return do_show("modified");
+    case what::destroy: return do_show("erased");
     default:                 return do_show("unknown");
   }
 };
