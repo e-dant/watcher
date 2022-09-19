@@ -111,7 +111,7 @@ struct event {
      and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
     /* wow! thanks chrono! */
-    const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+    const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(
                          std::chrono::time_point<std::chrono::system_clock>{
                              std::chrono::system_clock::now()}
                              .time_since_epoch())
@@ -151,7 +151,7 @@ struct event {
 
     return os
 
-           << "{\"event" << now
+           << "\"event" << now
 
            << "\":{\"where\":\"" << e.where
 
@@ -159,7 +159,7 @@ struct event {
 
            << "\",\"kind\":\"" << k
 
-           << "\"}}";
+           << "\"}";
   }
 };
 

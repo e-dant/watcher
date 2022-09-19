@@ -9,7 +9,7 @@ using namespace water::watcher::literal;
 const auto show_event = [](const event& ev) {
 
   /* The event's << operator will print as json. */
-  std::cout << "'" << ev << "'" << std::endl;
+  std::cout << ev << "," << std::endl;
 
   /*
     // Or, parse manually like this:
@@ -43,12 +43,15 @@ int main(int argc, char** argv) {
                         // otherwise, default to the
                         // current directory
                         : ".";
-  return run<delay_ms>(
-      // scan the path, forever...
-      path,
-      // printing what we find,
-      // every 16 milliseconds.
-      show_event);
+  std::cout << "{";
+  const auto isok = run<delay_ms>(
+                        // scan the path, forever...
+                        path,
+                        // printing what we find,
+                        // every 16 milliseconds.
+                        show_event);
+  std::cout << "}";
+  return isok;
 }
 
 // clang-format on
