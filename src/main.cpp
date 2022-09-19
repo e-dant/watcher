@@ -12,12 +12,13 @@ const auto show_event = [](const event& ev) {
   std::cout << ev << std::endl;
 
   /*
-    Or, parse manually (more useful for when you want to
-    *do* something with event other than pushing it into
-    stdout) like this:
+    // Or, parse manually like this:
     
     const auto do_show = [ev](const auto& what, const auto& kind)
     { std::cout << what << kind << ": " << ev.where << std::endl; };
+
+    // See water/watcher/event.hpp for more documentation on these
+    // and all other values.
 
     switch (ev.what) {
       case what::path_create:  return do_show("created");
@@ -25,6 +26,11 @@ const auto show_event = [](const event& ev) {
       case what::path_destroy: return do_show("erased");
       default:                 return do_show("unknown");
     }
+
+    // Manual parsing is useful for further event filtering.
+    // You could, for example, send `create` events to some
+    // notification service and send `modify` events to some
+    // database.
   */
 };
 
