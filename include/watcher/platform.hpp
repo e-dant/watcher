@@ -37,5 +37,16 @@ inline constexpr platform_t platform
     = platform_t::unknown;
 #endif
 
+namespace literal {
+using                                          // NOLINT
+    water::watcher::platform,                  // NOLINT
+    water::watcher::platform_t::unknown,       // NOLINT
+    water::watcher::platform_t::mac_catalyst,  // NOLINT
+    water::watcher::platform_t::macos,         // NOLINT
+    water::watcher::platform_t::ios,           // NOLINT
+    water::watcher::platform_t::android,       // NOLINT
+    water::watcher::platform_t::linux,         // NOLINT
+    water::watcher::platform_t::windows;       // NOLINT
+}  // namespace literal
 }  // namespace watcher
 }  // namespace water

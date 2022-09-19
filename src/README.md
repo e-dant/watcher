@@ -3,15 +3,10 @@
 
 ## Summary
 
-Implementation source for *Watcher
-*.
-
-Arbitrary path watcher.
-
+Implementation source for *Watcher*: An arbitrary path watcher.
 
 ## Content
 
-watcher.hpp
-main.cpp
+`main.cpp`
 
 

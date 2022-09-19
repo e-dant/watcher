@@ -4,24 +4,34 @@
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
-using
-  water::watcher::event::what::path_destroy,
-  water::watcher::event::what::path_create,
-  water::watcher::event::what::path_modify,
-  water::watcher::event,
-  water::watcher::run;
+using namespace water::watcher::literal;
 
-const auto stutter_print = [](const event& ev) {
+const auto show_event = [](const event& ev) {
 
-  const auto show_event = [ev](const auto& what)
-  { std::cout << what << ": " << ev.where << std::endl; };
+  /* The event's << operator will print as json. */
+  std::cout << ev << std::endl;
 
-  switch (ev.what) {
-    case path_create:  return show_event("created");
-    case path_modify:  return show_event("modified");
-    case path_destroy: return show_event("erased");
-    default:           return show_event("unknown");
-  }
+  /*
+    // Or, parse manually like this:
+    
+    const auto do_show = [ev](const auto& what, const auto& kind)
+    { std::cout << what << kind << ": " << ev.where << std::endl; };
+
+    // See water/watcher/event.hpp for more documentation on these
+    // and all other values.
+
+    switch (ev.what) {
+      case what::path_create:  return do_show("created");
+      case what::path_modify:  return do_show("modified");
+      case what::path_destroy: return do_show("erased");
+      default:                 return do_show("unknown");
+    }
+
+    // Manual parsing is useful for further event filtering.
+    // You could, for example, send `create` events to some
+    // notification service and send `modify` events to some
+    // database.
+  */
 };
 
 int main(int argc, char** argv) {
@@ -38,7 +48,7 @@ int main(int argc, char** argv) {
       path,
       // printing what we find,
       // every 16 milliseconds.
-      stutter_print);
+      show_event);
 }
 
 // clang-format on

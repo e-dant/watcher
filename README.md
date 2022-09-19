@@ -1,8 +1,14 @@
 # Watcher
 
 This project is trivially easy to use, include,
-and run. (I hope.) This is a single-header,
-use-it-anywhere, pass-it-anything kind of library.
+and run. (I hope.) This is a header-only,
+use-it-anywhere, pass-it-anything, highly efficient,
+easy to use kind of library.
+
+*Watcher* is often extremely efficient. In most cases,
+even when scanning millions of files and directories,
+*Watcher* uses a near-zero amount of resources are used.
+*[Notes:1]*
 
 If you don't want to use it in another project,
 don't worry, because it comes with one. Just build
@@ -16,109 +22,87 @@ an arbitrary path watcher.
 
 ## Usage
 
-There are only two functions that are important:
-  - `water::watcher::scan`
+There is one one function that is important:
   - `water::watcher::run`
 
-Each take a path, which is a string-like thing,
+`run` takes a path, which is a string-like thing,
 and a callback, with is a function-like thing.
 
-So, passing them a string and a lambda would do
+So, passing `run` a string and a lambda would do
 nicely.
 
-The only difference between the `scan` and `run`
-is that `scan` runs once. `run` keeps on going,
-forever.
+`run` will happily keep continue watching, forever,
+until it is asked to stop or it hits an unrecoverable
+error.
 
 ### Brief
 
 ```cpp
-// at some point, create a 'run'
-// with some millisecond delay,
-// it's template parameter.
-// the default is 16 ms.
-water::watcher::run<16>(
-  // providing it with some path
-  // to scan, forever...
+using water::watcher::literal;
+/* at some point, create a 'run'
+   with some millisecond delay.
+   the default is 16 ms, */
+run<16>(
+  /* provide it with some path
+     to scan, forever.
+     the default is the current
+     working directory. */
   ".",
-  // providing it with a callback,
-  // that does whatever you'd like...
-  [](
-    const water::concepts::Path auto& file,
-    const water::watcher::status& s) {
-      const auto pf = [&file](const auto& s) {
-        std::cout << s << ": " << file << std::endl;
-      };
-      // such as printing what happened.
-      switch (s) {
-        case created:
-          pf("created");
-          break;
-        case modified:
-          pf("modified");
-          break;
-        case erased:
-          pf("erased");
-          break;
-        default:
-          pf("unknown");
-      }
-      });
+  /* provide it with a callback,
+     which may be passed an event,
+     `water::watcher::event::event`,
+     and that does whatever you'd like, */
+  [](const event& ev) {
+    const auto show_event = [ev](const auto& what)
+    { std::cout << what << ": " << ev.where << std::endl; };
+
+    /* such as printing what happened. */
+    switch (ev.what) {
+      case what::path_create:  return show_event("created");
+      case what::path_modify:  return show_event("modified");
+      case what::path_destroy: return show_event("erased");
+      default:           return show_event("unknown");
+    }
+  });
 ```
 
-### Long
+### Detail
 
 ```cpp
-#include <chrono>
-#include <iostream>
-#include <thread>
-#include <type_traits>
-#include <watcher.hpp>
+#include <iostream>             // std::cout, std::endl
+#include <thread>               // std::this_thread::sleep_for
+#include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
-using namespace water;
-using namespace watcher;
-using namespace concepts;
+using namespace water::watcher::literal;
 
-const auto stutter_print
-    = [](const Path auto& file, const status& s)
-  {
+const auto show_event = [](const event& ev) {
 
-  using status::created, status::modified, status::erased,
-      std::endl, std::cout;
+  const auto do_show = [ev](const auto& what)
+  { std::cout << what << ": " << ev.where << std::endl; };
 
-  const auto pf = [&file](const auto& s) {
-    cout << s << ": " << file << endl;
-  };
-
-  switch (s) {
-    case created:
-      pf("created");
-      break;
-    case modified:
-      pf("modified");
-      break;
-    case erased:
-      pf("erased");
-      break;
-    default:
-      pf("unknown");
+  switch (ev.what) {
+    case what::path_create:  return do_show("created");
+    case what::path_modify:  return do_show("modified");
+    case what::path_destroy: return do_show("erased");
+    default:                 return do_show("unknown");
   }
 };
 
 int main(int argc, char** argv) {
-  auto path = argc > 1
-                  // we have been given a path,
-                  // and we will use it
-                  ? argv[1]
-                  // otherwise, default to the
-                  // current directory
-                  : ".";
-  return run(
+  static constexpr auto delay_ms = 16;
+  const auto path = argc > 1
+                        // we have been given a path,
+                        // and we will use it
+                        ? argv[1]
+                        // otherwise, default to the
+                        // current directory
+                        : ".";
+  return run<delay_ms>(
       // scan the path, forever...
       path,
       // printing what we find,
       // every 16 milliseconds.
-      stutter_print);
+      show_event);
 }
 ```
 
@@ -166,3 +150,16 @@ cd out
 # watches some path
 # ./water.watcher 'your/favorite/path'
 ```
+
+## Notes
+
+### [1] Exceptions to Efficient Scanning
+
+There are two cases where *Watcher*'s efficiency takes a hit:
+
+1. On Solaris, where the slow adapter (`warthog`) will be used
+   because no better alternative exists (`kqueue` is worse).
+2. On embedded systems (where resources matter).
+
+*Watcher* is still efficient in these cases, but a longer
+`delay_ms` might be necessary.
