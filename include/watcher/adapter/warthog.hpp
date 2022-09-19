@@ -229,6 +229,9 @@ inline bool run(const Path auto& path, const Callback auto& callback) {
 */
 
 }  // namespace warthog
+namespace literal {
+using water::watcher::adapter::warthog::run;  // NOLINT
+}
 }  // namespace adapter
 }  // namespace watcher
 }  // namespace water
