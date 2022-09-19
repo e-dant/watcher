@@ -35,6 +35,45 @@ nicely.
 until it is asked to stop or it hits an unrecoverable
 error.
 
+Because *Watcher* has a stream operator, it is trivial
+to quickly build programs that yield some useful information,
+such as this:
+
+```json
+"water.watcher.stream":{
+    "1663556133054707000": {
+      "where": "water/watcher/.git/objects/cc/tmp_obj_sfbyd6",
+      "what": "destroy",
+      "kind": "other"
+    },
+    "1663556133054710000": {
+      "where": "water/watcher/.git/HEAD.lock",
+      "what": "create",
+      "kind": "other"
+    },
+    "1663556133054713000": {
+      "where": "water/watcher/.git/refs/heads/next.lock",
+      "what": "create",
+      "kind": "other"
+    },
+    "1663556133054716000": {
+      "where": "water/watcher/.git/refs/heads/next.lock",
+      "what": "modify",
+      "kind": "other"
+    },
+    "1663556133069940000": {
+      "where": "water/watcher/.git/logs/HEAD",
+      "what": "modify",
+      "kind": "file"
+    }
+}
+```
+
+Which is pretty cool.
+
+It is a snapshot of the output taken while preparing this commit,
+right before writing this paragraph.
+
 ### Brief
 
 ```cpp
