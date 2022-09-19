@@ -151,7 +151,7 @@ struct event {
 
     return os
 
-           << "\"event" << now
+           << "\"" << now
 
            << "\":{\"where\":\"" << e.where
 

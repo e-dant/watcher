@@ -1,15 +1,17 @@
 // clang-format off
 
 #include <iostream>             // std::cout, std::endl
+#include <ostream>
 #include <thread>               // std::this_thread::sleep_for
 #include <watcher/watcher.hpp>  // water::watcher::run, water::watcher::event
 
 using namespace water::watcher::literal;
+using std::cout, std::flush, std::endl;
 
 const auto show_event = [](const event& ev) {
 
   /* The event's << operator will print as json. */
-  std::cout << ev << "," << std::endl;
+  cout << ev << "," << flush;
 
   /*
     // Or, parse manually like this:
@@ -43,14 +45,14 @@ int main(int argc, char** argv) {
                         // otherwise, default to the
                         // current directory
                         : ".";
-  std::cout << "{";
+  cout << "{\"water.watcher.stream\":{";
   const auto isok = run<delay_ms>(
                         // scan the path, forever...
                         path,
                         // printing what we find,
                         // every 16 milliseconds.
                         show_event);
-  std::cout << "}";
+  cout << "}}" << endl << flush;
   return isok;
 }
 
