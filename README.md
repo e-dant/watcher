@@ -35,6 +35,45 @@ nicely.
 until it is asked to stop or it hits an unrecoverable
 error.
 
+Because *Watcher* has a stream operator, it is trivial
+to quickly build programs that yield some useful information,
+such as this:
+
+```json
+"water.watcher.stream": {
+    "1663556133054707000": {
+      "where": "water/watcher/.git/objects/cc/tmp_obj_sfbyd6",
+      "what": "destroy",
+      "kind": "other"
+    },
+    "1663556133054710000": {
+      "where": "water/watcher/.git/HEAD.lock",
+      "what": "create",
+      "kind": "other"
+    },
+    "1663556133054713000": {
+      "where": "water/watcher/.git/refs/heads/next.lock",
+      "what": "create",
+      "kind": "other"
+    },
+    "1663556133054716000": {
+      "where": "water/watcher/.git/refs/heads/next.lock",
+      "what": "modify",
+      "kind": "other"
+    },
+    "1663556133069940000": {
+      "where": "water/watcher/.git/logs/HEAD",
+      "what": "modify",
+      "kind": "file"
+    }
+}
+```
+
+Which is pretty cool.
+
+It is a snapshot of the output taken while preparing this commit,
+right before writing this paragraph.
+
 ### Brief
 
 ```cpp
@@ -58,9 +97,9 @@ run<16>(
 
     /* such as printing what happened. */
     switch (ev.what) {
-      case what::path_create:  return show_event("created");
-      case what::path_modify:  return show_event("modified");
-      case what::path_destroy: return show_event("erased");
+      case what::create:  return show_event("created");
+      case what::modify:  return show_event("modified");
+      case what::destroy: return show_event("erased");
       default:           return show_event("unknown");
     }
   });
@@ -81,9 +120,9 @@ const auto show_event = [](const event& ev) {
   { std::cout << what << ": " << ev.where << std::endl; };
 
   switch (ev.what) {
-    case what::path_create:  return do_show("created");
-    case what::path_modify:  return do_show("modified");
-    case what::path_destroy: return do_show("erased");
+    case what::create:  return do_show("created");
+    case what::modify:  return do_show("modified");
+    case what::destroy: return do_show("erased");
     default:                 return do_show("unknown");
   }
 };
