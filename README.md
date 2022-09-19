@@ -74,38 +74,7 @@ Which is pretty cool.
 It is a snapshot of the output taken while preparing this commit,
 right before writing this paragraph.
 
-### Brief
-
-```cpp
-using water::watcher::literal;
-/* at some point, create a 'run'
-   with some millisecond delay.
-   the default is 16 ms, */
-run<16>(
-  /* provide it with some path
-     to scan, forever.
-     the default is the current
-     working directory. */
-  ".",
-  /* provide it with a callback,
-     which may be passed an event,
-     `water::watcher::event::event`,
-     and that does whatever you'd like, */
-  [](const event& ev) {
-    const auto show_event = [ev](const auto& what)
-    { std::cout << what << ": " << ev.where << std::endl; };
-
-    /* such as printing what happened. */
-    switch (ev.what) {
-      case what::create:  return show_event("created");
-      case what::modify:  return show_event("modified");
-      case what::destroy: return show_event("erased");
-      default:           return show_event("unknown");
-    }
-  });
-```
-
-### Detail
+A `main` suitable for this task:
 
 ```cpp
 #include <iostream>             // std::cout, std::endl
