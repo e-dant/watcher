@@ -78,23 +78,23 @@ struct event {
             `constexpr ternary if`.
           */
           return
-              // exists?
+
               exists(where)
-                  // file?
+
                   ? is_regular_file(where)
-                        // -> kind/file
+
                         ? kind::file
-                        // dir?
+
                         : is_directory(where)
-                              // -> kind/dir
+
                               ? kind::dir
-                              // sym link?
+
                               : is_symlink(where)
-                                    // kind/sym_link
+
                                     ? kind::sym_link
-                                    // default -> kind/other
+
                                     : kind::other
-                  // default -> kind/other
+
                   : kind::other;
         }()} {}
   ~event() noexcept = default;

@@ -101,8 +101,7 @@ auto prune(const Path auto& path, const Callback auto& callback) {
           /* if not, call the closure, indicating destruction,
              and remove it from our bucket. */
           : [&]() {
-              callback(
-                  event::event(file->first.c_str(), event::what::destroy));
+              callback(event::event(file->first.c_str(), event::what::destroy));
               /* bucket, erase it! */
               file = bucket.erase(file);
             }();
@@ -185,30 +184,31 @@ bool scan_directory(const Path auto& dir, const Callback auto& callback) {
   Unless it should stop, or errors present,
   `run` recurses into itself.
 */
-// clang-format off
 template <const auto delay_ms = 16>
 inline bool run(const Path auto& path, const Callback auto& callback) {
   /* see note [alternative run loop syntax] */
-  using
-    std::this_thread::sleep_for,
-    std::chrono::milliseconds,
-    std::filesystem::exists;
+  using std::this_thread::sleep_for, std::chrono::milliseconds,
+      std::filesystem::exists;
 
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
   /* if no errors present, keep running. otherwise, leave. */
   return
-    prune(path, callback)
-      ? scan_directory(path, callback)
-        ? water::watcher::adapter::warthog::
-          run<delay_ms>(path, callback)
-        : scan_file(path, callback)
-          ? water::watcher::adapter::warthog::
-            run<delay_ms>(path, callback)
-          : false
-      : false;
+
+      prune(path, callback)
+
+          ? scan_directory(path, callback)
+
+                ? warthog::run<delay_ms>(path, callback)
+
+                : scan_file(path, callback)
+
+                      ? warthog::run<delay_ms>(path, callback)
+
+                      : false
+
+          : false;
 }
-// clang-format on
 
 /*
   # Notes
