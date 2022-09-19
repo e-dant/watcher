@@ -23,11 +23,14 @@ You could, for example, run this program,
 pipe it to `grep`, filtering through the noise:
 
 ```bash
+# grab it
 git clone https://github.com/e-dant/watcher.git && cd watcher
-# to build:
-# cmake -S build/in -B build/out && cmake --build build/out --config Release
-# or, simply, from with the "water" project:
-# `tell build`
+
+# build it
+cmake -S build/in -B build/out && cmake --build build/out --config Release
+# or, from with the "water" project: `tell build`
+
+# use it
 build/out/water.watcher | grep -oE 'needle-in-a-haystack/.+"'
 ```
 
