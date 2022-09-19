@@ -2,12 +2,13 @@
 
 An arbitrary path watcher.
 
-*Watcher* is:
+*Watcher* is primarily:
 
-- highly-efficient
-- use-it-anywhere
-- include-to-use
-- pass-it-anything
+- simple
+- efficient
+- dependency free
+- runnable anywhere
+- header only
 
 *Watcher* is extremely efficient. In most cases,
 even when scanning millions of paths, this library
@@ -17,6 +18,17 @@ If you don't want to use it in another project,
 don't worry, because it comes with one. Just build
 and run and you've got yourself a filesystem
 watcher, which is pretty cool.
+
+You could, for example, run this program,
+pipe it to `grep`, filtering through the noise:
+
+```bash
+# to build:
+# cmake -S build/in -B build/out && cmake --build build/out --config Release
+# or, simply, from with the "water" project:
+# `tell build`
+./water.watcher | grep -oE 'needle-in-a-haystack/.+"'
+```
 
 *Watcher* is trivially easy to use, include,
 and run. (I hope. If not, let me know.)
