@@ -21,7 +21,7 @@ cmake_policy(SET CMP0135 NEW)
 #       FetchContent_Populate
 include(FetchContent)
 
-#   [project_options v0.24.0]
+#   [project_options v0.25.2]
 #     - for:
 #       dynamic_project_options
 #       project_options
@@ -29,7 +29,7 @@ include(FetchContent)
 #       cpack
 FetchContent_Declare(
   water_watcher_project_options 
-  URL "https://github.com/aminya/project_options/archive/refs/tags/v0.24.0.zip"
+  URL "https://github.com/aminya/project_options/archive/refs/tags/v0.25.2.tar.gz"
   DOWNLOAD_EXTRACT_TIMESTAMP
 )
 FetchContent_MakeAvailable(water_watcher_project_options)
@@ -143,6 +143,7 @@ endif()
 #   TODO
 #package_project(
 #  TARGETS "${PROJECT_NAME}"
+#  PUBLIC_INCLUDES ../../include # ${INCLUDE_DIR} ?
 #  # FIXME: this does not work! ED
 #  # CONFIG_EXPORT_DESTINATION "${CMAKE_INSTALL_DATADIR}/${NAME}_cmake_package"
 #  # CONFIG_INSTALL_DESTINATION "${CMAKE_INSTALL_DATADIR}/${NAME}_cmake_package"
@@ -162,3 +163,11 @@ set(CPACK_PACKAGE_FILE_NAME
 )
 
 include(CPack)
+
+include(GNUInstallDirs)
+
+install(
+  TARGETS ${PROJECT_NAME} 
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} 
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
