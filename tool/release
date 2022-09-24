@@ -1,0 +1,35 @@
+#! /usr/bin/env bash
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.."
+THIS_BRANCH="$(git branch --show-current)"
+EXIT_VAL=0
+SEMVER="$1"
+
+if echo "$SEMVER" | grep -qE -- '^[0-9]+\.[0-9]+\.[0-9]+$'
+then
+
+  test "$THIS_BRANCH" = 'release' \
+    || git checkout release
+
+  git merge next -m "release/$SEMVER" \
+    && git push \
+    && git tag \
+      -a "release/$SEMVER" \
+      -m "release/$SEMVER" \
+      "$(git log | head -n 1 | sed -E 's/commit (.*)/\1/g')" \
+    && git push origin "release/$SEMVER"
+
+  EXIT_VAL=$?
+
+else
+
+  echo "Usage: $0 <semantic version>"
+  echo "Example: $0 1.2.3"
+
+  EXIT_VAL=1
+
+fi
+
+cd "$LAST_DIR"
+exit $EXIT_VAL
