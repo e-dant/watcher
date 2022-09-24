@@ -9,7 +9,7 @@ build::build() {
 
   cc::init() {
     local ok;
-    local llvm_dir="$thisdir/../../../tool/compilers/llvm"
+    local llvm_dir="$thisdir/../../../tool/compiler/llvm"
     if test -n "$CC" -a -n "$CXX"
     then
       ok=0
