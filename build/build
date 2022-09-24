@@ -5,7 +5,7 @@ build::build() {
   local lastdir="$PWD"
   cd "$(dirname "$0")"
   local thisdir="$PWD"
-  local llvm_version=14
+  local llvm_version=15
 
   cc::init() {
     local ok;
@@ -31,16 +31,8 @@ build::build() {
   }
 
   cmake::build() {
-    cmake \
-      -S 'in' \
-      -B 'out' \
-      -Wno-dev \
-      -G 'Ninja' \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      && cmake \
-        --build out \
-        --config RelWithDebInfo
+    cmake -S 'in' -B 'out' -G 'Ninja' -Wno-dev \
+      && cmake --build out --config Release
     return $?
   }
 
