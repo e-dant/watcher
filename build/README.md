@@ -3,13 +3,11 @@
 
 ## Summary
 
-Contains the build tools and systems for 
-*Watcher
-*. Produces consumable
+Contains the build tools and systems for
+*Watcher*. Produces consumable
 artifacts.
 
-Contains the build tools and systems for *Watcher
-*.
+Contains the build tools and systems for *Watcher*.
 Produces consumable artifacts.
 
 

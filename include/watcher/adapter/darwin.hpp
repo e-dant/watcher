@@ -43,7 +43,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
     // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
 
-    /* path attribute events, such as the owner and some xattr data. 
+    /* path attribute events, such as the owner and some xattr data.
        will be worthwhile soon to implement these.
        @todo(next weekend) this. */
     flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),

@@ -28,7 +28,7 @@ include(FetchContent)
 #       conan
 #       cpack
 FetchContent_Declare(
-  water_watcher_project_options 
+  water_watcher_project_options
   URL "https://github.com/aminya/project_options/archive/refs/tags/v0.25.2.tar.gz"
   DOWNLOAD_EXTRACT_TIMESTAMP
 )
@@ -167,7 +167,7 @@ include(CPack)
 include(GNUInstallDirs)
 
 install(
-  TARGETS ${PROJECT_NAME} 
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} 
+  TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
