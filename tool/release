@@ -107,7 +107,7 @@ echo "
 }
 
 release() {
-  if test $# -gt 0
+  if echo "$1" | grep -qE -- '^--.*'
   then
     local CMDB="$THIS"
     for ARG in "$@"; do
