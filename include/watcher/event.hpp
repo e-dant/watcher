@@ -104,49 +104,35 @@ struct event {
      If that were not the case, the time would not be correct,
      and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
+    // clang-format off
     const auto what_repr = [&]() {
       switch (e.what) {
-        case what::rename:
-          return "rename";
-        case what::modify:
-          return "modify";
-        case what::create:
-          return "create";
-        case what::destroy:
-          return "destroy";
-        case what::owner:
-          return "owner";
-        case what::other:
-          return "other";
+        case what::rename:  return "rename";
+        case what::modify:  return "modify";
+        case what::create:  return "create";
+        case what::destroy: return "destroy";
+        case what::owner:   return "owner";
+        case what::other:   return "other";
       }
     }();
 
     const auto kind_repr = [&]() {
       switch (e.kind) {
-        case kind::dir:
-          return "dir";
-        case kind::file:
-          return "file";
-        case kind::hard_link:
-          return "hard_link";
-        case kind::sym_link:
-          return "sym_link";
-        case kind::other:
-          return "other";
+        case kind::dir:       return "dir";
+        case kind::file:      return "file";
+        case kind::hard_link: return "hard_link";
+        case kind::sym_link:  return "sym_link";
+        case kind::other:     return "other";
       }
     }();
 
-    return os
-
-           << "\"" << e.when
-
-           << "\":{\"where\":\"" << e.where
-
-           << "\",\"what\":\"" << what_repr
-
-           << "\",\"kind\":\"" << kind_repr
-
-           << "\"}";
+    return os << "\"" << e.when << "\":"
+              << "{"
+                  << "\"where\":\"" << e.where   << "\","
+                  << "\"what\":\""  << what_repr << "\","
+                  << "\"kind\":\""  << kind_repr << "\""
+              << "}";
+    // clang-format on
   }
 };
 
