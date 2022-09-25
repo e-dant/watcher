@@ -91,7 +91,7 @@ echo "
 
     argument =
         '--help'
-      | '--create ' , version
+      | '--create ' , semantic version
       | '--show ' [ part | '--advance ' part ]
 
     part =
@@ -101,7 +101,7 @@ echo "
     positive integer =
       { '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' } ;
 
-    version =
+    semantic version =
       positive integer , '.' , positive integer, '.' , positive integer ;
 "
 }
