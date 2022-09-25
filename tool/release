@@ -71,19 +71,38 @@ release::create() {
 
 release::help() {
 echo "
-  $0 < --help | --create < version > | --show [ part | --advance part ] >
+  synopsis:
+    $0 < --help | --create < version > | --show [ part | --advance part ] >
 
-  part =
-    'maj' | 'major' | 'min' | 'minor' | 'mic' | 'micro' ;
+  example:
+    $0 --help
+    $0 --show
+    $0 --show major
+    $0 --show minor
+    $0 --show micro
+    $0 --create 1.2.3
+    $0 --show --advance maj
+    $0 --show --advance min
+    $0 --show --advance mic
 
-  digit =
-    '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
+  ebnf form: 
+    calling convention =
+      '$0 ' argument
 
-  digits =
-    { digit } ;
+    argument =
+        '--help'
+      | '--create ' , version
+      | '--show ' [ part | '--advance ' part ]
 
-  version =
-    digits , '.' , digits, '.' , digits ;
+    part =
+        'minor' | 'major' | 'micro'
+      | 'maj'   | 'min'   | 'mic' ;
+
+    positive integer =
+      { '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' } ;
+
+    version =
+      positive integer , '.' , positive integer, '.' , positive integer ;
 "
 }
 
