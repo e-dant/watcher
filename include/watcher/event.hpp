@@ -104,7 +104,7 @@ struct event {
      If that were not the case, the time would not be correct,
      and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
-    // clang-format off
+    /* clang-format off */
     const auto what_repr = [&]() {
       switch (e.what) {
         case what::rename:  return "rename";
@@ -132,7 +132,7 @@ struct event {
                   << "\"what\":\""  << what_repr << "\","
                   << "\"kind\":\""  << kind_repr << "\""
               << "}";
-    // clang-format on
+    /* clang-format on */
   }
 };
 

@@ -23,7 +23,7 @@ namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
-// clang-format off
+/* clang-format off */
 inline constexpr auto flag_pair_count = 26;
 inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
   {
@@ -65,7 +65,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
     flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
 };
-// clang-format on
+/* clang-format on */
 
 template <const auto delay_ms = 16>
 auto mk_event_stream(const char* path, const auto& callback) {

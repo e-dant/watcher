@@ -35,7 +35,7 @@ namespace { /* anonymous namespace for "private" variables */
       - follow_directory_symlink
       - skip_permission_denied
       - bucket_t, a map type of string -> time */
-// clang-format off
+/* clang-format off */
 using
   std::filesystem::exists,
   std::filesystem::is_symlink,
@@ -58,7 +58,7 @@ inline constexpr std::filesystem::directory_options
 static std::unordered_map<std::string, std::filesystem::file_time_type>
     bucket;  // NOLINT
 
-// clang-format on
+/* clang-format on */
 
 /*
   @brief scan_file

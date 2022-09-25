@@ -1,4 +1,4 @@
-// clang-format off
+/* clang-format off */
 
 #include <iostream>             /* std::cout, std::endl */
 #include <thread>               /* std::this_thread::sleep_for */
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   return isok;
 }
 
-// clang-format on
+/* clang-format on */
 
 /*
 
