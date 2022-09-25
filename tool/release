@@ -114,7 +114,7 @@ echo "
 
     semantic version =
       positive integer ,
-      '.' , positive integer,
+      '.' , positive integer ,
       '.' , positive integer ;
 "
 }
