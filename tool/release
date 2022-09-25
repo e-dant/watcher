@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+# boilerplate
+THIS="$(basename "$0")" # 'release'
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.."
 THIS_BRANCH="$(git branch --show-current)"
@@ -10,6 +12,7 @@ release::htor() {
     maj|major)  local PART='\1';;
     min|minor)  local PART='\2';;
     mic|micro)  local PART='\3';;
+    full)       local PART='\1.\2.\3';;
     *)          local PART='\1.\2.\3';;
   esac
   echo "$PART"
@@ -68,7 +71,7 @@ release::create() {
 
 release::help() {
 echo "
-  $0 < --help | --create < version > | --show < part | --advance part > >
+  $0 < --help | --create < version > | --show [ part | --advance part ] >
 
   part =
     'maj' | 'major' | 'min' | 'minor' | 'mic' | 'micro' ;
@@ -85,8 +88,7 @@ echo "
 }
 
 release() {
-  local THIS="${FUNCNAME[0]}"
-  if test $# -gt 1
+  if test $# -gt 0
   then
     local CMDB="$THIS"
     for ARG in "$@"; do
@@ -100,13 +102,15 @@ release() {
     ${CMDB[@]}
     return $?
   else
-    "$THIS::help"
     return 1
   fi
 }
 
 release $@
 
+# boilerplate
 EXIT_VAL=$?
+test $EXIT_VAL -gt 0 \
+  && "$THIS::help"
 cd "$LAST_DIR"
 exit $EXIT_VAL
