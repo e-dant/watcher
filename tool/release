@@ -35,6 +35,13 @@ release::show::part() {
     | sed -E "s|release/([0-9]+)\.([0-9]+)\.([0-9]+)|$PART|g"
 }
 
+release::show::all() {
+  local PART="$(release::htor full)"
+  git tag --list \
+    | sort -r \
+    | sed -E "s|release/([0-9]+)\.([0-9]+)\.([0-9]+)|$PART|g"
+}
+
 release::show::advance() {
   test $# -ne 1 && return 1
 
@@ -72,7 +79,7 @@ release::create() {
 release::help() {
 echo "
   synopsis:
-    $0 < --help | --create < version > | --show [ part | --advance part ] >
+    $0 < --help | --create < version > | --show [ part | --all | --advance part ] >
 
   example:
     $0 --help
@@ -80,6 +87,7 @@ echo "
     $0 --show major
     $0 --show minor
     $0 --show micro
+    $0 --show --all
     $0 --create 1.2.3
     $0 --show --advance maj
     $0 --show --advance min
@@ -93,7 +101,8 @@ echo "
         '--help'
       | '--create ' , semantic version
       | '--show '   [ '--advance ' , part
-                      | part ]
+                    | '--all'
+                    | part ]
 
     part =
         'minor' | 'major' | 'micro'
