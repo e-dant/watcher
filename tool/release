@@ -85,14 +85,15 @@ echo "
     $0 --show --advance min
     $0 --show --advance mic
 
-  ebnf form: 
+  ebnf: 
     calling convention =
-      '$0 ' argument
+      '$0 ' , argument
 
     argument =
         '--help'
       | '--create ' , semantic version
-      | '--show ' [ part | '--advance ' part ]
+      | '--show '   [ '--advance ' , part
+                      | part ]
 
     part =
         'minor' | 'major' | 'micro'
