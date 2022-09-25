@@ -77,11 +77,12 @@ auto mk_event_stream(const char* path, const auto& callback) {
   const void** _path_refref{&_path_ref};
 
   /* We pass along the path we were asked to watch, */
-  const auto translated_path = CFArrayCreate(nullptr,       // not sure
-                                             _path_refref,  // path string(s)
-                                             1,             // number of paths
-                                             &kCFTypeArrayCallBacks  // callback
-  );
+  const auto translated_path =
+      CFArrayCreate(nullptr,               /* not sure */
+                    _path_refref,          /* path string(s) */
+                    1,                     /* number of paths */
+                    &kCFTypeArrayCallBacks /* callback */
+      );
   /* the time point from which we want to monitor events (which is now), */
   const auto time_flag = kFSEventStreamEventIdSinceNow;
   /* the delay, in seconds */
@@ -99,21 +100,20 @@ auto mk_event_stream(const char* path, const auto& callback) {
                                   kFSEventStreamCreateFlagNoDefer;
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
-      nullptr,            /* allocator */
-      callback,           /* callback; what to do */
-      nullptr,            /* context (see note [event stream context]) */
-      translated_path,    /* where to watch */
-      time_flag,          /* since when (we choose since now) */
-      delay_s,            /* time between fs event scans */
-      event_stream_flags  /* what data to gather and how */
+      nullptr,           /* allocator */
+      callback,          /* callback; what to do */
+      nullptr,           /* context (see note [event stream context]) */
+      translated_path,   /* where to watch */
+      time_flag,         /* since when (we choose since now) */
+      delay_s,           /* time between fs event scans */
+      event_stream_flags /* what data to gather and how */
   );
 }
 
 }  // namespace
 
 template <const auto delay_ms = 16>
-inline auto run(const char* path,
-                const auto& callback) {
+inline auto run(const char* path, const auto& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,
@@ -189,8 +189,8 @@ inline auto run(const char* path,
   if (alive_os_ev_queue(event_stream, event_queue))
     while (true)
       /* this does nothing to affect processing, but this thread doesn't need to
-         run an infinite loop aggressively. It can wait, with some latency, until
-         the queue stops, and then clean itself up. */
+         run an infinite loop aggressively. It can wait, with some latency,
+         until the queue stops, and then clean itself up. */
       if constexpr (delay_ms > 0)
         sleep_for(milliseconds(delay_ms));
 
