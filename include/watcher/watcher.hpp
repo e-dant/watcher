@@ -12,7 +12,6 @@
 // #include <functional> @todo invoke
 #include <watcher/adapter/darwin.hpp>
 #include <watcher/adapter/warthog.hpp>
-#include <watcher/concepts.hpp>
 #include <watcher/event.hpp>
 #include <watcher/platform.hpp>
 
@@ -37,8 +36,8 @@ namespace watcher {
 */
 
 template <const auto delay_ms = 16>
-bool run(const concepts::Path auto& path,
-         const concepts::Callback auto& callback) {
+bool run(const char* path,
+         const auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
   using namespace water::watcher::literal;
 
