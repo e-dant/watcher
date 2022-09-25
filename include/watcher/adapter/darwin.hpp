@@ -99,13 +99,13 @@ auto mk_event_stream(const char* path, const auto& callback) {
                                   kFSEventStreamCreateFlagNoDefer;
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
-      nullptr,            // allocator
-      callback,           // callback; what to do
-      nullptr,            // context (see note [event stream context])
-      translated_path,    // where to watch
-      time_flag,          // since when (we choose since now)
-      delay_s,            // time between fs event scans
-      event_stream_flags  // what data to gather and how
+      nullptr,            /* allocator */
+      callback,           /* callback; what to do */
+      nullptr,            /* context (see note [event stream context]) */
+      translated_path,    /* where to watch */
+      time_flag,          /* since when (we choose since now) */
+      delay_s,            /* time between fs event scans */
+      event_stream_flags  /* what data to gather and how */
   );
 }
 
