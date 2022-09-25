@@ -126,11 +126,11 @@ struct event {
       }
     }();
 
-    return os << "\"" << e.when << "\":"
+    return os << R"(")" << e.when << R"(":)"
               << "{"
-                  << "\"where\":\"" << e.where   << "\","
-                  << "\"what\":\""  << what_repr << "\","
-                  << "\"kind\":\""  << kind_repr << "\""
+                  << R"("where":")" << e.where   << R"(",)"
+                  << R"("what":")"  << what_repr << R"(",)"
+                  << R"("kind":")"  << kind_repr << R"(")"
               << "}";
     /* clang-format on */
   }
