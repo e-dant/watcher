@@ -13,24 +13,24 @@ enum class platform_t {
 };
 
 inline constexpr platform_t platform
-// apple
+/* apple */
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
-// mac target os
+/* apple target os */
 #if defined(TARGET_OS_MACCATALYST)
     = platform_t::mac_catalyst;
 #elif defined(TARGET_OS_MAC)
     = platform_t::macos;
 #elif defined(TARGET_OS_IOS)
     = platform_t::ios;
-#endif  // mac target os
-// android
+#endif /* apple target os */
+/* android */
 #elif defined(__ANDROID_API__)
     = platform_t::android;
-// linux
+/* linux */
 #elif defined(__linux__)
     = platform_t::linux;
-// windows
+/* windows */
 #elif defined(WIN32)
     = platform_t::windows;
 #else
@@ -38,15 +38,15 @@ inline constexpr platform_t platform
 #endif
 
 namespace literal {
-using                                          // NOLINT
-    water::watcher::platform,                  // NOLINT
-    water::watcher::platform_t::unknown,       // NOLINT
-    water::watcher::platform_t::mac_catalyst,  // NOLINT
-    water::watcher::platform_t::macos,         // NOLINT
-    water::watcher::platform_t::ios,           // NOLINT
-    water::watcher::platform_t::android,       // NOLINT
-    water::watcher::platform_t::linux,         // NOLINT
-    water::watcher::platform_t::windows;       // NOLINT
-}  // namespace literal
-}  // namespace watcher
-}  // namespace water
+using                                         /* NOLINT */
+    water::watcher::platform,                 /* NOLINT */
+    water::watcher::platform_t::unknown,      /* NOLINT */
+    water::watcher::platform_t::mac_catalyst, /* NOLINT */
+    water::watcher::platform_t::macos,        /* NOLINT */
+    water::watcher::platform_t::ios,          /* NOLINT */
+    water::watcher::platform_t::android,      /* NOLINT */
+    water::watcher::platform_t::linux,        /* NOLINT */
+    water::watcher::platform_t::windows;      /* NOLINT */
+} /* namespace literal */
+} /* namespace watcher */
+} /* namespace water   */

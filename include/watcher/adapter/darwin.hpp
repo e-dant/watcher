@@ -36,11 +36,11 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 
     /* path information, i.e. whether the path is a file, directory, etc.
        we can get this info much more easily later on in `water/watcher/event`. */
-    // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
-    // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
-    // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
+    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),      */
+    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),     */
+    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link), */
+    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),*/
+    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),*/
 
     /* path attribute events, such as the owner and some xattr data.
        will be worthwhile soon to implement these.
@@ -69,9 +69,9 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 
 template <const auto delay_ms = 16>
 auto mk_event_stream(const char* path, const auto& callback) {
-  // the contortions here are to please darwin.
-  // importantly, `path_as_refref` and its underlying types
-  // *are* const qualified. using void** is not ok. but it's also ok.
+  /*  the contortions here are to please darwin.
+      importantly, `path_as_refref` and its underlying types
+      *are* const qualified. using void** is not ok. but it's also ok. */
   const void* _path_ref =
       CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
   const void** _path_refref{&_path_ref};
@@ -110,7 +110,7 @@ auto mk_event_stream(const char* path, const auto& callback) {
   );
 }
 
-}  // namespace
+}  /* namespace */
 
 template <const auto delay_ms = 16>
 inline auto run(const char* path, const auto& callback) {
@@ -235,10 +235,10 @@ from `fswatch`, could be used:
   ```
 */
 
-}  // namespace darwin
+} /* namespace darwin */
 namespace literal {
-using water::watcher::adapter::darwin::run;  // NOLINT
-}  // namespace literal
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace water
+using water::watcher::adapter::darwin::run; /* NOLINT */
+} /* namespace literal */
+} /* namespace adapter */
+} /* namespace watcher */
+} /* namespace water   */

@@ -55,9 +55,6 @@ int main(int argc, char** argv) {
   const auto do_show = [ev](const auto& what, const auto& kind)
   { std::cout << what << kind << ": " << ev.where << std::endl; };
 
-  // See water/watcher/event.hpp for more documentation on these
-  // and all other values.
-
   switch (ev.what) {
     case what::create:  return do_show("created");
     case what::modify:  return do_show("modified");

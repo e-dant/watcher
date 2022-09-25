@@ -9,7 +9,8 @@
   Include and use this file.
 */
 
-// #include <functional> @todo invoke
+/* @todo consider using `std::invoke` */
+/* #include <functional> */
 #include <watcher/adapter/darwin.hpp>
 #include <watcher/adapter/warthog.hpp>
 #include <watcher/event.hpp>
@@ -36,8 +37,7 @@ namespace watcher {
 */
 
 template <const auto delay_ms = 16>
-bool run(const char* path,
-         const auto& callback) {
+bool run(const char* path, const auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
   using namespace water::watcher::literal;
 
@@ -69,7 +69,7 @@ bool run(const char* path,
 }
 
 namespace literal {
-using water::watcher::run;  // NOLINT
-}  // namespace literal
-}  // namespace watcher
-}  // namespace water
+using water::watcher::run; /* NOLINT */
+} /* namespace literal */
+} /* namespace watcher */
+} /* namespace water   */

@@ -56,7 +56,7 @@ inline constexpr std::filesystem::directory_options
   dir_opt = skip_permission_denied & follow_directory_symlink;
 
 static std::unordered_map<std::string, std::filesystem::file_time_type>
-    bucket;  // NOLINT
+    bucket;  /* NOLINT */
 
 /* clang-format on */
 
@@ -102,7 +102,8 @@ bool scan_directory(const char* dir, const auto& callback) {
   if (is_directory(dir)) {
     /* try to iterate through its contents */
     auto dir_it_ec = std::error_code{};
-    for (const auto& file : recursive_directory_iterator(dir, dir_opt, dir_it_ec))
+    for (const auto& file :
+         recursive_directory_iterator(dir, dir_opt, dir_it_ec))
       /* while handling errors */
       if (dir_it_ec)
         return false;
@@ -113,7 +114,7 @@ bool scan_directory(const char* dir, const auto& callback) {
     return false;
 }
 
-}  // namespace
+} /* namespace */
 
 /*
   @brief watcher/run
@@ -146,7 +147,7 @@ inline bool run(const char* path, const auto& callback) {
     auto dir_it_ec = std::error_code{};
     auto lwt_ec = std::error_code{};
     if (exists(path)) {
-      // this is a directory
+      /* this is a directory */
       if (is_directory(path)) {
         for (const auto& file :
              recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
@@ -161,7 +162,7 @@ inline bool run(const char* path, const auto& callback) {
           }
         }
       }
-      // this is a file
+      /* this is a file */
       else {
         bucket[path] = last_write_time(path);
       }
@@ -227,10 +228,10 @@ inline bool run(const char* path, const auto& callback) {
     ```
 */
 
-}  // namespace warthog
+} /* namespace warthog */
 namespace literal {
-using water::watcher::adapter::warthog::run;  // NOLINT
+using water::watcher::adapter::warthog::run; /* NOLINT */
 }
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace water
+} /* namespace adapter */
+} /* namespace watcher */
+} /* namespace water */

@@ -133,12 +133,12 @@ struct event {
   }
 };
 
-}  // namespace event
+} /* namespace event */
 namespace literal {
-using                              // NOLINT
-    water::watcher::event::kind,   // NOLINT
-    water::watcher::event::what,   // NOLINT
-    water::watcher::event::event;  // NOLINT
-}  // namespace literal
-}  // namespace watcher
-}  // namespace water
+using                             /* NOLINT */
+    water::watcher::event::kind,  /* NOLINT */
+    water::watcher::event::what,  /* NOLINT */
+    water::watcher::event::event; /* NOLINT */
+} /* namespace literal */
+} /* namespace watcher */
+} /* namespace water   */
