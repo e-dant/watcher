@@ -116,38 +116,50 @@ template <const auto delay_ms = 16>
 inline auto run(const concepts::Path auto& path,
                 const concepts::Callback auto& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
-      std::this_thread::sleep_for;
+      std::this_thread::sleep_for, std::filesystem::is_regular_file,
+      std::filesystem::is_directory, std::filesystem::is_symlink,
+      std::filesystem::exists;
   static auto callback_hook = callback;
-  const auto callback_adapter = [](ConstFSEventStreamRef, /* stream_ref
-                                                             (required) */
-                                   auto*, /* callback_info (required) */
-                                   size_t os_event_count, auto* os_event_paths,
-                                   const FSEventStreamEventFlags
-                                       os_event_flags[],
-                                   const FSEventStreamEventId*) {
-    auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
-      std::vector<event::what> translation;
-      /* @todo this is a slow, dumb search. fix it. */
-      for (const flag_pair& it : flag_pair_container)
-        if (flag_recv & it.first)
-          translation.push_back(it.second);
-      return translation;
-    };
+  const auto callback_adapter =
+      [](ConstFSEventStreamRef, /* stream_ref
+                                   (required) */
+         auto*,                 /* callback_info (required) */
+         size_t os_event_count, auto* os_event_paths,
+         const FSEventStreamEventFlags os_event_flags[],
+         const FSEventStreamEventId*) {
+        auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
+          std::vector<event::what> translation;
+          /* @todo this is a slow, dumb search. fix it. */
+          for (const flag_pair& it : flag_pair_container)
+            if (flag_recv & it.first)
+              translation.push_back(it.second);
+          return translation;
+        };
 
-    for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
-      const auto _path_info_dict = static_cast<CFDictionaryRef>(
-          CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
-                                 static_cast<CFIndex>(i)));
-      const auto _path_cfstring = static_cast<CFStringRef>(CFDictionaryGetValue(
-          _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
-      const char* translated_path =
-          CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-      /* see note [inode and time] for some extra stuff that can be done
-       * here. */
-      for (const auto& flag_it : decode_flags(os_event_flags[i]))
-        callback_hook(water::watcher::event::event{translated_path, flag_it});
-    }
-  };
+        for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
+          const auto _path_info_dict = static_cast<CFDictionaryRef>(
+              CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
+                                     static_cast<CFIndex>(i)));
+          const auto _path_cfstring =
+              static_cast<CFStringRef>(CFDictionaryGetValue(
+                  _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
+          const char* translated_path =
+              CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
+          /* see note [inode and time] for some extra stuff that can be done
+           * here. */
+          const auto discern_kind = [](const char* path) {
+            return exists(path) ? is_regular_file(path) ? event::kind::file
+                                  : is_directory(path)  ? event::kind::dir
+                                  : is_symlink(path)    ? event::kind::sym_link
+                                                        : event::kind::other
+                                : event::kind::other;
+          };
+          for (const auto& flag_it : decode_flags(os_event_flags[i]))
+            if (translated_path != nullptr)
+              callback_hook(water::watcher::event::event{
+                  translated_path, flag_it, discern_kind(translated_path)});
+        }
+      };
 
   const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
                                     const auto& event_queue) {
@@ -167,8 +179,6 @@ inline auto run(const concepts::Path auto& path,
     return event_queue ? false : true;
   };
 
-  // const auto cba = callback_adapter{callback};
-
   const auto event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
 
   /* request a high priority queue */
@@ -177,12 +187,13 @@ inline auto run(const concepts::Path auto& path,
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
 
-  while (alive_os_ev_queue(event_stream, event_queue))
-    /* this does nothing to affect processing, but this thread doesn't need to
-       run an infinite loop aggressively. It can wait, with some latency, until
-       the queue stops, and then clean itself up. */
-    if constexpr (delay_ms > 0)
-      sleep_for(milliseconds(delay_ms));
+  if (alive_os_ev_queue(event_stream, event_queue))
+    while (true)
+      /* this does nothing to affect processing, but this thread doesn't need to
+         run an infinite loop aggressively. It can wait, with some latency, until
+         the queue stops, and then clean itself up. */
+      if constexpr (delay_ms > 0)
+        sleep_for(milliseconds(delay_ms));
 
   return dead_os_ev_queue(event_stream, event_queue);
 }

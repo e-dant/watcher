@@ -6,6 +6,12 @@ echo build/build
 echo build/out/water.watcher
 - given bun
 echo eval `tell build`' && eval '`tell run`
+- given dbuild
+echo build/build Debug
+- given drun
+echo lldb build/out/water.watcher
+- given dbun
+echo eval `tell dbuild`' && lldb build/out/water.watcher'
 - given clean
 echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_* ; unlink compile_commands.json'
 

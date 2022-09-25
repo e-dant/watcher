@@ -66,21 +66,34 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
   @see watcher::status
   Creates a file map, the "bucket", from `path`.
 */
-auto populate(const Path auto& path = {"."}) {
-  if (exists(path))
-    if (is_directory(path))
-      try {
-        for (const auto& file : recursive_directory_iterator(path, dir_opt))
-          if (exists(file))
-            bucket[file.path().string()] = last_write_time(file);
-      } catch (const std::exception& e) {
-        /* this happens when a path was changed while we were reading it.
-           there is nothing to do here; we prune later. */
+auto populate(const Path auto& path) {
+  /* this happens when a path was changed while we were reading it.
+   there is nothing to do here; we prune later. */
+  auto dir_it_ec = std::error_code{};
+  auto lwt_ec = std::error_code{};
+  if (exists(path)) {
+    // this is a directory
+    if (is_directory(path)) {
+      for (const auto& file :
+           recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+        if (!dir_it_ec) {
+          const auto lwt = last_write_time(file, lwt_ec);
+          if (!lwt_ec)
+            bucket[file.path().string()] = lwt;
+          else
+            /* @todo use this practice elsewhere or make a fn for it
+               otherwise, this might be confusing and inconsistent. */
+            bucket[file.path().string()] = last_write_time(path);
+        }
       }
-    else
+    }
+    // this is a file
+    else {
       bucket[path] = last_write_time(path);
-  else
+    }
+  } else {
     return false;
+  }
   return true;
 }
 
@@ -89,28 +102,29 @@ auto populate(const Path auto& path = {"."}) {
   Removes files which no longer exist from our bucket.
 */
 auto prune(const Path auto& path, const Callback auto& callback) {
-  using std::filesystem::exists;
-  const auto do_prune = [](const auto& callback) {
-    auto file = bucket.begin();
-    /* while look through the bucket's contents, */
-    while (file != bucket.end()) {
-      /* check if the stuff in our bucket exists anymore. */
-      exists(file->first)
-          /* if so, move on. */
-          ? std::advance(file, 1)
-          /* if not, call the closure, indicating destruction,
-             and remove it from our bucket. */
-          : [&]() {
-              callback(event::event(file->first.c_str(), event::what::destroy));
-              /* bucket, erase it! */
-              file = bucket.erase(file);
-            }();
-    }
-    return true;
-  };
-
-  /* if the bucket is empty, try to populate it. otherwise, prune it. */
-  return bucket.empty() ? populate(path) : do_prune(callback);
+  //using std::filesystem::is_regular_file, std::filesystem::is_directory,
+  //    std::filesystem::is_symlink, std::filesystem::exists;
+  auto bucket_it = bucket.begin();
+  /* while looking through the bucket's contents, */
+  while (bucket_it != bucket.end()) {
+    /* check if the stuff in our bucket exists anymore. */
+    exists(bucket_it->first)
+        /* if so, move on. */
+        ? std::advance(bucket_it, 1)
+        /* if not, call the closure, indicating destruction,
+           and remove it from our bucket. */
+        : [&]() {
+            callback(event::event{bucket_it->first.c_str(),
+                                  event::what::destroy,
+                                  is_regular_file(path) ? event::kind::file
+                                  : is_directory(path)  ? event::kind::dir
+                                  : is_symlink(path)    ? event::kind::sym_link
+                                                        : event::kind::other});
+            /* bucket, erase it! */
+            bucket_it = bucket.erase(bucket_it);
+          }();
+  }
+  return true;
 }
 
 /*
@@ -125,7 +139,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
     if (ec) {
       /* the file changed while we were looking at it. so, we call the closure,
        * indicating destruction, and remove it from the bucket. */
-      callback(event::event(file, event::what::destroy));
+      callback(event::event{file, event::what::destroy, event::kind::file});
       if (bucket.contains(file))
         bucket.erase(file);
     }
@@ -133,7 +147,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
     else if (!bucket.contains(file)) {
       /* we put it in there and call the closure, indicating creation. */
       bucket[file] = timestamp;
-      callback(event::event(file, event::what::create));
+      callback(event::event{file, event::what::create, event::kind::file});
     }
     /* otherwise, it is already in our bucket. */
     else {
@@ -141,7 +155,7 @@ bool scan_file(const Path auto& file, const Callback auto& callback) {
       if (bucket[file] != timestamp) {
         bucket[file] = timestamp;
         /* and call the closure on them, indicating modification */
-        callback(event::event(file, event::what::modify));
+        callback(event::event{file, event::what::modify, event::kind::file});
       }
     }
     return true;
@@ -192,22 +206,26 @@ inline bool run(const Path auto& path, const Callback auto& callback) {
 
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
+
+  /* if the bucket is empty, try to populate it. otherwise, prune it. */
+  bucket.empty()
+
+      ? populate(path)
+
+      : prune(path, callback);
+
   /* if no errors present, keep running. otherwise, leave. */
   return
 
-      prune(path, callback)
+      scan_directory(path, callback)
 
-          ? scan_directory(path, callback)
+          ? warthog::run<delay_ms>(path, callback)
+
+          : scan_file(path, callback)
 
                 ? warthog::run<delay_ms>(path, callback)
 
-                : scan_file(path, callback)
-
-                      ? warthog::run<delay_ms>(path, callback)
-
-                      : false
-
-          : false;
+                : false;
 }
 
 /*

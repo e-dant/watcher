@@ -3,11 +3,14 @@
 #include <chrono>
 #include <filesystem>
 
+// @todo remove
+#include <iostream>
+
 /*
   @brief watcher/event
 
   A structure for passing around event information.
-  Intended to be passed to callback provided to `run`.
+  Intended to be passed to the callback given to `run`.
 */
 
 namespace water {
@@ -62,41 +65,32 @@ struct event {
   const char* where;
   const enum what what;
   const enum kind kind;
+  /* wow! thanks chrono! */
+  const long long when;
+  /*
+    There is only enough room in this world
+    for two control flow operators:
 
-  event(const char* where, const enum what happen) noexcept
-      : where{where}, what{happen}, kind{[&]() {
-          using std::filesystem::is_regular_file, std::filesystem::is_directory,
-              std::filesystem::is_symlink, std::filesystem::exists;
-          /*
-            There is only enough room in this world
-            for two control flow operators:
+    1. `if constexpr`
+    2. `ternary if`
 
-            1. `if constexpr`
-            2. `ternary if`
+    I should write a proposal for the
+    `constexpr ternary if`.
+  */
 
-            I should write a proposal for the
-            `constexpr ternary if`.
-          */
-          return
+  event(const char* where, const enum what happen, const enum kind kind)
+      : where{where},
 
-              exists(where)
+        what{happen},
 
-                  ? is_regular_file(where)
+        kind{kind},
 
-                        ? kind::file
+        when{std::chrono::duration_cast<std::chrono::nanoseconds>(
+                 std::chrono::time_point<std::chrono::system_clock>{
+                     std::chrono::system_clock::now()}
+                     .time_since_epoch())
+                 .count()} {}
 
-                        : is_directory(where)
-
-                              ? kind::dir
-
-                              : is_symlink(where)
-
-                                    ? kind::sym_link
-
-                                    : kind::other
-
-                  : kind::other;
-        }()} {}
   ~event() noexcept = default;
 
   /* @brief water/watcher/event/<<
@@ -110,14 +104,7 @@ struct event {
      If that were not the case, the time would not be correct,
      and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
-    /* wow! thanks chrono! */
-    const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                         std::chrono::time_point<std::chrono::system_clock>{
-                             std::chrono::system_clock::now()}
-                             .time_since_epoch())
-                         .count();
-
-    const auto w = [&]() {
+    const auto what_repr = [&]() {
       switch (e.what) {
         case what::rename:
           return "rename";
@@ -134,7 +121,7 @@ struct event {
       }
     }();
 
-    const auto k = [&]() {
+    const auto kind_repr = [&]() {
       switch (e.kind) {
         case kind::dir:
           return "dir";
@@ -151,13 +138,13 @@ struct event {
 
     return os
 
-           << "\"" << now
+           << "\"" << e.when
 
            << "\":{\"where\":\"" << e.where
 
-           << "\",\"what\":\"" << w
+           << "\",\"what\":\"" << what_repr
 
-           << "\",\"kind\":\"" << k
+           << "\",\"kind\":\"" << kind_repr
 
            << "\"}";
   }

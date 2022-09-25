@@ -31,8 +31,16 @@ build::build() {
   }
 
   cmake::build() {
-    cmake -S 'in' -B 'out' -G 'Ninja' -Wno-dev \
-      && cmake --build out --config Release
+    cmake \
+      -S 'in' \
+      -B 'out' \
+      -Wno-dev \
+      -G 'Ninja' \
+      -DCMAKE_BUILD_TYPE=$1 \
+      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+      && cmake \
+        --build out \
+        --config $1
     return $?
   }
 
@@ -43,8 +51,15 @@ build::build() {
     return $?
   }
 
+  if test -z "$1"
+  then
+    TYPE=RelWithDebInfo
+  else
+    TYPE="$1"
+  fi
+
   cc::init \
-    && cmake::build \
+    && cmake::build $TYPE \
     && compdb::ln
 
   ok=$?
@@ -53,6 +68,6 @@ build::build() {
   return $ok
 }
 
-build::build
+build::build $@
 
 exit $?
