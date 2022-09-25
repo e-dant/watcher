@@ -11,10 +11,14 @@
 
 /* @todo consider using `std::invoke` */
 /* #include <functional> */
-#include <watcher/adapter/darwin.hpp>
-#include <watcher/adapter/warthog.hpp>
-#include <watcher/event.hpp>
 #include <watcher/platform.hpp>
+#if defined(PLATFORM_UNKNOWN)
+#include <watcher/adapter/warthog.hpp>
+#elif defined(PLATFORM_MAC)
+#include <watcher/adapter/darwin.hpp>
+#else
+#include <watcher/adapter/warthog.hpp>
+#endif
 
 namespace water {
 namespace watcher {
@@ -38,34 +42,27 @@ namespace watcher {
 
 template <const auto delay_ms = 16>
 bool run(const char* path, const auto& callback) {
+#if defined(PLATFORM_UNKNOWN)
+  using adapter::warthog::run;
+#elif defined(PLATFORM_MAC_CATALYST)
+  using adapter::darwin::run;
+#elif defined(PLATFORM_MAC_OS)
+  using adapter::darwin::run;
+#elif defined(PLATFORM_MAC_IOS)
+  using adapter::darwin::run;
+#elif defined(PLATFORM_ANDROID)
+  using adapter::warthog::run;
+#elif defined(PLATFORM_LINUX)
+  using adapter::warthog::run;
+#elif defined(PLATFORM_WINDOWS)
+  using adapter::warthog::run;
+#else
+  using adapter::warthog::run;
+#endif
+
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
-  using namespace water::watcher::literal;
 
-  /* ternary if tempting. */
-
-  if constexpr (platform == unknown)
-    return adapter::warthog::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == mac_catalyst)
-    return adapter::darwin::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == macos)
-    return adapter::darwin::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == ios)
-    return adapter::darwin::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == android)
-    return adapter::warthog::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == linux)
-    return adapter::warthog::run<delay_ms>(path, callback);
-
-  else if constexpr (platform == windows)
-    return adapter::warthog::run<delay_ms>(path, callback);
-
-  else
-    return adapter::warthog::run<delay_ms>(path, callback);
+  return run<delay_ms>(path, callback);
 }
 
 namespace literal {

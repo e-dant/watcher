@@ -110,7 +110,7 @@ auto mk_event_stream(const char* path, const auto& callback) {
   );
 }
 
-}  /* namespace */
+} /* namespace */
 
 template <const auto delay_ms = 16>
 inline auto run(const char* path, const auto& callback) {
