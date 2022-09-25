@@ -12,10 +12,10 @@
 /* @todo consider using `std::invoke` */
 /* #include <functional> */
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_UNKNOWN)
-#include <watcher/adapter/warthog.hpp>
-#elif defined(PLATFORM_MAC)
+#if defined(PLATFORM_MAC_ANY)
 #include <watcher/adapter/darwin.hpp>
+#elif defined(PLATFORM_UNKNOWN)
+#include <watcher/adapter/warthog.hpp>
 #else
 #include <watcher/adapter/warthog.hpp>
 #endif
@@ -44,11 +44,7 @@ template <const auto delay_ms = 16>
 bool run(const char* path, const auto& callback) {
 #if defined(PLATFORM_UNKNOWN)
   using adapter::warthog::run;
-#elif defined(PLATFORM_MAC_CATALYST)
-  using adapter::darwin::run;
-#elif defined(PLATFORM_MAC_OS)
-  using adapter::darwin::run;
-#elif defined(PLATFORM_MAC_IOS)
+#elif defined(PLATFORM_MAC_ANY)
   using adapter::darwin::run;
 #elif defined(PLATFORM_ANDROID)
   using adapter::warthog::run;
