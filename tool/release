@@ -3,33 +3,110 @@
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.."
 THIS_BRANCH="$(git branch --show-current)"
-EXIT_VAL=0
-SEMVER="$1"
 
-if echo "$SEMVER" | grep -qE -- '^[0-9]+\.[0-9]+\.[0-9]+$'
-then
+# htor: human version to regular expression
+release::htor() {
+  case "$1" in
+    maj|major)  local PART='\1';;
+    min|minor)  local PART='\2';;
+    mic|micro)  local PART='\3';;
+    *)          local PART='\1.\2.\3';;
+  esac
+  echo "$PART"
+}
 
-  test "$THIS_BRANCH" = 'release' \
-    || git checkout release
+release::show() {
+  local PART="$(release::htor "$1")"
+  git tag --list \
+    | sort -r \
+    | head -n 1 \
+    | sed -E "s|release/([0-9]+)\.([0-9]+)\.([0-9]+)|$PART|g"
+}
 
-  git merge next -m "release/$SEMVER" \
-    && git push \
-    && git tag \
-      -a "release/$SEMVER" \
-      -m "release/$SEMVER" \
-      "$(git log | head -n 1 | sed -E 's/commit (.*)/\1/g')" \
-    && git push origin "release/$SEMVER"
+release::show::part() {
+  test $# -ne 1 && return 1
+  local PART="$(release::htor "$1")"
+  git tag --list \
+    | sort -r \
+    | head -n 1 \
+    | sed -E "s|release/([0-9]+)\.([0-9]+)\.([0-9]+)|$PART|g"
+}
 
-  EXIT_VAL=$?
+release::show::advance() {
+  test $# -ne 1 && return 1
 
-else
+  local MAJ=$(release::show::part maj)
+  local MIN=$(release::show::part min)
+  local MIC=$(release::show::part mic)
 
-  echo "Usage: $0 <semantic version>"
-  echo "Example: $0 1.2.3"
+  case "$1" in
+    maj|major)  echo "$((MAJ + 1)).$MIN.$MIC";;
+    min|minor)  echo "$MAJ.$((MIN + 1)).$MIC";;
+    mic|micro)  echo "$MAJ.$MIN.$((MIC + 1))";;
+    *)          return 1;;
+  esac
+}
 
-  EXIT_VAL=1
+release::create() {
+  local SEMVER="$1"
+  if echo "$SEMVER" | grep -qE -- '^[0-9]+\.[0-9]+\.[0-9]+$'
+  then
+    test "$THIS_BRANCH" = 'release' \
+      || git checkout release
+    git merge next -m "release/$SEMVER" \
+      && git push \
+      && git tag \
+        -a "release/$SEMVER" \
+        -m "release/$SEMVER" \
+        "$(git log | head -n 1 | sed -E 's/commit (.*)/\1/g')" \
+      && git push origin "release/$SEMVER"
+    return $?
+  else
+    return 1
+  fi
+}
 
-fi
+release::help() {
+echo "
+  $0 < --help | --create < version > | --show < part | --advance part > >
 
+  part =
+    'maj' | 'major' | 'min' | 'minor' | 'mic' | 'micro' ;
+
+  digit =
+    '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
+
+  digits =
+    { digit } ;
+
+  version =
+    digits , '.' , digits, '.' , digits ;
+"
+}
+
+release() {
+  local THIS="${FUNCNAME[0]}"
+  if test $# -gt 1
+  then
+    local CMDB="$THIS"
+    for ARG in "$@"; do
+      case "$ARG" in
+        # command
+        --*)  CMDB+="::${ARG##--}";;
+        # argument
+        *)    CMDB+=" ${ARG}";;
+      esac
+    done
+    ${CMDB[@]}
+    return $?
+  else
+    "$THIS::help"
+    return 1
+  fi
+}
+
+release $@
+
+EXIT_VAL=$?
 cd "$LAST_DIR"
 exit $EXIT_VAL
