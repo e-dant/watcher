@@ -37,7 +37,24 @@ namespace watcher {
   for the host platform.
 
   Every adapter monitors `path_to_watch` for changes and
-  executes the `closure` when they happen.
+  executes the `callback` when they occur.
+
+  The callback will be given an event object with all
+  relevant information, such as the:
+    - The (absolute) path
+    - The type of the path object, i.e.:
+      - File
+      - Directory
+      - Symbolic Link
+      - Hard Link
+      - Unknown
+    - Filesystem event type, i.e.:
+      - Create
+      - Modify
+      - Destroy
+      - OS-Specific Events
+      - Unknown
+    - The event's timestamp
 */
 
 template <const auto delay_ms = 16>

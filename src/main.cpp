@@ -1,18 +1,17 @@
 /* clang-format off */
 
 #include <iostream>             /* std::cout, std::endl */
-#include <thread>               /* std::this_thread::sleep_for */
 #include <watcher/watcher.hpp>  /* water::watcher::run, water::watcher::event */
 
 using namespace water::watcher::literal;
 using std::cout, std::flush, std::endl;
 
-const auto show_event = [](const event& ev) {
+const auto show_event_json = [](const event& ev) {
 
-  /* The event's << operator will print as json. */
+  /* The event's << operator will print events as json. */
   cout << ev << "," << endl;
 
-  /* see note [manual parsing] */
+  /* Alternatively, see the note on [manual parsing] */
 
 };
 
@@ -34,7 +33,7 @@ int main(int argc, char** argv) {
       path,
       /* printing what we find,
          every 16 milliseconds. */
-      show_event);
+      show_event_json);
 
   cout << "\n}\n}" << endl << flush;
 

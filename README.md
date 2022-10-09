@@ -1,8 +1,6 @@
 # Watcher
 
-An arbitrary path watcher.
-
-*Watcher* is primarily:
+An arbitrary filesystem event watcher which is:
 
 - simple
 - efficient
@@ -15,12 +13,13 @@ even when scanning millions of paths, this library
 uses a near-zero amount of resources. *[1]*
 
 If you don't want to use it in another project,
-don't worry, because it comes with one. Just build
-and run and you've got yourself a filesystem
-watcher, which is pretty cool.
+don't worry. It comes with one. Just build and
+run and you've got yourself a filesystem watcher
+which prints filesystem events as JSON, which is
+pretty cool.
 
-You could, for example, run this program,
-pipe it to `grep`, filtering through the noise:
+You could, for example, run this program, await events,
+and filter through the noise:
 
 ```bash
 # get
@@ -39,21 +38,21 @@ and run. (I hope. If not, let me know.)
 
 ## Usage
 
-There is one one function that is important:
+There is only one user-facing function:
   - `water::watcher::run`
 
-`run` takes a path, which is a string-like thing,
-and a callback, with is a function-like thing.
+`run` takes a path, which is a string-like thing, and a
+callback, with is a function-like thing.
 
-So, passing `run` a string and a lambda would do
-nicely.
+So, passing `run` a string and a lambda would work well.
 
-`run` will happily keep continue watching, forever,
-until it is asked to stop or it hits an unrecoverable
-error.
+`run` will happily keep continue watching until it is
+asked to stop or it hits an unrecoverable error.
 
-It is trivial to quickly build programs that yield some
-useful information:
+It is trivial to build programs that yield something useful.
+
+Here is a snapshot of the output taken while preparing this
+commit, right before writing this paragraph.
 
 ```json
 "water.watcher.stream": {
@@ -87,10 +86,7 @@ useful information:
 
 Which is pretty cool.
 
-It is a snapshot of the output taken while preparing this commit,
-right before writing this paragraph.
-
-A `main` suitable for this task:
+A `main` program suitable for this task:
 
 ```cpp
 #include <iostream>             /* std::cout, std::endl */
@@ -128,7 +124,7 @@ int main(int argc, char** argv) {
 ## Content
 
 - `watcher.hpp`:
-    Include this to use it elsewhere.
+    Public interface. Someday, this will be a module.
 - `main.cpp`:
     Build this to use it as a CLI program.
 
@@ -136,8 +132,10 @@ int main(int argc, char** argv) {
 
 ### In Your Project
 
-Download the `watcher.hpp` file and include it in
-your project. That's all.
+Download this project. Include `watcher.hpp`. That's all.
+
+This is a `FetchContent`-able project, if you're into that
+kind of thing.
 
 ### As A CLI Program
 
@@ -155,9 +153,10 @@ cd water/water/watcher
 ```
 
 This will take care of:
-  - building a compiler if one is not found
-  - linking the `compile_commands.json` file
-    to this project's root.
+  - Building a compiler if one is not found
+  - Linking the `compile_commands.json` file
+    to this project's root
+  - Actually building the project
 
 #### CMake
 
