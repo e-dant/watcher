@@ -18,6 +18,7 @@ const auto show_event = [](const event& ev) {
 
 int main(int argc, char** argv) {
   static constexpr auto delay_ms = 16;
+
   const auto path = argc > 1
                         /* we have been given a path,
                            and we will use it. */
@@ -25,14 +26,18 @@ int main(int argc, char** argv) {
                         /* otherwise, default to the
                            current directory. */
                         : ".";
-  cout << "{\"water.watcher.stream\":{";
+
+  cout << "{\n\"water.watcher.stream\":\n{";
+
   const auto isok = run<delay_ms>(
       /* scan the path, forever... */
       path,
       /* printing what we find,
          every 16 milliseconds. */
       show_event);
-  cout << "}}" << endl << flush;
+
+  cout << "\n}\n}" << endl << flush;
+
   return isok;
 }
 
