@@ -177,10 +177,10 @@ cd out
 
 There are two cases where *Watcher*'s efficiency takes a hit:
 
-1. The platform-independant `warthog` adapter will be used on
-platforms which lack better alternative. This will also on
-systems which I haven't implemented OS-level calls into just yet.
-2. On embedded systems (where resources matter).
+1. When the platform-independant `warthog` adapter is used.
+This happens on platforms which lack better alternatives,
+such as BSD and Solaris (`warthog` beats `kqueue`).
+2. On embedded systems (where resources matter regardless).
 
 *Watcher* is still efficient in these cases. However, depending
 on your hardware and whether you need to watch 10-million paths
