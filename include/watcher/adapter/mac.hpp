@@ -1,9 +1,9 @@
 #pragma once
 
 /*
-  @brief watcher/adapter/darwin
+  @brief watcher/adapter/mac
 
-  An efficient adapter for darwin.
+  An efficient adapter for mac.
 */
 
 #include <CoreServices/CoreServices.h>
@@ -18,7 +18,7 @@
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace darwin {
+namespace mac {
 namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
@@ -235,9 +235,9 @@ from `fswatch`, could be used:
   ```
 */
 
-} /* namespace darwin */
+} /* namespace mac */
 namespace literal {
-using water::watcher::adapter::darwin::run; /* NOLINT */
+using water::watcher::adapter::mac::run; /* NOLINT */
 } /* namespace literal */
 } /* namespace adapter */
 } /* namespace watcher */

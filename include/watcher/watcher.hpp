@@ -13,7 +13,7 @@
 /* #include <functional> */
 #include <watcher/platform.hpp>
 #if defined(PLATFORM_MAC_ANY)
-#include <watcher/adapter/darwin.hpp>
+#include <watcher/adapter/mac.hpp>
 #elif defined(PLATFORM_UNKNOWN)
 #include <watcher/adapter/warthog.hpp>
 #else
@@ -62,7 +62,7 @@ bool run(const char* path, const auto& callback) {
 #if defined(PLATFORM_UNKNOWN)
   using adapter::warthog::run;
 #elif defined(PLATFORM_MAC_ANY)
-  using adapter::darwin::run;
+  using adapter::mac::run;
 #elif defined(PLATFORM_ANDROID)
   using adapter::warthog::run;
 #elif defined(PLATFORM_LINUX)
