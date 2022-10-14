@@ -1,8 +1,8 @@
 #pragma once
 
 /*
-  @brief watcher/adapter/lin
-
+  @brief watcher/adapter/and
+andy
   A reasonably dumb adapter that works on any platform.
 
   This adapter beats `kqueue`, but it doesn't bean recieving
@@ -26,7 +26,7 @@
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace lin {
+namespace andy {
 namespace { /* anonymous namespace for "private" variables */
 /*  shorthands for:
       - Path
@@ -205,8 +205,8 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? lin::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? lin::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? andy::run<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? andy::run<delay_ms>(path, callback)
                                         : false;
 }
 
@@ -228,9 +228,9 @@ inline bool run(const char* path, const auto& callback) {
     ```
 */
 
-} /* namespace lin */
+} /* namespace andy */
 namespace literal {
-using water::watcher::adapter::lin::run; /* NOLINT */
+using water::watcher::adapter::andy::run; /* NOLINT */
 }
 } /* namespace adapter */
 } /* namespace watcher */

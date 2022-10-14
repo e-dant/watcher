@@ -19,6 +19,8 @@ enum class platform_t {
   unknown,
 };
 
+/* clang-format off */
+
 inline constexpr platform_t platform
 
 /* linux */
@@ -30,7 +32,8 @@ inline constexpr platform_t platform
 /* android */
 #elif defined(__ANDROID_API__)
     = platform_t::android;
-# define PLATFORM_ANDROID TRUE
+# define PLATFORM_ANDROID_ANY TRUE
+# define PLATFORM_ANDROID_UNKNOWN TRUE
 
 /* apple */
 #elif defined(__APPLE__)
@@ -54,13 +57,16 @@ inline constexpr platform_t platform
 /* windows */
 #elif defined(WIN32)
     = platform_t::windows;
-# define PLATFORM_WINDOWS TRUE
+# define PLATFORM_WINDOWS_ANY TRUE
+# define PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 #else
     = platform_t::unknown;
 # define PLATFORM_UNKNOWN TRUE
 #endif
+
+/* clang-format on */
 
 namespace literal {
 

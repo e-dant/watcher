@@ -14,6 +14,12 @@
 #include <watcher/platform.hpp>
 #if defined(PLATFORM_MAC_ANY)
 #include <watcher/adapter/mac.hpp>
+#elif defined(PLATFORM_LINUX_ANY)
+#include <watcher/adapter/lin.hpp>
+#elif defined(PLATFORM_ANDROID_ANY)
+#include <watcher/adapter/andy.hpp>
+#elif defined(PLATFORM_WINDOWS_ANY)
+#include <watcher/adapter/win.hpp>
 #elif defined(PLATFORM_UNKNOWN)
 #include <watcher/adapter/warthog.hpp>
 #else
@@ -61,14 +67,19 @@ template <const auto delay_ms = 16>
 bool run(const char* path, const auto& callback) {
 #if defined(PLATFORM_UNKNOWN)
   using adapter::warthog::run;
+
 #elif defined(PLATFORM_MAC_ANY)
   using adapter::mac::run;
-#elif defined(PLATFORM_ANDROID)
-  using adapter::warthog::run;
-#elif defined(PLATFORM_LINUX)
-  using adapter::warthog::run;
-#elif defined(PLATFORM_WINDOWS)
-  using adapter::warthog::run;
+
+#elif defined(PLATFORM_LINUX_ANY)
+  using adapter::lin::run;
+
+#elif defined(PLATFORM_ANDROID_ANY)
+  using adapter::andy::run;
+
+#elif defined(PLATFORM_WINDOWS_ANY)
+  using adapter::win::run;
+
 #else
   using adapter::warthog::run;
 #endif
