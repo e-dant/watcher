@@ -1,0 +1,44 @@
+#! /usr/bin/env bash
+
+watcher::build() {
+  local LAST_DIR="$PWD"
+  local HERE_DIR="$(dirname "$0")"
+  cd "$HERE_DIR"
+
+  local RET_VAL=0
+  local VIABLE="$(find * -type d -name '*')"
+  local VIABLE_PRETTY="$(\
+    echo "$VIABLE" \
+      | tr '\n' '|' \
+      | sed -Ee 's/(.*)\|/<\1>/g')"
+  local USAGE="$HERE_DIR $VIABLE_PRETTY"
+
+  if test $# -eq 1
+  then
+    if echo "$1" | grep -qE "$VIABLE"
+    then
+      cd "$1"
+      CONTAINER_NAME="watcher-$1"
+
+      docker build -t "$CONTAINER_NAME" .
+      RET_VAL=$((RET_VAL + $?))
+
+      docker run -itd "$CONTAINER_NAME" | tee .container_id
+      RET_VAL=$((RET_VAL + $?))
+    else
+      echo "$USAGE"
+      RET_VAL=2
+    fi
+  else
+    echo "$USAGE"
+    RET_VAL=1
+  fi
+
+  cd "$LAST_DIR" || \
+    RET_VAL=$((RET_VAL + $?))
+
+  return $RET_VAL
+}
+
+watcher::build $@
+exit $?
