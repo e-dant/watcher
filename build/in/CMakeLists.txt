@@ -3,7 +3,7 @@ cmake_policy(SET CMP0048 NEW) # VERSION
 # [project]
 project(
   water.watcher
-  VERSION 0.2.0
+  VERSION 0.2.4
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "https://edant.io"
   LANGUAGES CXX)
