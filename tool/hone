@@ -9,6 +9,7 @@ watcher::hone() {
     --header-content-raw
     --header-path-used
     --header-path-all
+    --help
   "
   local LAST_DIR="$PWD"
   cd "$(dirname "$0")/../include"
@@ -46,16 +47,23 @@ watcher::hone() {
       | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
   )"
 
-  if echo "$*" | grep -q -- --header-content-raw
-  then echo "$HEADER_CONTENT_RAW"; fi
-  if echo "$*" | grep -q -- --header-content-used
-  then echo "$HEADER_CONTENT_USED"; fi
-  if echo "$*" | grep -q -- --header-path-all
-  then echo "$HEADER_PATH_ALL"; fi
-  if echo "$*" | grep -q -- --header-path-used
-  then echo "$HEADER_PATH_USED"; fi
-  if echo "$*" | grep -q -- --header-content-amalgam
-  then echo "$HEADER_CONTENT_AMALGAM"; fi
+  if test -n "$*"
+  then
+    if echo "$*" | grep -q -- --header-content-amalgam
+    then echo "$HEADER_CONTENT_AMALGAM"; fi
+    if echo "$*" | grep -q -- --header-content-used
+    then echo "$HEADER_CONTENT_USED"; fi
+    if echo "$*" | grep -q -- --header-content-raw
+    then echo "$HEADER_CONTENT_RAW"; fi
+    if echo "$*" | grep -q -- --header-path-used
+    then echo "$HEADER_PATH_USED"; fi
+    if echo "$*" | grep -q -- --header-path-all
+    then echo "$HEADER_PATH_ALL"; fi
+    if echo "$*" | grep -q -- --help
+    then echo "$USAGE"; fi
+  else
+    echo "$USAGE"
+  fi
 
   cd "$LAST_DIR"
 }
