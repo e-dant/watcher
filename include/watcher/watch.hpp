@@ -1,19 +1,5 @@
 #pragma once
 
-/*
-  @brief watcher/run
-
-  Implements `water::watcher::run`.
-
-  There are two things the user needs:
-    - The `run` function
-    - The `event` structure
-
-  That's it, and this is one of them.
-
-  Happy hacking.
-*/
-
 #include <watcher/adapter/andy.hpp>
 #include <watcher/adapter/lin.hpp>
 #include <watcher/adapter/mac.hpp>
@@ -24,7 +10,17 @@ namespace water {
 namespace watcher {
 
 /*
-  @brief watcher/run
+  @brief watcher/watch
+
+  Implements `water::watcher::watch`.
+
+  There are two things the user needs:
+    - The `watch` function
+    - The `event` structure
+
+  That's it, and this is one of them.
+
+  Happy hacking.
 
   @param callback (optional):
     Something (such as a function or closure) to be called
@@ -59,11 +55,11 @@ namespace watcher {
 template <const auto delay_ms = 16>
 [[nodiscard("Wise to check if this (boolean) function was successful.")]]
 
-bool run(
+bool watch(
     const char* path,
     const auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
-  return adapter::run<delay_ms>(path, callback);
+  return detail::adapter::run<delay_ms>(path, callback);
 }
 
 } /* namespace watcher */

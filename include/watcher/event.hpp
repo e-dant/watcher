@@ -7,12 +7,28 @@
   @brief watcher/event
 
   There are two things the user needs:
-    - The `run` function
-    - The `event` structure
+    - The `watch` function
+    - The `event` object
 
-  The `event` structure is used for passing information
-  about filesystem events to the (user-supplied) callback
-  available to `run`.
+  The `event` object is used to pass information about
+  filesystem events to the (user-supplied) callback
+  given to `watch`.
+
+  The `event` object will contain the:
+    - Path -- Which is always relative.
+    - Path type -- one of:
+      - File
+      - Directory
+      - Symbolic Link
+      - Hard Link
+      - Unknown
+    - Event type -- one of:
+      - Create
+      - Modify
+      - Destroy
+      - OS-Specific Events
+      - Unknown
+    - Event time -- In nanoseconds since epoch
 
   Happy hacking.
 */
@@ -94,9 +110,9 @@ struct event {
 
   /* @note water/watcher/event/<<
 
-     the only way to get this object is through one of the `run`s.
-     If that were not the case, the time would not be correct,
-     and this would need to change. */
+     the only way to get this object is through one of the
+     `watch`s. If that were not the case, the time would
+     not be correct, and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
     /* clang-format off */
     const auto what_repr = [&]() {

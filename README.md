@@ -38,15 +38,40 @@ and run. (I hope. If not, let me know.)
 
 ## Usage
 
-There is only one user-facing function:
-  - `water::watcher::run`
+> *Note*: If anything is unclear, make an issue about it!
+*Watcher* strives to be friendly. For deeper information,
+please see the headers -- they are well-documented and are
+intended to be approachable.
 
-`run` takes a path, which is a string-like thing, and a
+There are two things the user needs:
+  - The `watch` function
+  - The `event` structure
+
+`watch` takes a path, which is a string-like thing, and a
 callback, with is a function-like thing.
 
-So, passing `run` a string and a lambda would work well.
+`event` is an object used to pass information about
+filesystem events to `watch`.
 
-`run` will happily keep continue watching until it is
+The `event` object will contain the:
+  - Path -- Which is always relative.
+  - Path type -- one of:
+    - File
+    - Directory
+    - Symbolic Link
+    - Hard Link
+    - Unknown
+  - Event type -- one of:
+    - Create
+    - Modify
+    - Destroy
+    - OS-Specific Events
+    - Unknown
+  - Event time -- In nanoseconds since epoch
+
+So, passing `watch` a string and a lambda would work well.
+
+`watch` will happily keep continue watching until it is
 asked to stop or it hits an unrecoverable error.
 
 It is trivial to build programs that yield something useful.
