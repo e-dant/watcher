@@ -1,9 +1,12 @@
 #pragma once
 
+#include <watcher/platform.hpp>
+#if defined(PLATFORM_MAC_ANY)
+
 /*
   @brief watcher/adapter/mac
 
-  An efficient adapter for mac.
+  The Darwin `FSEvent` adapter.
 */
 
 #include <CoreServices/CoreServices.h>
@@ -18,7 +21,6 @@
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace mac {
 namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
@@ -235,10 +237,8 @@ from `fswatch`, could be used:
   ```
 */
 
-} /* namespace mac */
-namespace literal {
-using water::watcher::adapter::mac::run; /* NOLINT */
-} /* namespace literal */
 } /* namespace adapter */
 } /* namespace watcher */
 } /* namespace water   */
+
+#endif /* if defined(PLATFORM_MAC_ANY) */

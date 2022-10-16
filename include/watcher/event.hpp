@@ -6,8 +6,15 @@
 /*
   @brief watcher/event
 
-  A structure for passing around event information.
-  Intended to be passed to the callback given to `run`.
+  There are two things the user needs:
+    - The `run` function
+    - The `event` structure
+
+  The `event` structure is used for passing information
+  about filesystem events to the (user-supplied) callback
+  available to `run`.
+
+  Happy hacking.
 */
 
 namespace water {
@@ -62,18 +69,7 @@ struct event {
   const char* where;
   const enum what what;
   const enum kind kind;
-  /* wow! thanks chrono! */
   const long long when;
-  /*
-    There is only enough room in this world
-    for two control flow operators:
-
-    1. `if constexpr`
-    2. `ternary if`
-
-    I should write a proposal for the
-    `constexpr ternary if`.
-  */
 
   event(const char* where, const enum what happen, const enum kind kind)
       : where{where},
@@ -82,6 +78,7 @@ struct event {
 
         kind{kind},
 
+        /* wow! thanks chrono! */
         when{std::chrono::duration_cast<std::chrono::nanoseconds>(
                  std::chrono::time_point<std::chrono::system_clock>{
                      std::chrono::system_clock::now()}
@@ -134,11 +131,5 @@ struct event {
 };
 
 } /* namespace event */
-namespace literal {
-using                             /* NOLINT */
-    water::watcher::event::kind,  /* NOLINT */
-    water::watcher::event::what,  /* NOLINT */
-    water::watcher::event::event; /* NOLINT */
-} /* namespace literal */
 } /* namespace watcher */
 } /* namespace water   */

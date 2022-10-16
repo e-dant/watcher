@@ -1,0 +1,13 @@
+#! /usr/bin/env bash
+
+watcher::hone() {
+  local LAST_dir="$PWD"
+  cd "$(dirname "$0")/../include"
+  local INCS="$(find . -type f -name '*.hpp' -exec cat {} \;)"
+  local HDRS="$(while read H; do test -f "$H" && echo "$H"; done <<< "$(echo "$INCS" | grep -E '^#([ ]*)include' | tr -d '"' | tr -d '<' | tr -d '>' | sed -E 's/.+include (.*)/\1/g' | sort | uniq)")"
+  echo "$HDRS"
+  cd "$LAST_DIR"
+}
+
+watcher::hone $@
+exit $?

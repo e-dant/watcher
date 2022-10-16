@@ -1,46 +1,33 @@
-/* clang-format off */
+#include <iostream>            /* std::cout, std::endl */
+#include <watcher/watcher.hpp> /* water::watcher::run, water::watcher::event */
 
-#include <iostream>             /* std::cout, std::endl */
-#include <watcher/watcher.hpp>  /* water::watcher::run, water::watcher::event */
-
-using namespace water::watcher::literal;
-using std::cout, std::flush, std::endl;
-
-const auto show_event_json = [](const event& ev) {
-
-  /* The event's << operator will print events as json. */
-  cout << ev << "," << endl;
-
-  /* Alternatively, see the note on [manual parsing] */
-
-};
-
+/* Watch a path, forever.
+   Stream what happens.
+   Print every 16ms. */
 int main(int argc, char** argv) {
+  using water::watcher::event::event, water::watcher::run, std::cout, std::endl;
+  cout << R"({"water.watcher.stream":{)" << endl;
+
+  /* Use the path we were given
+     or the current directory. */
+  const auto path = argc > 1 ? argv[1] : ".";
+
+  /* Show what happens.
+     Format as json.
+     Use event's stream operator. */
+  const auto show_event_json = [](const event& this_event) {
+    cout << this_event << ',' << endl;
+  };
+
+  /* Tick every 16ms. */
   static constexpr auto delay_ms = 16;
 
-  const auto path = argc > 1
-                        /* we have been given a path,
-                           and we will use it. */
-                        ? argv[1]
-                        /* otherwise, default to the
-                           current directory. */
-                        : ".";
+  /* Run forever. */
+  const auto is_watch_ok = run<delay_ms>(path, show_event_json);
 
-  cout << "{\n\"water.watcher.stream\":\n{";
-
-  const auto isok = run<delay_ms>(
-      /* scan the path, forever... */
-      path,
-      /* printing what we find,
-         every 16 milliseconds. */
-      show_event_json);
-
-  cout << "\n}\n}" << endl << flush;
-
-  return isok;
+  cout << '}' << endl << '}' << endl;
+  return is_watch_ok;
 }
-
-/* clang-format on */
 
 /*
 

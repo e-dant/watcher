@@ -3,19 +3,24 @@
 namespace water {
 namespace watcher {
 
-/* @todo consider adding platform versions */
+/* @todo add platform versions */
 enum class platform_t {
+  /* Linux */
   linux_unknown,
 
+  /* Android */
   android,
 
+  /* Darwin */
   mac_catalyst,
   mac_os,
   mac_ios,
   mac_unknown,
 
+  /* Windows */
   windows,
 
+  /* Unkown */
   unknown,
 };
 
@@ -68,8 +73,7 @@ inline constexpr platform_t platform
 
 /* clang-format on */
 
-namespace literal {
-
+namespace platform_literal {
 using                                          /* NOLINT */
     water::watcher::platform,                  /* NOLINT */
     water::watcher::platform_t::mac_unknown,   /* NOLINT */
@@ -80,7 +84,6 @@ using                                          /* NOLINT */
     water::watcher::platform_t::linux_unknown, /* NOLINT */
     water::watcher::platform_t::windows,       /* NOLINT */
     water::watcher::platform_t::unknown;       /* NOLINT */
-
-} /* namespace literal */
+} /* namespace platform_literal */
 } /* namespace watcher */
 } /* namespace water   */

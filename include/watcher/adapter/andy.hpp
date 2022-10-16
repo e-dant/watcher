@@ -1,16 +1,12 @@
 #pragma once
 
+#include <watcher/platform.hpp>
+#if defined(PLATFORM_ANDROID_ANY)
+
 /*
-  @brief watcher/adapter/and
-andy
-  A reasonably dumb adapter that works on any platform.
+  @brief watcher/adapter/andy
 
-  This adapter beats `kqueue`, but it doesn't bean recieving
-  filesystem events directly from the OS.
-
-  This is the fallback adapter on platforms that either
-    - Only support `kqueue`
-    - Only support the C++ standard library
+  The Android `inotify` adapter.
 */
 
 #include <chrono>
@@ -26,7 +22,6 @@ andy
 namespace water {
 namespace watcher {
 namespace adapter {
-namespace andy {
 namespace { /* anonymous namespace for "private" variables */
 /*  shorthands for:
       - Path
@@ -44,7 +39,6 @@ using
   std::filesystem::is_regular_file,
   std::filesystem::last_write_time,
   std::filesystem::is_regular_file,
-  std::filesystem::directory_options,
   std::filesystem::recursive_directory_iterator,
   std::filesystem::directory_options::follow_directory_symlink,
   std::filesystem::directory_options::skip_permission_denied;
@@ -61,7 +55,7 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
 /* clang-format on */
 
 /*
-  @brief scan_file
+  @brief watcher/adapter/andy/scan_file
   Scans a single `file` for changes. Updates our bucket. Calls `callback`.
 */
 bool scan_file(const char* file, const auto& callback) {
@@ -117,7 +111,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/run
+  @brief watcher/adapter/andy/run
 
   @param closure (optional):
    A callback to perform when the files
@@ -137,7 +131,7 @@ inline bool run(const char* path, const auto& callback) {
   /* see note [alternative run loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
-  /*  @brief watcher/populate
+  /*  @brief watcher/adapter/andy/populate
       @param path - path to monitor for
       @see watcher::status
       Creates a file map, the "bucket", from `path`. */
@@ -172,7 +166,7 @@ inline bool run(const char* path, const auto& callback) {
     return true;
   };
 
-  /*  @brief watcher/prune
+  /*  @brief watcher/adapter/andy/prune
       Removes files which no longer exist from our bucket. */
   const auto prune = [](const char* path, const auto& callback) {
     auto bucket_it = bucket.begin();
@@ -205,8 +199,8 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? andy::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? andy::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
                                         : false;
 }
 
@@ -228,10 +222,8 @@ inline bool run(const char* path, const auto& callback) {
     ```
 */
 
-} /* namespace andy */
-namespace literal {
-using water::watcher::adapter::andy::run; /* NOLINT */
-}
 } /* namespace adapter */
 } /* namespace watcher */
 } /* namespace water */
+
+#endif /* if defined(PLATFORM_ANDROID_ANY) */
