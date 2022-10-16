@@ -115,13 +115,13 @@ A `main` program suitable for this task:
 
 ```cpp
 #include <iostream>            /* std::cout, std::endl */
-#include <watcher/watcher.hpp> /* water::watcher::run, water::watcher::event */
+#include <watcher/watcher.hpp> /* water::watcher::watch, water::watcher::event */
 
 /* Watch a path, forever.
    Stream what happens.
    Print every 16ms. */
 int main(int argc, char** argv) {
-  using water::watcher::event::event, water::watcher::run, std::cout, std::endl;
+  using water::watcher::event::event, water::watcher::watch, std::cout, std::endl;
   cout << R"({"water.watcher.stream":{)" << endl;
 
   /* Use the path we were given
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
   static constexpr auto delay_ms = 16;
 
   /* Run forever. */
-  const auto is_watch_ok = run<delay_ms>(path, show_event_json);
+  const auto is_watch_ok = watch<delay_ms>(path, show_event_json);
 
   cout << '}' << endl << '}' << endl;
   return is_watch_ok;
