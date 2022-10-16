@@ -28,6 +28,7 @@
 
 namespace water {
 namespace watcher {
+namespace detail {
 namespace adapter {
 namespace { /* anonymous namespace for "private" variables */
 /*  shorthands for:
@@ -140,7 +141,6 @@ inline bool run(const char* path, const auto& callback) {
       std::filesystem::exists;
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
-      @see watcher::status
       Creates a file map, the "bucket", from `path`. */
   const auto populate = [](const char* path) {
     /* this happens when a path was changed while we were reading it.
@@ -241,6 +241,7 @@ inline bool run(const char* path, const auto& callback) {
 */
 
 } /* namespace adapter */
+} /* namespace detail */
 } /* namespace watcher */
 } /* namespace water */
 

@@ -20,6 +20,7 @@
 
 namespace water {
 namespace watcher {
+namespace detail {
 namespace adapter {
 namespace {
 
@@ -238,6 +239,7 @@ from `fswatch`, could be used:
 */
 
 } /* namespace adapter */
+} /* namespace detail */
 } /* namespace watcher */
 } /* namespace water   */
 
