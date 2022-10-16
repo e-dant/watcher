@@ -92,6 +92,7 @@ echo "
     $0 --show --advance maj
     $0 --show --advance min
     $0 --show --advance mic
+    $0 --create \`$0 --show --advance mic\`
 
   ebnf: 
     calling convention =
