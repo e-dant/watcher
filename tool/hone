@@ -1,11 +1,62 @@
 #! /usr/bin/env bash
 
 watcher::hone() {
-  local LAST_dir="$PWD"
+  local USAGE="
+  $(dirname "$0")/hone < option > { option }
+  option:
+    --header-content-amalgam
+    --header-content-used
+    --header-content-raw
+    --header-path-used
+    --header-path-all
+  "
+  local LAST_DIR="$PWD"
   cd "$(dirname "$0")/../include"
-  local INCS="$(find . -type f -name '*.hpp' -exec cat {} \;)"
-  local HDRS="$(while read H; do test -f "$H" && echo "$H"; done <<< "$(echo "$INCS" | grep -E '^#([ ]*)include' | tr -d '"' | tr -d '<' | tr -d '>' | sed -E 's/.+include (.*)/\1/g' | sort | uniq)")"
-  echo "$HDRS"
+
+  local HEADER_CONTENT_RAW="$(\
+    find . -type f -name '*.hpp' -exec cat {} \;\
+  )"
+
+  local HEADER_PATH_ALL="$(\
+    find . -type f -name '*.hpp' | sed 's/^\.\///'\
+  )"
+
+  local HEADER_PATH_USED="$(\
+    while read H; \
+    do \
+      test -f "$H" \
+        && echo "$H"; \
+    done <<< "$(\
+      echo "$HEADER_CONTENT_RAW" \
+        | grep -E '^#([ ]*)include' \
+        | tr -d '"' \
+        | tr -d '<' \
+        | tr -d '>' \
+        | sed -E 's/.+include (.*)/\1/g' \
+        | awk '!seen[$0]++' \
+    )" \
+  )"
+
+  local HEADER_CONTENT_USED="$(\
+    while read C; do cat "$C"; done <<< "$HEADER_PATH_USED"\
+  )"
+
+  local HEADER_CONTENT_AMALGAM="$(\
+    echo "$HEADER_CONTENT_USED" \
+      | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
+  )"
+
+  if echo "$*" | grep -q -- --header-content-raw
+  then echo "$HEADER_CONTENT_RAW"; fi
+  if echo "$*" | grep -q -- --header-content-used
+  then echo "$HEADER_CONTENT_USED"; fi
+  if echo "$*" | grep -q -- --header-path-all
+  then echo "$HEADER_PATH_ALL"; fi
+  if echo "$*" | grep -q -- --header-path-used
+  then echo "$HEADER_PATH_USED"; fi
+  if echo "$*" | grep -q -- --header-content-amalgam
+  then echo "$HEADER_CONTENT_AMALGAM"; fi
+
   cd "$LAST_DIR"
 }
 

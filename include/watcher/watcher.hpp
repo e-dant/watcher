@@ -7,5 +7,6 @@
   Include and use this file.
 */
 
+#include <watcher/platform.hpp>
 #include <watcher/event.hpp>
 #include <watcher/watch.hpp>
