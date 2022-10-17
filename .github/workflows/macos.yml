@@ -18,6 +18,19 @@ env:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - llvm-13.0.0
+          - gcc-12
+        generator:
+          - "Ninja Multi-Config"
+        build_type:
+          - Release
+        developer_mode:
+          - OFF
+
     runs-on: macos-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -31,16 +44,16 @@ jobs:
         key: ${{ runner.os }}-dependencies
 
     - name: Configure
-      run: cmake -S build/in -B build/out -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      run: cmake -S build/in -B build/out -G "${{ matrix.generator }}" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
     - name: Build
-      run: cmake --build build/out --config $BUILD_TYPE -j4
+      run: cmake --build build/out --config ${{ matrix.build_type }} -j4
 
     # @TODO(will) Our tests require a running binary
     # - name: Test
     #   run: |
-    #     cd build
-    #     ctest -C $BUILD_TYPE -VV
+    #     tool/test/file
+    #     tool/test/dir
 
     - name: Install
       run: cmake --build build/out --target install --config Release 

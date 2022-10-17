@@ -19,6 +19,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+
     permissions:
       actions: read
       contents: read
@@ -32,7 +33,7 @@ jobs:
         # Learn more about CodeQL language support at https://git.io/codeql-language-support
         compiler:
           # you can specify the version after `-` like "llvm-13.0.0".
-          - gcc-11
+          - gcc-12
         generator:
           - "Ninja Multi-Config"
         build_type:
@@ -40,10 +41,8 @@ jobs:
         developer_mode:
           - OFF
 
-
     steps:
     - uses: actions/checkout@v2
-
 
     - name: Setup Cpp
       uses: aminya/setup-cpp@v1
@@ -60,7 +59,6 @@ jobs:
         gcovr: false
         opencppcoverage: false
 
-
       # make sure coverage is only enabled for Debug builds, since it sets -O0 to make sure coverage
       # has meaningful results
     - name: Configure CMake
@@ -76,7 +74,6 @@ jobs:
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
-
 
     - name: Build
       # Execute the build.  You can specify a specific target with "--target <NAME>"
