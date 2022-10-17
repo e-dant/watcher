@@ -119,7 +119,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/adapter/warthog/run
+  @brief watcher/adapter/warthog/watch
 
   @param closure (optional):
    A callback to perform when the files
@@ -135,8 +135,8 @@ bool scan_directory(const char* dir, const auto& callback) {
   `run` recurses into itself.
 */
 template <const auto delay_ms = 16>
-inline bool run(const char* path, const auto& callback) {
-  /* see note [alternative run loop syntax] */
+inline bool watch(const char* path, const auto& callback) {
+  /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
   /*  @brief watcher/adapter/warthog/populate
@@ -206,15 +206,15 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
                                         : false;
 }
 
 /*
   # Notes
 
-  ## Alternative `run` loop syntax
+  ## Alternative `watch` loop syntax
 
     The syntax currently being used is short, but somewhat irregular.
     An quivalent pattern is provided here, in case we want to change it.

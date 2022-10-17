@@ -244,7 +244,7 @@ struct event {
 #if defined(PLATFORM_WINDOWS_ANY)
 
 /*
-  @brief watcher/adapter/win
+  @brief watcher/adapter/windows
 
   The Windows adapter.
 */
@@ -295,7 +295,7 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
 /* clang-format on */
 
 /*
-  @brief watcher/adapter/win/scan_file
+  @brief watcher/adapter/windows/scan_file
   Scans a single `file` for changes. Updates our bucket. Calls `callback`.
 */
 bool scan_file(const char* file, const auto& callback) {
@@ -351,7 +351,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/adapter/win/run
+  @brief watcher/adapter/windows/watch
 
   @param closure (optional):
    A callback to perform when the files
@@ -367,11 +367,11 @@ bool scan_directory(const char* dir, const auto& callback) {
   `run` recurses into itself.
 */
 template <const auto delay_ms = 16>
-inline bool run(const char* path, const auto& callback) {
-  /* see note [alternative run loop syntax] */
+inline bool watch(const char* path, const auto& callback) {
+  /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
-  /*  @brief watcher/adapter/win/populate
+  /*  @brief watcher/adapter/windows/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
   const auto populate = [](const char* path) {
@@ -405,7 +405,7 @@ inline bool run(const char* path, const auto& callback) {
     return true;
   };
 
-  /*  @brief watcher/adapter/win/prune
+  /*  @brief watcher/adapter/windows/prune
       Removes files which no longer exist from our bucket. */
   const auto prune = [](const char* path, const auto& callback) {
     auto bucket_it = bucket.begin();
@@ -438,15 +438,15 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
                                         : false;
 }
 
 /*
   # Notes
 
-  ## Alternative `run` loop syntax
+  ## Alternative `watch` loop syntax
 
     The syntax currently being used is short, but somewhat irregular.
     An quivalent pattern is provided here, in case we want to change it.
@@ -585,7 +585,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/adapter/warthog/run
+  @brief watcher/adapter/warthog/watch
 
   @param closure (optional):
    A callback to perform when the files
@@ -601,8 +601,8 @@ bool scan_directory(const char* dir, const auto& callback) {
   `run` recurses into itself.
 */
 template <const auto delay_ms = 16>
-inline bool run(const char* path, const auto& callback) {
-  /* see note [alternative run loop syntax] */
+inline bool watch(const char* path, const auto& callback) {
+  /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
   /*  @brief watcher/adapter/warthog/populate
@@ -672,15 +672,15 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
                                         : false;
 }
 
 /*
   # Notes
 
-  ## Alternative `run` loop syntax
+  ## Alternative `watch` loop syntax
 
     The syntax currently being used is short, but somewhat irregular.
     An quivalent pattern is provided here, in case we want to change it.
@@ -716,7 +716,7 @@ inline bool run(const char* path, const auto& callback) {
 #if defined(PLATFORM_MAC_ANY)
 
 /*
-  @brief watcher/adapter/mac
+  @brief watcher/adapter/darwin
 
   The Darwin `FSEvent` adapter.
 */
@@ -827,7 +827,7 @@ auto mk_event_stream(const char* path, const auto& callback) {
 } /* namespace */
 
 template <const auto delay_ms = 16>
-inline auto run(const char* path, const auto& callback) {
+inline bool watch(const char* path, const auto& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,
@@ -959,7 +959,7 @@ from `fswatch`, could be used:
 #if defined(PLATFORM_LINUX_ANY)
 
 /*
-  @brief watcher/adapter/lin
+  @brief watcher/adapter/linux
 
   The Linux `inotify` adapter.
 */
@@ -1010,7 +1010,7 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
 /* clang-format on */
 
 /*
-  @brief watcher/adapter/lin/scan_file
+  @brief watcher/adapter/linux/scan_file
   Scans a single `file` for changes. Updates our bucket. Calls `callback`.
 */
 bool scan_file(const char* file, const auto& callback) {
@@ -1066,7 +1066,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/adapter/lin/run
+  @brief watcher/adapter/linux/watch
 
   @param closure (optional):
    A callback to perform when the files
@@ -1082,11 +1082,11 @@ bool scan_directory(const char* dir, const auto& callback) {
   `run` recurses into itself.
 */
 template <const auto delay_ms = 16>
-inline bool run(const char* path, const auto& callback) {
-  /* see note [alternative run loop syntax] */
+inline bool watch(const char* path, const auto& callback) {
+  /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
-  /*  @brief watcher/adapter/lin/populate
+  /*  @brief watcher/adapter/linux/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
   const auto populate = [](const char* path) {
@@ -1120,7 +1120,7 @@ inline bool run(const char* path, const auto& callback) {
     return true;
   };
 
-  /*  @brief watcher/adapter/lin/prune
+  /*  @brief watcher/adapter/linux/prune
       Removes files which no longer exist from our bucket. */
   const auto prune = [](const char* path, const auto& callback) {
     auto bucket_it = bucket.begin();
@@ -1153,15 +1153,15 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
                                         : false;
 }
 
 /*
   # Notes
 
-  ## Alternative `run` loop syntax
+  ## Alternative `watch` loop syntax
 
     The syntax currently being used is short, but somewhat irregular.
     An quivalent pattern is provided here, in case we want to change it.
@@ -1186,7 +1186,7 @@ inline bool run(const char* path, const auto& callback) {
 #if defined(PLATFORM_ANDROID_ANY)
 
 /*
-  @brief watcher/adapter/andy
+  @brief watcher/adapter/android
 
   The Android `inotify` adapter.
 */
@@ -1237,7 +1237,7 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
 /* clang-format on */
 
 /*
-  @brief watcher/adapter/andy/scan_file
+  @brief watcher/adapter/android/scan_file
   Scans a single `file` for changes. Updates our bucket. Calls `callback`.
 */
 bool scan_file(const char* file, const auto& callback) {
@@ -1293,7 +1293,7 @@ bool scan_directory(const char* dir, const auto& callback) {
 } /* namespace */
 
 /*
-  @brief watcher/adapter/andy/run
+  @brief watcher/adapter/android/watch
 
   @param closure (optional):
    A callback to perform when the files
@@ -1309,11 +1309,11 @@ bool scan_directory(const char* dir, const auto& callback) {
   `run` recurses into itself.
 */
 template <const auto delay_ms = 16>
-inline bool run(const char* path, const auto& callback) {
-  /* see note [alternative run loop syntax] */
+inline bool watch(const char* path, const auto& callback) {
+  /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
-  /*  @brief watcher/adapter/andy/populate
+  /*  @brief watcher/adapter/android/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
   const auto populate = [](const char* path) {
@@ -1347,7 +1347,7 @@ inline bool run(const char* path, const auto& callback) {
     return true;
   };
 
-  /*  @brief watcher/adapter/andy/prune
+  /*  @brief watcher/adapter/android/prune
       Removes files which no longer exist from our bucket. */
   const auto prune = [](const char* path, const auto& callback) {
     auto bucket_it = bucket.begin();
@@ -1380,15 +1380,15 @@ inline bool run(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::run<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::run<delay_ms>(path, callback)
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
                                         : false;
 }
 
 /*
   # Notes
 
-  ## Alternative `run` loop syntax
+  ## Alternative `watch` loop syntax
 
     The syntax currently being used is short, but somewhat irregular.
     An quivalent pattern is provided here, in case we want to change it.
@@ -1464,7 +1464,7 @@ bool watch(
     const char* path,
     const auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
-  return detail::adapter::run<delay_ms>(path, callback);
+  return detail::adapter::watch<delay_ms>(path, callback);
 }
 
 } /* namespace watcher */

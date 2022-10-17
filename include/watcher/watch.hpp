@@ -1,10 +1,10 @@
 #pragma once
 
-#include <watcher/adapter/andy.hpp>
-#include <watcher/adapter/lin.hpp>
-#include <watcher/adapter/mac.hpp>
-#include <watcher/adapter/warthog.hpp>
-#include <watcher/adapter/win.hpp>
+#include <watcher/adapter/android/watch.hpp>
+#include <watcher/adapter/linux/watch.hpp>
+#include <watcher/adapter/darwin/watch.hpp>
+#include <watcher/adapter/warthog/watch.hpp>
+#include <watcher/adapter/windows/watch.hpp>
 
 namespace water {
 namespace watcher {
@@ -59,7 +59,7 @@ bool watch(
     const char* path,
     const auto& callback) {
   static_assert(delay_ms >= 0, "Negative time considered harmful.");
-  return detail::adapter::run<delay_ms>(path, callback);
+  return detail::adapter::watch<delay_ms>(path, callback);
 }
 
 } /* namespace watcher */
