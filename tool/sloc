@@ -1,0 +1,6 @@
+#! /usr/bin/env bash
+
+if ! cloc . --json | jq '."C/C++ Header".code + ."C++".code'
+then
+  echo please install cloc
+fi

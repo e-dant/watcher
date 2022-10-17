@@ -1,5 +1,36 @@
 # Watcher
 
+## Quick Start
+
+Write (adjusting for wherever you put `watcher.hpp`):
+
+```cpp
+/* main.cpp */
+#include <iostream>
+#include "../sinclude/watcher/watcher.hpp"
+int main(int argc, char** argv) {
+  using water::watcher::event::event, water::watcher::watch, std::cout,
+      std::endl;
+  cout << R"({"water.watcher.stream":{)" << endl;
+  const auto is_watch_ok = watch<16>(
+      argc > 1 ? argv[1] : ".",
+      [](const event& this_event) { cout << this_event << ',' << endl; });
+  cout << '}' << endl << '}' << endl;
+  return is_watch_ok;
+}
+```
+
+Compile & Run:
+
+```sh
+g++ -std=c++2a src/tiny-main.cpp -o watch
+./watch
+```
+
+Enjoy!
+
+## Tell Me More
+
 An arbitrary filesystem event watcher which is:
 
 - simple
@@ -39,11 +70,26 @@ and run. (I hope. If not, let me know.)
 ## Usage
 
 > *Note*: If anything is unclear, make an issue about it!
-*Watcher* strives to be friendly. For deeper information,
-please see the headers -- they are well-documented and are
-intended to be approachable.
+For deeper information, please see the headers. They are
+well-documented and are intended to be approachable.
 
-There are two things the user needs:
+### Important Files
+
+- `watcher.hpp`:
+    Public interface. Someday, this will be a module.
+- `main.cpp`:
+    Build this to use it as a CLI program.
+
+### The Library
+
+Copy the `include` or `sinclude` (for the single header)
+into your project. Include as:
+
+```cpp
+#include <water/watcher.hpp>
+```
+
+After that, there are two things the user needs:
   - The `watch` function
   - The `event` structure
 
@@ -73,6 +119,8 @@ So, passing `watch` a string and a lambda would work well.
 
 `watch` will happily keep continue watching until it is
 asked to stop or it hits an unrecoverable error.
+
+### Your Project
 
 It is trivial to build programs that yield something useful.
 
@@ -145,13 +193,6 @@ int main(int argc, char** argv) {
   return is_watch_ok;
 }
 ```
-
-## Content
-
-- `watcher.hpp`:
-    Public interface. Someday, this will be a module.
-- `main.cpp`:
-    Build this to use it as a CLI program.
 
 ## Consume
 
