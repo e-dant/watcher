@@ -1,0 +1,21 @@
+#! /usr/bin/env bash
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.."
+
+if $(\
+  git diff-index HEAD --name-only -C include/watcher \
+    | grep -qo 'include/.*')
+then
+  tool/hone --header-content-amalgam \
+    > sinclude/watcher/watcher.hpp
+fi
+
+while read CPP_FILE
+do
+  clang-format -i "$CPP_FILE"
+done <<< "$(\
+  git diff-index HEAD --name-only \
+    | grep -oE '.*\.(cpp|cc|hpp|h)$')"
+
+cd "$LAST_DIR"
