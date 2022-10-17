@@ -13,7 +13,11 @@ fi
 
 while read CPP_FILE
 do
-  clang-format -i "$CPP_FILE"
+  if test -n "$CPP_FILE" \
+    && test -f "$CPP_FILE"
+  then
+    clang-format -i "$CPP_FILE"
+  fi
 done <<< "$(\
   git diff-index HEAD --name-only \
     | grep -oE '.*\.(cpp|cc|hpp|h)$')"
