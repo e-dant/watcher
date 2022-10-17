@@ -123,6 +123,7 @@ struct event {
         case what::destroy: return "destroy";
         case what::owner:   return "owner";
         case what::other:   return "other";
+        default:            return "other";
       }
     }();
 
@@ -133,6 +134,7 @@ struct event {
         case kind::hard_link: return "hard_link";
         case kind::sym_link:  return "sym_link";
         case kind::other:     return "other";
+        default:              return "other";
       }
     }();
 

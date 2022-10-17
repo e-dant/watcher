@@ -214,6 +214,7 @@ struct event {
         case what::destroy: return "destroy";
         case what::owner:   return "owner";
         case what::other:   return "other";
+        default:            return "other";
       }
     }();
 
@@ -224,6 +225,7 @@ struct event {
         case kind::hard_link: return "hard_link";
         case kind::sym_link:  return "sym_link";
         case kind::other:     return "other";
+        default:              return "other";
       }
     }();
 
@@ -438,9 +440,10 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
-                                        : false;
+  return scan_directory(path, callback)
+             ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                     : false;
 }
 
 /*
@@ -672,9 +675,10 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
-                                        : false;
+  return scan_directory(path, callback)
+             ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                     : false;
 }
 
 /*
@@ -1153,9 +1157,10 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
-                                        : false;
+  return scan_directory(path, callback)
+             ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                     : false;
 }
 
 /*
@@ -1380,9 +1385,10 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
-                                        : false;
+  return scan_directory(path, callback)
+             ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                     : false;
 }
 
 /*
@@ -1409,7 +1415,6 @@ inline bool watch(const char* path, const auto& callback) {
 } /* namespace water */
 
 #endif /* if defined(PLATFORM_ANDROID_ANY) */
-
 
 namespace water {
 namespace watcher {
