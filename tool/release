@@ -67,10 +67,10 @@ release::create() {
     echo "$SEMVER" > .version
 
     sed \
-      -E "s|( +)([0-9]+\.[0-9]+\.[0-9]+)( # hook: tool/release)|\1$SEMVER\3|" \
-      -i build/in/CMakeLists.txt
+      -E -e "s|( +)([0-9]+\.[0-9]+\.[0-9]+)( # hook: tool/release)|\1$SEMVER\3|" \
+      -i -- 'build/in/CMakeLists.txt'
 
-    git add .version build/in/CMakelists.txt
+    git add '.version' 'build/in/CMakeLists.txt'
     git commit -m "release: $SEMVER"
     git push
 
