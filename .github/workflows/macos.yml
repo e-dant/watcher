@@ -12,19 +12,17 @@ on:
   pull_request:
     branches: [ release, next ]
 
-env:
-  BUILD_TYPE: Release
-  INSTALL_LOCATION: .local
-
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         compiler:
-          - clang-13.0.0
+          - llvm-13.0.0
         build_type:
           - Release
+        install_location:
+          - .local
         developer_mode:
           - OFF
 
@@ -39,20 +37,20 @@ jobs:
         compiler: ${{ matrix.compiler }}
         vcvarsall: ${{ contains(matrix.os, 'windows' )}}
         cmake: true
-        ninja: true
-        conan: true
-        vcpkg: false
         ccache: true
-        clangtidy: false
-        cppcheck: false
+        ninja: false
+        conan: false
+        vcpkg: false
         gcovr: false
+        cppcheck: false
+        clangtidy: false
         opencppcoverage: false
 
     - name: Cache
       uses: actions/cache@v2
       id: cache
       with:
-        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        path: ${{ github.workspace }}/${{ matrix.install_location }}
         key: ${{ runner.os }}-dependencies
 
     - name: Configure

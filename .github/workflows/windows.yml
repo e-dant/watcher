@@ -12,19 +12,17 @@ on:
   pull_request:
     branches: [ release, next ]
 
-env:
-  BUILD_TYPE: Release
-  INSTALL_LOCATION: .local
-
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         compiler:
-          - msvc-14.34.x
+          - msvc
         build_type:
           - Release
+        install_location:
+          - .local
         developer_mode:
           - OFF
 
@@ -53,7 +51,7 @@ jobs:
       uses: actions/cache@v2
       id: cache
       with:
-        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        path: ${{ github.workspace }}/${{ matrix.install_location }}
         key: ${{ runner.os }}-dependencies
 
     - name: Configure
