@@ -65,7 +65,7 @@ release::create() {
       || git checkout next
     echo "$SEMVER" > .version
     git add .version
-    git commit -m "release: $SEMVER"
+    git commit -m "release/$SEMVER"
     git push
     git checkout release
     git merge next -m "release/$SEMVER" \
