@@ -1,3 +1,4 @@
+#pragma once
 
 namespace water {
 namespace watcher {
@@ -344,7 +345,7 @@ bool scan_directory(const char* dir, const auto& callback) {
       if (dir_it_ec)
         return false;
       else
-        scan_file((const char*)(file.path().c_str()), callback);
+        scan_file(file.path().c_str(), callback);
     return true;
   } else
     return false;
@@ -440,10 +441,9 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback)
-             ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                     : false;
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
+                                        : false;
 }
 
 /*
@@ -675,10 +675,9 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback)
-             ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                     : false;
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
+                                        : false;
 }
 
 /*
@@ -1157,10 +1156,9 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback)
-             ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                     : false;
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
+                                        : false;
 }
 
 /*
@@ -1385,10 +1383,9 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback)
-             ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                     : false;
+  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
+                                        : false;
 }
 
 /*
@@ -1415,6 +1412,7 @@ inline bool watch(const char* path, const auto& callback) {
 } /* namespace water */
 
 #endif /* if defined(PLATFORM_ANDROID_ANY) */
+
 
 namespace water {
 namespace watcher {
