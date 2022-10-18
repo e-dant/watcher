@@ -12,8 +12,8 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ release, next ]
-  schedule:
-    - cron: '38 0 * * 5'
+  # schedule:
+  #   - cron: '38 0 * * 5'
 
 jobs:
   analyze:
