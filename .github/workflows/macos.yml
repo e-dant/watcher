@@ -33,10 +33,22 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Setup Cpp
+      uses: aminya/setup-cpp@v1
+      with:
+        compiler: ${{ matrix.compiler }}
+        vcvarsall: ${{ contains(matrix.os, 'windows' )}}
+        cmake: true
+        ninja: true
+        conan: true
+        vcpkg: false
+        ccache: true
+        clangtidy: false
+        cppcheck: false
+        gcovr: false
+        opencppcoverage: false
+
     - name: Cache
-      env:
-        CC: ${{ matrix.compiler }}
-        CXX: ${{ matrix.compiler }}
       uses: actions/cache@v2
       id: cache
       with:
