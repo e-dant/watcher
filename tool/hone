@@ -43,8 +43,9 @@ watcher::hone() {
   )"
 
   local HEADER_CONTENT_AMALGAM="$(\
-    echo "$HEADER_CONTENT_USED" \
-      | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
+    echo '#pragma once' \
+      && echo "$HEADER_CONTENT_USED" \
+        | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
   )"
 
   if test -n "$*"
