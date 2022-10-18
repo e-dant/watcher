@@ -122,7 +122,7 @@ The `event` object will contain the:
 
 So, passing `watch` a string and a lambda would work well.
 
-`watch` will happily keep continue watching until it is
+`watch` will happily continue watching until it is
 asked to stop or it hits an unrecoverable error.
 
 ### Your Project
