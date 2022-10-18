@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.2)
 # [project]
 project(
   water.watcher
-  VERSION 0.2.8 # hook: tool/release
+  VERSION 0.2.9 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "https://edant.io"
   LANGUAGES CXX)
