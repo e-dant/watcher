@@ -42,14 +42,15 @@ jobs:
         compiler: ${{ matrix.compiler }}
         vcvarsall: ${{ contains(matrix.os, 'windows' )}}
         cmake: true
-        ninja: true
-        conan: true
-        vcpkg: false
         ccache: true
-        clangtidy: false
-        cppcheck: false
+        ninja: false
+        conan: false
+        vcpkg: false
         gcovr: false
+        cppcheck: false
+        clangtidy: false
         opencppcoverage: false
+
 
     - name: Cache
       uses: actions/cache@v2
