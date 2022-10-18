@@ -63,10 +63,17 @@ release::create() {
   then
     test "$LAST_BRANCH" = 'next' \
       || git checkout next
+
     echo "$SEMVER" > .version
-    git add .version
+
+    sed \
+      -E "s|( +)([0-9]+\.[0-9]+\.[0-9]+)( # hook: tool/release)|\1$SEMVER\3|" \
+      -i build/in/CMakeLists.txt
+
+    git add .version build/in/CMakelists.txt
     git commit -m "release: $SEMVER"
     git push
+
     git checkout release
     git merge next -m "release/$SEMVER" \
       && git push \
