@@ -1,7 +1,0 @@
-extraction:
-  cpp:
-    prepare:
-      packages:
-        - g++-12
-    index:
-      build_command: build/build
