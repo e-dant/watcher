@@ -25,7 +25,7 @@ jobs:
           - llvm-13.0.0
           - gcc-12
         generator:
-          - "Ninja Multi-Config"
+          - "Ninja"
         build_type:
           - Release
         developer_mode:
@@ -44,7 +44,7 @@ jobs:
         key: ${{ runner.os }}-dependencies
 
     - name: Configure
-      run: cmake -S build/in -B build/out -G "${{ matrix.generator }}" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      run: cmake -S build/in -B build/out -G "${{ matrix.generator }}" -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
     - name: Build
       run: cmake --build build/out --config ${{ matrix.build_type }} -j4
