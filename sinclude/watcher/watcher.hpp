@@ -345,7 +345,7 @@ bool scan_directory(const char* dir, const auto& callback) {
       if (dir_it_ec)
         return false;
       else
-        scan_file(file.path().c_str(), callback);
+        scan_file((const char*)(file.path().c_str()), callback);
     return true;
   } else
     return false;
