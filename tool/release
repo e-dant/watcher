@@ -61,8 +61,12 @@ release::create() {
   local SEMVER="$1"
   if echo "$SEMVER" | grep -qE -- '^[0-9]+\.[0-9]+\.[0-9]+$'
   then
-    test "$LAST_BRANCH" = 'release' \
-      || git checkout release
+    test "$LAST_BRANCH" = 'next' \
+      || git checkout next
+    echo "$SEMVER" > .version
+    git add .version
+    git commit -m "release: $SEMVER"
+    git checkout release
     git merge next -m "release/$SEMVER" \
       && git push \
       && git tag \
