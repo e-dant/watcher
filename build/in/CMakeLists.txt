@@ -1,5 +1,7 @@
 cmake_policy(SET CMP0048 NEW) # VERSION
 
+cmake_minimum_required(VERSION 3.2)
+
 # [project]
 project(
   water.watcher
