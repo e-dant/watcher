@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - msvc-14.34
+          - msvc-14.34.x
         build_type:
           - Release
         developer_mode:

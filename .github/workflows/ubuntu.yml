@@ -23,7 +23,7 @@ jobs:
       matrix:
         compiler:
           - llvm-13.0.0
-          - gcc-12
+          - gcc-12.x.x
         build_type:
           - Release
         developer_mode:
