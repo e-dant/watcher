@@ -19,6 +19,10 @@ jobs:
       matrix:
         compiler:
           - msvc
+        compiler_c_short_name:
+          - msvc
+        compiler_cxx_short_name:
+          - msvc
         build_type:
           - Release
         install_location:
@@ -55,15 +59,9 @@ jobs:
         key: ${{ runner.os }}-dependencies
 
     - name: Configure
-      env:
-        CC: ${{ matrix.compiler }}
-        CXX: ${{ matrix.compiler }}
-      run: cmake -S build/in -B build/out -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
     - name: Build
-      env:
-        CC: ${{ matrix.compiler }}
-        CXX: ${{ matrix.compiler }}
       run: cmake --build build/out --config ${{ matrix.build_type }} -j4
 
     # @TODO(will) Our tests require a running binary
@@ -73,8 +71,5 @@ jobs:
     #     tool/test/dir
 
     - name: Install
-      env:
-        CC: ${{ matrix.compiler }}
-        CXX: ${{ matrix.compiler }}
       run: cmake --build build/out --target install --config Release 
 

@@ -18,7 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - llvm-13.0.0
+          - clang-13.0.0
+        compiler_c_short_name:
+          - clang
+        compiler_cxx_short_name:
+          - clang++
         build_type:
           - Release
         install_location:
@@ -57,7 +61,7 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         CXX: ${{ matrix.compiler }}
-      run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
     - name: Build
       env:
