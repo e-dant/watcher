@@ -4,7 +4,7 @@
 THIS="$(basename "$0")" # 'release'
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.."
-THIS_BRANCH="$(git branch --show-current)"
+LAST_BRANCH="$(git branch --show-current)"
 
 # htor: human version to regular expression
 release::htor() {
@@ -61,7 +61,7 @@ release::create() {
   local SEMVER="$1"
   if echo "$SEMVER" | grep -qE -- '^[0-9]+\.[0-9]+\.[0-9]+$'
   then
-    test "$THIS_BRANCH" = 'release' \
+    test "$LAST_BRANCH" = 'release' \
       || git checkout release
     git merge next -m "release/$SEMVER" \
       && git push \
@@ -69,7 +69,8 @@ release::create() {
         -a "release/$SEMVER" \
         -m "release/$SEMVER" \
         "$(git log | head -n 1 | sed -E 's/commit (.*)/\1/g')" \
-      && git push origin "release/$SEMVER"
+      && git push origin "release/$SEMVER" \
+      && git checkout "$LAST_BRANCH"
     return $?
   else
     return 1
