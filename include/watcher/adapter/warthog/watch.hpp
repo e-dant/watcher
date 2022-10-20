@@ -116,6 +116,66 @@ bool scan_directory(const char* dir, const auto& callback) {
     return false;
 }
 
+/*  @brief watcher/adapter/warthog/populate
+    @param path - path to monitor for
+    Creates a file map, the "bucket", from `path`. */
+bool populate(const char* path) {
+  /* this happens when a path was changed while we were reading it.
+   there is nothing to do here; we prune later. */
+  auto dir_it_ec = std::error_code{};
+  auto lwt_ec = std::error_code{};
+  if (exists(path)) {
+    /* this is a directory */
+    if (is_directory(path)) {
+      for (const auto& file :
+           recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+        if (!dir_it_ec) {
+          const auto lwt = last_write_time(file, lwt_ec);
+          if (!lwt_ec)
+            bucket[file.path().string()] = lwt;
+          else
+            /* @todo use this practice elsewhere or make a fn for it
+               otherwise, this might be confusing and inconsistent. */
+            bucket[file.path().string()] = last_write_time(path);
+        }
+      }
+    }
+    /* this is a file */
+    else {
+      bucket[path] = last_write_time(path);
+    }
+  } else {
+    return false;
+  }
+  return true;
+};
+
+/*  @brief watcher/adapter/warthog/prune
+    Removes files which no longer exist from our bucket. */
+bool prune(const char* path, const auto& callback) {
+  auto bucket_it = bucket.begin();
+  /* while looking through the bucket's contents, */
+  while (bucket_it != bucket.end()) {
+    /* check if the stuff in our bucket exists anymore. */
+    exists(bucket_it->first)
+        /* if so, move on. */
+        ? std::advance(bucket_it, 1)
+        /* if not, call the closure, indicating destruction,
+           and remove it from our bucket. */
+        : [&]() {
+            callback(event::event{bucket_it->first.c_str(),
+                                  event::what::destroy,
+                                  is_regular_file(path) ? event::kind::file
+                                  : is_directory(path)  ? event::kind::dir
+                                  : is_symlink(path)    ? event::kind::sym_link
+                                                        : event::kind::other});
+            /* bucket, erase it! */
+            bucket_it = bucket.erase(bucket_it);
+          }();
+  }
+  return true;
+};
+
 } /* namespace */
 
 /*
@@ -128,76 +188,15 @@ bool scan_directory(const char* dir, const auto& callback) {
 
   Monitors `path` for changes.
 
-  Executes `callback` when they
-  happen.
+  Calls `callback` with an `event` when they happen.
 
-  Unless it should stop, or errors present,
-  `run` recurses into itself.
+  Unless it should stop, or errors present, `watch` recurses.
 */
 template <const auto delay_ms = 16>
 inline bool watch(const char* path, const auto& callback) {
   /* see note [alternative watch loop syntax] */
   using std::this_thread::sleep_for, std::chrono::milliseconds,
       std::filesystem::exists;
-  /*  @brief watcher/adapter/warthog/populate
-      @param path - path to monitor for
-      Creates a file map, the "bucket", from `path`. */
-  const auto populate = [](const char* path) {
-    /* this happens when a path was changed while we were reading it.
-     there is nothing to do here; we prune later. */
-    auto dir_it_ec = std::error_code{};
-    auto lwt_ec = std::error_code{};
-    if (exists(path)) {
-      /* this is a directory */
-      if (is_directory(path)) {
-        for (const auto& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
-          if (!dir_it_ec) {
-            const auto lwt = last_write_time(file, lwt_ec);
-            if (!lwt_ec)
-              bucket[file.path().string()] = lwt;
-            else
-              /* @todo use this practice elsewhere or make a fn for it
-                 otherwise, this might be confusing and inconsistent. */
-              bucket[file.path().string()] = last_write_time(path);
-          }
-        }
-      }
-      /* this is a file */
-      else {
-        bucket[path] = last_write_time(path);
-      }
-    } else {
-      return false;
-    }
-    return true;
-  };
-
-  /*  @brief watcher/adapter/warthog/prune
-      Removes files which no longer exist from our bucket. */
-  const auto prune = [](const char* path, const auto& callback) {
-    auto bucket_it = bucket.begin();
-    /* while looking through the bucket's contents, */
-    while (bucket_it != bucket.end()) {
-      /* check if the stuff in our bucket exists anymore. */
-      exists(bucket_it->first)
-          /* if so, move on. */
-          ? std::advance(bucket_it, 1)
-          /* if not, call the closure, indicating destruction,
-             and remove it from our bucket. */
-          : [&]() {
-              callback(event::event{bucket_it->first.c_str(),
-                                    event::what::destroy,
-                                    is_regular_file(path) ? event::kind::file
-                                    : is_directory(path)  ? event::kind::dir
-                                    : is_symlink(path) ? event::kind::sym_link
-                                                       : event::kind::other});
-              /* bucket, erase it! */
-              bucket_it = bucket.erase(bucket_it);
-            }();
-    }
-    return true;
-  };
 
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
@@ -206,39 +205,11 @@ inline bool watch(const char* path, const auto& callback) {
   bucket.empty() ? populate(path) : prune(path, callback);
 
   /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback) ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback)    ? adapter::watch<delay_ms>(path, callback)
-                                        : false;
+  return scan_directory(path, callback)
+             ? adapter::watch<delay_ms>(path, callback)
+         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                     : false;
 }
-
-/*
-  # Notes
-
-  ## Alternative `watch` loop syntax
-
-    The syntax currently being used is short, but somewhat irregular.
-    An quivalent pattern is provided here, in case we want to change it.
-    This may or may not be more clear. I'm not sure.
-
-    ```cpp
-    prune(path, callback);
-    while (scan(path, callback))
-      if constexpr (delay_ms > 0)
-        sleep_for(milliseconds(delay_ms));
-    return false;
-    ```
-
-  ## Control Flow Patterns
-    There is only enough room in this world
-    for two control flow patterns:
-
-    1. `if constexpr`
-    2. `ternary if`
-
-    I should write a proposal for the
-    `constexpr ternary if`...
-
-*/
 
 } /* namespace adapter */
 } /* namespace detail */
