@@ -30,150 +30,169 @@ namespace water {
 namespace watcher {
 namespace detail {
 namespace adapter {
-namespace { /* anonymous namespace for "private" variables */
-/*  shorthands for:
-      - Path
-      - Callback
-      - directory_options
-      - follow_directory_symlink
-      - skip_permission_denied
-      - bucket_t, a map type of string -> time */
+namespace { /* anonymous namespace for "private" things */
 /* clang-format off */
-using
-  std::filesystem::exists,
-  std::filesystem::is_symlink,
-  std::filesystem::is_directory,
-  std::filesystem::is_directory,
-  std::filesystem::is_regular_file,
-  std::filesystem::last_write_time,
-  std::filesystem::is_regular_file,
-  std::filesystem::recursive_directory_iterator,
-  std::filesystem::directory_options::follow_directory_symlink,
-  std::filesystem::directory_options::skip_permission_denied;
 
-/*  We need `bucket` to make caching state easier...
-    which is what objects are for. Well, maybe this
-    should be an object. I'm not sure. */
 inline constexpr std::filesystem::directory_options
-  dir_opt = skip_permission_denied & follow_directory_symlink;
+  dir_opt = 
+    /* This is ridiculous */
+    std::filesystem::directory_options::skip_permission_denied 
+    & std::filesystem::directory_options::follow_directory_symlink;
 
+/* We need to make find a way to ensure only one `watch` happens at a time. */
 static std::unordered_map<std::string, std::filesystem::file_time_type>
     bucket;  /* NOLINT */
 
 /* clang-format on */
 
-/*
-  @brief watcher/adapter/warthog/scan_file
-  Scans a single `file` for changes. Updates our bucket. Calls `callback`.
-*/
-bool scan_file(const char* file, const auto& callback) {
-  if (exists(file) && is_regular_file(file)) {
-    auto ec = std::error_code{};
-    /* grabbing the file's last write time */
-    const auto timestamp = last_write_time(file, ec);
-    if (ec) {
-      /* the file changed while we were looking at it. so, we call the closure,
-       * indicating destruction, and remove it from the bucket. */
-      callback(event::event{file, event::what::destroy, event::kind::file});
-      if (bucket.contains(file))
-        bucket.erase(file);
-    }
-    /* if it's not in our bucket, */
-    else if (!bucket.contains(file)) {
-      /* we put it in there and call the closure, indicating creation. */
-      bucket[file] = timestamp;
-      callback(event::event{file, event::what::create, event::kind::file});
-    }
-    /* otherwise, it is already in our bucket. */
-    else {
-      /* we update the file's last write time, */
-      if (bucket[file] != timestamp) {
-        bucket[file] = timestamp;
-        /* and call the closure on them, indicating modification */
-        callback(event::event{file, event::what::modify, event::kind::file});
+/*  @brief watcher/adapter/warthog/scan
+    - Scans `path` for changes.
+    - Updates our bucket to match the changes.
+    - Calls `callback` when changes happen.
+    - Returns false if the file tree cannot be scanned. */
+bool scan(const char* path, const auto& callback) {
+  using std::filesystem::exists, std::filesystem::is_symlink,
+      std::filesystem::is_directory, std::filesystem::is_regular_file,
+      std::filesystem::last_write_time, std::filesystem::is_regular_file,
+      std::filesystem::recursive_directory_iterator;
+  /* @brief watcher/adapter/warthog/scan_file
+     - Scans a (single) file for changes.
+     - Updates our bucket to match the changes.
+     - Calls `callback` when changes happen.
+     - Returns false if the file cannot be scanned. */
+  const auto scan_file = [&](const char* file, const auto& callback) -> bool {
+    if (exists(file) && is_regular_file(file)) {
+      auto ec = std::error_code{};
+      /* grabbing the file's last write time */
+      const auto timestamp = last_write_time(file, ec);
+      if (ec) {
+        /* the file changed while we were looking at it. so, we call the
+         * closure, indicating destruction, and remove it from the bucket. */
+        callback(event::event{file, event::what::destroy, event::kind::file});
+        if (bucket.contains(file))
+          bucket.erase(file);
       }
-    }
-    return true;
-  } /* if the path doesn't exist, we nudge the callee with `false` */
-  else
-    return false;
-}
-
-bool scan_directory(const char* dir, const auto& callback) {
-  /* if this thing is a directory */
-  if (is_directory(dir)) {
-    /* try to iterate through its contents */
-    auto dir_it_ec = std::error_code{};
-    for (const auto& file :
-         recursive_directory_iterator(dir, dir_opt, dir_it_ec))
-      /* while handling errors */
-      if (dir_it_ec)
-        return false;
-      else
-        scan_file(file.path().c_str(), callback);
-    return true;
-  } else
-    return false;
-}
-
-/*  @brief watcher/adapter/warthog/populate
-    @param path - path to monitor for
-    Creates a file map, the "bucket", from `path`. */
-bool populate(const char* path) {
-  /* this happens when a path was changed while we were reading it.
-   there is nothing to do here; we prune later. */
-  auto dir_it_ec = std::error_code{};
-  auto lwt_ec = std::error_code{};
-  if (exists(path)) {
-    /* this is a directory */
-    if (is_directory(path)) {
-      for (const auto& file :
-           recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
-        if (!dir_it_ec) {
-          const auto lwt = last_write_time(file, lwt_ec);
-          if (!lwt_ec)
-            bucket[file.path().string()] = lwt;
-          else
-            /* @todo use this practice elsewhere or make a fn for it
-               otherwise, this might be confusing and inconsistent. */
-            bucket[file.path().string()] = last_write_time(path);
+      /* if it's not in our bucket, */
+      else if (!bucket.contains(file)) {
+        /* we put it in there and call the closure, indicating creation. */
+        bucket[file] = timestamp;
+        callback(event::event{file, event::what::create, event::kind::file});
+      }
+      /* otherwise, it is already in our bucket. */
+      else {
+        /* we update the file's last write time, */
+        if (bucket[file] != timestamp) {
+          bucket[file] = timestamp;
+          /* and call the closure on them, indicating modification */
+          callback(event::event{file, event::what::modify, event::kind::file});
         }
       }
-    }
-    /* this is a file */
-    else {
-      bucket[path] = last_write_time(path);
-    }
-  } else {
-    return false;
-  }
-  return true;
+      return true;
+    } /* if the path doesn't exist, we nudge the callee with `false` */
+    else
+      return false;
+  };
+
+  /* @brief watcher/adapter/warthog/scan_directory
+     - Scans a (single) directory for changes.
+     - Updates our bucket to match the changes.
+     - Calls `callback` when changes happen.
+     - Returns false if the directory cannot be scanned. */
+  const auto scan_directory = [&](const char* dir,
+                                  const auto& callback) -> bool {
+    /* if this thing is a directory */
+    if (is_directory(dir)) {
+      /* try to iterate through its contents */
+      auto dir_it_ec = std::error_code{};
+      for (const auto& file :
+           recursive_directory_iterator(dir, dir_opt, dir_it_ec))
+        /* while handling errors */
+        if (dir_it_ec)
+          return false;
+        else
+          scan_file(file.path().c_str(), callback);
+      return true;
+    } else
+      return false;
+  };
+
+  return scan_directory(path, callback) ? true
+         : scan_file(path, callback)    ? true
+                                        : false;
 };
 
-/*  @brief watcher/adapter/warthog/prune
-    Removes files which no longer exist from our bucket. */
-bool prune(const char* path, const auto& callback) {
-  auto bucket_it = bucket.begin();
-  /* while looking through the bucket's contents, */
-  while (bucket_it != bucket.end()) {
-    /* check if the stuff in our bucket exists anymore. */
-    exists(bucket_it->first)
-        /* if so, move on. */
-        ? std::advance(bucket_it, 1)
-        /* if not, call the closure, indicating destruction,
-           and remove it from our bucket. */
-        : [&]() {
-            callback(event::event{bucket_it->first.c_str(),
-                                  event::what::destroy,
-                                  is_regular_file(path) ? event::kind::file
-                                  : is_directory(path)  ? event::kind::dir
-                                  : is_symlink(path)    ? event::kind::sym_link
-                                                        : event::kind::other});
-            /* bucket, erase it! */
-            bucket_it = bucket.erase(bucket_it);
-          }();
-  }
-  return true;
+/* @brief water/watcher/warthog/tend_bucket
+   If the bucket is empty, try to populate it.
+   otherwise, prune it. */
+bool tend_bucket(const char* path, const auto& callback) {
+  using std::filesystem::exists, std::filesystem::is_symlink,
+      std::filesystem::is_directory, std::filesystem::is_regular_file,
+      std::filesystem::last_write_time, std::filesystem::is_regular_file,
+      std::filesystem::recursive_directory_iterator;
+  /*  @brief watcher/adapter/warthog/populate
+      @param path - path to monitor for
+      Creates a file map, the "bucket", from `path`. */
+  const auto populate = [&](const char* path) -> bool {
+    /* this happens when a path was changed while we were reading it.
+     there is nothing to do here; we prune later. */
+    auto dir_it_ec = std::error_code{};
+    auto lwt_ec = std::error_code{};
+    if (exists(path)) {
+      /* this is a directory */
+      if (is_directory(path)) {
+        for (const auto& file :
+             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+          if (!dir_it_ec) {
+            const auto lwt = last_write_time(file, lwt_ec);
+            if (!lwt_ec)
+              bucket[file.path().string()] = lwt;
+            else
+              /* @todo use this practice elsewhere or make a fn for it
+                 otherwise, this might be confusing and inconsistent. */
+              bucket[file.path().string()] = last_write_time(path);
+          }
+        }
+      }
+      /* this is a file */
+      else {
+        bucket[path] = last_write_time(path);
+      }
+    } else {
+      return false;
+    }
+    return true;
+  };
+
+  /*  @brief watcher/adapter/warthog/prune
+      Removes files which no longer exist from our bucket. */
+  const auto prune = [&](const char* path, const auto& callback) -> bool {
+    auto bucket_it = bucket.begin();
+    /* while looking through the bucket's contents, */
+    while (bucket_it != bucket.end()) {
+      /* check if the stuff in our bucket exists anymore. */
+      exists(bucket_it->first)
+          /* if so, move on. */
+          ? std::advance(bucket_it, 1)
+          /* if not, call the closure, indicating destruction,
+             and remove it from our bucket. */
+          : [&]() {
+              callback(event::event{bucket_it->first.c_str(),
+                                    event::what::destroy,
+                                    is_regular_file(path) ? event::kind::file
+                                    : is_directory(path)  ? event::kind::dir
+                                    : is_symlink(path) ? event::kind::sym_link
+                                                       : event::kind::other});
+              /* bucket, erase it! */
+              bucket_it = bucket.erase(bucket_it);
+            }();
+    }
+    return true;
+  };
+
+  return bucket.empty() ? populate(path)          ? true
+                          : prune(path, callback) ? true
+                                                  : false
+                        : true;
 };
 
 } /* namespace */
@@ -194,21 +213,20 @@ bool prune(const char* path, const auto& callback) {
 */
 template <const auto delay_ms = 16>
 inline bool watch(const char* path, const auto& callback) {
-  /* see note [alternative watch loop syntax] */
-  using std::this_thread::sleep_for, std::chrono::milliseconds,
-      std::filesystem::exists;
+  using std::this_thread::sleep_for, std::chrono::milliseconds;
 
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
 
-  /* if the bucket is empty, try to populate it. otherwise, prune it. */
-  bucket.empty() ? populate(path) : prune(path, callback);
-
-  /* if no errors present, keep running. otherwise, leave. */
-  return scan_directory(path, callback)
-             ? adapter::watch<delay_ms>(path, callback)
-         : scan_file(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                     : false;
+  /* If:
+      - The bucket is doing well, and
+      - No errors occured while scanning,
+    then keep running.
+    Otherwise, stop and return false. */
+  return tend_bucket(path, callback)
+             ? scan(path, callback) ? adapter::watch<delay_ms>(path, callback)
+                                    : false
+             : false;
 }
 
 } /* namespace adapter */
