@@ -1,7 +1,7 @@
 #pragma once
 
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_UNKNOWN)
+#if defined(PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
