@@ -30,8 +30,11 @@ int main(int argc, char** argv) {
 Compile & Run:
 
 ```sh
-g++ -std=c++2a src/tiny-main.cpp -o watch
-./watch
+EXTRAS=$(test "$(uname)" = Darwin && echo '-framework CoreFoundation -framework CoreServices')
+
+c++ -std=c++2a -O3 src/tiny-main.cpp -o watcher $EXTRAS
+
+./watcher
 ```
 
 Enjoy!
