@@ -39,9 +39,7 @@ inline constexpr std::filesystem::directory_options
     std::filesystem::directory_options::skip_permission_denied 
     & std::filesystem::directory_options::follow_directory_symlink;
 
-/* We need to make find a way to ensure only one `watch` happens at a time. */
-static std::unordered_map<std::string, std::filesystem::file_time_type>
-    bucket;  /* NOLINT */
+using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_type>;
 
 /* clang-format on */
 
@@ -50,7 +48,7 @@ static std::unordered_map<std::string, std::filesystem::file_time_type>
     - Updates our bucket to match the changes.
     - Calls `callback` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-bool scan(const char* path, const auto& callback) {
+bool scan(const char* path, const auto& callback, bucket_type& bucket) {
   using std::filesystem::exists, std::filesystem::is_symlink,
       std::filesystem::is_directory, std::filesystem::is_regular_file,
       std::filesystem::last_write_time, std::filesystem::is_regular_file,
@@ -124,7 +122,7 @@ bool scan(const char* path, const auto& callback) {
 /* @brief water/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-bool tend_bucket(const char* path, const auto& callback) {
+bool tend_bucket(const char* path, const auto& callback, bucket_type& bucket) {
   using std::filesystem::exists, std::filesystem::is_symlink,
       std::filesystem::is_directory, std::filesystem::is_regular_file,
       std::filesystem::last_write_time, std::filesystem::is_regular_file,
@@ -215,6 +213,8 @@ template <const auto delay_ms = 16>
 inline bool watch(const char* path, const auto& callback) {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
+  static bucket_type bucket;
+
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
 
@@ -223,9 +223,10 @@ inline bool watch(const char* path, const auto& callback) {
       - No errors occured while scanning,
     then keep running.
     Otherwise, stop and return false. */
-  return tend_bucket(path, callback)
-             ? scan(path, callback) ? adapter::watch<delay_ms>(path, callback)
-                                    : false
+  return tend_bucket(path, callback, bucket)
+             ? scan(path, callback, bucket)
+                   ? adapter::watch<delay_ms>(path, callback)
+                   : false
              : false;
 }
 
