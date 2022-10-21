@@ -5,6 +5,8 @@
 /* std::stoul,
    std::string */
 #include <string>
+/* std::strcmp */
+#include <cstring>
 /* std::thread */
 #include <thread>
 /* std::make_tuple,
