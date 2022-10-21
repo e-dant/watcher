@@ -20,6 +20,12 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC
     ../../include)
 
+find_package(Threads REQUIRED)
+target_link_libraries(
+  ${PROJECT_NAME}
+    PRIVATE
+      "Threads::Threads")
+
 if(APPLE)
 target_link_libraries(
   ${PROJECT_NAME}
