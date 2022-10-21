@@ -214,14 +214,19 @@ static bool tend_bucket(const char* path,
    A callback to perform when the files
    being watched change.
 
+  @param living (optional):
+   A predicate to evaluate whether `watch`
+   should `die`.
+
   Monitors `path` for changes.
 
   Calls `callback` with an `event` when they happen.
 
   Unless it should stop, or errors present, `watch` recurses.
 */
-
-static bool watch(const char* path, auto const& callback, auto const& living) {
+static bool watch(const char* path,
+                  event::callback const& callback,
+                  auto const& living) {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* First, sleep for delay_ms.
 
@@ -245,6 +250,7 @@ static bool watch(const char* path, auto const& callback, auto const& living) {
                   : true;
   /* clang-format off */
   /*
+  // This had issues being called late.
   return living()
              ? tend_bucket(path, callback, bucket)
                    ? scan(path, callback, bucket)
@@ -256,12 +262,20 @@ static bool watch(const char* path, auto const& callback, auto const& living) {
   /* clang-format on */
 }
 
-static bool watch(const char* path, auto const& callback) {
+static bool watch(const char* path, event::callback const& callback) {
   return watch(path, callback,
                []() -> bool { return watcher_alive ? true : false; });
 }
 
-static bool live() {
+/*
+  @brief watcher/adapter/warthog/can_watch
+
+  Call this before `watch` to ensure only one `watch` exists.
+
+  It might do other things or be removed at some point.
+*/
+
+static bool can_watch() {
   if (watcher_alive)
     return false;
   else
@@ -269,7 +283,13 @@ static bool live() {
   return true;
 }
 
-static bool die(auto const& callback) {
+/*
+  @brief watcher/adapter/warthog/can_watch
+
+  Call this before `callback` before destroying itself.
+*/
+
+static bool die(event::callback const& callback) {
   callback(event::event{"", event::what::destroy, event::kind::watcher});
   if (watcher_alive) {
     watcher_alive = false;

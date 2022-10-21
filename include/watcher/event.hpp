@@ -1,5 +1,13 @@
 #pragma once
 
+/*
+  @brief watcher/event/types
+  - water::watcher::event::kind
+  - water::watcher::event::what
+  - water::watcher::event::event
+  - water::watcher::event::callback
+*/
+
 #include <chrono>
 #include <filesystem>
 
@@ -145,6 +153,15 @@ struct event {
     /* clang-format on */
   }
 };
+
+/*
+  @brief watcher/event/callback
+
+  Ensure the adapters recieve events and return nothing.
+
+  Maybe this should be inferred. I'm not sure.
+*/
+using callback = void (*)(const event&);
 
 } /* namespace event */
 } /* namespace watcher */
