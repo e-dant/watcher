@@ -54,13 +54,15 @@ static bool watch(const char* path, event::callback const& callback) {
                                       : false;
 }
 
-static bool watch(const char* path,
-                  event::callback const& callback,
-                  auto const& until) {
-  return detail::adapter::can_watch()
-             ? detail::adapter::watch(path, callback, until)
-             : false;
-}
+// May be unsafe.
+
+// static bool watch(const char* path,
+//                   event::callback const& callback,
+//                   auto const& until) {
+//   return detail::adapter::can_watch()
+//              ? detail::adapter::watch(path, callback, until)
+//              : false;
+// }
 
 static bool die() {
   using whatever = const event::event&;

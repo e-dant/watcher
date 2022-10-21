@@ -43,8 +43,6 @@ inline constexpr std::filesystem::directory_options
 
 using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_type>;
 
-static bool watcher_alive = false;
-
 /* clang-format on */
 
 /*  @brief watcher/adapter/warthog/scan
@@ -214,19 +212,13 @@ static bool tend_bucket(const char* path,
    A callback to perform when the files
    being watched change.
 
-  @param living (optional):
-   A predicate to evaluate whether `watch`
-   should `die`.
-
   Monitors `path` for changes.
 
   Calls `callback` with an `event` when they happen.
 
   Unless it should stop, or errors present, `watch` recurses.
 */
-static bool watch(const char* path,
-                  event::callback const& callback,
-                  auto const& living) {
+static bool watch(const char* path, event::callback const& callback) {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* First, sleep for delay_ms.
 
@@ -242,19 +234,19 @@ static bool watch(const char* path,
   if constexpr (delay_ms > 0)
     sleep_for(milliseconds(delay_ms));
 
-  return living() ? tend_bucket(path, callback, bucket)
-                        ? scan(path, callback, bucket)
-                              ? watch(path, callback, living)
-                              : false
-                        : false
-                  : true;
+  return is_living() ? tend_bucket(path, callback, bucket)
+                           ? scan(path, callback, bucket)
+                                 ? watch(path, callback)
+                                 : false
+                           : false
+                     : true;
   /* clang-format off */
   /*
   // This had issues being called late.
-  return living()
+  return is_living()
              ? tend_bucket(path, callback, bucket)
                    ? scan(path, callback, bucket)
-                        ? watch(path, callback, living)
+                        ? watch(path, callback, is_living)
                         : dying(callback)
                    : dying(callback)
              : dying(callback);
@@ -262,42 +254,10 @@ static bool watch(const char* path,
   /* clang-format on */
 }
 
-static bool watch(const char* path, event::callback const& callback) {
-  return watch(path, callback,
-               []() -> bool { return watcher_alive ? true : false; });
-}
-
-/*
-  @brief watcher/adapter/warthog/can_watch
-
-  Call this before `watch` to ensure only one `watch` exists.
-
-  It might do other things or be removed at some point.
-*/
-
-static bool can_watch() {
-  if (watcher_alive)
-    return false;
-  else
-    watcher_alive = true;
-  return true;
-}
-
-/*
-  @brief watcher/adapter/warthog/can_watch
-
-  Call this before `callback` before destroying itself.
-*/
-
-static bool die(event::callback const& callback) {
-  callback(event::event{"", event::what::destroy, event::kind::watcher});
-  if (watcher_alive) {
-    watcher_alive = false;
-    return true;
-  } else {
-    return false;
-  }
-}
+// static bool watch(const char* path, event::callback const& callback) {
+//   return watch(path, callback,
+//                []() -> bool { return watcher_alive ? true : false; });
+// }
 
 } /* namespace adapter */
 } /* namespace detail */

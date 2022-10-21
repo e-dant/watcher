@@ -1,10 +1,11 @@
 #pragma once
 
 #include <watcher/platform.hpp>
+
 #define WATER_WATCHER_USE_WARTHOG
 #include <watcher/adapter/warthog/watch.hpp>
-
 #if FALSE
+
 #if defined(PLATFORM_MAC_ANY)
 
 /*
@@ -248,4 +249,5 @@ from `fswatch`, could be used:
 } /* namespace water   */
 
 #endif /* if defined(PLATFORM_MAC_ANY) */
+
 #endif
