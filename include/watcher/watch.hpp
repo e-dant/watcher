@@ -1,15 +1,11 @@
 #pragma once
 
-#include <stdexcept>
 #include <watcher/adapter/android/watch.hpp>
 #include <watcher/adapter/darwin/watch.hpp>
 #include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/warthog/watch.hpp>
 #include <watcher/adapter/windows/watch.hpp>
-
-#include <future>
-#include <system_error>
-#include <thread>
+#include <watcher/event.hpp>
 
 namespace water {
 namespace watcher {
@@ -57,12 +53,16 @@ namespace watcher {
     - Event time -- In nanoseconds since epoch
 */
 
-static bool watch(const char* path, auto const& callback) {
+using callback_type = void (*)(const event::event&);
+
+static bool watch(const char* path, callback_type const& callback) {
   return detail::adapter::live() ? detail::adapter::watch(path, callback)
                                  : false;
 }
 
-static bool watch(const char* path, auto const& callback, auto const& until) {
+static bool watch(const char* path,
+                  callback_type const& callback,
+                  auto const& until) {
   return detail::adapter::live() ? detail::adapter::watch(path, callback, until)
                                  : false;
 }
@@ -72,7 +72,7 @@ static bool die() {
   return detail::adapter::die([](whatever) -> void {});
 }
 
-static bool die(auto const& callback) {
+static bool die(callback_type const& callback) {
   return detail::adapter::die(callback);
 }
 
