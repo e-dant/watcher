@@ -254,6 +254,9 @@ static bool watch(const char* path, event::callback const& callback) {
   /* clang-format on */
 }
 
+// May be unnecessary for now.
+// In the future, we could allow overloads and defaults like this.
+
 // static bool watch(const char* path, event::callback const& callback) {
 //   return watch(path, callback,
 //                []() -> bool { return watcher_alive ? true : false; });

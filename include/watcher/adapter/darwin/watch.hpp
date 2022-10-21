@@ -2,10 +2,6 @@
 
 #include <watcher/platform.hpp>
 
-#define WATER_WATCHER_USE_WARTHOG
-#include <watcher/adapter/warthog/watch.hpp>
-#if FALSE
-
 #if defined(PLATFORM_MAC_ANY)
 
 /*
@@ -195,13 +191,15 @@ inline bool watch(const char* path, auto const& callback) {
                                               QOS_CLASS_USER_INITIATED, -10));
 
   if (alive_os_ev_queue(event_stream, event_queue))
-    while (true)
+    while (is_living())
       /* this does nothing to affect processing, but this thread doesn't need to
          run an infinite loop aggressively. It can wait, with some latency,
          until the queue stops, and then clean itself up. */
       if constexpr (delay_ms > 0)
         sleep_for(milliseconds(delay_ms));
 
+  // callback(water::watcher::event::event{"", event::what::destroy,
+  // event::kind::watcher});
   return dead_os_ev_queue(event_stream, event_queue);
 }
 
@@ -249,5 +247,3 @@ from `fswatch`, could be used:
 } /* namespace water   */
 
 #endif /* if defined(PLATFORM_MAC_ANY) */
-
-#endif
