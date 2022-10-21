@@ -137,36 +137,28 @@ Here is a snapshot of the output taken while preparing this
 commit, right before writing this paragraph.
 
 ```json
-"water.watcher.stream": {
-    "1663556133054707000": {
-      "where": "water/watcher/.git/objects/cc/tmp_obj_sfbyd6",
-      "what": "destroy",
-      "kind": "other"
-    },
-    "1663556133054710000": {
-      "where": "water/watcher/.git/HEAD.lock",
-      "what": "create",
-      "kind": "other"
-    },
-    "1663556133054713000": {
-      "where": "water/watcher/.git/refs/heads/next.lock",
-      "what": "create",
-      "kind": "other"
-    },
-    "1663556133054716000": {
-      "where": "water/watcher/.git/refs/heads/next.lock",
-      "what": "modify",
-      "kind": "other"
-    },
-    "1663556133069940000": {
-      "where": "water/watcher/.git/logs/HEAD",
-      "what": "modify",
-      "kind": "file"
-    }
+{
+  "1666393024210001000": {
+    "where": "./watcher/.git/logs/HEAD",
+    "what": "modify",
+    "kind": "file"
+  },
+  "1666393024210026000": {
+    "where": "./watcher/.git/logs/refs/heads/next",
+    "what": "modify",
+    "kind": "file"
+  },
+  "1666393024210032000": {
+    "where": "./watcher/.git/refs/heads/next.lock",
+    "what": "create",
+    "kind": "other"
+  }
 }
 ```
 
 Which is pretty cool.
+
+I loaded it up with a little help from `sed 's/},}/}}/g' | jq`.
 
 A `main` program suitable for this task:
 
