@@ -1,10 +1,15 @@
 #pragma once
 
+#include <stdexcept>
 #include <watcher/adapter/android/watch.hpp>
-#include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/darwin/watch.hpp>
+#include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/warthog/watch.hpp>
 #include <watcher/adapter/windows/watch.hpp>
+
+#include <future>
+#include <system_error>
+#include <thread>
 
 namespace water {
 namespace watcher {
@@ -52,14 +57,23 @@ namespace watcher {
     - Event time -- In nanoseconds since epoch
 */
 
-template <const auto delay_ms = 16>
-[[nodiscard("Wise to check if this (boolean) function was successful.")]]
+static bool watch(const char* path, auto const& callback) {
+  return detail::adapter::live() ? detail::adapter::watch(path, callback)
+                                 : false;
+}
 
-bool watch(
-    const char* path,
-    const auto& callback) {
-  static_assert(delay_ms >= 0, "Negative time considered harmful.");
-  return detail::adapter::watch<delay_ms>(path, callback);
+static bool watch(const char* path, auto const& callback, auto const& until) {
+  return detail::adapter::live() ? detail::adapter::watch(path, callback, until)
+                                 : false;
+}
+
+static bool die() {
+  using whatever = const event::event&;
+  return detail::adapter::die([](whatever) -> void {});
+}
+
+static bool die(auto const& callback) {
+  return detail::adapter::die(callback);
 }
 
 } /* namespace watcher */

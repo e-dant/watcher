@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   cout << R"({"water.watcher.stream":{)" << endl;
 
   /* This is the important line. */
-  const auto is_watch_ok = watch<16>(
+  auto const is_watch_ok = watch<16>(
       argc > 1 ? argv[1] : ".",
       [](const event& this_event) { cout << this_event << ',' << endl; });
 
@@ -184,12 +184,12 @@ int main(int argc, char** argv) {
 
   /* Use the path we were given
      or the current directory. */
-  const auto path = argc > 1 ? argv[1] : ".";
+  auto const path = argc > 1 ? argv[1] : ".";
 
   /* Show what happens.
      Format as json.
      Use event's stream operator. */
-  const auto show_event_json = [](const event& this_event) {
+  auto const show_event_json = [](const event& this_event) {
     cout << this_event << ',' << endl;
   };
 
@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
   static constexpr auto delay_ms = 16;
 
   /* Run forever. */
-  const auto is_watch_ok = watch<delay_ms>(path, show_event_json);
+  auto const is_watch_ok = watch<delay_ms>(path, show_event_json);
 
   cout << '}' << endl << '}' << endl;
   return is_watch_ok;

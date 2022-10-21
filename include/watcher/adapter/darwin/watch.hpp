@@ -74,8 +74,8 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 /* clang-format on */
 
-template <const auto delay_ms = 16>
-auto mk_event_stream(const char* path, const auto& callback) {
+template <auto const delay_ms = 16>
+auto mk_event_stream(const char* path, auto const& callback) {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
       *are* const qualified. using void** is not ok. but it's also ok. */
@@ -84,14 +84,14 @@ auto mk_event_stream(const char* path, const auto& callback) {
   const void** _path_refref{&_path_ref};
 
   /* We pass along the path we were asked to watch, */
-  const auto translated_path =
+  auto const translated_path =
       CFArrayCreate(nullptr,               /* not sure */
                     _path_refref,          /* path string(s) */
                     1,                     /* number of paths */
                     &kCFTypeArrayCallBacks /* callback */
       );
   /* the time point from which we want to monitor events (which is now), */
-  const auto time_flag = kFSEventStreamEventIdSinceNow;
+  auto const time_flag = kFSEventStreamEventIdSinceNow;
   /* the delay, in seconds */
   static constexpr auto delay_s = []() {
     if constexpr (delay_ms > 0)
@@ -101,7 +101,7 @@ auto mk_event_stream(const char* path, const auto& callback) {
   }();
 
   /* and the event stream flags */
-  const auto event_stream_flags = kFSEventStreamCreateFlagFileEvents |
+  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents |
                                   kFSEventStreamCreateFlagUseExtendedData |
                                   kFSEventStreamCreateFlagUseCFTypes |
                                   kFSEventStreamCreateFlagNoDefer;
@@ -119,14 +119,14 @@ auto mk_event_stream(const char* path, const auto& callback) {
 
 } /* namespace */
 
-template <const auto delay_ms = 16>
-inline bool watch(const char* path, const auto& callback) {
+template <auto const delay_ms = 16>
+inline bool watch(const char* path, auto const& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,
       std::filesystem::exists;
   static auto callback_hook = callback;
-  const auto callback_adapter =
+  auto const callback_adapter =
       [](ConstFSEventStreamRef, /* stream_ref
                                    (required) */
          auto*,                 /* callback_info (required) */
@@ -143,32 +143,32 @@ inline bool watch(const char* path, const auto& callback) {
         };
 
         for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
-          const auto _path_info_dict = static_cast<CFDictionaryRef>(
+          auto const _path_info_dict = static_cast<CFDictionaryRef>(
               CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
                                      static_cast<CFIndex>(i)));
-          const auto _path_cfstring =
+          auto const _path_cfstring =
               static_cast<CFStringRef>(CFDictionaryGetValue(
                   _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
           const char* translated_path =
               CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
           /* see note [inode and time] for some extra stuff that can be done
            * here. */
-          const auto discern_kind = [](const char* path) {
+          auto const discern_kind = [](const char* path) {
             return exists(path) ? is_regular_file(path) ? event::kind::file
                                   : is_directory(path)  ? event::kind::dir
                                   : is_symlink(path)    ? event::kind::sym_link
                                                         : event::kind::other
                                 : event::kind::other;
           };
-          for (const auto& flag_it : decode_flags(os_event_flags[i]))
+          for (auto const& flag_it : decode_flags(os_event_flags[i]))
             if (translated_path != nullptr)
               callback_hook(water::watcher::event::event{
                   translated_path, flag_it, discern_kind(translated_path)});
         }
       };
 
-  const auto alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                    const auto& event_queue) {
+  auto const alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                    auto const& event_queue) {
     if (!event_stream || !event_queue)
       return false;
     FSEventStreamSetDispatchQueue(event_stream, event_queue);
@@ -176,8 +176,8 @@ inline bool watch(const char* path, const auto& callback) {
     return event_queue ? true : false;
   };
 
-  const auto dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                   const auto& event_queue) {
+  auto const dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                   auto const& event_queue) {
     FSEventStreamStop(event_stream);
     FSEventStreamInvalidate(event_stream);
     FSEventStreamRelease(event_stream);
@@ -185,10 +185,10 @@ inline bool watch(const char* path, const auto& callback) {
     return event_queue ? false : true;
   };
 
-  const auto event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
+  auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
 
   /* request a high priority queue */
-  const auto event_queue = dispatch_queue_create(
+  auto const event_queue = dispatch_queue_create(
       "water.watcher.event_queue",
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));

@@ -72,6 +72,9 @@ enum class kind {
   hard_link,
   sym_link,
 
+  /* the special path types */
+  watcher,
+
   /* catch-all */
   other,
 };
@@ -107,15 +110,9 @@ struct event {
 
      prints out where, what and kind.
      formats the output as a json object. */
-
-  /* @note water/watcher/event/<<
-
-     the only way to get this object is through one of the
-     `watch`s. If that were not the case, the time would
-     not be correct, and this would need to change. */
   friend std::ostream& operator<<(std::ostream& os, const event& e) {
     /* clang-format off */
-    const auto what_repr = [&]() {
+    auto const what_repr = [&]() {
       switch (e.what) {
         case what::rename:  return "rename";
         case what::modify:  return "modify";
@@ -127,12 +124,13 @@ struct event {
       }
     }();
 
-    const auto kind_repr = [&]() {
+    auto const kind_repr = [&]() {
       switch (e.kind) {
         case kind::dir:       return "dir";
         case kind::file:      return "file";
         case kind::hard_link: return "hard_link";
         case kind::sym_link:  return "sym_link";
+        case kind::watcher:   return "watcher";
         case kind::other:     return "other";
         default:              return "other";
       }
