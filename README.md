@@ -13,17 +13,12 @@ Write:
 /* tiny-main.cpp */
 #include <iostream>
 #include "../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
+
 int main(int argc, char** argv) {
-  using water::watcher::event::event, water::watcher::watch, std::cout, std::endl;
-  cout << R"({"water.watcher.stream":{)" << endl;
-
-  /* This is the important line. */
-  auto const is_watch_ok = watch<16>(
-      argc > 1 ? argv[1] : ".",
-      [](const event& this_event) { cout << this_event << ',' << endl; });
-
-  cout << '}' << endl << '}' << endl;
-  return is_watch_ok;
+  using namespace water::watcher;
+  return watch(argc > 1 ? argv[1] : ".", [](const event::event& this_event) {
+    std::cout << this_event << ',' << std::endl;
+  });
 }
 ```
 
@@ -49,8 +44,8 @@ An arbitrary filesystem event watcher which is:
 - runnable anywhere
 - header only
 
-*Watcher* is extremely efficient. In most cases,
-even when scanning millions of paths, this library
+*Watcher* is extremely efficient. In many cases,
+even when scanning thousands of paths, this library
 uses a near-zero amount of resources. *[1]*
 
 If you don't want to use it in another project,
@@ -101,6 +96,7 @@ into your project. Include as:
 
 After that, there are two things the user needs:
   - The `watch` function
+  - The `die` function (really only need this for your `async` needs)
   - The `event` structure
 
 `watch` takes a path, which is a string-like thing, and a
@@ -108,6 +104,9 @@ callback, with is a function-like thing.
 
 `event` is an object used to pass information about
 filesystem events to `watch`.
+
+`die` destroys the `watch`. An optional `callbacl` paramater may be given,
+which `die` will call right before it dies.
 
 The `event` object will contain the:
   - Path -- Which is always relative.
@@ -172,35 +171,110 @@ Which is pretty cool.
 A `main` program suitable for this task:
 
 ```cpp
-#include <iostream>            /* std::cout, std::endl */
-#include <watcher/watcher.hpp> /* water::watcher::watch, water::watcher::event */
+/* std::boolalpha,
+   std::cout,
+   std::endl */
+#include <iostream>
+/* std::stoul,
+   std::string */
+#include <string>
+/* std::thread */
+#include <thread>
+/* std::make_tuple,
+   std::tuple */
+#include <tuple>
+/* water::watcher::event::event,
+   water::watcher::event::what,
+   water::watcher::event::kind,
+   water::watcher::watch,
+   water::watcher::die */
+#include <watcher/watcher.hpp>
 
-/* Watch a path, forever.
-   Stream what happens.
-   Print every 16ms. */
+namespace helpful_literals {
+using std::this_thread::sleep_for, std::chrono::milliseconds,
+    std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
+    std::chrono::days, std::boolalpha, std::stoull, std::thread, std::cout,
+    std::endl;
+using namespace water;                 /* watch, die */
+using namespace water::watcher::event; /* event, what, kind */
+} /* namespace helpful_literals */
+
+/* Watch a path for some time.
+   Stream what happens. */
 int main(int argc, char** argv) {
-  using water::watcher::event::event, water::watcher::watch, std::cout, std::endl;
-  cout << R"({"water.watcher.stream":{)" << endl;
+  using namespace helpful_literals;
 
-  /* Use the path we were given
-     or the current directory. */
-  auto const path = argc > 1 ? argv[1] : ".";
+  /* Lift the user's choices from the command line.
+     The options may be:
+     1. Path to watch (optional)
+     2. Time unit (optional, defaults to milliseconds)
+     3. Time until death (optional)
 
-  /* Show what happens.
-     Format as json.
-     Use event's stream operator. */
+     If the path to watch is unspecified,
+     we use the user's current directory.
+
+     If we aren't told when to die,
+     we never do. */
+  auto const [path_to_watch, time_until_death] = [](int argc, char** argv) {
+    auto const lift_path_to_watch = [&]() { return argc > 1 ? argv[1] : "."; };
+    auto const lift_time_until_death = [&]() {
+      auto time_val = [&time_val_str = argv[3]]() {
+        return stoull(time_val_str);
+      };
+      auto unit_is = [&tspec = argv[2]](const char* a) -> bool {
+        return std::strcmp(a, tspec) == 0;
+      };
+      return argc > 3 ? unit_is("ms")  ? milliseconds(time_val())
+                        : unit_is("s") ? seconds(time_val())
+                        : unit_is("m") ? minutes(time_val())
+                        : unit_is("h") ? hours(time_val())
+                        : unit_is("d") ? days(time_val())
+                        : argc > 2     ? milliseconds(time_val())
+                                       : milliseconds(0)
+                      : milliseconds(0);
+    };
+    return std::make_tuple(lift_path_to_watch(), lift_time_until_death());
+  }(argc, argv);
+
+  /* Show what happens. Format as json. Use event's stream operator. */
   auto const show_event_json = [](const event& this_event) {
-    cout << this_event << ',' << endl;
+    /* See note [Manual Parsing] */
+    this_event.kind != kind::watcher ? cout << this_event << "," << endl
+                                     : cout << this_event << endl;
   };
 
-  /* Tick every 16ms. */
-  static constexpr auto delay_ms = 16;
+  auto const watch_expire = [&path_to_watch = path_to_watch, &show_event_json,
+                             &time_until_death = time_until_death]() -> bool {
+    cout << R"({"water.watcher":{"stream":{)" << endl;
 
-  /* Run forever. */
-  auto const is_watch_ok = watch<delay_ms>(path, show_event_json);
+    /* Watch on some other thread */
+    thread([&]() { watcher::watch(path_to_watch, show_event_json); }).detach();
 
-  cout << '}' << endl << '}' << endl;
-  return is_watch_ok;
+    /* Until our time expires */
+    sleep_for(time_until_death);
+
+    /* Then die */
+    const bool is_watch_dead = watcher::die(show_event_json);
+
+    /* It's also ok to die like this
+       const bool is_watch_dead = watcher::die(); */
+
+    /* And say so */
+    cout << "}" << endl
+         << R"(,"milliseconds":)" << time_until_death.count() << endl
+         << R"(,"expired":)" << std::boolalpha << is_watch_dead
+         << "}"
+            "}"
+         << endl;
+
+    return is_watch_dead;
+  };
+
+  return time_until_death > milliseconds(0)
+             /* Either watch for some time */
+             ? watch_expire() ? 0 : 1
+             /* Or run forever */
+             : watcher::watch(path_to_watch, show_event_json);
 }
 ```
 
