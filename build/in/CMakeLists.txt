@@ -7,7 +7,7 @@ project(
   water.watcher
   VERSION 0.2.9 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
-  HOMEPAGE_URL "https://edant.io"
+  HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES CXX)
 
 # [consumables]
