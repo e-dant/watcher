@@ -33,7 +33,20 @@ jobs:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/vcpkg
+            ./build/vcpkg_installed
+            ${{ env.HOME }}/.cache/vcpkg/archives
+            ${{ env.XDG_CACHE_HOME }}/vcpkg/archives
+            ${{ env.LOCALAPPDATA }}\vcpkg\archives
+            ${{ env.APPDATA }}\vcpkg\archives
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ env.BUILD_TYPE }}-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('./vcpkg.json')}}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.BUILD_TYPE }}-
 
     - name: Setup Cpp
       uses: aminya/setup-cpp@v1
@@ -49,13 +62,6 @@ jobs:
         cppcheck: false
         clangtidy: false
         opencppcoverage: false
-
-    - name: Cache
-      uses: actions/cache@v2
-      id: cache
-      with:
-        path: ${{ github.workspace }}/${{ matrix.install_location }}
-        key: ${{ runner.os }}-dependencies
 
     - name: Configure
       run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
