@@ -32,36 +32,37 @@ jobs:
 
     runs-on: macos-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Setup Cpp
-      uses: aminya/setup-cpp@v1
-      with:
-        compiler: ${{ matrix.compiler }}
-        vcvarsall: ${{ contains(matrix.os, 'windows' )}}
-        cmake: true
-        ccache: true
-        ninja: false
-        conan: false
-        vcpkg: false
-        gcovr: false
-        cppcheck: false
-        clangtidy: false
-        opencppcoverage: false
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows' )}}
+          cmake: true
+          ccache: true
+          ninja: false
+          conan: false
+          vcpkg: false
+          gcovr: false
+          cppcheck: false
+          clangtidy: false
+          opencppcoverage: false
 
-    - name: Cache
-      uses: actions/cache@v2
-      id: cache
-      with:
-        path: ${{ github.workspace }}/${{ matrix.install_location }}
-        key: ${{ runner.os }}-dependencies
+      - name: Cache
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: ${{ github.workspace }}/${{ matrix.install_location }}
+          key: ${{ runner.os }}-dependencies
 
-    - name: Configure
-      run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      - name: Configure
+        run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
-    - name: Build
-      run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+      - name: Build
+        run: cmake --build build/out --config ${{ matrix.build_type }} -j4
 
-    - name: Test Runnable
-      run: build/out/water.watcher . -s 1
+      - name: Test Runnable
+        run: build/out/water.watcher . -s 1
