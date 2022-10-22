@@ -62,3 +62,6 @@ jobs:
 
     - name: Build
       run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+
+    - name: Test Runnable
+      run: build/out/water.watcher . -s 1
