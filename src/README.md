@@ -3,10 +3,9 @@
 
 ## Summary
 
-Implementation source for *Watcher*: An arbitrary path watcher.
+Implementation of a *Watcher* CLI.
 
 ## Content
 
-`main.cpp`
-
-
+- `main.cpp`: A useful CLI program.
+- `tiny-main.cpp`: Demonstration purposes.
