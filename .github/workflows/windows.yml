@@ -71,5 +71,5 @@ jobs:
           dir build/out
           dir build/out/x64
           dir build/out/water.watcher.dir
-          dir build/out/Release/water.watcher.exe . -s 1
+          dir build/out/Release/water.watcher.exe
           build/out/Release/water.watcher.exe . -s 1
