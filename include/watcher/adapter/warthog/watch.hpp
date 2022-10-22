@@ -102,7 +102,8 @@ static bool scan(const char* path,
      - Returns false if the directory cannot be scanned. */
   auto const scan_directory = [&](const char* dir,
                                   auto const& send_event) -> bool {
-    using std::filesystem::directory_iterator, std::filesystem::is_directory;
+    using std::filesystem::recursive_directory_iterator,
+        std::filesystem::is_directory;
     /* if this thing is a directory */
     if (is_directory(dir)) {
       /* try to iterate through its contents */
@@ -170,9 +171,8 @@ static bool tend_bucket(const char* path,
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
   auto const prune = [&](const char* path, auto const& send_event) -> bool {
-    using std::filesystem::exists, std::filesystem::send_event,
-        std::filesystem::is_regular_file, std::filesystem::is_directory,
-        std::filesystem::is_symlink;
+    using std::filesystem::exists, std::filesystem::is_regular_file,
+        std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
     /* while looking through the bucket's contents, */
     while (bucket_it != bucket.end()) {
