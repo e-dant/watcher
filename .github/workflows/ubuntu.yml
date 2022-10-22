@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - gcc
           - clang-13.0.0
         compiler_c_short_name:
           - clang

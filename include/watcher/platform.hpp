@@ -74,20 +74,6 @@ inline constexpr platform_t platform
 
 /* clang-format on */
 
-namespace platform_literal {
-
-using                                                  /* NOLINT */
-    water::watcher::detail::platform,                  /* NOLINT */
-    water::watcher::detail::platform_t::mac_unknown,   /* NOLINT */
-    water::watcher::detail::platform_t::mac_catalyst,  /* NOLINT */
-    water::watcher::detail::platform_t::mac_ios,       /* NOLINT */
-    water::watcher::detail::platform_t::mac_os,        /* NOLINT */
-    water::watcher::detail::platform_t::android,       /* NOLINT */
-    water::watcher::detail::platform_t::linux_unknown, /* NOLINT */
-    water::watcher::detail::platform_t::windows,       /* NOLINT */
-    water::watcher::detail::platform_t::unknown;       /* NOLINT */
-
-} /* namespace platform_literal */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace water   */
