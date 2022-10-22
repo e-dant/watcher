@@ -45,13 +45,13 @@ build::build() {
           --config $1
       return $?
     else
-      PLATFORM_EXTRAS="$(\
+      WATER_WATCHER_PLATFORM_EXTRAS="$(\
         test "$(uname)" = Darwin \
           && echo '-isysroot
             /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
             -framework CoreFoundation
             -framework CoreServices')"
-      eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny $PLATFORM_EXTRAS
+      eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny $WATER_WATCHER_PLATFORM_EXTRAS
     fi
   }
 

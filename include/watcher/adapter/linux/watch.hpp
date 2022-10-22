@@ -12,7 +12,7 @@
 */
 
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_LINUX_ANY)
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #include <watcher/adapter/warthog/watch.hpp>
 #endif

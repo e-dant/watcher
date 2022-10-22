@@ -32,44 +32,44 @@ inline constexpr platform_t platform
 /* linux */
 #if defined(__linux__)
     = platform_t::linux_unknown;
-# define PLATFORM_LINUX_ANY TRUE
-# define PLATFORM_LINUX_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_LINUX_ANY TRUE
+# define WATER_WATCHER_PLATFORM_LINUX_UNKNOWN TRUE
 
 /* android */
 #elif defined(__ANDROID_API__)
     = platform_t::android;
-# define PLATFORM_ANDROID_ANY TRUE
-# define PLATFORM_ANDROID_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_ANDROID_ANY TRUE
+# define WATER_WATCHER_PLATFORM_ANDROID_UNKNOWN TRUE
 
 /* apple */
 #elif defined(__APPLE__)
-# define PLATFORM_MAC_ANY TRUE
+# define WATER_WATCHER_PLATFORM_MAC_ANY TRUE
 # include <TargetConditionals.h>
 /* apple target */
 # if defined(TARGET_OS_MACCATALYST)
     = platform_t::mac_catalyst;
-# define PLATFORM_MAC_CATALYST TRUE
+# define WATER_WATCHER_PLATFORM_MAC_CATALYST TRUE
 # elif defined(TARGET_OS_MAC)
     = platform_t::mac_os;
-# define PLATFORM_MAC_OS TRUE
+# define WATER_WATCHER_PLATFORM_MAC_OS TRUE
 # elif defined(TARGET_OS_IOS)
     = platform_t::mac_ios;
-# define PLATFORM_MAC_IOS TRUE
+# define WATER_WATCHER_PLATFORM_MAC_IOS TRUE
 # else
     = platform_t::mac_unknown;
-# define PLATFORM_MAC_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_MAC_UNKNOWN TRUE
 # endif /* apple target */
 
 /* windows */
 #elif defined(WIN32)
     = platform_t::windows;
-# define PLATFORM_WINDOWS_ANY TRUE
-# define PLATFORM_WINDOWS_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
+# define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 #else
     = platform_t::unknown;
-# define PLATFORM_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
 #endif
 
 /* clang-format on */

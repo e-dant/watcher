@@ -7,7 +7,7 @@
 */
 
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_WINDOWS_ANY)
+#if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #include <watcher/adapter/warthog/watch.hpp>
 #endif

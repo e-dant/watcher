@@ -12,7 +12,7 @@
 */
 
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_ANDROID_ANY)
+#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #include <watcher/adapter/warthog/watch.hpp>
 #endif

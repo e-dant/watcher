@@ -32,44 +32,44 @@ inline constexpr platform_t platform
 /* linux */
 #if defined(__linux__)
     = platform_t::linux_unknown;
-# define PLATFORM_LINUX_ANY TRUE
-# define PLATFORM_LINUX_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_LINUX_ANY TRUE
+# define WATER_WATCHER_PLATFORM_LINUX_UNKNOWN TRUE
 
 /* android */
 #elif defined(__ANDROID_API__)
     = platform_t::android;
-# define PLATFORM_ANDROID_ANY TRUE
-# define PLATFORM_ANDROID_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_ANDROID_ANY TRUE
+# define WATER_WATCHER_PLATFORM_ANDROID_UNKNOWN TRUE
 
 /* apple */
 #elif defined(__APPLE__)
-# define PLATFORM_MAC_ANY TRUE
+# define WATER_WATCHER_PLATFORM_MAC_ANY TRUE
 # include <TargetConditionals.h>
 /* apple target */
 # if defined(TARGET_OS_MACCATALYST)
     = platform_t::mac_catalyst;
-# define PLATFORM_MAC_CATALYST TRUE
+# define WATER_WATCHER_PLATFORM_MAC_CATALYST TRUE
 # elif defined(TARGET_OS_MAC)
     = platform_t::mac_os;
-# define PLATFORM_MAC_OS TRUE
+# define WATER_WATCHER_PLATFORM_MAC_OS TRUE
 # elif defined(TARGET_OS_IOS)
     = platform_t::mac_ios;
-# define PLATFORM_MAC_IOS TRUE
+# define WATER_WATCHER_PLATFORM_MAC_IOS TRUE
 # else
     = platform_t::mac_unknown;
-# define PLATFORM_MAC_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_MAC_UNKNOWN TRUE
 # endif /* apple target */
 
 /* windows */
 #elif defined(WIN32)
     = platform_t::windows;
-# define PLATFORM_WINDOWS_ANY TRUE
-# define PLATFORM_WINDOWS_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
+# define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 #else
     = platform_t::unknown;
-# define PLATFORM_UNKNOWN TRUE
+# define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
 #endif
 
 /* clang-format on */
@@ -336,12 +336,12 @@ static bool die(event::callback const& callback) {
   Work is planned for a `ReadDirectoryChangesW`-based adapter for Windows.
 */
 
-#if defined(PLATFORM_WINDOWS_ANY)
+#if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
 
 
-#if defined(PLATFORM_MAC_ANY)
+#if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
   @brief watcher/adapter/darwin
@@ -585,7 +585,7 @@ from `fswatch`, could be used:
 } /* namespace watcher */
 } /* namespace water   */
 
-#endif /* if defined(PLATFORM_MAC_ANY) */
+#endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
 
 /*
   @brief watcher/adapter/linux
@@ -598,7 +598,7 @@ from `fswatch`, could be used:
   Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
 */
 
-#if defined(PLATFORM_LINUX_ANY)
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
 
@@ -613,11 +613,11 @@ from `fswatch`, could be used:
   Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
 */
 
-#if defined(PLATFORM_ANDROID_ANY)
+#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
 
-#if defined(PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
@@ -882,7 +882,7 @@ static bool watch(const char* path, event::callback const& callback) {
 } /* namespace watcher */
 } /* namespace water */
 
-#endif /* if defined(PLATFORM_UNKNOWN) */
+#endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
 
 
 namespace water {

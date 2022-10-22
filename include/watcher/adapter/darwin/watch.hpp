@@ -2,7 +2,7 @@
 
 #include <watcher/platform.hpp>
 
-#if defined(PLATFORM_MAC_ANY)
+#if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
   @brief watcher/adapter/darwin
@@ -247,4 +247,4 @@ from `fswatch`, could be used:
 } /* namespace watcher */
 } /* namespace water   */
 
-#endif /* if defined(PLATFORM_MAC_ANY) */
+#endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */

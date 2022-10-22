@@ -1,7 +1,7 @@
 #pragma once
 
 #include <watcher/platform.hpp>
-#if defined(PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
@@ -267,4 +267,4 @@ static bool watch(const char* path, event::callback const& callback) {
 } /* namespace watcher */
 } /* namespace water */
 
-#endif /* if defined(PLATFORM_UNKNOWN) */
+#endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
