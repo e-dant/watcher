@@ -96,7 +96,7 @@ into your project. Include as:
 
 After that, there are two things the user needs:
   - The `watch` function
-  - The `die` function (really only need this for your `async` needs)
+  - The `die` function
   - The `event` structure
 
 `watch` takes a path, which is a string-like thing, and a
@@ -105,8 +105,8 @@ callback, with is a function-like thing.
 `event` is an object used to pass information about
 filesystem events to `watch`.
 
-`die` destroys the `watch`. An optional `callbacl` paramater may be given,
-which `die` will call right before it dies.
+`die` kills the `watch`. If a `callback` is given,
+`die` will invoke it immediately before death.
 
 The `event` object will contain the:
   - Path -- Which is always relative.
