@@ -715,7 +715,8 @@ static bool scan(const char* path,
         if (dir_it_ec)
           return false;
         else
-          scan_file(file.path().c_str(), send_event);
+          /* msvc complains without this cast */
+          scan_file((const char*)(file.path().c_str()), send_event);
       return true;
     } else
       return false;
