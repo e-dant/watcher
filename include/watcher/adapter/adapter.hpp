@@ -70,11 +70,3 @@ static bool die(event::callback const& callback) {
 #include <watcher/adapter/warthog/watch.hpp>
 
 /* clang-format on */
-
-namespace water {
-namespace watcher {
-namespace detail {
-namespace adapter {} /* namespace adapter */
-} /* namespace detail */
-} /* namespace watcher */
-} /* namespace water */
