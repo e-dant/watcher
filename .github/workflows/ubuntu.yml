@@ -55,7 +55,9 @@ jobs:
         uses: actions/cache@v3
         id: cache
         with:
-          path: ${{ github.workspace }}/${{ matrix.install_location }}
+          path: |
+            ${{ github.workspace }}/${{ matrix.install_location }}
+            ${{ github.workspace }}/build
           key: ${{ runner.os }}-dependencies
 
       - name: Configure
