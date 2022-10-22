@@ -31,24 +31,38 @@ build::build() {
   }
 
   cmake::build() {
-    cmake \
-      -S 'in' \
-      -B 'out' \
-      -Wno-dev \
-      -G 'Ninja' \
-      -DCMAKE_BUILD_TYPE=$1 \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      && cmake \
-        --build out \
-        --config $1
-    return $?
+    if test "$1" != 'tiny'
+    then
+      cmake \
+        -S 'in' \
+        -B 'out' \
+        -Wno-dev \
+        -G 'Ninja' \
+        -DCMAKE_BUILD_TYPE=$1 \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        && cmake \
+          --build out \
+          --config $1
+      return $?
+    else
+      PLATFORM_EXTRAS="$(\
+        test "$(uname)" = Darwin \
+          && echo '-isysroot
+            /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+            -framework CoreFoundation
+            -framework CoreServices')"
+      eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny $PLATFORM_EXTRAS
+    fi
   }
 
   compdb::ln() {
-    local from="$PWD/out/compile_commands.json"
-    local to='../'
-    ln -sf "$from" "$to"
-    return $?
+    if test "$TYPE" != 'tiny'
+    then
+      local from="$PWD/out/compile_commands.json"
+      local to='../'
+      ln -sf "$from" "$to"
+      return $?
+    fi
   }
 
   if test -z "$1"
