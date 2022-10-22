@@ -68,4 +68,7 @@ jobs:
       - name: Test Runnable
         run: |
           dir build/out
+          dir build/out/x64
+          dir build/out/water.watcher.dir
+          dir build/out/Release
         # build/out/water.watcher . -s 1
