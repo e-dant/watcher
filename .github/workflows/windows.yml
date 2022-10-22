@@ -67,9 +67,4 @@ jobs:
         run: cmake --build build/out --config ${{ matrix.build_type }} -j4
 
       - name: Test Runnable
-        run: |
-          dir build/out
-          dir build/out/x64
-          dir build/out/water.watcher.dir
-          dir build/out/Release/water.watcher.exe
-          build/out/Release/water.watcher.exe . -s 1
+        run: build/out/Release/water.watcher.exe . -s 1
