@@ -231,7 +231,6 @@ static bool watch(const char* path, event::callback const& callback) {
 
      Otherwise, stop and return false. */
 
-  static constexpr auto delay_ms = 16;
   static bucket_type bucket;
 
   if constexpr (delay_ms > 0)

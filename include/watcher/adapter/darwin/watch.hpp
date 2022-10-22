@@ -18,6 +18,7 @@
 #include <memory>
 #include <thread>
 #include <vector>
+#include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
 namespace water {
@@ -117,8 +118,7 @@ auto mk_event_stream(const char* path, auto const& callback) {
 
 } /* namespace */
 
-template <auto const delay_ms = 16>
-inline bool watch(const char* path, auto const& callback) {
+static bool watch(const char* path, event::callback const& callback) {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,

@@ -4,6 +4,7 @@
 #include <iostream>
 /* std::stoul,
    std::string */
+#include <ratio>
 #include <string>
 /* std::strcmp */
 #include <cstring>
@@ -22,7 +23,7 @@
 namespace helpful_literals {
 using std::this_thread::sleep_for, std::chrono::milliseconds,
     std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
-    std::chrono::days, std::boolalpha, std::stoull, std::thread, std::cout,
+    std::chrono::days, std::boolalpha, std::strcmp, std::thread, std::cout,
     std::endl;
 using namespace water;                 /* watch, die */
 using namespace water::watcher::event; /* event, what, kind */
@@ -47,20 +48,20 @@ int main(int argc, char** argv) {
   auto const [path_to_watch, time_until_death] = [](int argc, char** argv) {
     auto const lift_path_to_watch = [&]() { return argc > 1 ? argv[1] : "."; };
     auto const lift_time_until_death = [&]() {
-      auto time_val = [&time_val_str = argv[3]]() {
-        return stoull(time_val_str);
+      auto const lift_time = [&]() { return std::stoull(argv[3]); };
+      auto const lift_typed_time = [&]() {
+        auto const unit_is = [&](const char* a) { return !strcmp(a, argv[2]); };
+        return unit_is("-ms") || unit_is("-milliseconds")
+                   ? milliseconds(lift_time())
+               : unit_is("-s") || unit_is("-seconds") ? seconds(lift_time())
+               : unit_is("-m") || unit_is("-minutes") ? minutes(lift_time())
+               : unit_is("-h") || unit_is("-hours")   ? hours(lift_time())
+               : unit_is("-d") || unit_is("-days")    ? days(lift_time())
+                                                      : milliseconds(0);
       };
-      auto unit_is = [&tspec = argv[2]](const char* a) -> bool {
-        return std::strcmp(a, tspec) == 0;
-      };
-      return argc == 4 ? unit_is("-ms")  ? milliseconds(time_val())
-                         : unit_is("-s") ? seconds(time_val())
-                         : unit_is("-m") ? minutes(time_val())
-                         : unit_is("-h") ? hours(time_val())
-                         : unit_is("-d") ? days(time_val())
-                         : argc == 3     ? milliseconds(time_val())
-                                         : milliseconds(0)
-                       : milliseconds(0);
+      return argc == 4   ? lift_typed_time()
+             : argc == 3 ? milliseconds(lift_time())
+                         : milliseconds(0);
     };
     return std::make_tuple(lift_path_to_watch(), lift_time_until_death());
   }(argc, argv);

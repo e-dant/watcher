@@ -7,6 +7,8 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 
+inline constexpr auto delay_ms = 16;
+
 static bool watcher_alive = false;
 
 /*
@@ -36,6 +38,25 @@ static bool can_watch() {
     watcher_alive = true;
   return true;
 }
+
+/*
+  @brief watcher/adapter/watch
+
+  @param path:
+   A path to watch for changes.
+
+  @param callback:
+   A callback to perform when the files
+   being watched change.
+
+  Monitors `path` for changes.
+
+  Calls `callback` with an `event` when they happen.
+
+  Unless it should stop, or errors present, `watch` recurses.
+*/
+
+static bool watch(const char* path, event::callback const& callback);
 
 /*
   @brief watcher/adapter/die
