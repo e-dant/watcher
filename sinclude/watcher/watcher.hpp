@@ -93,17 +93,6 @@ using                                                  /* NOLINT */
 } /* namespace water   */
 
 /*
-  @brief watcher/event/types
-  - water::watcher::event::kind
-  - water::watcher::event::what
-  - water::watcher::event::event
-  - water::watcher::event::callback
-*/
-
-#include <chrono>
-#include <filesystem>
-
-/*
   @brief watcher/event
 
   There are two things the user needs:
@@ -132,6 +121,24 @@ using                                                  /* NOLINT */
 
   Happy hacking.
 */
+
+/*
+  @brief watcher/event/types
+  - water::watcher::event::kind
+  - water::watcher::event::what
+  - water::watcher::event::event
+  - water::watcher::event::callback
+*/
+
+/* std::ostream */
+#include <ostream>
+
+/* std::chrono::system_clock::now,
+   std::chrono::duration_cast,
+   std::chrono::system_clock,
+   std::chrono::nanoseconds,
+   std::chrono::time_point */
+#include <chrono>
 
 namespace water {
 namespace watcher {
@@ -323,82 +330,292 @@ static bool die(event::callback const& callback) {
 
 /* clang-format on */
 
+/*
+  @brief watcher/adapter/windows
+
+  Work is planned for a `ReadDirectoryChangesW`-based adapter for Windows.
+*/
+
+#if defined(PLATFORM_WINDOWS_ANY)
+#define WATER_WATCHER_USE_WARTHOG
+#endif
+
+
+#if defined(PLATFORM_MAC_ANY)
+
+/*
+  @brief watcher/adapter/darwin
+
+  The Darwin `FSEvent` adapter.
+*/
+
+#include <CoreServices/CoreServices.h>
+#include <array>
+#include <chrono>
+#include <filesystem>
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
 
 namespace water {
 namespace watcher {
+namespace detail {
+namespace adapter {
+namespace {
 
-/*
-  @brief watcher/watch
+using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
-  Implements `water::watcher::watch`.
+/* clang-format off */
+inline constexpr auto flag_pair_count = 26;
+inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
+  {
+    /* basic information about what happened to some path.
+       for now, this group is the important one. */
+    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
+    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
+    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
+    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
 
-  There are two things the user needs:
-    - The `watch` function
-    - The `event` structure
+    /* path information, i.e. whether the path is a file, directory, etc.
+       we can get this info much more easily later on in `water/watcher/event`. */
+    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),      */
+    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),     */
+    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link), */
+    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),*/
+    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),*/
 
-  That's it, and this is one of them.
+    /* path attribute events, such as the owner and some xattr data.
+       will be worthwhile soon to implement these.
+       @todo(next weekend) this. */
+    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
+    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
+    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
 
-  Happy hacking.
+    /* some edge-cases which may be interesting later on. */
+    flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
+    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
+    flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
+    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
+    flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
+    flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
+    flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
+    flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
+};
+/* clang-format on */
 
-  @param callback (optional):
-    Something (such as a function or closure) to be called
-    whenever events occur in the paths being watched.
+template <auto const delay_ms = 16>
+auto mk_event_stream(const char* path, auto const& callback) {
+  /*  the contortions here are to please darwin.
+      importantly, `path_as_refref` and its underlying types
+      *are* const qualified. using void** is not ok. but it's also ok. */
+  const void* _path_ref =
+      CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
+  const void** _path_refref{&_path_ref};
 
-  @param path:
-    The root path to watch for filesystem events.
+  /* We pass along the path we were asked to watch, */
+  auto const translated_path =
+      CFArrayCreate(nullptr,               /* not sure */
+                    _path_refref,          /* path string(s) */
+                    1,                     /* number of paths */
+                    &kCFTypeArrayCallBacks /* callback */
+      );
+  /* the time point from which we want to monitor events (which is now), */
+  auto const time_flag = kFSEventStreamEventIdSinceNow;
+  /* the delay, in seconds */
+  static constexpr auto delay_s = []() {
+    if constexpr (delay_ms > 0)
+      return (delay_ms / 1000.0);
+    else
+      return (0);
+  }();
 
-  This is an adaptor "switch" that chooses the ideal adaptor
-  for the host platform.
+  /* and the event stream flags */
+  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents |
+                                  kFSEventStreamCreateFlagUseExtendedData |
+                                  kFSEventStreamCreateFlagUseCFTypes |
+                                  kFSEventStreamCreateFlagNoDefer;
+  /* to the OS, requesting a file event stream which uses our callback. */
+  return FSEventStreamCreate(
+      nullptr,           /* allocator */
+      callback,          /* callback; what to do */
+      nullptr,           /* context (see note [event stream context]) */
+      translated_path,   /* where to watch */
+      time_flag,         /* since when (we choose since now) */
+      delay_s,           /* time between fs event scans */
+      event_stream_flags /* what data to gather and how */
+  );
+}
 
-  Every adapter monitors `path` for changes and invoked the
-  `callback` with an `event` object when they occur.
+} /* namespace */
 
-  The `event` object will contain the:
-    - Path -- Which is always relative.
-    - Path type -- one of:
-      - File
-      - Directory
-      - Symbolic Link
-      - Hard Link
-      - Unknown
-    - Event type -- one of:
-      - Create
-      - Modify
-      - Destroy
-      - OS-Specific Events
-      - Unknown
-    - Event time -- In nanoseconds since epoch
-*/
+template <auto const delay_ms = 16>
+inline bool watch(const char* path, auto const& callback) {
+  using std::chrono::seconds, std::chrono::milliseconds,
+      std::this_thread::sleep_for, std::filesystem::is_regular_file,
+      std::filesystem::is_directory, std::filesystem::is_symlink,
+      std::filesystem::exists;
+  static auto callback_hook = callback;
+  auto const callback_adapter =
+      [](ConstFSEventStreamRef, /* stream_ref
+                                   (required) */
+         auto*,                 /* callback_info (required) */
+         size_t os_event_count, auto* os_event_paths,
+         const FSEventStreamEventFlags os_event_flags[],
+         const FSEventStreamEventId*) {
+        auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
+          std::vector<event::what> translation;
+          /* @todo this is a slow, dumb search. fix it. */
+          for (const flag_pair& it : flag_pair_container)
+            if (flag_recv & it.first)
+              translation.push_back(it.second);
+          return translation;
+        };
 
-static bool watch(const char* path, event::callback const& callback) {
-  return detail::adapter::can_watch() ? detail::adapter::watch(path, callback)
-                                      : false;
+        for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
+          auto const _path_info_dict = static_cast<CFDictionaryRef>(
+              CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
+                                     static_cast<CFIndex>(i)));
+          auto const _path_cfstring =
+              static_cast<CFStringRef>(CFDictionaryGetValue(
+                  _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
+          const char* translated_path =
+              CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
+          /* see note [inode and time] for some extra stuff that can be done
+           * here. */
+          auto const discern_kind = [](const char* path) {
+            return exists(path) ? is_regular_file(path) ? event::kind::file
+                                  : is_directory(path)  ? event::kind::dir
+                                  : is_symlink(path)    ? event::kind::sym_link
+                                                        : event::kind::other
+                                : event::kind::other;
+          };
+          for (auto const& flag_it : decode_flags(os_event_flags[i]))
+            if (translated_path != nullptr)
+              callback_hook(water::watcher::event::event{
+                  translated_path, flag_it, discern_kind(translated_path)});
+        }
+      };
+
+  auto const alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                    auto const& event_queue) {
+    if (!event_stream || !event_queue)
+      return false;
+    FSEventStreamSetDispatchQueue(event_stream, event_queue);
+    FSEventStreamStart(event_stream);
+    return event_queue ? true : false;
+  };
+
+  auto const dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
+                                   auto const& event_queue) {
+    FSEventStreamStop(event_stream);
+    FSEventStreamInvalidate(event_stream);
+    FSEventStreamRelease(event_stream);
+    dispatch_release(event_queue);
+    return event_queue ? false : true;
+  };
+
+  auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
+
+  /* request a high priority queue */
+  auto const event_queue = dispatch_queue_create(
+      "water.watcher.event_queue",
+      dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
+                                              QOS_CLASS_USER_INITIATED, -10));
+
+  if (alive_os_ev_queue(event_stream, event_queue))
+    while (is_living())
+      /* this does nothing to affect processing, but this thread doesn't need to
+         run an infinite loop aggressively. It can wait, with some latency,
+         until the queue stops, and then clean itself up. */
+      if constexpr (delay_ms > 0)
+        sleep_for(milliseconds(delay_ms));
+
+  // callback(water::watcher::event::event{"", event::what::destroy,
+  // event::kind::watcher});
+  return dead_os_ev_queue(event_stream, event_queue);
 }
 
 /*
-  @brief watcher/die
+# Notes
 
-  Stops the `watch`.
-  Destroys itself.
+## Event Stream Context
+
+To set up a context with some parameters, something like this, from the
+`fswatch` project repo, could be used:
+
+  ```cpp
+  std::unique_ptr<FSEventStreamContext> context(
+      new FSEventStreamContext());
+  context->version         = 0;
+  context->info            = nullptr;
+  context->retain          = nullptr;
+  context->release         = nullptr;
+  context->copyDescription = nullptr;
+  ```
+
+## Inode and Time
+
+To grab the inode and time information about an event, something like this, also
+from `fswatch`, could be used:
+
+  ```cpp
+  time_t curr_time;
+  time(&curr_time);
+  auto cf_inode = static_cast<CFNumberRef>(CFDictionaryGetValue(
+      _path_info_dict, kFSEventStreamEventExtendedFileIDKey));
+  unsigned long inode;
+  CFNumberGetValue(cf_inode, kCFNumberLongType, &inode);
+  std::cout << "_path_cfstring "
+            << std::string(CFStringGetCStringPtr(_path_cfstring,
+            kCFStringEncodingUTF8))
+            << " (time/inode " << curr_time << "/" << inode << ")"
+            << std::endl;
+  ```
 */
-static bool die() {
-  using whatever = const event::event&;
-  return detail::adapter::die([](whatever) -> void {});
-}
 
-/*
-  @brief watcher/die
-
-  Stops the `watch`.
-  Calls `callback`,
-  then destroys itself.
-*/
-static bool die(event::callback const& callback) {
-  return detail::adapter::die(callback);
-}
-
+} /* namespace adapter */
+} /* namespace detail */
 } /* namespace watcher */
 } /* namespace water   */
+
+#endif /* if defined(PLATFORM_MAC_ANY) */
+
+/*
+  @brief watcher/adapter/linux
+
+  We are exploring `fanotify` for a more efficient implementation on Linux and Android.
+  Until a stable implementation has been made, we will use the `warthog` adapter on these systems.
+
+  These kernel APIs are inaccurate and unstable.
+
+  Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
+*/
+
+#if defined(PLATFORM_LINUX_ANY)
+#define WATER_WATCHER_USE_WARTHOG
+#endif
+
+/*
+  @brief watcher/adapter/android
+
+  We are exploring `fanotify` for a more efficient implementation on Linux and Android.
+  Until a stable implementation has been made, we will use the `warthog` adapter on these systems.
+
+  These kernel APIs are inaccurate and unstable.
+
+  Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
+*/
+
+#if defined(PLATFORM_ANDROID_ANY)
+#define WATER_WATCHER_USE_WARTHOG
+#endif
 
 #if defined(PLATFORM_UNKNOWN) || defined(WATER_WATCHER_USE_WARTHOG)
 
@@ -667,288 +884,79 @@ static bool watch(const char* path, event::callback const& callback) {
 
 #endif /* if defined(PLATFORM_UNKNOWN) */
 
-/*
-  @brief watcher/adapter/windows
-
-  Work is planned for a `ReadDirectoryChangesW`-based adapter for Windows.
-*/
-
-#if defined(PLATFORM_WINDOWS_ANY)
-#define WATER_WATCHER_USE_WARTHOG
-#endif
-
-
-#if defined(PLATFORM_MAC_ANY)
-
-/*
-  @brief watcher/adapter/darwin
-
-  The Darwin `FSEvent` adapter.
-*/
-
-#include <CoreServices/CoreServices.h>
-#include <array>
-#include <chrono>
-#include <iostream>
-#include <memory>
-#include <thread>
-#include <vector>
 
 namespace water {
 namespace watcher {
-namespace detail {
-namespace adapter {
-namespace {
 
-using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
+/*
+  @brief watcher/watch
 
-/* clang-format off */
-inline constexpr auto flag_pair_count = 26;
-inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
-  {
-    /* basic information about what happened to some path.
-       for now, this group is the important one. */
-    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
-    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
-    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
-    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+  Implements `water::watcher::watch`.
 
-    /* path information, i.e. whether the path is a file, directory, etc.
-       we can get this info much more easily later on in `water/watcher/event`. */
-    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),      */
-    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),     */
-    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link), */
-    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),*/
-    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),*/
+  There are two things the user needs:
+    - The `watch` function
+    - The `event` structure
 
-    /* path attribute events, such as the owner and some xattr data.
-       will be worthwhile soon to implement these.
-       @todo(next weekend) this. */
-    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
-    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
-    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
+  That's it, and this is one of them.
 
-    /* some edge-cases which may be interesting later on. */
-    flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
-    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
-    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
-    flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
-};
-/* clang-format on */
+  Happy hacking.
 
-template <auto const delay_ms = 16>
-auto mk_event_stream(const char* path, auto const& callback) {
-  /*  the contortions here are to please darwin.
-      importantly, `path_as_refref` and its underlying types
-      *are* const qualified. using void** is not ok. but it's also ok. */
-  const void* _path_ref =
-      CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
-  const void** _path_refref{&_path_ref};
+  @param callback (optional):
+    Something (such as a function or closure) to be called
+    whenever events occur in the paths being watched.
 
-  /* We pass along the path we were asked to watch, */
-  auto const translated_path =
-      CFArrayCreate(nullptr,               /* not sure */
-                    _path_refref,          /* path string(s) */
-                    1,                     /* number of paths */
-                    &kCFTypeArrayCallBacks /* callback */
-      );
-  /* the time point from which we want to monitor events (which is now), */
-  auto const time_flag = kFSEventStreamEventIdSinceNow;
-  /* the delay, in seconds */
-  static constexpr auto delay_s = []() {
-    if constexpr (delay_ms > 0)
-      return (delay_ms / 1000.0);
-    else
-      return (0);
-  }();
+  @param path:
+    The root path to watch for filesystem events.
 
-  /* and the event stream flags */
-  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents |
-                                  kFSEventStreamCreateFlagUseExtendedData |
-                                  kFSEventStreamCreateFlagUseCFTypes |
-                                  kFSEventStreamCreateFlagNoDefer;
-  /* to the OS, requesting a file event stream which uses our callback. */
-  return FSEventStreamCreate(
-      nullptr,           /* allocator */
-      callback,          /* callback; what to do */
-      nullptr,           /* context (see note [event stream context]) */
-      translated_path,   /* where to watch */
-      time_flag,         /* since when (we choose since now) */
-      delay_s,           /* time between fs event scans */
-      event_stream_flags /* what data to gather and how */
-  );
-}
+  This is an adaptor "switch" that chooses the ideal adaptor
+  for the host platform.
 
-} /* namespace */
+  Every adapter monitors `path` for changes and invoked the
+  `callback` with an `event` object when they occur.
 
-template <auto const delay_ms = 16>
-inline bool watch(const char* path, auto const& callback) {
-  using std::chrono::seconds, std::chrono::milliseconds,
-      std::this_thread::sleep_for, std::filesystem::is_regular_file,
-      std::filesystem::is_directory, std::filesystem::is_symlink,
-      std::filesystem::exists;
-  static auto callback_hook = callback;
-  auto const callback_adapter =
-      [](ConstFSEventStreamRef, /* stream_ref
-                                   (required) */
-         auto*,                 /* callback_info (required) */
-         size_t os_event_count, auto* os_event_paths,
-         const FSEventStreamEventFlags os_event_flags[],
-         const FSEventStreamEventId*) {
-        auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
-          std::vector<event::what> translation;
-          /* @todo this is a slow, dumb search. fix it. */
-          for (const flag_pair& it : flag_pair_container)
-            if (flag_recv & it.first)
-              translation.push_back(it.second);
-          return translation;
-        };
+  The `event` object will contain the:
+    - Path -- Which is always relative.
+    - Path type -- one of:
+      - File
+      - Directory
+      - Symbolic Link
+      - Hard Link
+      - Unknown
+    - Event type -- one of:
+      - Create
+      - Modify
+      - Destroy
+      - OS-Specific Events
+      - Unknown
+    - Event time -- In nanoseconds since epoch
+*/
 
-        for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
-          auto const _path_info_dict = static_cast<CFDictionaryRef>(
-              CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
-                                     static_cast<CFIndex>(i)));
-          auto const _path_cfstring =
-              static_cast<CFStringRef>(CFDictionaryGetValue(
-                  _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
-          const char* translated_path =
-              CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-          /* see note [inode and time] for some extra stuff that can be done
-           * here. */
-          auto const discern_kind = [](const char* path) {
-            return exists(path) ? is_regular_file(path) ? event::kind::file
-                                  : is_directory(path)  ? event::kind::dir
-                                  : is_symlink(path)    ? event::kind::sym_link
-                                                        : event::kind::other
-                                : event::kind::other;
-          };
-          for (auto const& flag_it : decode_flags(os_event_flags[i]))
-            if (translated_path != nullptr)
-              callback_hook(water::watcher::event::event{
-                  translated_path, flag_it, discern_kind(translated_path)});
-        }
-      };
-
-  auto const alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                    auto const& event_queue) {
-    if (!event_stream || !event_queue)
-      return false;
-    FSEventStreamSetDispatchQueue(event_stream, event_queue);
-    FSEventStreamStart(event_stream);
-    return event_queue ? true : false;
-  };
-
-  auto const dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                   auto const& event_queue) {
-    FSEventStreamStop(event_stream);
-    FSEventStreamInvalidate(event_stream);
-    FSEventStreamRelease(event_stream);
-    dispatch_release(event_queue);
-    return event_queue ? false : true;
-  };
-
-  auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
-
-  /* request a high priority queue */
-  auto const event_queue = dispatch_queue_create(
-      "water.watcher.event_queue",
-      dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
-                                              QOS_CLASS_USER_INITIATED, -10));
-
-  if (alive_os_ev_queue(event_stream, event_queue))
-    while (is_living())
-      /* this does nothing to affect processing, but this thread doesn't need to
-         run an infinite loop aggressively. It can wait, with some latency,
-         until the queue stops, and then clean itself up. */
-      if constexpr (delay_ms > 0)
-        sleep_for(milliseconds(delay_ms));
-
-  // callback(water::watcher::event::event{"", event::what::destroy,
-  // event::kind::watcher});
-  return dead_os_ev_queue(event_stream, event_queue);
+static bool watch(const char* path, event::callback const& callback) {
+  return detail::adapter::can_watch() ? detail::adapter::watch(path, callback)
+                                      : false;
 }
 
 /*
-# Notes
+  @brief watcher/die
 
-## Event Stream Context
-
-To set up a context with some parameters, something like this, from the
-`fswatch` project repo, could be used:
-
-  ```cpp
-  std::unique_ptr<FSEventStreamContext> context(
-      new FSEventStreamContext());
-  context->version         = 0;
-  context->info            = nullptr;
-  context->retain          = nullptr;
-  context->release         = nullptr;
-  context->copyDescription = nullptr;
-  ```
-
-## Inode and Time
-
-To grab the inode and time information about an event, something like this, also
-from `fswatch`, could be used:
-
-  ```cpp
-  time_t curr_time;
-  time(&curr_time);
-  auto cf_inode = static_cast<CFNumberRef>(CFDictionaryGetValue(
-      _path_info_dict, kFSEventStreamEventExtendedFileIDKey));
-  unsigned long inode;
-  CFNumberGetValue(cf_inode, kCFNumberLongType, &inode);
-  std::cout << "_path_cfstring "
-            << std::string(CFStringGetCStringPtr(_path_cfstring,
-            kCFStringEncodingUTF8))
-            << " (time/inode " << curr_time << "/" << inode << ")"
-            << std::endl;
-  ```
+  Stops the `watch`.
+  Destroys itself.
 */
+static bool die() {
+  using whatever = const event::event&;
+  return detail::adapter::die([](whatever) -> void {});
+}
 
-} /* namespace adapter */
-} /* namespace detail */
+/*
+  @brief watcher/die
+
+  Stops the `watch`.
+  Calls `callback`,
+  then destroys itself.
+*/
+static bool die(event::callback const& callback) {
+  return detail::adapter::die(callback);
+}
+
 } /* namespace watcher */
 } /* namespace water   */
-
-#endif /* if defined(PLATFORM_MAC_ANY) */
-
-/*
-  @brief watcher/adapter/linux
-
-  We are exploring `fanotify` for a more efficient implementation on Linux and Android.
-  Until a stable implementation has been made, we will use the `warthog` adapter on these systems.
-
-  These kernel APIs are inaccurate and unstable.
-
-  Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
-*/
-
-#if defined(PLATFORM_LINUX_ANY)
-#define WATER_WATCHER_USE_WARTHOG
-#endif
-
-/*
-  @brief watcher/adapter/android
-
-  We are exploring `fanotify` for a more efficient implementation on Linux and Android.
-  Until a stable implementation has been made, we will use the `warthog` adapter on these systems.
-
-  These kernel APIs are inaccurate and unstable.
-
-  Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
-*/
-
-#if defined(PLATFORM_ANDROID_ANY)
-#define WATER_WATCHER_USE_WARTHOG
-#endif

@@ -25,10 +25,14 @@ int main(int argc, char** argv) {
 Compile & Run:
 
 ```sh
-EXTRAS=$(test "$(uname)" = Darwin && echo '-framework CoreFoundation -framework CoreServices')
+# Step 1: Big long path. What can you do.
+PLATFORM_EXTRAS=$(test "$(uname)" = Darwin \
+  && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 
-c++ -std=c++2a -O3 src/tiny-main.cpp -o watcher $EXTRAS
+# Step 2: Make the thing.
+eval c++ -std=c++2a -O3 src/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
 
+# Step 3: Profit.
 ./watcher
 ```
 

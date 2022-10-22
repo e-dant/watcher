@@ -53,14 +53,14 @@ int main(int argc, char** argv) {
       auto unit_is = [&tspec = argv[2]](const char* a) -> bool {
         return std::strcmp(a, tspec) == 0;
       };
-      return argc > 3 ? unit_is("ms")  ? milliseconds(time_val())
-                        : unit_is("s") ? seconds(time_val())
-                        : unit_is("m") ? minutes(time_val())
-                        : unit_is("h") ? hours(time_val())
-                        : unit_is("d") ? days(time_val())
-                        : argc > 2     ? milliseconds(time_val())
-                                       : milliseconds(0)
-                      : milliseconds(0);
+      return argc == 4 ? unit_is("-ms")  ? milliseconds(time_val())
+                         : unit_is("-s") ? seconds(time_val())
+                         : unit_is("-m") ? minutes(time_val())
+                         : unit_is("-h") ? hours(time_val())
+                         : unit_is("-d") ? days(time_val())
+                         : argc == 3     ? milliseconds(time_val())
+                                         : milliseconds(0)
+                       : milliseconds(0);
     };
     return std::make_tuple(lift_path_to_watch(), lift_time_until_death());
   }(argc, argv);
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     /* And say so */
     cout << "}" << endl
          << R"(,"milliseconds":)" << time_until_death.count() << endl
-         << R"(,"expired":)" << std::boolalpha << is_watch_dead
+         << R"(,"dead":)" << std::boolalpha << is_watch_dead
          << "}"
             "}"
          << endl;

@@ -13,6 +13,7 @@
 #include <CoreServices/CoreServices.h>
 #include <array>
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <thread>

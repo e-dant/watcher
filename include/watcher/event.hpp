@@ -1,17 +1,6 @@
 #pragma once
 
 /*
-  @brief watcher/event/types
-  - water::watcher::event::kind
-  - water::watcher::event::what
-  - water::watcher::event::event
-  - water::watcher::event::callback
-*/
-
-#include <chrono>
-#include <filesystem>
-
-/*
   @brief watcher/event
 
   There are two things the user needs:
@@ -40,6 +29,24 @@
 
   Happy hacking.
 */
+
+/*
+  @brief watcher/event/types
+  - water::watcher::event::kind
+  - water::watcher::event::what
+  - water::watcher::event::event
+  - water::watcher::event::callback
+*/
+
+/* std::ostream */
+#include <ostream>
+
+/* std::chrono::system_clock::now,
+   std::chrono::duration_cast,
+   std::chrono::system_clock,
+   std::chrono::nanoseconds,
+   std::chrono::time_point */
+#include <chrono>
 
 namespace water {
 namespace watcher {
