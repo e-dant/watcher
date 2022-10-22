@@ -199,8 +199,11 @@ static bool watch(const char* path, event::callback const& callback) {
       if constexpr (delay_ms > 0)
         sleep_for(milliseconds(delay_ms));
 
-  // callback(water::watcher::event::event{"", event::what::destroy,
-  // event::kind::watcher});
+  /* Should the dying callback be here? */
+  /*
+    callback(water::watcher::event::event
+      {"", event::what::destroy, event::kind::watcher});
+  */
   return dead_os_ev_queue(event_stream, event_queue);
 }
 
