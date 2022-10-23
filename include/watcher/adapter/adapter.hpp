@@ -41,19 +41,17 @@ static bool can_watch() {
 
 /*
   @brief watcher/adapter/watch
+  Monitors `path` for changes.
+  Invokes `callback` with an `event` when they happen.
+  `watch` stops when asked to or irrecoverable errors occur.
+  All events, including errors, are passed to `callback`.
 
   @param path:
-   A path to watch for changes.
+   A `path` to watch for filesystem events.
 
   @param callback:
-   A callback to perform when the files
-   being watched change.
-
-  Monitors `path` for changes.
-
-  Calls `callback` with an `event` when they happen.
-
-  Unless it should stop, or errors present, `watch` recurses.
+   A `callback` to invoke with an `event` object
+   when the files being watched change.
 */
 
 static bool watch(const char* path, event::callback const& callback);
