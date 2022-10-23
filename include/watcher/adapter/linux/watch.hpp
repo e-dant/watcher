@@ -57,9 +57,7 @@ inline constexpr dir_opt_type dir_opt =
 /* Reads through available (inotify) filesystem events.
    Discerns their path and type.
    Calls the callback. */
-inline void scan_directory(int fd,
-                           int* wd,
-                           auto const& callback) {
+inline void scan_directory(int fd, int* wd, auto const& callback) {
   /* 4096 is a typical page size. */
   static constexpr auto buf_len = 4096;
   alignas(struct inotify_event) char buf[buf_len];
@@ -80,7 +78,7 @@ inline void scan_directory(int fd,
       return std::make_pair(read_event_status::eventful, len);
   };
 
-  /* Loop while events can be read from inotify file descriptor. */
+  /* Loop while events can be read from the inotify file descriptor. */
   while (true) {
     /* Read events */
     auto [status, len] = read_event(fd, buf);
@@ -120,8 +118,10 @@ inline void scan_directory(int fd,
       case read_event_status::error:
         callback(
             event::event{"e:read", event::what::other, event::kind::watcher});
+        return;
         break;
       case read_event_status::eventless:
+        return;
         break;
     }
   }
@@ -129,6 +129,8 @@ inline void scan_directory(int fd,
 
 } /* namespace */
 
+/* This symbol is defined in watcher/adapter/adapter.hpp 
+   But clangd has a tough time finding it when editing. */
 static bool is_living();  // NOLINT
 
 /*
@@ -144,10 +146,11 @@ static bool is_living();  // NOLINT
   when they happen.
 */
 static bool watch(const char* base_path, event::callback const& callback) {
+  using path_container_type = std::vector<std::string>;
+
   /* If `path` is a directory, try to iterate through its contents.
      handle errors by ignoring nonexistent directories.
      If `path` is a file, return it as the only element in a vector. */
-  using path_container_type = std::vector<std::string>;
   auto const&& find_dirs = [](char const* path) -> path_container_type {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
     auto dir_ec = std::error_code{};
@@ -165,8 +168,24 @@ static bool watch(const char* base_path, event::callback const& callback) {
     return paths;
   };
 
+  /* Close that file descriptor used by this watcher,
+     Frees the memory used by the watch descriptors,
+     Invokes the callback if an error happened. */
+  const auto fd_watch_close = [](int fd_watch, int* wd_memory,
+                                 const event::callback& callback) {
+    if (close(fd_watch) < 0) {
+      callback(
+          event::event{"e:close", event::what::other, event::kind::watcher});
+      return false;
+    }
+    free(wd_memory);
+    return true;
+  };
+
+  /* Find all directories above the base path given. */
   const path_container_type path_container = find_dirs(base_path);
 
+  /* Sanity checks. */
   for (auto const& path : path_container) {
     if (path.empty()) {
       callback(event::event{"e:path:empty", event::what::other,
@@ -175,7 +194,7 @@ static bool watch(const char* base_path, event::callback const& callback) {
     }
   }
 
-  /* Create the file descriptor for accessing the inotify API. */
+  /* Inotify API file descriptor. */
   auto fd_watch = inotify_init1(in_init_opt);
   if (fd_watch < 0) {
     callback(event::event{"e:inotify:init", event::what::other,
@@ -184,7 +203,6 @@ static bool watch(const char* base_path, event::callback const& callback) {
   }
 
   /* Memory for watch descriptors. */
-
   int* wd = (int*)calloc(path_container.size(), sizeof(int));
   if (wd == NULL) {
     callback(
@@ -192,8 +210,7 @@ static bool watch(const char* base_path, event::callback const& callback) {
     return false;
   }
 
-  /* Mark directories for events */
-
+  /* Mark directories for events. */
   for (int i = 0; i < path_container.size(); i++) {
     wd[i] =
         inotify_add_watch(fd_watch, path_container.at(i).c_str(), in_watch_opt);
@@ -201,66 +218,44 @@ static bool watch(const char* base_path, event::callback const& callback) {
       return false;
   }
 
-  /* Epoll File descriptors to await receipt of inotify events. */
-
+  /* Epoll file descriptors to await receipt of inotify events. */
+  static constexpr const auto max_events = 1;
   struct epoll_event ev {
     .events = EPOLLIN, .data { .fd = fd_watch }
   };
-
-  struct epoll_event events[path_container.size()];
-
+  struct epoll_event events[max_events];
   auto epfd = epoll_create1(EPOLL_CLOEXEC);
-
   if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd_watch, &ev) < 0) {
     callback(
         event::event{"e:epoll:ctl", event::what::other, event::kind::watcher});
     return false;
   }
 
-  /* Await events */
-
-  while (is_living()) {
-    auto nfds = epoll_wait(epfd, events, 4096, 500);
+  /* Await events. */
+  auto const be_eventful = [&]() {
+    auto nfds = epoll_wait(epfd, events, max_events, delay_ms);
     if (nfds == -1) {
       callback(event::event{"e:epoll:wait", event::what::other,
                             event::kind::watcher});
       return false;
     }
-
     for (int n = 0; n < nfds; ++n) {
       if (events[n].data.fd == fd_watch) {
-        /* Read inotify events and queue them. */
+        /* Read inotify events and scan them. */
         scan_directory(fd_watch, wd, callback);
       }
     }
+    return true;
+  };
 
-    /* Or, with poll:
-    auto const poll_num = poll(fds_poll, fds_poll_count, -1);
-    if (poll_num == -1 && errno != EINTR) {
-      std::cerr << "error: poll" << std::endl;
-      return false;
-    }
-
-    // On a valid poll,
-    if (poll_num > 0) {
-      // with a new inotify event,
-      if (fds_poll[0].revents & POLLIN) {
-        // scan the directory.
-        scan_directory(fd_watch, wd, callback);
-      }
-    }
-    */
+  /* Loop until dead. */
+  while (is_living()) {
+    if (!be_eventful())
+      return fd_watch_close(fd_watch, wd, callback);
   }
 
-  /* Close inotify file descriptor. */
-  if (close(fd_watch) < 0) {
-    callback(event::event{"e:close", event::what::other, event::kind::watcher});
-    return false;
-  }
-
-  free(wd);
-
-  return true;
+  /* Catch-all. */
+  return fd_watch_close(fd_watch, wd, callback);
 }
 
 } /* namespace adapter */
