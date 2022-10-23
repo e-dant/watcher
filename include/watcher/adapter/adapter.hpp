@@ -63,11 +63,14 @@ static bool watch(const char* path, event::callback const& callback);
 */
 
 static bool die(event::callback const& callback) {
-  callback(event::event{"", event::what::destroy, event::kind::watcher});
   if (watcher_alive) {
     watcher_alive = false;
+    callback(
+        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
     return true;
   } else {
+    callback(
+        event::event{"e/self/die", event::what::destroy, event::kind::watcher});
     return false;
   }
 }
