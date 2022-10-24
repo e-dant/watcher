@@ -18,7 +18,7 @@
 #include <string>
 #include <thread>
 #include <tuple>
-#include <vector>
+#include <unordered_map>
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
@@ -35,7 +35,7 @@ namespace {
      - dir_opt_type
      - path_container_type */
 using dir_opt_type = std::filesystem::directory_options;
-using path_container_type = std::vector<std::string>;
+using path_container_type = std::unordered_map<int, std::string>;
 
 /* @brief water/watcher/detail/adapter/linux/<anonymous>/constants
    Constants:
@@ -44,6 +44,7 @@ using path_container_type = std::vector<std::string>;
      - in_watch_opt
      - dir_opt */
 inline constexpr auto event_max_count = 1;
+inline constexpr auto path_container_reserve_count = 256;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
 /* @todo
    Measure perf of IN_ALL_EVENTS */
@@ -71,7 +72,9 @@ inline constexpr dir_opt_type dir_opt =
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline bool do_scan(int fd, event::callback const& callback) {
+inline bool do_scan(int fd,
+                    path_container_type& path_container,
+                    event::callback const& callback) {
   /* 4096 is a typical page size. */
   static constexpr auto buf_len = 4096;
   alignas(struct inotify_event) char buf[buf_len];
@@ -110,25 +113,29 @@ inline bool do_scan(int fd, event::callback const& callback) {
           auto const path_kind = event_recv->mask & IN_ISDIR
                                      ? event::kind::dir
                                      : event::kind::file;
+          int path_wd = event_recv->wd;
+          auto event_base_path = path_container.find(path_wd)->second;
+          auto event_path =
+              std::string(event_base_path + "/" + event_recv->name);
 
           if (event_recv->mask & IN_Q_OVERFLOW)
             callback(event::event{"e/self/overflow", event::what::other,
                                   event::kind::watcher});
           else if (event_recv->mask & IN_CREATE)
-            callback(
-                event::event{event_recv->name, event::what::create, path_kind});
+            callback(event::event{event_path.c_str(), event::what::create,
+                                  path_kind});
           else if (event_recv->mask & IN_DELETE)
-            callback(event::event{event_recv->name, event::what::destroy,
+            callback(event::event{event_path.c_str(), event::what::destroy,
                                   path_kind});
           else if (event_recv->mask & IN_MOVE)
-            callback(
-                event::event{event_recv->name, event::what::rename, path_kind});
+            callback(event::event{event_path.c_str(), event::what::rename,
+                                  path_kind});
           else if (event_recv->mask & IN_MODIFY)
-            callback(
-                event::event{event_recv->name, event::what::modify, path_kind});
+            callback(event::event{event_path.c_str(), event::what::modify,
+                                  path_kind});
           else
-            callback(
-                event::event{event_recv->name, event::what::other, path_kind});
+            callback(event::event{event_path.c_str(), event::what::other,
+                                  path_kind});
         }
         break;
       case event_recv_status::error:
@@ -161,137 +168,112 @@ static bool is_living(); /* NOLINT */
    A callback to perform when the files
    being watched change. */
 static bool watch(const char* base_path, event::callback const& callback) {
-  /* If `path` is a directory, try to iterate through its contents.
-     handle errors by ignoring nonexistent directories.
-     If `path` is a file, return it as the only element in a vector. */
-  auto const&& do_find_dirs = [](char const* path) -> path_container_type {
+  /*
+     Functions
+   */
+
+  /* If the path given is a directory,
+       - find all directories above the base path given.
+       - ignore nonexistent directories.
+       - return a map of watch descriptors -> directories.
+     If `path` is a file,
+       - return it as the only value in a map.
+       - the watch descriptor key should always be 1. */
+  auto const&& do_path_container_create = [](char const* base_path_c_str,
+                                             int const watch_fd,
+                                             event::callback const& callback)
+      -> std::optional<path_container_type> {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
+
     auto dir_ec = std::error_code{};
+    auto base_path = std::string{base_path_c_str};
+    path_container_type path_map;
+    path_map.reserve(path_container_reserve_count);
 
-    if (std::filesystem::is_directory(path, dir_ec)) {
-      path_container_type paths;
-      paths.reserve(256);
-      paths.emplace_back(path);
-      for (auto const& dir_it : rdir_iterator(path, dir_opt, dir_ec))
+    auto do_mark = [&](auto& dir) {
+      int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
+      return wd < 0
+        ? [&](){
+          callback(event::event{"e/sys/inotify_add_watch",
+                   event::what::other, event::kind::watcher});
+          return false; }()
+        : [&](){
+          path_map[wd] = dir;
+          return true;  }();
+    };
+
+    if (!do_mark(base_path))
+      return std::nullopt;
+    else if (std::filesystem::is_directory(base_path, dir_ec))
+      /* @todo @note
+         Should we bail from within this loop if `do_mark` fails? */
+      for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
         if (!dir_ec)
-          if (std::filesystem::is_directory(dir_it, dir_ec))
+          if (std::filesystem::is_directory(dir, dir_ec))
             if (!dir_ec)
-              paths.emplace_back(dir_it.path());
-      return paths;
-    } else {
-      return path_container_type{std::string{!dir_ec ? path : ""}};
-    }
+              do_mark(dir.path());
+    return std::move(path_map);
   };
-
-  /* Check that all paths in `path_container` are valid. */
-  auto const do_path_container_check_valid =
-      [](const path_container_type& path_container,
-         event::callback const& callback) {
-        for (auto const& path : path_container)
-          if (path.empty()) {
-            callback(event::event{"e/self/path/empty", event::what::other,
-                                  event::kind::watcher});
-            return false;
-          }
-        return true;
-      };
 
   /* Return and initializes epoll events and file descriptors.
      Return the necessary resources for an epoll_wait loop.
      Or return nothing. */
-  auto const&& event_create_resource = [](int const watch_fd,
-                                          event::callback const& callback)
+  auto const&& do_event_resource_create = [](int const watch_fd,
+                                             event::callback const& callback)
       -> std::optional<std::tuple<epoll_event, epoll_event*, int>> {
     struct epoll_event event_conf {
       .events = EPOLLIN, .data { .fd = watch_fd }
     };
     struct epoll_event event_list[event_max_count];
-    auto const event_fd = epoll_create1(EPOLL_CLOEXEC);
+    int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
     if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
       callback(event::event{"e/sys/epoll_ctl", event::what::other,
                             event::kind::watcher});
       return std::nullopt;
-    }
-    return std::move(std::make_tuple(event_conf, event_list, event_fd));
+    } else
+      return std::move(std::make_tuple(event_conf, event_list, event_fd));
+  };
+
+  /* Return an optional file descriptor
+     which may access the inotify api. */
+  auto const do_watch_fd_create =
+      [](event::callback const& callback) -> std::optional<int> {
+    int watch_fd = inotify_init1(in_init_opt);
+    if (watch_fd < 0) {
+      callback(event::event{"e/sys/inotify_init1", event::what::other,
+                            event::kind::watcher});
+      return std::nullopt;
+    } else
+      return watch_fd;
   };
 
   /* Close the file descriptor `fd_watch`,
      Invoke `callback` on errors. */
-  auto const do_release_resource = [](int watch_fd,
+  auto const do_watch_fd_release = [](int watch_fd,
                                       event::callback const& callback) {
     if (close(watch_fd) < 0) {
       callback(event::event{"e/sys/close", event::what::other,
                             event::kind::watcher});
       return false;
-    }
-    return true;
+    } else
+      return true;
   };
 
-  /* Find all directories above the base path given. */
-  path_container_type const&& path_container = do_find_dirs(base_path);
-
-  /* Inotify API file descriptor. */
-  auto watch_fd = inotify_init1(in_init_opt);
-  if (watch_fd < 0) {
-    callback(event::event{"e/sys/inotify_init1", event::what::other,
-                          event::kind::watcher});
-    return false;
-  }
-
-  /* Create memory for watch descriptors.
-     Mark directories for event notifications. */
-  auto const&& do_watch_wd_container_create =
-      [](int const watch_fd, path_container_type const& path_container,
-         event::callback const& callback) -> std::optional<int*> {
-    /* Create memory for watch descriptors. */
-    int* watch_wd_container = (int*)calloc(path_container.size(), sizeof(int));
-    if (watch_wd_container == nullptr) {
-      callback(event::event{"e/sys/calloc", event::what::other,
-                            event::kind::watcher});
-      return std::nullopt;
-    }
-
-    /* Mark directories for event notifications. */
-    for (int i = 0; i < path_container.size(); i++) {
-      watch_wd_container[i] = inotify_add_watch(
-          watch_fd, path_container.at(i).c_str(), in_watch_opt);
-      if (watch_wd_container[i] < 0) {
-        callback(event::event{"e/sys/inotify_add_watch", event::what::other,
-                              event::kind::watcher});
-        free(watch_wd_container);
-        return std::nullopt;
-      }
-    }
-
-    return std::move(watch_wd_container);
-  };
-
-  auto const&& watch_wd_container_optional =
-      do_watch_wd_container_create(watch_fd, path_container, callback);
-
-  if (watch_wd_container_optional.has_value()) {
-    auto&& watch_wd_container = watch_wd_container_optional.value();
-    auto&& event_tuple = event_create_resource(watch_fd, callback);
-
-    if (event_tuple.has_value()) {
-      /* auto event_conf = std::get<0>(event_tuple.value()); */
-      auto&& event_list = std::get<1>(event_tuple.value());
-      auto&& event_fd = std::get<2>(event_tuple.value());
-
-      /* Await filesystem events.
-         When available, scan them.
-         Invoke the callback on errors. */
-      auto const do_event_recv = [](int event_fd, auto& event_list,
-                                    int watch_fd,
-                                    event::callback const& callback) {
+  /* Await filesystem events.
+     When available, scan them.
+     Invoke the callback on errors. */
+  auto const do_event_wait_recv =
+      [](int event_fd, auto& event_list, int watch_fd,
+         path_container_type& path_container, event::callback const& callback) {
+        /* The more time asleep, the better. */
         int const event_count =
-            epoll_wait(event_fd, event_list, event_max_count, delay_ms);
+            epoll_wait(event_fd, event_list, event_max_count, -1);
 
         auto const do_event_dispatch = [&]() {
           for (int n = 0; n < event_count; ++n)
             if (event_list[n].data.fd == watch_fd)
-              return do_scan(watch_fd, callback);
+              return do_scan(watch_fd, path_container, callback);
           /* We return true on eventless invocations. */
           return true;
         };
@@ -299,31 +281,111 @@ static bool watch(const char* base_path, event::callback const& callback) {
         auto const do_event_error = [&]() {
           callback(event::event{"e/sys/epoll_wait", event::what::other,
                                 event::kind::watcher});
-          /* We always return false here so that
-             it trickles through the call stack. */
+          /* We always return false on errors. */
           return false;
         };
 
         return event_count < 0 ? do_event_error() : do_event_dispatch();
       };
 
-      /* Loop until dead. */
-      while (is_living() &&
-             do_event_recv(event_fd, event_list, watch_fd, callback))
-        continue;
+  /*
+     Values
+   */
 
-      free(watch_wd_container);
-      return do_release_resource(watch_fd, callback);
-    }
-  }
+  auto watch_fd_optional = do_watch_fd_create(callback);
 
-  /* Catch-all. We only get here if `is_living()` starts as false. */
-  return do_release_resource(watch_fd, callback);
+  if (watch_fd_optional.has_value()) {
+    auto watch_fd = watch_fd_optional.value();
+
+    auto&& path_container_optional =
+        do_path_container_create(base_path, watch_fd, callback);
+
+    if (path_container_optional.has_value()) {
+      /* Find all directories above the base path given.
+         Make a map of watch descriptors -> paths. */
+      path_container_type&& path_container =
+          std::move(path_container_optional.value());
+
+      auto&& event_tuple = do_event_resource_create(watch_fd, callback);
+
+      if (event_tuple.has_value()) {
+        /* auto&& event_conf = std::get<0>(event_tuple.value()); */
+        auto&& event_list = std::get<1>(event_tuple.value());
+        auto&& event_fd = std::get<2>(event_tuple.value());
+
+        /*
+           Work
+         */
+
+        /* Loop until dead. */
+        while (is_living() && do_event_wait_recv(event_fd, event_list, watch_fd,
+                                                 path_container, callback))
+          continue;
+        return do_watch_fd_release(watch_fd, callback);
+      } else
+        return do_watch_fd_release(watch_fd, callback);
+    } else
+      return do_watch_fd_release(watch_fd, callback);
+  } else
+    return false;
 }
 
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace water */
+
+/* clang-format off */
+
+/* Check that all paths in `path_container` are valid. */
+/* auto const do_path_container_check_valid = */
+/*     [](const path_container_type& path_container, */
+/*        event::callback const& callback) { */
+/*       for (auto const& path : path_container) */
+/*         if (path.empty()) { */
+/*           callback(event::event{"e/self/path/empty", event::what::other, */
+/*                                 event::kind::watcher}); */
+/*           return false; */
+/*         } else */
+/*           continue; */
+/*       return true; */
+/*     }; */
+
+/* /1* Create memory for watch descriptors. */
+/*    Mark directories for event notifications. *1/ */
+/* auto const&& do_watch_wd_fd_container_create = */
+/*     [](int const watch_fd, path_container_type const& path_container, */
+/*        event::callback const& callback) -> std::optional<int*> { */
+/*   /1* Create memory for watch descriptors. *1/ */
+/*   int* watch_wd_fd_container = */
+/*       (int*)calloc(path_container.size(), sizeof(int)); */
+/*   if (watch_wd_fd_container == nullptr) { */
+/*     callback(event::event{"e/sys/calloc", event::what::other, */
+/*                           event::kind::watcher}); */
+/*     return std::nullopt; */
+/*   } else { */
+/*     /1* Mark directories for event notifications. *1/ */
+/*     for (int i = 0; i < path_container.size(); i++) { */
+/*       /1* @note */
+/*          https://man7.org/linux/man-pages/man2/inotify_add_watch.2.html */
+/*            The watch descriptor is returned by later read(2)s from the */
+/*            inotify file descriptor.  These reads fetch inotify_event */
+/*            structures (see inotify(7)) indicating filesystem events; the */
+/*            watch descriptor inside this structure identifies the object for */
+/*            which the event occurred. *1/ */
+/*       watch_wd_fd_container[i] = inotify_add_watch( */
+/*           watch_fd, path_container.at(i).c_str(), in_watch_opt); */
+/*       if (watch_wd_fd_container[i] < 0) { */
+/*         callback(event::event{"e/sys/inotify_add_watch", event::what::other, */
+/*                               event::kind::watcher}); */
+/*         free(watch_wd_fd_container); */
+/*         return std::nullopt; */
+/*       } */
+/*     } */
+/*     return std::move(watch_wd_fd_container); */
+/*   } */
+/* }; */
+
+/* clang-format on */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
