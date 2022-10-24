@@ -50,8 +50,8 @@ release::show::advance() {
   local MIC=$(release::show::part mic)
 
   case "$1" in
-    maj|major)  echo "$((MAJ + 1)).$MIN.$MIC";;
-    min|minor)  echo "$MAJ.$((MIN + 1)).$MIC";;
+    maj|major)  echo "$((MAJ + 1)).0.0";;
+    min|minor)  echo "$MAJ.$((MIN + 1)).0";;
     mic|micro)  echo "$MAJ.$MIN.$((MIC + 1))";;
     *)          return 1;;
   esac
