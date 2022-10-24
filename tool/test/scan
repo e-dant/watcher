@@ -1,0 +1,12 @@
+#! /usr/bin/env sh
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/../.."
+(build/out/water.watcher . -s 3) &
+(tool/test/file) &
+sleep 5
+if $(pgrep water.watcher); then
+killall water.watcher; fi
+kill $(pgrep bash)
+ls -al build/out/water.watcher
+cd "$LAST_DIR"
