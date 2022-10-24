@@ -71,10 +71,10 @@ jobs:
 
       - name: Test Scannable
         run: |
-          build/out/water.watcher . -s 3 & ;
-          tool/test/file & ;
-          sleep 5 ;
-          killall water.watcher ;
-          kill `pgrep bash` ;
-          ls -al build/out/water.watcher ;
+          (build/out/water.watcher . -s 3) &
+          (tool/test/file) &
+          sleep 5
+          killall water.watcher
+          kill `pgrep bash`
+          ls -al build/out/water.watcher
 
