@@ -172,7 +172,8 @@ enum class kind {
   other,
 };
 
-struct event {
+struct event
+{
   /*
     I like these names. Very human.
     'what happen'
@@ -195,7 +196,8 @@ struct event {
                  std::chrono::time_point<std::chrono::system_clock>{
                      std::chrono::system_clock::now()}
                      .time_since_epoch())
-                 .count()} {}
+                 .count()}
+  {}
 
   ~event() noexcept = default;
 
@@ -203,7 +205,8 @@ struct event {
 
      prints out where, what and kind.
      formats the output as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& e) {
+  friend std::ostream& operator<<(std::ostream& os, const event& e)
+  {
     /* clang-format off */
     auto const what_repr = [&]() {
       switch (e.what) {
@@ -252,7 +255,6 @@ using callback = void (*)(const event&);
 } /* namespace watcher */
 } /* namespace water   */
 
-
 namespace water {
 namespace watcher {
 namespace detail {
@@ -270,9 +272,7 @@ static bool watcher_alive = false;
   Likely may be overloaded by the user in the future.
 */
 
-static bool is_living() {
-  return watcher_alive ? true : false;
-}
+static bool is_living() { return watcher_alive ? true : false; }
 
 /*
   @brief watcher/adapter/can_watch
@@ -282,7 +282,8 @@ static bool is_living() {
   It might do other things or be removed at some point.
 */
 
-static bool can_watch() {
+static bool can_watch()
+{
   if (watcher_alive)
     return false;
   else
@@ -313,7 +314,8 @@ static bool watch(const char* path, event::callback const& callback);
   Invokes `callback` immediately before destroying itself.
 */
 
-static bool die(event::callback const& callback) {
+static bool die(event::callback const& callback)
+{
   if (watcher_alive) {
     watcher_alive = false;
     callback(
@@ -333,9 +335,6 @@ static bool die(event::callback const& callback) {
 
 /* clang-format off */
 
-
-
-
 /* clang-format on */
 
 /*
@@ -347,7 +346,6 @@ static bool die(event::callback const& callback) {
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
-
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -419,20 +417,21 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 /* clang-format on */
 
 template <auto const delay_ms = 16>
-auto mk_event_stream(const char* path, auto const& callback) {
+auto mk_event_stream(const char* path, auto const& callback)
+{
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
       *are* const qualified. using void** is not ok. but it's also ok. */
-  const void* _path_ref =
-      CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
+  const void* _path_ref
+      = CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
   const void** _path_refref{&_path_ref};
 
   /* We pass along the path we were asked to watch, */
-  auto const translated_path =
-      CFArrayCreate(nullptr,               /* not sure */
-                    _path_refref,          /* path string(s) */
-                    1,                     /* number of paths */
-                    &kCFTypeArrayCallBacks /* callback */
+  auto const translated_path
+      = CFArrayCreate(nullptr,               /* not sure */
+                      _path_refref,          /* path string(s) */
+                      1,                     /* number of paths */
+                      &kCFTypeArrayCallBacks /* callback */
       );
   /* the time point from which we want to monitor events (which is now), */
   auto const time_flag = kFSEventStreamEventIdSinceNow;
@@ -445,10 +444,10 @@ auto mk_event_stream(const char* path, auto const& callback) {
   }();
 
   /* and the event stream flags */
-  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents |
-                                  kFSEventStreamCreateFlagUseExtendedData |
-                                  kFSEventStreamCreateFlagUseCFTypes |
-                                  kFSEventStreamCreateFlagNoDefer;
+  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents
+                                  | kFSEventStreamCreateFlagUseExtendedData
+                                  | kFSEventStreamCreateFlagUseCFTypes
+                                  | kFSEventStreamCreateFlagNoDefer;
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
       nullptr,           /* allocator */
@@ -463,70 +462,69 @@ auto mk_event_stream(const char* path, auto const& callback) {
 
 } /* namespace */
 
-static bool watch(const char* path, event::callback const& callback) {
+static bool watch(const char* path, event::callback const& callback)
+{
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,
       std::filesystem::exists;
   static auto callback_hook = callback;
-  auto const callback_adapter =
-      [](ConstFSEventStreamRef, /* stream_ref
-                                   (required) */
-         auto*,                 /* callback_info (required) */
-         size_t os_event_count, auto* os_event_paths,
-         const FSEventStreamEventFlags os_event_flags[],
-         const FSEventStreamEventId*) {
-        auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
-          std::vector<event::what> translation;
-          /* @todo this is a slow, dumb search. fix it. */
-          for (const flag_pair& it : flag_pair_container)
-            if (flag_recv & it.first)
-              translation.push_back(it.second);
-          return translation;
+  auto const callback_adapter
+      = [](ConstFSEventStreamRef, /* stream_ref
+                                     (required) */
+           auto*,                 /* callback_info (required) */
+           size_t os_event_count, auto* os_event_paths,
+           const FSEventStreamEventFlags os_event_flags[],
+           const FSEventStreamEventId*) {
+          auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
+            std::vector<event::what> translation;
+            /* @todo this is a slow, dumb search. fix it. */
+            for (const flag_pair& it : flag_pair_container)
+              if (flag_recv & it.first) translation.push_back(it.second);
+            return translation;
+          };
+
+          for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
+            auto const _path_info_dict = static_cast<CFDictionaryRef>(
+                CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
+                                       static_cast<CFIndex>(i)));
+            auto const _path_cfstring
+                = static_cast<CFStringRef>(CFDictionaryGetValue(
+                    _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
+            const char* translated_path
+                = CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
+            /* see note [inode and time] for some extra stuff that can be done
+             * here. */
+            auto const discern_kind = [](const char* path) {
+              return exists(path) ? is_regular_file(path) ? event::kind::file
+                                    : is_directory(path)  ? event::kind::dir
+                                    : is_symlink(path) ? event::kind::sym_link
+                                                       : event::kind::other
+                                  : event::kind::other;
+            };
+            for (auto const& flag_it : decode_flags(os_event_flags[i]))
+              if (translated_path != nullptr)
+                callback_hook(water::watcher::event::event{
+                    translated_path, flag_it, discern_kind(translated_path)});
+          }
         };
 
-        for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
-          auto const _path_info_dict = static_cast<CFDictionaryRef>(
-              CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
-                                     static_cast<CFIndex>(i)));
-          auto const _path_cfstring =
-              static_cast<CFStringRef>(CFDictionaryGetValue(
-                  _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
-          const char* translated_path =
-              CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-          /* see note [inode and time] for some extra stuff that can be done
-           * here. */
-          auto const discern_kind = [](const char* path) {
-            return exists(path) ? is_regular_file(path) ? event::kind::file
-                                  : is_directory(path)  ? event::kind::dir
-                                  : is_symlink(path)    ? event::kind::sym_link
-                                                        : event::kind::other
-                                : event::kind::other;
-          };
-          for (auto const& flag_it : decode_flags(os_event_flags[i]))
-            if (translated_path != nullptr)
-              callback_hook(water::watcher::event::event{
-                  translated_path, flag_it, discern_kind(translated_path)});
-        }
-      };
+  auto const alive_os_ev_queue
+      = [](const FSEventStreamRef& event_stream, auto const& event_queue) {
+          if (!event_stream || !event_queue) return false;
+          FSEventStreamSetDispatchQueue(event_stream, event_queue);
+          FSEventStreamStart(event_stream);
+          return event_queue ? true : false;
+        };
 
-  auto const alive_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                    auto const& event_queue) {
-    if (!event_stream || !event_queue)
-      return false;
-    FSEventStreamSetDispatchQueue(event_stream, event_queue);
-    FSEventStreamStart(event_stream);
-    return event_queue ? true : false;
-  };
-
-  auto const dead_os_ev_queue = [](const FSEventStreamRef& event_stream,
-                                   auto const& event_queue) {
-    FSEventStreamStop(event_stream);
-    FSEventStreamInvalidate(event_stream);
-    FSEventStreamRelease(event_stream);
-    dispatch_release(event_queue);
-    return event_queue ? false : true;
-  };
+  auto const dead_os_ev_queue
+      = [](const FSEventStreamRef& event_stream, auto const& event_queue) {
+          FSEventStreamStop(event_stream);
+          FSEventStreamInvalidate(event_stream);
+          FSEventStreamRelease(event_stream);
+          dispatch_release(event_queue);
+          return event_queue ? false : true;
+        };
 
   auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
 
@@ -541,8 +539,7 @@ static bool watch(const char* path, event::callback const& callback) {
       /* this does nothing to affect processing, but this thread doesn't need to
          run an infinite loop aggressively. It can wait, with some latency,
          until the queue stops, and then clean itself up. */
-      if constexpr (delay_ms > 0)
-        sleep_for(milliseconds(delay_ms));
+      if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   /* Should the dying callback be here? */
   /*
@@ -647,11 +644,11 @@ inline constexpr auto in_init_opt = IN_NONBLOCK;
    Handle move events properly.
      - Use IN_MOVED_TO
      - Use event::<something> */
-inline constexpr auto in_watch_opt =
-    IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
-inline constexpr dir_opt_type dir_opt =
-    std::filesystem::directory_options::skip_permission_denied &
-    std::filesystem::directory_options::follow_directory_symlink;
+inline constexpr auto in_watch_opt
+    = IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
+inline constexpr dir_opt_type dir_opt
+    = std::filesystem::directory_options::skip_permission_denied
+      & std::filesystem::directory_options::follow_directory_symlink;
 
 /* @brief water/watcher/detail/adapter/linux/<anonymous>/functions
    Functions:
@@ -667,9 +664,9 @@ inline constexpr dir_opt_type dir_opt =
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline bool do_scan(int fd,
-                    path_container_type& path_container,
-                    event::callback const& callback) {
+inline bool do_scan(int fd, path_container_type& path_container,
+                    event::callback const& callback)
+{
   /* 4096 is a typical page size. */
   static constexpr auto buf_len = 4096;
   alignas(struct inotify_event) char buf[buf_len];
@@ -700,7 +697,8 @@ inline bool do_scan(int fd,
         /* Loop over all events in the buffer. */
         const struct inotify_event* event_recv;
         for (char* ptr = buf; ptr < buf + len;
-             ptr += sizeof(struct inotify_event) + event_recv->len) {
+             ptr += sizeof(struct inotify_event) + event_recv->len)
+        {
           event_recv = (const struct inotify_event*)ptr;
 
           /* @todo
@@ -710,8 +708,8 @@ inline bool do_scan(int fd,
                                      : event::kind::file;
           int path_wd = event_recv->wd;
           auto event_base_path = path_container.find(path_wd)->second;
-          auto event_path =
-              std::string(event_base_path + "/" + event_recv->name);
+          auto event_path
+              = std::string(event_base_path + "/" + event_recv->name);
 
           if (event_recv->mask & IN_Q_OVERFLOW)
             callback(event::event{"e/self/overflow", event::what::other,
@@ -738,9 +736,7 @@ inline bool do_scan(int fd,
                               event::kind::watcher});
         return false;
         break;
-      case event_recv_status::eventless:
-        return true;
-        break;
+      case event_recv_status::eventless: return true; break;
     }
   }
 }
@@ -762,7 +758,8 @@ static bool is_living(); /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-static bool watch(const char* base_path, event::callback const& callback) {
+static bool watch(const char* base_path, event::callback const& callback)
+{
   /*
      Functions
    */
@@ -774,9 +771,9 @@ static bool watch(const char* base_path, event::callback const& callback) {
      If `path` is a file,
        - return it as the only value in a map.
        - the watch descriptor key should always be 1. */
-  auto const&& do_path_container_create = [](char const* base_path_c_str,
-                                             int const watch_fd,
-                                             event::callback const& callback)
+  auto const&& do_path_container_create
+      = [](char const* base_path_c_str, int const watch_fd,
+           event::callback const& callback)
       -> std::optional<path_container_type> {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
 
@@ -805,18 +802,18 @@ static bool watch(const char* base_path, event::callback const& callback) {
       for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
         if (!dir_ec)
           if (std::filesystem::is_directory(dir, dir_ec))
-            if (!dir_ec)
-              do_mark(dir.path());
+            if (!dir_ec) do_mark(dir.path());
     return std::move(path_map);
   };
 
   /* Return and initializes epoll events and file descriptors.
      Return the necessary resources for an epoll_wait loop.
      Or return nothing. */
-  auto const&& do_event_resource_create = [](int const watch_fd,
-                                             event::callback const& callback)
+  auto const&& do_event_resource_create
+      = [](int const watch_fd, event::callback const& callback)
       -> std::optional<std::tuple<epoll_event, epoll_event*, int>> {
-    struct epoll_event event_conf {
+    struct epoll_event event_conf
+    {
       .events = EPOLLIN, .data { .fd = watch_fd }
     };
     struct epoll_event event_list[event_max_count];
@@ -832,8 +829,8 @@ static bool watch(const char* base_path, event::callback const& callback) {
 
   /* Return an optional file descriptor
      which may access the inotify api. */
-  auto const do_watch_fd_create =
-      [](event::callback const& callback) -> std::optional<int> {
+  auto const do_watch_fd_create
+      = [](event::callback const& callback) -> std::optional<int> {
     int watch_fd = inotify_init1(in_init_opt);
     if (watch_fd < 0) {
       callback(event::event{"e/sys/inotify_init1", event::what::other,
@@ -845,15 +842,15 @@ static bool watch(const char* base_path, event::callback const& callback) {
 
   /* Close the file descriptor `fd_watch`,
      Invoke `callback` on errors. */
-  auto const do_watch_fd_release = [](int watch_fd,
-                                      event::callback const& callback) {
-    if (close(watch_fd) < 0) {
-      callback(event::event{"e/sys/close", event::what::other,
-                            event::kind::watcher});
-      return false;
-    } else
-      return true;
-  };
+  auto const do_watch_fd_release
+      = [](int watch_fd, event::callback const& callback) {
+          if (close(watch_fd) < 0) {
+            callback(event::event{"e/sys/close", event::what::other,
+                                  event::kind::watcher});
+            return false;
+          } else
+            return true;
+        };
 
   /* Await filesystem events.
      When available, scan them.
@@ -862,8 +859,8 @@ static bool watch(const char* base_path, event::callback const& callback) {
       [](int event_fd, auto& event_list, int watch_fd,
          path_container_type& path_container, event::callback const& callback) {
         /* The more time asleep, the better. */
-        int const event_count =
-            epoll_wait(event_fd, event_list, event_max_count, -1);
+        int const event_count
+            = epoll_wait(event_fd, event_list, event_max_count, -1);
 
         auto const do_event_dispatch = [&]() {
           for (int n = 0; n < event_count; ++n)
@@ -892,14 +889,14 @@ static bool watch(const char* base_path, event::callback const& callback) {
   if (watch_fd_optional.has_value()) {
     auto watch_fd = watch_fd_optional.value();
 
-    auto&& path_container_optional =
-        do_path_container_create(base_path, watch_fd, callback);
+    auto&& path_container_optional
+        = do_path_container_create(base_path, watch_fd, callback);
 
     if (path_container_optional.has_value()) {
       /* Find all directories above the base path given.
          Make a map of watch descriptors -> paths. */
-      path_container_type&& path_container =
-          std::move(path_container_optional.value());
+      path_container_type&& path_container
+          = std::move(path_container_optional.value());
 
       auto&& event_tuple = do_event_resource_create(watch_fd, callback);
 
@@ -913,8 +910,9 @@ static bool watch(const char* base_path, event::callback const& callback) {
          */
 
         /* Loop until dead. */
-        while (is_living() && do_event_wait_recv(event_fd, event_list, watch_fd,
-                                                 path_container, callback))
+        while (is_living()
+               && do_event_wait_recv(event_fd, event_list, watch_fd,
+                                     path_container, callback))
           continue;
         return do_watch_fd_release(watch_fd, callback);
       } else
@@ -988,20 +986,22 @@ static bool watch(const char* base_path, event::callback const& callback) {
 /*
   @brief watcher/adapter/android
 
-  We are exploring `fanotify` for a more efficient implementation on Linux and Android.
-  Until a stable implementation has been made, we will use the `warthog` adapter on these systems.
+  We are exploring `fanotify` for a more efficient implementation on Linux and
+  Android. Until a stable implementation has been made, we will use the
+  `warthog` adapter on these systems.
 
   These kernel APIs are inaccurate and unstable.
 
-  Work is being done to get most of `warthog`'s accuracy and most of `fanotify`'s efficiency.
+  Work is being done to get most of `warthog`'s accuracy and most of
+  `fanotify`'s efficiency.
 */
 
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
 
-#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) || \
-    defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
+    || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
@@ -1049,9 +1049,8 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-static bool scan(const char* path,
-                 auto const& send_event,
-                 bucket_type& bucket) {
+static bool scan(const char* path, auto const& send_event, bucket_type& bucket)
+{
   /* @brief watcher/adapter/warthog/scan_file
      - Scans a (single) file for changes.
      - Updates our bucket to match the changes.
@@ -1068,17 +1067,18 @@ static bool scan(const char* path,
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
         send_event(event::event{file, event::what::destroy, event::kind::file});
-        if (bucket.contains(file))
-          bucket.erase(file);
+        if (bucket.contains(file)) bucket.erase(file);
       }
       /* if it's not in our bucket, */
-      else if (!bucket.contains(file)) {
+      else if (!bucket.contains(file))
+      {
         /* we put it in there and call the closure, indicating creation. */
         bucket[file] = timestamp;
         send_event(event::event{file, event::what::create, event::kind::file});
       }
       /* otherwise, it is already in our bucket. */
-      else {
+      else
+      {
         /* we update the file's last write time, */
         if (bucket[file] != timestamp) {
           bucket[file] = timestamp;
@@ -1098,8 +1098,8 @@ static bool scan(const char* path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const scan_directory = [&](const char* dir,
-                                  auto const& send_event) -> bool {
+  auto const scan_directory
+      = [&](const char* dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -1127,9 +1127,9 @@ static bool scan(const char* path,
 /* @brief water/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-static bool tend_bucket(const char* path,
-                        auto const& send_event,
-                        bucket_type& bucket) {
+static bool tend_bucket(const char* path, auto const& send_event,
+                        bucket_type& bucket)
+{
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
@@ -1145,7 +1145,8 @@ static bool tend_bucket(const char* path,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
@@ -1158,7 +1159,8 @@ static bool tend_bucket(const char* path,
         }
       }
       /* this is a file */
-      else {
+      else
+      {
         bucket[path] = last_write_time(path);
       }
     } else {
@@ -1219,7 +1221,8 @@ static bool tend_bucket(const char* path,
 
   Unless it should stop, or errors present, `watch` recurses.
 */
-static bool watch(const char* path, event::callback const& callback) {
+static bool watch(const char* path, event::callback const& callback)
+{
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* First, sleep for delay_ms.
 
@@ -1231,8 +1234,7 @@ static bool watch(const char* path, event::callback const& callback) {
 
   static bucket_type bucket;
 
-  if constexpr (delay_ms > 0)
-    sleep_for(milliseconds(delay_ms));
+  if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return is_living() ? tend_bucket(path, callback, bucket)
                            ? scan(path, callback, bucket)
@@ -1268,7 +1270,6 @@ static bool watch(const char* path, event::callback const& callback) {
 } /* namespace water */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
-
 
 namespace water {
 namespace watcher {
@@ -1316,7 +1317,8 @@ namespace watcher {
     - Event time -- In nanoseconds since epoch
 */
 
-static bool watch(const char* path, event::callback const& callback) {
+static bool watch(const char* path, event::callback const& callback)
+{
   return detail::adapter::can_watch() ? detail::adapter::watch(path, callback)
                                       : false;
 }
@@ -1327,7 +1329,8 @@ static bool watch(const char* path, event::callback const& callback) {
   Stops the `watch`.
   Destroys itself.
 */
-static bool die() {
+static bool die()
+{
   using whatever = const event::event&;
   return detail::adapter::die([](whatever) -> void {});
 }
@@ -1339,7 +1342,8 @@ static bool die() {
   Calls `callback`,
   then destroys itself.
 */
-static bool die(event::callback const& callback) {
+static bool die(event::callback const& callback)
+{
   return detail::adapter::die(callback);
 }
 

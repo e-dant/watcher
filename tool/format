@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.."
+while read F
+do
+  clang-format -i "$F"
+done \
+  <<< "$(find . -name '*' | grep -oE '.*\.(cpp|cc|hpp|h)$')"
+cd "$LAST_DIR"

@@ -19,9 +19,7 @@ static bool watcher_alive = false;
   Likely may be overloaded by the user in the future.
 */
 
-static bool is_living() {
-  return watcher_alive ? true : false;
-}
+static bool is_living() { return watcher_alive ? true : false; }
 
 /*
   @brief watcher/adapter/can_watch
@@ -31,7 +29,8 @@ static bool is_living() {
   It might do other things or be removed at some point.
 */
 
-static bool can_watch() {
+static bool can_watch()
+{
   if (watcher_alive)
     return false;
   else
@@ -62,7 +61,8 @@ static bool watch(const char* path, event::callback const& callback);
   Invokes `callback` immediately before destroying itself.
 */
 
-static bool die(event::callback const& callback) {
+static bool die(event::callback const& callback)
+{
   if (watcher_alive) {
     watcher_alive = false;
     callback(

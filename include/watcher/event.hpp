@@ -94,7 +94,8 @@ enum class kind {
   other,
 };
 
-struct event {
+struct event
+{
   /*
     I like these names. Very human.
     'what happen'
@@ -117,7 +118,8 @@ struct event {
                  std::chrono::time_point<std::chrono::system_clock>{
                      std::chrono::system_clock::now()}
                      .time_since_epoch())
-                 .count()} {}
+                 .count()}
+  {}
 
   ~event() noexcept = default;
 
@@ -125,7 +127,8 @@ struct event {
 
      prints out where, what and kind.
      formats the output as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& e) {
+  friend std::ostream& operator<<(std::ostream& os, const event& e)
+  {
     /* clang-format off */
     auto const what_repr = [&]() {
       switch (e.what) {

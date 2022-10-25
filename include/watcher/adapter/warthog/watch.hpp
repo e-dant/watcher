@@ -1,8 +1,8 @@
 #pragma once
 
 #include <watcher/platform.hpp>
-#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) || \
-    defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
+    || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
@@ -51,9 +51,8 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-static bool scan(const char* path,
-                 auto const& send_event,
-                 bucket_type& bucket) {
+static bool scan(const char* path, auto const& send_event, bucket_type& bucket)
+{
   /* @brief watcher/adapter/warthog/scan_file
      - Scans a (single) file for changes.
      - Updates our bucket to match the changes.
@@ -70,17 +69,18 @@ static bool scan(const char* path,
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
         send_event(event::event{file, event::what::destroy, event::kind::file});
-        if (bucket.contains(file))
-          bucket.erase(file);
+        if (bucket.contains(file)) bucket.erase(file);
       }
       /* if it's not in our bucket, */
-      else if (!bucket.contains(file)) {
+      else if (!bucket.contains(file))
+      {
         /* we put it in there and call the closure, indicating creation. */
         bucket[file] = timestamp;
         send_event(event::event{file, event::what::create, event::kind::file});
       }
       /* otherwise, it is already in our bucket. */
-      else {
+      else
+      {
         /* we update the file's last write time, */
         if (bucket[file] != timestamp) {
           bucket[file] = timestamp;
@@ -100,8 +100,8 @@ static bool scan(const char* path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const scan_directory = [&](const char* dir,
-                                  auto const& send_event) -> bool {
+  auto const scan_directory
+      = [&](const char* dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -129,9 +129,9 @@ static bool scan(const char* path,
 /* @brief water/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-static bool tend_bucket(const char* path,
-                        auto const& send_event,
-                        bucket_type& bucket) {
+static bool tend_bucket(const char* path, auto const& send_event,
+                        bucket_type& bucket)
+{
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
@@ -147,7 +147,8 @@ static bool tend_bucket(const char* path,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
@@ -160,7 +161,8 @@ static bool tend_bucket(const char* path,
         }
       }
       /* this is a file */
-      else {
+      else
+      {
         bucket[path] = last_write_time(path);
       }
     } else {
@@ -221,7 +223,8 @@ static bool tend_bucket(const char* path,
 
   Unless it should stop, or errors present, `watch` recurses.
 */
-static bool watch(const char* path, event::callback const& callback) {
+static bool watch(const char* path, event::callback const& callback)
+{
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* First, sleep for delay_ms.
 
@@ -233,8 +236,7 @@ static bool watch(const char* path, event::callback const& callback) {
 
   static bucket_type bucket;
 
-  if constexpr (delay_ms > 0)
-    sleep_for(milliseconds(delay_ms));
+  if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return is_living() ? tend_bucket(path, callback, bucket)
                            ? scan(path, callback, bucket)

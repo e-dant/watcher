@@ -31,7 +31,8 @@ using namespace water::watcher::event; /* event, what, kind */
 
 /* Watch a path for some time.
    Stream what happens. */
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   using namespace helpful_literals;
 
   /* Lift the user's choices from the command line.

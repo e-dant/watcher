@@ -1,4 +1,40 @@
 BasedOnStyle: Chromium
+
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortLambdasOnASingleLine: true
+
+AlwaysBreakTemplateDeclarations: true
+
+AlignAfterOpenBracket: Align
+AlignOperands: true
+
+BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: All
+BraceWrapping:
+  AfterClass: true
+  AfterStruct: true
+  AfterEnum: false
+  AfterUnion: false
+  AfterExternBlock: false
+
+  AfterControlStatement: MultiLine
+
+  AfterNamespace: false
+  AfterFunction: true
+
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+  BeforeCatch: false
+  BeforeLambdaBody: false
+
+BinPackArguments: true
+BinPackParameters: true
+
 SortIncludes: true
 Standard: c++20
 TabWidth: 2

@@ -50,7 +50,8 @@ namespace watcher {
     - Event time -- In nanoseconds since epoch
 */
 
-static bool watch(const char* path, event::callback const& callback) {
+static bool watch(const char* path, event::callback const& callback)
+{
   return detail::adapter::can_watch() ? detail::adapter::watch(path, callback)
                                       : false;
 }
@@ -61,7 +62,8 @@ static bool watch(const char* path, event::callback const& callback) {
   Stops the `watch`.
   Destroys itself.
 */
-static bool die() {
+static bool die()
+{
   using whatever = const event::event&;
   return detail::adapter::die([](whatever) -> void {});
 }
@@ -73,7 +75,8 @@ static bool die() {
   Calls `callback`,
   then destroys itself.
 */
-static bool die(event::callback const& callback) {
+static bool die(event::callback const& callback)
+{
   return detail::adapter::die(callback);
 }
 
