@@ -11,6 +11,7 @@
 
 #include <sys/epoll.h>
 #include <sys/inotify.h>
+#include <unistd.h>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
