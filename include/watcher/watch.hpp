@@ -13,6 +13,7 @@ namespace watcher {
 
   There are two things the user needs:
     - The `watch` function
+    - The `die` function
     - The `event` structure
 
   That's it, and this is one of them.
