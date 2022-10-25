@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.2)
 # [project]
 project(
   water.watcher
-  VERSION 0.3.1 # hook: tool/release
+  VERSION 0.3.2 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES CXX)
