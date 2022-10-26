@@ -67,7 +67,7 @@ build::build() {
 
   if test -z "$1"
   then
-    TYPE=RelWithDebInfo
+    TYPE=Release
   else
     TYPE="$1"
   fi
