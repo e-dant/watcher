@@ -31,56 +31,106 @@ build::build() {
   }
 
   cmake::build() {
-    if test "$1" != 'tiny'
+    # build for this platform
+    if test "$PLATFORM" = 'This'
     then
-      cmake \
-        -S 'in' \
-        -B 'out' \
-        -Wno-dev \
-        -G 'Ninja' \
-        -DCMAKE_BUILD_TYPE=$1 \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        && cmake \
-          --build out \
-          --config $1
-      return $?
+      # full cli
+      if test "$SOURCE_VARIANT" = 'Full'
+      then
+        cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+        return $?
+      # tiny 1-sloc
+      elif test "$SOURCE_VARIANT" = 'Tiny'
+      then
+        WATER_WATCHER_PLATFORM_EXTRAS="$(\
+          test "$(uname)" = Darwin \
+            && echo '-isysroot
+              /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+              -framework CoreFoundation
+              -framework CoreServices')"
+        eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny "$WATER_WATCHER_PLATFORM_EXTRAS"
+        return $?
+      else
+        echo "Unknown source variant: $SOURCE_VARIANT"
+        return 1
+      fi
+    # build for android
+    elif test "$PLATFORM" = 'Android'
+    then
+      if test "$SOURCE_VARIANT" = 'Full'
+      then
+        cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" \
+          -DCMAKE_SYSTEM_NAME='Android' \
+          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+      else
+        echo 'No "Tiny" builds for Android just yet.'
+        return 1
+      fi
+    # build for ios
+    elif test "$PLATFORM" = 'iOS'
+    then
+      if test "$SOURCE_VARIANT" = 'Full'
+      then
+        cmake -S 'in' -B "$OUT_DIR" -G 'Xcode' -DCMAKE_SYSTEM_NAME='iOS' \
+          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+      else
+        echo 'No "Tiny" builds for iOS just yet.'
+        return 1
+      fi
     else
-      WATER_WATCHER_PLATFORM_EXTRAS="$(\
-        test "$(uname)" = Darwin \
-          && echo '-isysroot
-            /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-            -framework CoreFoundation
-            -framework CoreServices')"
-      eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny $WATER_WATCHER_PLATFORM_EXTRAS
+      echo "Unknown platform: $PLATFORM"
+      return 1
     fi
   }
 
   compdb::ln() {
-    if test "$TYPE" != 'tiny'
+    if test "$SOURCE_VARIANT" != 'Tiny'
     then
-      local from="$PWD/out/compile_commands.json"
+      local from="$PWD/$OUT_DIR/compile_commands.json"
       local to='../'
       ln -sf "$from" "$to"
       return $?
     fi
   }
 
-  if test -z "$1"
-  then
-    TYPE=Release
-  else
-    TYPE="$1"
-  fi
+  local PLATFORM="$1"
+  test -n "$PLATFORM" || PLATFORM='This'
+  local BUILD_TYPE="$2"
+  test -n "$BUILD_TYPE" || BUILD_TYPE='Release'
+  local SOURCE_VARIANT="$3"
+  test -n "$SOURCE_VARIANT" || SOURCE_VARIANT='Full'
+  local OUT_DIR="out/$BUILD_TYPE/$PLATFORM"
 
   cc::init \
-    && cmake::build $TYPE \
-    && compdb::ln
+    && cmake::build "$TYPE" \
+    && compdb::ln "$TYPE"
 
   ok=$?
 
   cd "$lastdir"
   return $ok
 }
+
+if echo "$*" | grep -q -- '--help'
+then
+  echo 'Usage'
+  echo "  $0 [ platform = This ] [ build type = Release ] [ source variant = Full ]"
+  echo
+  echo '  platform:       This, Android, iOS'
+  echo '  build type:     Release, RelWithDebInfo, Debug'
+  echo '  source variant: Full, Tiny'
+  echo
+  echo 'Summary'
+  echo '  Build the Watcher.'
+  echo '  This file is a collection of shorthands for CMake invocations.'
+  echo '  It also does some housekeeping, such as linking the generated '
+  echo '  compilation database to the root of this project.'
+  exit 0
+fi
 
 build::build $@
 

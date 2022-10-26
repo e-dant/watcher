@@ -7,7 +7,7 @@ echo build/out/water.watcher
 - given bun
 echo eval `tell build`' && eval '`tell run`
 - given dbuild
-echo build/build Debug
+echo build/build This Debug
 - given drun
 echo lldb build/out/water.watcher
 - given dbun

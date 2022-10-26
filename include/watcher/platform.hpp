@@ -30,7 +30,7 @@ enum class platform_t {
 inline constexpr platform_t platform
 
 /* linux */
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID_API__)
     = platform_t::linux_unknown;
 # define WATER_WATCHER_PLATFORM_LINUX_ANY TRUE
 # define WATER_WATCHER_PLATFORM_LINUX_UNKNOWN TRUE
