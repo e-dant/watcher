@@ -57,6 +57,7 @@ build::compdb() {
 
 # Builds the "full" project for whatever platform *this* is.
 build::build::this::full() {
+  mkdir -p "$OUT_DIR"
   cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
@@ -65,17 +66,19 @@ build::build::this::full() {
 
 # Builds the "tiny" project for whatever platform *this* is.
 build::build::this::tiny() {
+  mkdir -p "$OUT_DIR"
   EXTRAS="$(\
     test "$(uname)" = Darwin \
       && echo '-isysroot
         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
         -framework CoreFoundation
         -framework CoreServices')"
-  eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny "$EXTRAS"
+  eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o $OUT_DIR/water.watcher.tiny $EXTRAS
   return $?
 }
 
 build::build::android::full() {
+  mkdir -p "$OUT_DIR"
   cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" \
@@ -86,12 +89,14 @@ build::build::android::full() {
 
 # Builds the "tiny" project for Android
 build::build::android::tiny() {
+  mkdir -p "$OUT_DIR"
   echo 'No "Tiny" builds for Android just yet.'
   return $?
 }
 
 # Builds the "full" project for iOS
 build::build::ios::full() {
+  mkdir -p "$OUT_DIR"
   cmake -S 'in' -B "$OUT_DIR" -G 'Xcode' -DCMAKE_SYSTEM_NAME='iOS' \
     && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
   return $?
@@ -99,6 +104,7 @@ build::build::ios::full() {
 
 # Builds the "tiny" project for iOS
 build::build::ios::tiny() {
+  mkdir -p "$OUT_DIR"
   echo 'No "Tiny" builds for iOS just yet.'
   return $?
 }

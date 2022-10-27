@@ -33,8 +33,10 @@ PLATFORM_EXTRAS=$(test "$(uname)" = Darwin \
 # Step 2: Make the thing.
 eval c++ -std=c++2a -O3 src/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
 
-# Step 3: Profit.
+# Step 3: Run the thing.
 ./watcher
+
+# Alternatively: build/build this release tiny
 ```
 
 Enjoy!
