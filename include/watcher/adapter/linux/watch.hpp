@@ -240,12 +240,13 @@ static bool watch(const char* base_path, event::callback const& callback)
      which may access the inotify api. */
   auto const do_watch_fd_create
       = [](event::callback const& callback) -> std::optional<int> {
-    int watch_fd = []() {
-      if constexpr (platform == platform_t::linux_unknown)
-        return inotify_init1(in_init_opt);
-      else
-        return inotify_init(in_init_opt);
-    }();
+    int watch_fd
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+        = inotify_init1(in_init_opt);
+#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+        = inotify_init(in_init_opt);
+#endif
+
     if (watch_fd < 0) {
       callback(event::event{"e/sys/inotify_init1", event::what::other,
                             event::kind::watcher});
