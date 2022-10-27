@@ -243,7 +243,7 @@ static bool watch(const char* base_path, event::callback const& callback)
     int watch_fd
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
         = inotify_init1(in_init_opt);
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
         = inotify_init(in_init_opt);
 #endif
 
