@@ -241,8 +241,8 @@ static bool watch(const char* base_path, event::callback const& callback)
   auto const do_watch_fd_create
       = [](event::callback const& callback) -> std::optional<int> {
     int watch_fd = []() {
-      if constexpr
-        platform::linux return inotify_init1(in_init_opt);
+      if constexpr (platform = platform_t::linux)
+        return inotify_init1(in_init_opt);
       else
         return inotify_init(in_init_opt);
     }();
