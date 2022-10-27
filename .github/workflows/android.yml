@@ -1,0 +1,70 @@
+#
+# Android Workflow
+#
+
+# https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
+
+name: Android
+
+on:
+  push:
+    branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - clang-13.0.0
+        compiler_c_short_name:
+          - clang
+        compiler_cxx_short_name:
+          - clang++
+        build_type:
+          - Release
+        install_location:
+          - .local
+        developer_mode:
+          - OFF
+
+    runs-on: android-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows' )}}
+          cmake: true
+          ccache: true
+          ninja: false
+          conan: false
+          vcpkg: false
+          gcovr: false
+          cppcheck: false
+          clangtidy: false
+          opencppcoverage: false
+
+      - name: Cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/${{ matrix.install_location }}
+            ${{ github.workspace }}/build
+          key: ${{ runner.os }}-dependencies
+
+      - name: Configure
+        run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+
+      - name: Build
+        run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+
+      - name: Test Runnable
+        run: build/out/water.watcher . -s 1
