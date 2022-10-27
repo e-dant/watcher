@@ -30,11 +30,20 @@ jobs:
         developer_mode:
           - OFF
 
-    runs-on: android-latest
+    runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
 
     steps:
       - uses: actions/checkout@v3
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r25b
+          add-to-path: false
+          local-cache: true
+      - run: ./build.sh
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
@@ -61,7 +70,7 @@ jobs:
           key: ${{ runner.os }}-dependencies
 
       - name: Configure
-        run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+        run: cmake -S build/in -B build/out -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" -DCMAKE_SYSTEM_NAME='Android' -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
 
       - name: Build
         run: cmake --build build/out --config ${{ matrix.build_type }} -j4
