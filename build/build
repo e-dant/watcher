@@ -1,128 +1,116 @@
 #!/usr/bin/env bash
 
-build::build() {
-  local ok;
-  local lastdir="$PWD"
-  cd "$(dirname "$0")"
-  local thisdir="$PWD"
-  local llvm_version=15
+LAST_DIR="$PWD"
+cd "$(dirname "$0")" \
+  || return $?
+THIS_DIR="$PWD"
 
-  cc::init() {
-    local ok;
-    local llvm_dir="$thisdir/../../../tool/compiler/llvm"
-    if test -n "$CC" -a -n "$CXX"
+PLATFORM="$1"
+BUILD_TYPE="$2"
+SOURCE_VARIANT="$3"
+OUT_DIR="$PWD/out/$BUILD_TYPE/$PLATFORM"
+
+test -n "$PLATFORM" \
+  || PLATFORM='this'
+test -n "$BUILD_TYPE" \
+  || BUILD_TYPE='Release'
+test -n "$SOURCE_VARIANT" \
+  || SOURCE_VARIANT='full'
+
+build::init::cc() {
+  local EC;
+  local WTR_LLVM_VERSION=15
+  local WTR_LLVM_DIR="$THIS_DIR/../../../tool/compiler/llvm"
+  if test -n "$CC" -a -n "$CXX"
+  then
+    EC=0
+  elif test -d "$WTR_LLVM_DIR"
+  then
+    if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
     then
-      ok=0
-    elif test -d "$llvm_dir"
-    then
-      if ! test -x "$llvm_dir/build/out/$llvm_version/bin/clang"
-      then
-        "$llvm_dir/tool/version/set" $llvm_version
-        "$llvm_dir/build/build"
-        ok=$?
-      fi
-      export CC="$llvm_dir/build/out/$llvm_version/bin/clang"
-      export CXX="$llvm_dir/build/out/$llvm_version/bin/clang++"
-    else
-      export CC="$(which clang)"
-      export CXX="$(which clang++)"
+      "$WTR_LLVM_DIR/tool/version/set" $WTR_LLVM_VERSION
+      "$WTR_LLVM_DIR/build/build"
+      EC=$?
     fi
-    return $ok
-  }
+    CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
+    CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
+  else
+    CC="$(which clang)"
+    CXX="$(which clang++)"
+  fi
+  export CC
+  export CXX
+  return $EC
+}
 
-  cmake::build() {
-    # build for this platform
-    if test "$PLATFORM" = 'This'
-    then
-      # full cli
-      if test "$SOURCE_VARIANT" = 'Full'
-      then
-        cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-        return $?
-      # tiny 1-sloc
-      elif test "$SOURCE_VARIANT" = 'Tiny'
-      then
-        WATER_WATCHER_PLATFORM_EXTRAS="$(\
-          test "$(uname)" = Darwin \
-            && echo '-isysroot
-              /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-              -framework CoreFoundation
-              -framework CoreServices')"
-        eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny "$WATER_WATCHER_PLATFORM_EXTRAS"
-        return $?
-      else
-        echo "Unknown source variant: $SOURCE_VARIANT"
-        return 1
-      fi
-    # build for android
-    elif test "$PLATFORM" = 'Android'
-    then
-      if test "$SOURCE_VARIANT" = 'Full'
-      then
-        cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" \
-          -DCMAKE_SYSTEM_NAME='Android' \
-          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-      else
-        echo 'No "Tiny" builds for Android just yet.'
-        return 1
-      fi
-    # build for ios
-    elif test "$PLATFORM" = 'iOS'
-    then
-      if test "$SOURCE_VARIANT" = 'Full'
-      then
-        cmake -S 'in' -B "$OUT_DIR" -G 'Xcode' -DCMAKE_SYSTEM_NAME='iOS' \
-          && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-      else
-        echo 'No "Tiny" builds for iOS just yet.'
-        return 1
-      fi
-    else
-      echo "Unknown platform: $PLATFORM"
-      return 1
-    fi
-  }
+build::compdb() {
+  if test "$SOURCE_VARIANT" != 'tiny'
+  then
+    local FROM="$OUT_DIR/compile_commands.json"
+    local TO='../'
+    ln -sf "$FROM" "$TO"
+    return $?
+  else
+    return 0
+  fi
+}
 
-  compdb::ln() {
-    if test "$SOURCE_VARIANT" != 'Tiny'
-    then
-      local from="$PWD/$OUT_DIR/compile_commands.json"
-      local to='../'
-      ln -sf "$from" "$to"
-      return $?
-    fi
-  }
+# Builds the "full" project for whatever platform *this* is.
+build::build::this::full() {
+  cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+  return $?
+}
 
-  local PLATFORM="$1"
-  test -n "$PLATFORM" || PLATFORM='This'
-  local BUILD_TYPE="$2"
-  test -n "$BUILD_TYPE" || BUILD_TYPE='Release'
-  local SOURCE_VARIANT="$3"
-  test -n "$SOURCE_VARIANT" || SOURCE_VARIANT='Full'
-  local OUT_DIR="out/$BUILD_TYPE/$PLATFORM"
+# Builds the "tiny" project for whatever platform *this* is.
+build::build::this::tiny() {
+  EXTRAS="$(\
+    test "$(uname)" = Darwin \
+      && echo '-isysroot
+        /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+        -framework CoreFoundation
+        -framework CoreServices')"
+  eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o out/water.watcher.tiny "$EXTRAS"
+  return $?
+}
 
-  cc::init \
-    && cmake::build "$TYPE" \
-    && compdb::ln "$TYPE"
+build::build::android::full() {
+  cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" \
+    -DCMAKE_SYSTEM_NAME='Android' \
+      && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+  return $?
+}
 
-  ok=$?
+# Builds the "tiny" project for Android
+build::build::android::tiny() {
+  echo 'No "Tiny" builds for Android just yet.'
+  return $?
+}
 
-  cd "$lastdir"
-  return $ok
+# Builds the "full" project for iOS
+build::build::ios::full() {
+  cmake -S 'in' -B "$OUT_DIR" -G 'Xcode' -DCMAKE_SYSTEM_NAME='iOS' \
+    && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
+  return $?
+}
+
+# Builds the "tiny" project for iOS
+build::build::ios::tiny() {
+  echo 'No "Tiny" builds for iOS just yet.'
+  return $?
 }
 
 if echo "$*" | grep -q -- '--help'
 then
   echo 'Usage'
-  echo "  $0 [ platform = This ] [ build type = Release ] [ source variant = Full ]"
+  echo "  $0 [ platform = this ] [ build type = Release ] [ source variant = full ]"
   echo
-  echo '  platform:       This, Android, iOS'
+  echo '  platform:       this, android, ios'
   echo '  build type:     Release, RelWithDebInfo, Debug'
-  echo '  source variant: Full, Tiny'
+  echo '  source variant: full, tiny'
   echo
   echo 'Summary'
   echo '  Build the Watcher.'
@@ -132,6 +120,12 @@ then
   exit 0
 fi
 
-build::build $@
+build::init::cc \
+  && build::build::$PLATFORM::$SOURCE_VARIANT \
+  && build::compdb
 
-exit $?
+EC=$?
+cd "$LAST_DIR" \
+  || exit $?
+exit $EC
+
