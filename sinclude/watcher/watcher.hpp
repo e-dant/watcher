@@ -30,7 +30,7 @@ enum class platform_t {
 inline constexpr platform_t platform
 
 /* linux */
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID_API__)
     = platform_t::linux_unknown;
 # define WATER_WATCHER_PLATFORM_LINUX_ANY TRUE
 # define WATER_WATCHER_PLATFORM_LINUX_UNKNOWN TRUE
@@ -255,6 +255,7 @@ using callback = void (*)(const event&);
 } /* namespace watcher */
 } /* namespace water   */
 
+
 namespace water {
 namespace watcher {
 namespace detail {
@@ -335,6 +336,9 @@ static bool die(event::callback const& callback)
 
 /* clang-format off */
 
+
+
+
 /* clang-format on */
 
 /*
@@ -346,6 +350,7 @@ static bool die(event::callback const& callback)
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
+
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -831,7 +836,13 @@ static bool watch(const char* base_path, event::callback const& callback)
      which may access the inotify api. */
   auto const do_watch_fd_create
       = [](event::callback const& callback) -> std::optional<int> {
-    int watch_fd = inotify_init1(in_init_opt);
+    int watch_fd
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+        = inotify_init1(in_init_opt);
+#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+        = inotify_init();
+#endif
+
     if (watch_fd < 0) {
       callback(event::event{"e/sys/inotify_init1", event::what::other,
                             event::kind::watcher});
@@ -928,72 +939,12 @@ static bool watch(const char* base_path, event::callback const& callback)
 } /* namespace watcher */
 } /* namespace water */
 
-/* clang-format off */
-
-/* Check that all paths in `path_container` are valid. */
-/* auto const do_path_container_check_valid = */
-/*     [](const path_container_type& path_container, */
-/*        event::callback const& callback) { */
-/*       for (auto const& path : path_container) */
-/*         if (path.empty()) { */
-/*           callback(event::event{"e/self/path/empty", event::what::other, */
-/*                                 event::kind::watcher}); */
-/*           return false; */
-/*         } else */
-/*           continue; */
-/*       return true; */
-/*     }; */
-
-/* /1* Create memory for watch descriptors. */
-/*    Mark directories for event notifications. *1/ */
-/* auto const&& do_watch_wd_fd_container_create = */
-/*     [](int const watch_fd, path_container_type const& path_container, */
-/*        event::callback const& callback) -> std::optional<int*> { */
-/*   /1* Create memory for watch descriptors. *1/ */
-/*   int* watch_wd_fd_container = */
-/*       (int*)calloc(path_container.size(), sizeof(int)); */
-/*   if (watch_wd_fd_container == nullptr) { */
-/*     callback(event::event{"e/sys/calloc", event::what::other, */
-/*                           event::kind::watcher}); */
-/*     return std::nullopt; */
-/*   } else { */
-/*     /1* Mark directories for event notifications. *1/ */
-/*     for (int i = 0; i < path_container.size(); i++) { */
-/*       /1* @note */
-/*          https://man7.org/linux/man-pages/man2/inotify_add_watch.2.html */
-/*            The watch descriptor is returned by later read(2)s from the */
-/*            inotify file descriptor.  These reads fetch inotify_event */
-/*            structures (see inotify(7)) indicating filesystem events; the */
-/*            watch descriptor inside this structure identifies the object for */
-/*            which the event occurred. *1/ */
-/*       watch_wd_fd_container[i] = inotify_add_watch( */
-/*           watch_fd, path_container.at(i).c_str(), in_watch_opt); */
-/*       if (watch_wd_fd_container[i] < 0) { */
-/*         callback(event::event{"e/sys/inotify_add_watch", event::what::other, */
-/*                               event::kind::watcher}); */
-/*         free(watch_wd_fd_container); */
-/*         return std::nullopt; */
-/*       } */
-/*     } */
-/*     return std::move(watch_wd_fd_container); */
-/*   } */
-/* }; */
-
-/* clang-format on */
-
 #endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
 
 /*
   @brief watcher/adapter/android
 
-  We are exploring `fanotify` for a more efficient implementation on Linux and
-  Android. Until a stable implementation has been made, we will use the
-  `warthog` adapter on these systems.
-
-  These kernel APIs are inaccurate and unstable.
-
-  Work is being done to get most of `warthog`'s accuracy and most of
-  `fanotify`'s efficiency.
+  The Android (Linux) `inotify` adapter.
 */
 
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1271,6 +1222,7 @@ static bool watch(const char* path, event::callback const& callback)
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
 
+
 namespace water {
 namespace watcher {
 
@@ -1281,6 +1233,7 @@ namespace watcher {
 
   There are two things the user needs:
     - The `watch` function
+    - The `die` function
     - The `event` structure
 
   That's it, and this is one of them.
