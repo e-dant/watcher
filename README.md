@@ -2,7 +2,8 @@
 
 ![CodeQL](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)
 ![Linux](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml/badge.svg)
-![MacOS](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)
+![macOS](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)
+![Android](https://github.com/e-dant/watcher/actions/workflows/android.yml/badge.svg)
 ![Windows](https://github.com/e-dant/watcher/actions/workflows/windows.yml/badge.svg)
 
 ## Quick Start

@@ -1,10 +1,10 @@
 #
-# MacOS Workflow
+# macOS Workflow
 #
 
 # https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
 
-name: MacOS
+name: macOS
 
 on:
   push:
