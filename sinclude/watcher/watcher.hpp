@@ -243,7 +243,6 @@ using callback = void (*)(const event&);
 } /* namespace watcher */
 } /* namespace water   */
 
-
 namespace water {
 namespace watcher {
 namespace detail {
@@ -324,9 +323,6 @@ static bool die(event::callback const& callback)
 
 /* clang-format off */
 
-
-
-
 /* clang-format on */
 
 /*
@@ -338,7 +334,6 @@ static bool die(event::callback const& callback)
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 #define WATER_WATCHER_USE_WARTHOG
 #endif
-
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -1209,7 +1204,6 @@ static bool watch(const char* path, event::callback const& callback)
 } /* namespace water */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
-
 
 namespace water {
 namespace watcher {

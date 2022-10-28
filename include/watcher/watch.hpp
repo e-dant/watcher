@@ -56,6 +56,18 @@ static bool watch(const char* path, event::callback const& callback)
                                       : false;
 }
 
+static bool watch(const char* path, event::callback const& living_cb,
+                  event::callback const& dying_cb)
+{
+  using namespace water::watcher::detail;
+
+  auto ok = adapter::can_watch() ? adapter::watch(path, living_cb) : false;
+
+  adapter::die(dying_cb);
+
+  return ok;
+}
+
 /*
   @brief watcher/die
 
