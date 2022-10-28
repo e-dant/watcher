@@ -107,7 +107,11 @@ After that, there are two things the user needs:
   - The `event` structure
 
 `watch` takes a path, which is a string-like thing, and a
-callback, with is a function-like thing.
+callback, with is a function-like thing. Passing `watch`
+a character array and a lambda would work well.
+
+`watch` will happily continue watching until it is
+asked to stop or it hits an unrecoverable error.
 
 `event` is an object used to pass information about
 filesystem events to `watch`.
@@ -115,26 +119,33 @@ filesystem events to `watch`.
 `die` kills the `watch`. If a `callback` is given,
 `die` will invoke it immediately before death.
 
+The `event` object is used to pass information about
+filesystem events to the (user-supplied) callback
+given to `watch`.
+
 The `event` object will contain the:
-  - Path -- Which is always relative.
-  - Path type -- one of:
-    - File
-    - Directory
-    - Symbolic Link
-    - Hard Link
-    - Unknown
-  - Event type -- one of:
-    - Create
-    - Modify
-    - Destroy
-    - OS-Specific Events
-    - Unknown
-  - Event time -- In nanoseconds since epoch
+ - Path -- Which is always relative.
+ - Type -- one of:
+   - dir
+   - file
+   - hard_link
+   - sym_link
+   - watcher
+   - other
+ - Event type -- one of:
+   - rename
+   - modify
+   - create
+   - destroy
+   - owner
+   - other
+ - Event time -- In nanoseconds since epoch
 
-So, passing `watch` a string and a lambda would work well.
+The `watcher` type is special.
 
-`watch` will happily continue watching until it is
-asked to stop or it hits an unrecoverable error.
+Events with this type will include messages from
+the watcher. You may recieve error messages or
+important status updates.
 
 ### Your Project
 

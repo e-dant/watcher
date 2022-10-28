@@ -12,19 +12,26 @@
 
    The `event` object will contain the:
      - Path -- Which is always relative.
-     - Path type -- one of:
-       - File
-       - Directory
-       - Symbolic Link
-       - Hard Link
-       - Unknown
+     - Type -- one of:
+       - dir
+       - file
+       - hard_link
+       - sym_link
+       - watcher
+       - other
      - Event type -- one of:
-       - Create
-       - Modify
-       - Destroy
-       - OS-Specific Events
-       - Unknown
+       - rename
+       - modify
+       - create
+       - destroy
+       - owner
+       - other
      - Event time -- In nanoseconds since epoch
+
+   The `watcher` type is special.
+   Events with this type will include messages from
+   the watcher. You may recieve error messages or
+   important status updates.
 
    Happy hacking. */
 
