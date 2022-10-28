@@ -1,106 +1,92 @@
 #pragma once
 
-/*
-  @brief watcher/event
-
-  There are two things the user needs:
+/* @brief watcher/event
+   There are only three things the user needs:
+    - The `die` function
     - The `watch` function
     - The `event` object
 
-  The `event` object is used to pass information about
-  filesystem events to the (user-supplied) callback
-  given to `watch`.
+   The `event` object is used to pass information about
+   filesystem events to the (user-supplied) callback
+   given to `watch`.
 
-  The `event` object will contain the:
-    - Path -- Which is always relative.
-    - Path type -- one of:
-      - File
-      - Directory
-      - Symbolic Link
-      - Hard Link
-      - Unknown
-    - Event type -- one of:
-      - Create
-      - Modify
-      - Destroy
-      - OS-Specific Events
-      - Unknown
-    - Event time -- In nanoseconds since epoch
+   The `event` object will contain the:
+     - Path -- Which is always relative.
+     - Path type -- one of:
+       - File
+       - Directory
+       - Symbolic Link
+       - Hard Link
+       - Unknown
+     - Event type -- one of:
+       - Create
+       - Modify
+       - Destroy
+       - OS-Specific Events
+       - Unknown
+     - Event time -- In nanoseconds since epoch
 
-  Happy hacking.
-*/
+   Happy hacking. */
 
-/*
-  @brief watcher/event/types
-  - water::watcher::event::kind
-  - water::watcher::event::what
-  - water::watcher::event::event
-  - water::watcher::event::callback
-*/
-
-/* std::ostream */
+/* - std::ostream */
 #include <ostream>
 
-/* std::chrono::system_clock::now,
-   std::chrono::duration_cast,
-   std::chrono::system_clock,
-   std::chrono::nanoseconds,
-   std::chrono::time_point */
+/* - std::chrono::system_clock::now,
+   - std::chrono::duration_cast,
+   - std::chrono::system_clock,
+   - std::chrono::nanoseconds,
+   - std::chrono::time_point */
 #include <chrono>
 
 namespace water {
 namespace watcher {
 namespace event {
 
-/*
-  @brief water/watcher/event/what
+/* @brief watcher/event/types
+   - water::watcher::event
+   - water::watcher::event::kind
+   - water::watcher::event::what
+   - water::watcher::event::callback */
 
-  A structure intended to represent
-  what has happened to some path
-  at the moment of some affecting event.
-*/
-
-enum class what {
-  /* the essential happenings */
-  rename,
-  modify,
-  create,
-  destroy,
-
-  /* extended happenings:
-     path attributes */
-  owner,
-
-  /* catch-all */
-  other,
-};
-
-/*
-  @brief water/watcher/event/kind
-
-  The essential path types
-*/
+/* @brief water/watcher/event/kind
+   The essential kinds of paths. */
 enum class kind {
-  /* the essential path types */
+  /* The essentials */
   dir,
   file,
   hard_link,
   sym_link,
 
-  /* the special path types */
+  /* The specials */
   watcher,
 
-  /* catch-all */
+  /* Catch-all */
+  other,
+};
+
+/* @brief water/watcher/event/what
+   A structure intended to represent
+   what has happened to some path
+   at the moment of some affecting event. */
+enum class what {
+  /* The essentials */
+  rename,
+  modify,
+  create,
+  destroy,
+
+  /* The attributes */
+  owner,
+
+  /* Catch-all */
   other,
 };
 
 struct event
 {
-  /*
-    I like these names. Very human.
-    'what happen'
-    'event kind'
-  */
+  /* I like these names. Very human.
+     'what happen'
+     'event kind' */
   const char* where;
   const enum what what;
   const enum kind kind;
@@ -124,7 +110,6 @@ struct event
   ~event() noexcept = default;
 
   /* @brief water/watcher/event/<<
-
      prints out where, what and kind.
      formats the output as a json object. */
   friend std::ostream& operator<<(std::ostream& os, const event& e)
@@ -164,13 +149,9 @@ struct event
   }
 };
 
-/*
-  @brief watcher/event/callback
-
-  Ensure the adapters recieve events and return nothing.
-
-  Maybe this should be inferred. I'm not sure.
-*/
+/* @brief watcher/event/callback
+   Ensure the adapters can recieve events
+   and will return nothing. */
 using callback = void (*)(const event&);
 
 } /* namespace event */
