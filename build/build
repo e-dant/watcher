@@ -147,7 +147,7 @@ build::build() {
       $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
-    echo "$cmake_config_command"
+    # echo "$cmake_config_command"
 
     eval "$cmake_config_command"
     ok=$((ok + $?))
@@ -179,7 +179,7 @@ build::build() {
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DUSE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
 
-      echo "$cmake_config_command"
+      # echo "$cmake_config_command"
 
       eval "$cmake_config_command"
       ok=$((ok + $?))
