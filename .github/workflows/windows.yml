@@ -35,14 +35,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows' )}}
+          cmake: true
+          ccache: true
+          ninja: false
+          conan: false
+          vcpkg: false
+          gcovr: false
+          cppcheck: false
+          clangtidy: false
+          opencppcoverage: false
+
+      - name: Cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/${{ matrix.install_location }}
+            ${{ github.workspace }}/build
+          key: ${{ runner.os }}-dependencies
+
+      - name: Configure
+        run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+
       - name: Build
-        run: build/build
+        run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+
       - name: Test Runnable
-        run: |
-          build/out/this/release/Release/water.watcher.exe . -s 1
-          build/out/this/debug/asan/Debug/water.watcher.exe . -s 1
-          build/out/this/debug/msan/Debug/water.watcher.exe . -s 1
-          build/out/this/debug/tsan/Debug/water.watcher.exe . -s 1
-          build/out/this/debug/ubsan/Debug/water.watcher.exe . -s 1
-          build/out/this/debug/stacksan/Debug/water.watcher.exe . -s 1
-          build/out/this/debug/cfisan/Debug/water.watcher.exe . -s 1
+        run: build/out/Release/water.watcher.exe . -s 1
