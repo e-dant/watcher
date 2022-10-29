@@ -1,14 +1,41 @@
 #!/usr/bin/env bash
 
+if echo "$*" | grep -q -- '--help'
+then
+  echo 'Usage'
+  echo "  $0 [platform = this] [--no-release] [--no-debug]"
+  echo
+  echo '  platform:       this*, android, ios, windows, linux, macos'
+  echo '  --no-release:   skip fully optimized builds'
+  echo '  --no-debug:     skip builds with sanitizers and debug symbols'
+  echo
+  echo 'Summary'
+  echo '  Build the Watcher.'
+  echo '  This file is a collection of shorthands for CMake invocations.'
+  echo '  It also does some housekeeping, such as linking the generated '
+  echo '  compilation database to the root of this project.'
+  exit 0
+fi
+
 LAST_DIR="$PWD"
 cd "$(dirname "$0")" \
   || return $?
 THIS_DIR="$PWD"
 
 PLATFORM="$1"
-BUILD_TYPE="$2"
-SOURCE_VARIANT="$3"
-OUT_DIR="$PWD/out/$BUILD_TYPE/$PLATFORM"
+
+# Commented options do not reliably build yet
+SANITIZERS=(
+  'nosan'
+  'asan'
+  'msan'
+  'tsan'
+  'ubsan'
+  'stacksan'
+  # 'dataflowsan' 
+  # 'kcfisan'
+  'cfisan'
+)
 
 test -n "$PLATFORM" \
   || PLATFORM='this'
@@ -16,6 +43,8 @@ test -n "$BUILD_TYPE" \
   || BUILD_TYPE='Release'
 test -n "$SOURCE_VARIANT" \
   || SOURCE_VARIANT='full'
+
+OUT_DIR="$PWD/out/$PLATFORM"
 
 build::init::cc() {
   local EC;
@@ -55,79 +84,95 @@ build::compdb() {
   fi
 }
 
-# Builds the "full" project for whatever platform *this* is.
-build::build::this::full() {
-  mkdir -p "$OUT_DIR"
-  cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-  return $?
+build::get_cmake_system_name_opt_for_platform() {
+  case "${1,,}" in
+    macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
+    windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
+    linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
+    android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
+    ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
+    *)       echo '';                                   return;;
+  esac
 }
 
-# Builds the "tiny" project for whatever platform *this* is.
-build::build::this::tiny() {
-  mkdir -p "$OUT_DIR"
-  EXTRAS="$(\
-    test "$(uname)" = Darwin \
-      && echo '-isysroot
-        /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-        -framework CoreFoundation
-        -framework CoreServices')"
-  eval c++ -std=c++2a -O3 ../src/tiny-main.cpp -o $OUT_DIR/water.watcher.tiny $EXTRAS
-  return $?
+build::get_cmake_generator_opt_for_platform() {
+  case "${1,,}" in
+    macos)   echo "-G 'Xcode'"; return;;
+    windows) echo "-G 'Ninja'"; return;;
+    linux)   echo "-G 'Ninja'"; return;;
+    android) echo "-G 'Ninja'"; return;;
+    ios)     echo "-G 'Xcode'"; return;;
+    *)       echo "-G 'Ninja'"; return;;
+  esac
 }
 
-build::build::android::full() {
-  mkdir -p "$OUT_DIR"
-  cmake -Wno-dev -S 'in' -B "$OUT_DIR" -G 'Ninja' \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" \
-    -DCMAKE_SYSTEM_NAME='Android' \
-      && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-  return $?
+build::get_config_name_for_build_type() {
+  case "${1,,}" in
+    release) echo 'Release'; return;;
+    debug)   echo 'Debug';   return;;
+    *)       echo 'Debug';   return;;
+  esac
 }
 
-# Builds the "tiny" project for Android
-build::build::android::tiny() {
-  mkdir -p "$OUT_DIR"
-  echo 'No "Tiny" builds for Android just yet.'
-  return $?
-}
+build::build() {
+  local ok=0
+  if ! echo $* | grep -q -- --no-release
+  then
+    mkdir -p "$OUT_DIR"
 
-# Builds the "full" project for iOS
-build::build::ios::full() {
-  mkdir -p "$OUT_DIR"
-  cmake -S 'in' -B "$OUT_DIR" -G 'Xcode' -DCMAKE_SYSTEM_NAME='iOS' \
-    && cmake --build "$OUT_DIR" --config "$BUILD_TYPE"
-  return $?
-}
+    local cmake_config_command=$(echo "
+      cmake
+      -Wno-dev
+      -S '$PWD/in'
+      -B '$OUT_DIR'
+      $(build::get_cmake_generator_opt_for_platform $PLATFORM)
+      $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
+      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
-# Builds the "tiny" project for iOS
-build::build::ios::tiny() {
-  mkdir -p "$OUT_DIR"
-  echo 'No "Tiny" builds for iOS just yet.'
-  return $?
-}
+    echo $cmake_config_command
 
-if echo "$*" | grep -q -- '--help'
-then
-  echo 'Usage'
-  echo "  $0 [ platform = this ] [ build type = Release ] [ source variant = full ]"
-  echo
-  echo '  platform:       this, android, ios'
-  echo '  build type:     Release, RelWithDebInfo, Debug'
-  echo '  source variant: full, tiny'
-  echo
-  echo 'Summary'
-  echo '  Build the Watcher.'
-  echo '  This file is a collection of shorthands for CMake invocations.'
-  echo '  It also does some housekeeping, such as linking the generated '
-  echo '  compilation database to the root of this project.'
-  exit 0
-fi
+    eval $cmake_config_command
+    ok=$((ok + $?))
+
+    cmake \
+      --build "$OUT_DIR/$S" \
+      --config Release
+    ok=$((ok + $?))
+  fi
+
+  if ! echo $* | grep -q -- --no-debug
+  then
+    for S in ${SANITIZERS[@]}
+    do
+      mkdir -p "$OUT_DIR/$S"
+
+      local cmake_config_command=$(echo "
+        cmake
+        -Wno-dev
+        -S '$PWD/in'
+        -B '$OUT_DIR/$S'
+        $(build::get_cmake_generator_opt_for_platform $PLATFORM)
+        $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        -DUSE_${S^^}=ON")
+
+      echo $cmake_config_command
+
+      eval $cmake_config_command
+      ok=$((ok + $?))
+
+      cmake \
+        --build "$OUT_DIR/$S" \
+        --config Debug
+      ok=$((ok + $?))
+    done
+  fi
+
+  return $ok
+}
 
 build::init::cc \
-  && build::build::$PLATFORM::$SOURCE_VARIANT \
+  && build::build $@ \
   && build::compdb
 
 EC=$?

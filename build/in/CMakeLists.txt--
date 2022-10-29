@@ -10,52 +10,59 @@ cmake_minimum_required(VERSION 3.2)
 # [project]
 project(
   water.watcher
-  VERSION 0.3.3 # hook: tool/release
+  VERSION 0.3.2 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES CXX)
 
-# include CLI options
-include(cmake/options.cmake)
+# [options]
+option(WATER_WATCHER_USE_SINGLE_INCLUDE
+  "Build with a single header" OFF)
+option(WATER_WATCHER_USE_TINY_MAIN
+  "Build the tiny main program" OFF)
+if(WATER_WATCHER_USE_SINGLE_INCLUDE)
+  set(WATER_WATCHER_INCLUDE_PATH "../../sinclude")
+else()
+  set(WATER_WATCHER_INCLUDE_PATH "../../include")
+endif()
+if(WATER_WATCHER_USE_TINY_MAIN)
+  set(WATER_WATCHER_CLI_SOURCE "../../src/tiny-main.cpp")
+else()
+  set(WATER_WATCHER_CLI_SOURCE "../../src/main.cpp")
+endif()
 
 # [system prerequisites]
 find_package(Threads REQUIRED)
 
 # [system configuration]
-set(LINK_LIBRARIES
+set(WATER_WATCHER_LINK_LIBRARIES
   "Threads::Threads")
 if(APPLE)
-  list(APPEND LINK_LIBRARIES
-    "-framework CoreFoundation" "-framework CoreServices")
+  list(APPEND WATER_WATCHER_LINK_LIBRARIES
+    "-framework CoreFoundation"
+    "-framework CoreServices")
 endif()
 
 #
 # Important parts here
 #
 
-# [target, esp. cli program]
+# [cli program]
 add_executable(${PROJECT_NAME}
-  ${CLI_SOURCE})
+  ${WATER_WATCHER_CLI_SOURCE})
 
 # [c++ standard]
 set_property(TARGET ${PROJECT_NAME} PROPERTY
   CXX_STANDARD 23)
 
-# [options, esp. sanitizers]
-target_compile_options(${PROJECT_NAME} PRIVATE
-  ${COMPILE_OPTIONS})
-target_link_options(${PROJECT_NAME} PRIVATE
-  ${LINK_OPTIONS})
-
 # [include path]
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${INCLUDE_PATH})
+  ${WATER_WATCHER_INCLUDE_PATH})
 
 # [system libraries]
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  ${LINK_LIBRARIES})
+  ${WATER_WATCHER_LINK_LIBRARIES})
 
-# [platform specifics]
 if(APPLE)
   set_property(TARGET ${PROJECT_NAME} PROPERTY
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.water.watcher")
