@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: |
           export CXX=$(which clang++)
-          rm -rf build/out && build/build
+          build/build
       - name: Test Runnable
         run: |
           build/out/this/release/water.watcher . -s 1

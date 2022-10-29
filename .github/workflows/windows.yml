@@ -36,15 +36,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        run: |
-          export CXX=$(which msvc)
-          rm -rf build/out && build/build
+        run: build/build
       - name: Test Runnable
         run: |
-          build/out/this/release/water.watcher . -s 1
-          build/out/this/debug/asan/water.watcher . -s 1
-          build/out/this/debug/msan/water.watcher . -s 1
-          build/out/this/debug/tsan/water.watcher . -s 1
-          build/out/this/debug/ubsan/water.watcher . -s 1
-          build/out/this/debug/stacksan/water.watcher . -s 1
-          build/out/this/debug/cfisan/water.watcher . -s 1
+          build/out/this/release/Release/water.watcher.exe . -s 1
+          build/out/this/debug/asan/Debug/water.watcher.exe . -s 1
+          build/out/this/debug/msan/Debug/water.watcher.exe . -s 1
+          build/out/this/debug/tsan/Debug/water.watcher.exe . -s 1
+          build/out/this/debug/ubsan/Debug/water.watcher.exe . -s 1
+          build/out/this/debug/stacksan/Debug/water.watcher.exe . -s 1
+          build/out/this/debug/cfisan/Debug/water.watcher.exe . -s 1

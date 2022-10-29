@@ -85,35 +85,50 @@ build::compdb() {
 }
 
 build::get_cmake_system_name_opt_for_platform() {
-  case "${1,,}" in
-    macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
-    windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
-    linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
-    android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
-    ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
-    *)       echo -n '';                                return;;
-  esac
+  if test -n "$1"
+  then
+    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+      macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
+      windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
+      linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
+      android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
+      ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
+      *)       echo -n '';                                return;;
+    esac
+  fi
 }
 
 build::get_cmake_generator_opt_for_platform() {
-  case "${1,,}" in
-    # We use Make for now because we want this
-    # to run in github actions without dependencies.
-    macos)   echo "-G 'Xcode'";          return;;
-    windows) echo "-G 'Unix Makefiles'"; return;;
-    linux)   echo "-G 'Unix Makefiles'"; return;;
-    android) echo "-G 'Unix Makefiles'"; return;;
-    ios)     echo "-G 'Xcode'";          return;;
-    *)       echo "-G 'Unix Makefiles'"; return;;
-  esac
+  if test -n "$1"
+  then
+    # we need to use `tr` here because the bash on
+    # some github runners reject the ${var,,} syntax
+    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+      # We use Make for now because we want this
+      # to run in github actions without dependencies.
+      macos)   echo "-G 'Xcode'";          return;;
+      windows) echo "-G 'Unix Makefiles'"; return;;
+      linux)   echo "-G 'Unix Makefiles'"; return;;
+      android) echo "-G 'Unix Makefiles'"; return;;
+      ios)     echo "-G 'Xcode'";          return;;
+      *)       echo "-G 'Unix Makefiles'"; return;;
+    esac
+  else
+    echo "-G 'Unix Makefiles'"
+  fi
 }
 
 build::get_config_name_for_build_type() {
-  case "${1,,}" in
-    release) echo 'Release'; return;;
-    debug)   echo 'Debug';   return;;
-    *)       echo 'Debug';   return;;
-  esac
+  if test -n "$1"
+  then
+    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+      release) echo 'Release'; return;;
+      debug)   echo 'Debug';   return;;
+      *)       echo 'Debug';   return;;
+    esac
+  else
+    echo 'Debug'
+  fi
 }
 
 build::build() {
@@ -150,6 +165,9 @@ build::build() {
     do
       mkdir -p "$OUT_DIR/debug/$S"
 
+      # we need to use `tr` here because the bash on
+      # some github runners reject the ${var^^} syntax
+
       # shellcheck disable=2116,2155
       local cmake_config_command=$(echo " \
         cmake \
@@ -159,7 +177,7 @@ build::build() {
         $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
         $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DUSE_${S^^}=ON")
+        -DUSE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
 
       echo "$cmake_config_command"
 
