@@ -43,8 +43,6 @@ ARTIFACTS=()
 
 test -n "$PLATFORM" \
   || PLATFORM='this'
-test -n "$BUILD_TYPE" \
-  || BUILD_TYPE='Release'
 test -n "$SOURCE_VARIANT" \
   || SOURCE_VARIANT='full'
 
