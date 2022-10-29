@@ -97,12 +97,14 @@ build::get_cmake_system_name_opt_for_platform() {
 
 build::get_cmake_generator_opt_for_platform() {
   case "${1,,}" in
-    macos)   echo "-G 'Xcode'"; return;;
-    windows) echo "-G 'Ninja'"; return;;
-    linux)   echo "-G 'Ninja'"; return;;
-    android) echo "-G 'Ninja'"; return;;
-    ios)     echo "-G 'Xcode'"; return;;
-    *)       echo "-G 'Ninja'"; return;;
+    # We use Make for now because we want this
+    # to run in github actions without dependencies.
+    macos)   echo "-G 'Xcode'";          return;;
+    windows) echo "-G 'Unix Makefiles'"; return;;
+    linux)   echo "-G 'Unix Makefiles'"; return;;
+    android) echo "-G 'Unix Makefiles'"; return;;
+    ios)     echo "-G 'Xcode'";          return;;
+    *)       echo "-G 'Unix Makefiles'"; return;;
   esac
 }
 
@@ -118,13 +120,13 @@ build::build() {
   local ok=0
   if ! echo $* | grep -q -- --no-release
   then
-    mkdir -p "$OUT_DIR"
+    mkdir -p "$OUT_DIR/release"
 
     local cmake_config_command=$(echo "
       cmake
       -Wno-dev
       -S '$PWD/in'
-      -B '$OUT_DIR'
+      -B '$OUT_DIR/release'
       $(build::get_cmake_generator_opt_for_platform $PLATFORM)
       $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
@@ -135,7 +137,7 @@ build::build() {
     ok=$((ok + $?))
 
     cmake \
-      --build "$OUT_DIR/$S" \
+      --build "$OUT_DIR/release" \
       --config Release
     ok=$((ok + $?))
   fi
@@ -144,13 +146,13 @@ build::build() {
   then
     for S in ${SANITIZERS[@]}
     do
-      mkdir -p "$OUT_DIR/$S"
+      mkdir -p "$OUT_DIR/debug/$S"
 
       local cmake_config_command=$(echo "
         cmake
         -Wno-dev
         -S '$PWD/in'
-        -B '$OUT_DIR/$S'
+        -B '$OUT_DIR/debug/$S'
         $(build::get_cmake_generator_opt_for_platform $PLATFORM)
         $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -162,7 +164,7 @@ build::build() {
       ok=$((ok + $?))
 
       cmake \
-        --build "$OUT_DIR/$S" \
+        --build "$OUT_DIR/debug/$S" \
         --config Debug
       ok=$((ok + $?))
     done
