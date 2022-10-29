@@ -215,8 +215,11 @@ build::show::artifacts() {
   echo " - $a"; done
 }
 
-build::write::new_artifacts() {
+build::write::current_artifacts() {
   this_out_dir="$OUT_DIR/artifacts.txt"
+
+  test -e "$this_out_dir" \
+    && rm -rf "$this_out_dir"
 
   for a in ${ARTIFACTS[@]}; do
   echo "$a" >> "$this_out_dir"; done
@@ -226,7 +229,7 @@ build::init::cc \
   && build::build "$@" \
   && build::compdb \
   && build::show::artifacts \
-  && build::write::new_artifacts
+  && build::write::current_artifacts
 
 EC=$?
 
