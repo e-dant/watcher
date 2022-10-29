@@ -37,6 +37,10 @@ SANITIZERS=(
   'cfisan'
 )
 
+# The `build::build` function will append to this list
+# whenever it produces an artifact.
+ARTIFACTS=()
+
 test -n "$PLATFORM" \
   || PLATFORM='this'
 test -n "$BUILD_TYPE" \
@@ -44,7 +48,8 @@ test -n "$BUILD_TYPE" \
 test -n "$SOURCE_VARIANT" \
   || SOURCE_VARIANT='full'
 
-OUT_DIR="$PWD/out/$PLATFORM"
+OUT_DIR="$PWD/out"
+OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
 
 build::init::cc() {
   local EC;
@@ -75,7 +80,7 @@ build::init::cc() {
 build::compdb() {
   if test "$SOURCE_VARIANT" != 'tiny'
   then
-    local FROM="$OUT_DIR/compile_commands.json"
+    local FROM="$OUT_PLATFORM_DIR/compile_commands.json"
     local TO='../'
     ln -sf "$FROM" "$TO"
     return $?
@@ -135,17 +140,20 @@ build::build() {
   local ok=0
   if ! echo "$*" | grep -q -- --no-release
   then
-    mkdir -p "$OUT_DIR/release"
+    this_out_dir="$OUT_PLATFORM_DIR/release"
+    this_artifact="$OUT_PLATFORM_DIR/release/water.watcher"
+
+    mkdir -p "$this_out_dir"
 
     # shellcheck disable=2116,2155
     local cmake_config_command=$(echo " \
       cmake \
-      -Wno-dev \
-      -S '$PWD/in' \
-      -B '$OUT_DIR/release' \
-      $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-      $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+        -Wno-dev \
+        -S '$PWD/in' \
+        -B '$this_out_dir' \
+        $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+        $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
     # echo "$cmake_config_command"
 
@@ -153,9 +161,10 @@ build::build() {
     ok=$((ok + $?))
 
     cmake \
-      --build "$OUT_DIR/release" \
+      --build "$this_out_dir" \
       --config Release \
-      -j8
+      -j8 \
+      && ARTIFACTS+=("$this_artifact")
     ok=$((ok + $?))
   fi
 
@@ -163,7 +172,10 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      mkdir -p "$OUT_DIR/debug/$S"
+      this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
+      this_artifact="$OUT_PLATFORM_DIR/debug/$S/water.watcher"
+
+      mkdir -p "$this_out_dir"
 
       # we need to use `tr` here because the bash on
       # some github runners reject the ${var^^} syntax
@@ -171,13 +183,13 @@ build::build() {
       # shellcheck disable=2116,2155
       local cmake_config_command=$(echo " \
         cmake \
-        -Wno-dev \
-        -S '$PWD/in' \
-        -B '$OUT_DIR/debug/$S' \
-        $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-        $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DUSE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
+          -Wno-dev \
+          -S '$PWD/in' \
+          -B '$this_out_dir' \
+          $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+          $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DUSE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
 
       # echo "$cmake_config_command"
 
@@ -185,9 +197,10 @@ build::build() {
       ok=$((ok + $?))
 
       cmake \
-        --build "$OUT_DIR/debug/$S" \
+        --build "$OUT_PLATFORM_DIR/debug/$S" \
         --config Debug \
-        -j8
+        -j8 \
+        && ARTIFACTS+=("$this_artifact")
       ok=$((ok + $?))
     done
   fi
@@ -195,13 +208,28 @@ build::build() {
   return $ok
 }
 
+build::show::artifacts() {
+  echo 'artifacts:'
+
+  for a in ${ARTIFACTS[@]}; do
+  echo " - $a"; done
+}
+
+build::write::new_artifacts() {
+  this_out_dir="$OUT_DIR/artifacts.txt"
+
+  for a in ${ARTIFACTS[@]}; do
+  echo "$a" >> "$this_out_dir"; done
+}
+
 build::init::cc \
   && build::build "$@" \
-  && build::compdb
+  && build::compdb \
+  && build::show::artifacts \
+  && build::write::new_artifacts
 
 EC=$?
+
 cd "$LAST_DIR" \
-  || exit $?
+  || exit 1
 exit $EC
-
-
