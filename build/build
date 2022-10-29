@@ -91,7 +91,7 @@ build::get_cmake_system_name_opt_for_platform() {
     linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
     android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
     ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
-    *)       echo '';                                   return;;
+    *)       echo -n '';                                return;;
   esac
 }
 
@@ -118,54 +118,58 @@ build::get_config_name_for_build_type() {
 
 build::build() {
   local ok=0
-  if ! echo $* | grep -q -- --no-release
+  if ! echo "$*" | grep -q -- --no-release
   then
     mkdir -p "$OUT_DIR/release"
 
-    local cmake_config_command=$(echo "
-      cmake
-      -Wno-dev
-      -S '$PWD/in'
-      -B '$OUT_DIR/release'
-      $(build::get_cmake_generator_opt_for_platform $PLATFORM)
-      $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
+    # shellcheck disable=2116,2155
+    local cmake_config_command=$(echo " \
+      cmake \
+      -Wno-dev \
+      -S '$PWD/in' \
+      -B '$OUT_DIR/release' \
+      $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+      $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
-    echo $cmake_config_command
+    echo "$cmake_config_command"
 
-    eval $cmake_config_command
+    eval "$cmake_config_command"
     ok=$((ok + $?))
 
     cmake \
       --build "$OUT_DIR/release" \
-      --config Release
+      --config Release \
+      -j8
     ok=$((ok + $?))
   fi
 
-  if ! echo $* | grep -q -- --no-debug
+  if ! echo "$*" | grep -q -- --no-debug
   then
-    for S in ${SANITIZERS[@]}
+    for S in "${SANITIZERS[@]}"
     do
       mkdir -p "$OUT_DIR/debug/$S"
 
-      local cmake_config_command=$(echo "
-        cmake
-        -Wno-dev
-        -S '$PWD/in'
-        -B '$OUT_DIR/debug/$S'
-        $(build::get_cmake_generator_opt_for_platform $PLATFORM)
-        $(build::get_cmake_system_name_opt_for_platform $PLATFORM)
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      # shellcheck disable=2116,2155
+      local cmake_config_command=$(echo " \
+        cmake \
+        -Wno-dev \
+        -S '$PWD/in' \
+        -B '$OUT_DIR/debug/$S' \
+        $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+        $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DUSE_${S^^}=ON")
 
-      echo $cmake_config_command
+      echo "$cmake_config_command"
 
-      eval $cmake_config_command
+      eval "$cmake_config_command"
       ok=$((ok + $?))
 
       cmake \
         --build "$OUT_DIR/debug/$S" \
-        --config Debug
+        --config Debug \
+        -j8
       ok=$((ok + $?))
     done
   fi
@@ -174,11 +178,12 @@ build::build() {
 }
 
 build::init::cc \
-  && build::build $@ \
+  && build::build "$@" \
   && build::compdb
 
 EC=$?
 cd "$LAST_DIR" \
   || exit $?
 exit $EC
+
 
