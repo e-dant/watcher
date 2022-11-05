@@ -179,6 +179,62 @@ build::get_config_name_for_build_type() {
   fi
 }
 
+build::check::sanitizer_allowed_for::macos() {
+  denylist=(
+    'msan'
+  )
+
+  if [[ "${denylist[*]}" =~ "$1" ]]
+  then return 1
+  else return 0
+  fi
+}
+
+build::check::sanitizer_allowed_for::windows() {
+  return 0
+}
+
+build::check::sanitizer_allowed_for::linux() {
+  denylist=(
+    'asan'
+  )
+
+  if [[ "${denylist[*]}" =~ "$1" ]]
+  then return 1
+  else return 0
+  fi
+}
+
+build::check::sanitizer_allowed_for::android() {
+  return 0
+}
+
+build::check::sanitizer_allowed_for::ios() {
+  denylist=(
+    'msan'
+  )
+
+  if [[ "${denylist[*]}" =~ "$1" ]]
+  then return 1
+  else return 0
+  fi
+}
+
+build::check::sanitizer_allowed_for::this() {
+  sanitizer_query="$1"
+
+  discerned_platform_raw="$(uname | tr '[:upper:]' '[:lower:]')"
+  if test $discerned_platform_raw = 'darwin'
+  then
+    discerned_platform='macos'
+  else
+    discerned_platform="$discerned_platform_raw"
+  fi
+
+  build::check::sanitizer_allowed_for::$discerned_platform "$sanitizer_query"
+  return $?
+}
+
 build::build() {
   local ok=0
   if ! echo "$*" | grep -q -- --no-build-release
@@ -215,36 +271,39 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
-      this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
+      if build::check::sanitizer_allowed_for::$PLATFORM "$S"
+      then
+        this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
+        this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
 
-      mkdir -p "$this_out_dir"
+        mkdir -p "$this_out_dir"
 
-      # we need to use `tr` here because the bash on
-      # some github runners reject the ${var^^} syntax
+        # we need to use `tr` here because the bash on
+        # some github runners reject the ${var^^} syntax
 
-      # shellcheck disable=2116,2155
-      local cmake_config_command=$(echo " \
+        # shellcheck disable=2116,2155
+        local cmake_config_command=$(echo " \
+          cmake \
+            -S '$PWD/in' \
+            -B '$this_out_dir' \
+            $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+            $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+            $(build::get_cmake_extra_for_platform $PLATFORM) \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
+
+        # echo "$cmake_config_command"
+
+        eval "$cmake_config_command"
+        ok=$((ok + $?))
+
         cmake \
-          -S '$PWD/in' \
-          -B '$this_out_dir' \
-          $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-          $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-          $(build::get_cmake_extra_for_platform $PLATFORM) \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
-
-      # echo "$cmake_config_command"
-
-      eval "$cmake_config_command"
-      ok=$((ok + $?))
-
-      cmake \
-        --build "$this_out_dir" \
-        --config Debug \
-        -j8 \
-        && ARTIFACTS+=("$this_artifact")
-      ok=$((ok + $?))
+          --build "$this_out_dir" \
+          --config Debug \
+          -j8 \
+          && ARTIFACTS+=("$this_artifact")
+        ok=$((ok + $?))
+      fi
     done
   fi
 
@@ -252,41 +311,44 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      this_out_dir="$OUT_PLATFORM_DIR/test/$S"
+      if build::check::sanitizer_allowed_for::$PLATFORM "$S"
+      then
+        this_out_dir="$OUT_PLATFORM_DIR/test/$S"
 
-      mkdir -p "$this_out_dir"
+        mkdir -p "$this_out_dir"
 
-      # we need to use `tr` here because the bash on
-      # some github runners reject the ${var^^} syntax
+        # we need to use `tr` here because the bash on
+        # some github runners reject the ${var^^} syntax
 
-      # shellcheck disable=2116,2155
-      local cmake_config_command=$(echo " \
-        cmake \
-          -S '$PWD/in' \
-          -B '$this_out_dir' \
-          $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-          $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-          $(build::get_cmake_extra_for_platform $PLATFORM) \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON \
-          -DWTR_WATCHER_USE_TEST=ON")
+        # shellcheck disable=2116,2155
+        local cmake_config_command=$(echo " \
+          cmake \
+            -S '$PWD/in' \
+            -B '$this_out_dir' \
+            $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+            $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+            $(build::get_cmake_extra_for_platform $PLATFORM) \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON \
+            -DWTR_WATCHER_USE_TEST=ON")
 
-      # echo "$cmake_config_command"
+        # echo "$cmake_config_command"
 
-      eval "$cmake_config_command"
-      ok=$((ok + $?))
-
-      for TEST in "${TESTS[@]}"
-      do
-        this_artifact="$OUT_PLATFORM_DIR/debug/$S/$TEST.wtr.watcher"
-        cmake \
-          --build "$this_out_dir" \
-          --config Debug \
-          -j8 \
-          --target "$TEST.wtr.watcher" \
-          && ARTIFACTS+=("$this_artifact")
+        eval "$cmake_config_command"
         ok=$((ok + $?))
-      done
+
+        for TEST in "${TESTS[@]}"
+        do
+          this_artifact="$OUT_PLATFORM_DIR/debug/$S/$TEST.wtr.watcher"
+          cmake \
+            --build "$this_out_dir" \
+            --config Debug \
+            -j8 \
+            --target "$TEST.wtr.watcher" \
+            && ARTIFACTS+=("$this_artifact")
+          ok=$((ok + $?))
+        done
+      fi
     done
   fi
 
