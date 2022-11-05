@@ -52,7 +52,7 @@ jobs:
             ${{github.workspace}}/build/out
           key: ${{runner.os}}-codeql-dependencies
 
-      - name: Build
+      - name: Setup CodeQL
         uses: github/codeql-action/init@v1
         with:
           languages: ${{matrix.language}}
@@ -60,6 +60,8 @@ jobs:
           # By default, queries listed here will override any specified in a config file.
           # Prefix the list here with "+" to use these queries and those in the config file.
           # queries: ./path/to/local/query, your-org/your-repo/queries@main
+
+      - name: Build
         run: |
           cmake -S build/in -B build/out/this/codeql -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DENABLE_DEVELOPER_MODE:BOOL=${{matrix.developer_mode}} -DOPT_ENABLE_COVERAGE:BOOL=${{matrix.build_type == 'Debug'}}
           cmake --build build/out/this/codeql --config ${{matrix.build_type}}
