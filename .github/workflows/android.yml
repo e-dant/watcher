@@ -31,51 +31,46 @@ jobs:
           - OFF
 
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci android]')"
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r25b
-          add-to-path: false
-          local-cache: true
-
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: ${{ matrix.compiler }}
-          vcvarsall: ${{ contains(matrix.os, 'windows' )}}
-          cmake: true
-          ccache: true
-          ninja: false
-          conan: false
-          vcpkg: false
-          gcovr: false
-          cppcheck: false
-          clangtidy: false
-          opencppcoverage: false
 
       - name: Cache
         uses: actions/cache@v3
         id: cache
         with:
           path: |
-            ${{ github.workspace }}/${{ matrix.install_location }}
-            ${{ github.workspace }}/build
-          key: ${{ runner.os }}-dependencies
+            ${{github.workspace}}/${{matrix.install_location}}
+            ${{github.workspace}}/build/out
+            ${{github.workspace}}/cmake
+          key: ${{runner.os}}-dependencies
 
-      #- name: Configure
-      #  env:
-      #    ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      #  run: cmake -S build/in -B build/out -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" -DCMAKE_SYSTEM_NAME='Android' -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
-      #- name: Build
-      #  run: cmake --build build/out --config ${{ matrix.build_type }} -j4
-      
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
+          # Always add to path. Otherwise,
+          # the wrong standard headers are found.
+          add-to-path: true
+          local-cache: true
+
+      #- name: Setup Cpp
+      #  uses: aminya/setup-cpp@v1
+      #  with:
+      #    compiler: ${{matrix.compiler}}
+      #    vcvarsall: ${{contains(matrix.os, 'windows')}}
+      #    cmake: true
+      #    ccache: false
+      #    ninja: true
+      #    conan: false
+      #    vcpkg: false
+      #    gcovr: false
+      #    cppcheck: false
+      #    clangtidy: false
+      #    opencppcoverage: false
+
       - name: Build and Test
         run: |
           build/build android --no-build-debug
           build/out/android/release/wtr.watcher . -s 1
-

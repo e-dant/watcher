@@ -2,18 +2,23 @@
 include(FetchContent)
 include(GNUInstallDirs)
 
-# [options: defaults: sources and extras]
+# [options: defaults: sources and prerequisites]
 set(SOURCES "../../src/watcher/main.cpp")
 set(INCLUDE_PATH)
 set(COMPILE_OPTIONS)
 set(LINK_OPTIONS)
-set(LINK_LIBRARIES "Threads::Threads")
+
+# Android's stdlib ("bionic") comes with threads.h and pthread.h
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+  set(LINK_LIBRARIES)
+else()
+  find_package(Threads REQUIRED)
+  set(LINK_LIBRARIES "Threads::Threads")
+endif()
+
 if(APPLE)
   list(APPEND LINK_LIBRARIES "-framework CoreFoundation" "-framework CoreServices")
 endif()
-
-# [options: defaults: system prerequisites]
-find_package(Threads REQUIRED)
 
 # [options: parsing]
 option(WTR_WATCHER_USE_RELEASE        "Build with all optimizations"                ON)

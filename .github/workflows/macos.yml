@@ -31,10 +31,20 @@ jobs:
           - OFF
 
     runs-on: macos-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci macos]')"
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            ${{github.workspace}}/${{matrix.install_location}}
+            ${{github.workspace}}/build/out
+          key: ${{runner.os}}-dependencies
+
       - name: Build and Test
         run: |
           export CXX=$(which clang++)

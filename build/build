@@ -155,6 +155,17 @@ build::get_cmake_generator_opt_for_platform() {
   fi
 }
 
+build::get_cmake_extra_for_platform() {
+  if test -n "$1"
+  then
+    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+      android)
+        echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'"
+        return;;
+    esac
+  fi
+}
+
 build::get_config_name_for_build_type() {
   if test -n "$1"
   then
@@ -184,6 +195,7 @@ build::build() {
         -B '$this_out_dir' \
         $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
         $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+        $(build::get_cmake_extra_for_platform $PLATFORM) \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
     # echo "$cmake_config_command"
@@ -218,6 +230,7 @@ build::build() {
           -B '$this_out_dir' \
           $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
           $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+          $(build::get_cmake_extra_for_platform $PLATFORM) \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
           -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
 
@@ -253,6 +266,7 @@ build::build() {
           -B '$this_out_dir' \
           $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
           $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+          $(build::get_cmake_extra_for_platform $PLATFORM) \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
           -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON \
           -DWTR_WATCHER_USE_TEST=ON")
