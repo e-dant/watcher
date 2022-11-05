@@ -60,11 +60,13 @@ jobs:
             ${{ github.workspace }}/build
           key: ${{ runner.os }}-dependencies
 
-      - name: Configure
-        run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      #- name: Configure
+      #  run: cmake -S build/in -B build/out -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      #- name: Build
+      #  run: cmake --build build/out --config ${{ matrix.build_type }} -j4
 
       - name: Build
-        run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+        run: build/build
 
       - name: Test Runnable
-        run: build/out/Release/water.watcher.exe . -s 1
+        run: build/out/Release/wtr.watcher.exe . -s 1

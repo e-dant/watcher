@@ -13,10 +13,10 @@ Write:
 ```cpp
 /* tiny-main.cpp */
 #include <iostream>
-#include "../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
+#include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
 
 int main(int argc, char** argv) {
-  using namespace water::watcher;
+  using namespace wtr::watcher;
   return watch(argc > 1 ? argv[1] : ".", [](const event::event& this_event) {
     std::cout << this_event << ',' << std::endl;
   });
@@ -26,17 +26,15 @@ int main(int argc, char** argv) {
 Compile & Run:
 
 ```sh
-# Step 1: Big long path. What can you do.
+# Platform specifics. Big long path. What can you do.
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin \
   && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 
-# Step 2: Make the thing.
-eval c++ -std=c++2a -O3 src/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
+# Build
+eval c++ -std=c++2a -O3 src/watcher/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
 
-# Step 3: Run the thing.
+# Run
 ./watcher
-
-# Alternatively: build/build this release tiny
 ```
 
 Enjoy!
@@ -55,25 +53,23 @@ An arbitrary filesystem event watcher which is:
 even when scanning thousands of paths, this library
 uses a near-zero amount of resources. *[1]*
 
-If you don't want to use it in another project,
-don't worry. It comes with one. Just build and
-run and you've got yourself a filesystem watcher
-which prints filesystem events as JSON, which is
-pretty cool.
+*Watcher* is both a library and a program. So,
+if you don't want to use it in another project,
+don't worry. Just build and run and you've got
+yourself a filesystem watcher which prints filesystem
+events as JSON. Neat.
 
-You could, for example, run this program, await events,
-and filter through the noise:
+Here's how to do that:
 
 ```bash
 # get
 git clone https://github.com/e-dant/watcher.git && cd watcher
 
-# build
-cmake -S build/in -B build/out && cmake --build build/out --config Release
-# or, from with the "water" project: `tell build`
+# build (quickly)
+build/build this --no-build-debug --no-build-test --no-run-test
 
 # use
-build/out/water.watcher | grep -oE 'needle-in-a-haystack/.+"'
+build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 ```
 
 *Watcher* is trivially easy to use, include,
@@ -98,7 +94,7 @@ Copy the `include` or `sinclude` (for the single header)
 into your project. Include as:
 
 ```cpp
-#include <water/watcher.hpp>
+#include <watcher/watcher.hpp>
 ```
 
 After that, there are two things the user needs:
@@ -193,11 +189,11 @@ A `main` program suitable for this task:
 /* std::make_tuple,
    std::tuple */
 #include <tuple>
-/* water::watcher::event::event,
-   water::watcher::event::what,
-   water::watcher::event::kind,
-   water::watcher::watch,
-   water::watcher::die */
+/* wtr::watcher::event::event,
+   wtr::watcher::event::what,
+   wtr::watcher::event::kind,
+   wtr::watcher::watch,
+   wtr::watcher::die */
 #include <watcher/watcher.hpp>
 
 namespace helpful_literals {
@@ -205,8 +201,8 @@ using std::this_thread::sleep_for, std::chrono::milliseconds,
     std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
     std::chrono::days, std::boolalpha, std::stoull, std::thread, std::cout,
     std::endl;
-using namespace water;                 /* watch, die */
-using namespace water::watcher::event; /* event, what, kind */
+using namespace wtr;                 /* watch, die */
+using namespace wtr::watcher::event; /* event, what, kind */
 } /* namespace helpful_literals */
 
 /* Watch a path for some time.
@@ -255,7 +251,7 @@ int main(int argc, char** argv) {
 
   auto const watch_expire = [&path_to_watch = path_to_watch, &show_event_json,
                              &time_until_death = time_until_death]() -> bool {
-    cout << R"({"water.watcher":{"stream":{)" << endl;
+    cout << R"({"wtr.watcher":{"stream":{)" << endl;
 
     /* Watch on some other thread */
     thread([&]() { watcher::watch(path_to_watch, show_event_json); }).detach();
@@ -299,36 +295,35 @@ kind of thing.
 
 ### As A CLI Program
 
-#### Tell
+#### `build` Script
 
 ```sh
-cd water/water/watcher
-`tell build`
-# watches the current directory
-`tell run`
-# watches some path
-# `tell run` your/favorite/path
-# or, to do all of the above:
-# `tell bun` your/favorite/path
+build/build
+cd build/out/this/release
+
+# watches the current directory forever
+./wtr.watcher
+# watches some path for 10 seconds
+./wtr.watcher 'your/favorite/path' -s 10
 ```
 
 This will take care of:
   - Building a compiler if one is not found
   - Linking the `compile_commands.json` file
     to this project's root
-  - Actually building the project
+  - Building the project's debug and release variants
 
 #### CMake
 
 ```sh
-cd water/water/watcher/build
-cmake -S 'in' -B 'out' -G 'Ninja' -Wno-dev
-cmake --build out --config Release
-cd out
-# watches the current directory
-./water.watcher
-# watches some path
-# ./water.watcher 'your/favorite/path'
+cmake -S build/in -B build/out
+cmake --build build/out --config Release
+cd build/out
+
+# watches the current directory forever
+./wtr.watcher
+# watches some path for 10 seconds
+./wtr.watcher 'your/favorite/path' -s 10
 ```
 
 ## Notes

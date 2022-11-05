@@ -35,16 +35,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Build
+      - name: Build and Test
         run: |
           export CXX=$(which clang++)
-          build/build
-      - name: Test Runnable
-        run: |
-          build/out/this/release/water.watcher . -s 1
-          build/out/this/debug/asan/water.watcher . -s 1
-          build/out/this/debug/msan/water.watcher . -s 1
-          build/out/this/debug/tsan/water.watcher . -s 1
-          build/out/this/debug/ubsan/water.watcher . -s 1
-          build/out/this/debug/stacksan/water.watcher . -s 1
-          build/out/this/debug/cfisan/water.watcher . -s 1
+          build/build this --no-build-debug
+          build/out/this/release/wtr.watcher . -s 1
+

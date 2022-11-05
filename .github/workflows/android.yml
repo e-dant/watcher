@@ -67,13 +67,15 @@ jobs:
             ${{ github.workspace }}/build
           key: ${{ runner.os }}-dependencies
 
-      - name: Configure
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: cmake -S build/in -B build/out -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" -DCMAKE_SYSTEM_NAME='Android' -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      #- name: Configure
+      #  env:
+      #    ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+      #  run: cmake -S build/in -B build/out -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_ANDROID_NDK="$ANDROID_NDK_HOME" -DCMAKE_SYSTEM_NAME='Android' -DCMAKE_CXX_COMPILER="$(which ${{matrix.compiler_cxx_short_name}})" -DCMAKE_C_COMPILER="$(which ${{matrix.compiler_c_short_name}})" -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION
+      #- name: Build
+      #  run: cmake --build build/out --config ${{ matrix.build_type }} -j4
+      
+      - name: Build and Test
+        run: |
+          build/build android --no-build-debug
+          build/out/android/release/wtr.watcher . -s 1
 
-      - name: Build
-        run: cmake --build build/out --config ${{ matrix.build_type }} -j4
-
-      - name: Test Runnable
-        run: build/out/water.watcher . -s 1
