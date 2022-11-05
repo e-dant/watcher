@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-WATCHER_PID=$(pgrep water.watcher || echo false)
+WATCHER_PID=$(pgrep wtr.watcher || echo false)
 test "$WATCHER_PID" = false && {
   echo 'watcher not running.'; exit 1; }
 

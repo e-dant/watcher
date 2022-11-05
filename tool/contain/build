@@ -20,7 +20,9 @@ watcher::build() {
       cd "$1"
       CONTAINER_NAME="watcher-$1"
 
-      docker build -t "$CONTAINER_NAME" .
+      DOCKERFILE_DIR="$PWD"
+      cd ../..
+      docker build -t "$CONTAINER_NAME" -f "$DOCKERFILE_DIR/Dockerfile" .
       RET_VAL=$((RET_VAL + $?))
 
       docker run -itd "$CONTAINER_NAME" | tee .container_id

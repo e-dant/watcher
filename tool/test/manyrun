@@ -11,9 +11,9 @@ fi
 
 for i in $(seq 0 $SEQ_COUNT)
 do
-  if ! water.watcher . -ms 1
+  if ! wtr.watcher . -ms 1
   then
-    echo "i = $i" >> /tmp/water.watcher.fails
+    echo "i = $i" >> /tmp/wtr.watcher.fails
     EXIT_VAL=$((EXIT_VAL + 1))
   fi
 done

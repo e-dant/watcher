@@ -2,11 +2,11 @@
 
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/../.."
-(build/out/water.watcher . -s 3) &
+(build/out/wtr.watcher . -s 3) &
 (tool/test/file) &
 sleep 5
-if $(pgrep water.watcher); then
-killall water.watcher; fi
+if $(pgrep wtr.watcher); then
+killall wtr.watcher; fi
 kill $(pgrep bash)
-ls -al build/out/water.watcher
+ls -al build/out/wtr.watcher
 cd "$LAST_DIR"
