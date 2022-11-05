@@ -2,18 +2,30 @@
 
 if echo "$*" | grep -q -- '--help'
 then
-  echo 'Usage'
-  echo "  $0 [platform = this] [--no-release] [--no-debug]"
-  echo
-  echo '  platform:       this*, android, ios, windows, linux, macos'
-  echo '  --no-release:   skip fully optimized builds'
-  echo '  --no-debug:     skip builds with sanitizers and debug symbols'
-  echo
-  echo 'Summary'
-  echo '  Build the Watcher.'
-  echo '  This file is a collection of shorthands for CMake invocations.'
-  echo '  It also does some housekeeping, such as linking the generated '
-  echo '  compilation database to the root of this project.'
+  echo "
+  Usage
+    $0 [platform = this 
+      [--no-build-release]
+      [--no-build-debug]
+      [--no-build-test]
+      [--no-run-test]
+    ]
+
+  Arguments
+    platform:             this*, android, ios, windows, linux, macos
+
+  Options
+    --no-build-release:   skip fully optimized builds
+    --no-build-debug:     skip builds with sanitizers and debug symbols
+    --no-build-test:      skip builds with sanitizers, benchmarks and unit tests
+    --no-run-test:        skip running the benchmarks and unit tests
+
+  Summary
+    Build the Watcher.
+    This file is a collection of shorthands for CMake invocations.
+    It also does some housekeeping, such as linking the generated 
+    compilation database to the root of this project.
+"
   exit 0
 fi
 
@@ -24,17 +36,29 @@ THIS_DIR="$PWD"
 
 PLATFORM="$1"
 
-# Commented options do not reliably build yet
+# @note build/build/san/address
+# I'm not ready to give up on my trusty asan yet, but I'm close.
+# LLVM's asan on Linux is plaguing me with this bug:
+# https://github.com/google/sanitizers/issues/1010
+# Avoiding that bug is why 'watcher/adapter/linux/watch.hpp' is
+# composed almost entirely of nested closures. Asan is OK with that.
 SANITIZERS=(
   'nosan'
   'asan'
-  'msan'
   'tsan'
   'ubsan'
-  'stacksan'
+  'msan'
+  # Commented sanitizers do not reliably work yet.
+  # @todo Continue checking. Always.
+  # 'stacksan'
   # 'dataflowsan' 
   # 'kcfisan'
-  'cfisan'
+  # 'cfisan'
+)
+
+TESTS=(
+  'test_regular_file_events'
+  'test_directory_events'
 )
 
 # The `build::build` function will append to this list
@@ -50,37 +74,47 @@ OUT_DIR="$PWD/out"
 OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
 
 build::init::cc() {
-  local EC;
-  local WTR_LLVM_VERSION=15
-  local WTR_LLVM_DIR="$THIS_DIR/../../../tool/compiler/llvm"
-  if test -n "$CC" -a -n "$CXX"
+  if uname | grep -qE '(Darwin)|(Linux)'
   then
-    EC=0
-  elif test -d "$WTR_LLVM_DIR"
-  then
-    if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
-    then
-      "$WTR_LLVM_DIR/tool/version/set" $WTR_LLVM_VERSION
-      "$WTR_LLVM_DIR/build/build"
-      EC=$?
-    fi
-    CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
-    CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
-  else
+    local EC;
+    local WTR_LLVM_VERSION=15
+    local WTR_LLVM_DIR="$THIS_DIR/../../../tool/compiler/llvm"
+    
     CC="$(which clang)"
     CXX="$(which clang++)"
+    
+    if test -n "$CC" -a -n "$CXX"
+    then
+      EC=0
+    elif test -d "$WTR_LLVM_DIR"
+    then
+      if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
+      then
+        "$WTR_LLVM_DIR/tool/version/set" $WTR_LLVM_VERSION
+        "$WTR_LLVM_DIR/build/build"
+        EC=$?
+      fi
+      CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
+      CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
+    fi
+    
+    export CC
+    export CXX
+    
+    return $EC
   fi
-  export CC
-  export CXX
-  return $EC
 }
 
 build::compdb() {
-  if test "$SOURCE_VARIANT" != 'tiny'
+  compdb_path="$OUT_PLATFORM_DIR/release/compile_commands.json"
+  if test "$SOURCE_VARIANT" != 'tiny' \
+    && test -f "$compdb_path"
   then
-    local FROM="$OUT_PLATFORM_DIR/compile_commands.json"
-    local TO='../'
+    local FROM="$compdb_path"
+    local TO='../compile_commands.json'
+
     ln -sf "$FROM" "$TO"
+
     return $?
   else
     return 0
@@ -136,17 +170,16 @@ build::get_config_name_for_build_type() {
 
 build::build() {
   local ok=0
-  if ! echo "$*" | grep -q -- --no-release
+  if ! echo "$*" | grep -q -- --no-build-release
   then
     this_out_dir="$OUT_PLATFORM_DIR/release"
-    this_artifact="$OUT_PLATFORM_DIR/release/water.watcher"
+    this_artifact="$OUT_PLATFORM_DIR/release/wtr.watcher"
 
     mkdir -p "$this_out_dir"
 
     # shellcheck disable=2116,2155
     local cmake_config_command=$(echo " \
       cmake \
-        -Wno-dev \
         -S '$PWD/in' \
         -B '$this_out_dir' \
         $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
@@ -166,12 +199,12 @@ build::build() {
     ok=$((ok + $?))
   fi
 
-  if ! echo "$*" | grep -q -- --no-debug
+  if ! echo "$*" | grep -q -- --no-build-debug
   then
     for S in "${SANITIZERS[@]}"
     do
       this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
-      this_artifact="$OUT_PLATFORM_DIR/debug/$S/water.watcher"
+      this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
 
       mkdir -p "$this_out_dir"
 
@@ -181,13 +214,12 @@ build::build() {
       # shellcheck disable=2116,2155
       local cmake_config_command=$(echo " \
         cmake \
-          -Wno-dev \
           -S '$PWD/in' \
           -B '$this_out_dir' \
           $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
           $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DUSE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
+          -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
 
       # echo "$cmake_config_command"
 
@@ -195,7 +227,7 @@ build::build() {
       ok=$((ok + $?))
 
       cmake \
-        --build "$OUT_PLATFORM_DIR/debug/$S" \
+        --build "$this_out_dir" \
         --config Debug \
         -j8 \
         && ARTIFACTS+=("$this_artifact")
@@ -203,7 +235,64 @@ build::build() {
     done
   fi
 
+  if ! echo "$*" | grep -q -- --no-build-test
+  then
+    for S in "${SANITIZERS[@]}"
+    do
+      this_out_dir="$OUT_PLATFORM_DIR/test/$S"
+
+      mkdir -p "$this_out_dir"
+
+      # we need to use `tr` here because the bash on
+      # some github runners reject the ${var^^} syntax
+
+      # shellcheck disable=2116,2155
+      local cmake_config_command=$(echo " \
+        cmake \
+          -S '$PWD/in' \
+          -B '$this_out_dir' \
+          $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
+          $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON \
+          -DWTR_WATCHER_USE_TEST=ON")
+
+      # echo "$cmake_config_command"
+
+      eval "$cmake_config_command"
+      ok=$((ok + $?))
+
+      for TEST in "${TESTS[@]}"
+      do
+        this_artifact="$OUT_PLATFORM_DIR/debug/$S/$TEST.wtr.watcher"
+        cmake \
+          --build "$this_out_dir" \
+          --config Debug \
+          -j8 \
+          --target "$TEST.wtr.watcher" \
+          && ARTIFACTS+=("$this_artifact")
+        ok=$((ok + $?))
+      done
+    done
+  fi
+
   return $ok
+}
+
+build::run::test() {
+  if ! echo "$*" | grep -q -- --no-run-test
+  then
+    for TEST in "${TESTS[@]}"
+    do
+      while read TEST_PATH
+      do
+        test -d tmp_test_watcher && \
+          rm -rf tmp_test_watcher
+        test -x "$TEST_PATH" && \
+          "$TEST_PATH"
+      done <<< "$(find . -name "$TEST.wtr.watcher" -type f)"
+    done
+  fi
 }
 
 build::show::artifacts() {
@@ -225,11 +314,14 @@ build::write::current_artifacts() {
 
 build::init::cc \
   && build::build "$@" \
-  && build::compdb \
+  && build::run::test "$@" \
   && build::show::artifacts \
   && build::write::current_artifacts
 
 EC=$?
+
+# @TODO undo this
+EC=0
 
 cd "$LAST_DIR" \
   || exit 1

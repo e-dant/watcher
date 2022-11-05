@@ -1,109 +1,87 @@
-# [options]
-option(USE_SINGLE_INCLUDE
-  "Build with a single header" OFF)
-option(USE_TINY_MAIN
-  "Build the tiny main program" OFF)
-option(USE_NOSAN
-  "This option does nothing" OFF)
-option(USE_ASAN
-  "Build with the address sanitizer" OFF)
-option(USE_MSAN
-  "Build with the memory sanitizer" OFF)
-option(USE_TSAN
-  "Build with the thread sanitizer" OFF)
-option(USE_UBSAN
-  "Build with the undefined behavior sanitizer" OFF)
-option(USE_STACKSAN
-  "Build with the stack safety sanitizer" OFF)
-option(USE_DATAFLOWSAN
-  "Build with the data flow sanitizer" OFF)
-option(USE_CFISAN
-  "Build with the data flow sanitizer" OFF)
-option(USE_KCFISAN
-  "Build with the data flow sanitizer" OFF)
-if(USE_SINGLE_INCLUDE)
-  set(INCLUDE_PATH
-    "../../sinclude")
-else()
-  set(INCLUDE_PATH
-    "../../include")
+# [options: defaults: includes]
+include(FetchContent)
+include(GNUInstallDirs)
+
+# [options: defaults: sources and extras]
+set(SOURCES "../../src/watcher/main.cpp")
+set(INCLUDE_PATH)
+set(COMPILE_OPTIONS)
+set(LINK_OPTIONS)
+set(LINK_LIBRARIES "Threads::Threads")
+if(APPLE)
+  list(APPEND LINK_LIBRARIES "-framework CoreFoundation" "-framework CoreServices")
 endif()
-if(USE_TINY_MAIN)
-  set(CLI_SOURCE
-    "../../src/tiny-main.cpp")
+
+# [options: defaults: system prerequisites]
+find_package(Threads REQUIRED)
+
+# [options: parsing]
+option(WTR_WATCHER_USE_RELEASE        "Build with all optimizations"                ON)
+option(WTR_WATCHER_USE_SINGLE_INCLUDE "Build with a single header"                  OFF)
+option(WTR_WATCHER_USE_TINY_MAIN      "Build the tiny main program"                 OFF)
+option(WTR_WATCHER_USE_TEST           "Build the test programs"                     OFF)
+option(WTR_WATCHER_USE_NOSAN          "This option does nothing"                    OFF)
+option(WTR_WATCHER_USE_ASAN           "Build with the address sanitizer"            OFF)
+option(WTR_WATCHER_USE_MSAN           "Build with the memory sanitizer"             OFF)
+option(WTR_WATCHER_USE_TSAN           "Build with the thread sanitizer"             OFF)
+option(WTR_WATCHER_USE_UBSAN          "Build with the undefined behavior sanitizer" OFF)
+option(WTR_WATCHER_USE_STACKSAN       "Build with the stack safety sanitizer"       OFF)
+option(WTR_WATCHER_USE_DATAFLOWSAN    "Build with the data flow sanitizer"          OFF)
+option(WTR_WATCHER_USE_CFISAN         "Build with the cfi sanitizer"                OFF)
+option(WTR_WATCHER_USE_KCFISAN        "Build with the kernel cfi sanitizer"         OFF)
+
+# [options: meaning: include]
+if(WTR_WATCHER_USE_SINGLE_INCLUDE)
+  list(APPEND INCLUDE_PATH    "../../sinclude")
 else()
-  set(CLI_SOURCE
-    "../../src/main.cpp")
+  list(APPEND INCLUDE_PATH    "../../include")
 endif()
-if(USE_ASAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=address")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=address")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+
+# [options: meaning: source]
+if(WTR_WATCHER_USE_TINY_MAIN)
+  set(SOURCES                 "../../src/watcher/tiny-main.cpp")
 endif()
-if(USE_MSAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=memory")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=memory")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+
+# [options: meaning: sanitizer]
+if(WTR_WATCHER_USE_ASAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=address")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=address")
 endif()
-if(USE_TSAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=thread")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=thread")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_MSAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=memory")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=memory")
 endif()
-if(USE_UBSAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=undefined")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=undefined")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_TSAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=thread")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=thread")
 endif()
-if(USE_STACKSAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=safe-stack")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=safe-stack")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_UBSAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=undefined")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=undefined")
 endif()
-if(USE_DATAFLOWSAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=dataflow")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=dataflow")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_STACKSAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=safe-stack")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=safe-stack")
 endif()
-if(USE_CFISAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=cfi")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=cfi")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_DATAFLOWSAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=dataflow")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=dataflow")
 endif()
-if(USE_KCFISAN)
-  list(APPEND COMPILE_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=kcfi")
-  list(APPEND LINK_OPTIONS
-    "-fno-omit-frame-pointer" "-fsanitize=kcfi")
-else()
-  set(COMPILE_OPTIONS)
-  set(LINK_OPTIONS)
+if(WTR_WATCHER_USE_CFISAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=cfi")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=cfi")
+endif()
+if(WTR_WATCHER_USE_KCFISAN)
+  list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=kcfi")
+  list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=kcfi")
+endif()
+
+# [options: meaning: test]
+if(WTR_WATCHER_USE_TEST)
+  set(TEST_REGULAR_FILE_EVENTS_SOURCES "../../src/test_watcher/test_regular_file_events/main.cpp")
+  set(TEST_DIRECTORY_EVENTS_SOURCES    "../../src/test_watcher/test_directory_events/main.cpp")
+  set(TEST_LINK_LIBRARIES              "${LINK_LIBRARIES}" "Catch2::Catch2WithMain")
+  set(TEST_COMPILE_OPTIONS             "${COMPILE_OPTIONS}")
+  set(TEST_LINK_OPTIONS                "${LINK_OPTIONS}")
+  set(TEST_INCLUDE_PATH                "${INCLUDE_PATH}")
 endif()
