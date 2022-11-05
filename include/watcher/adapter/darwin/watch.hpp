@@ -13,15 +13,17 @@
 #include <CoreServices/CoreServices.h>
 #include <array>
 #include <chrono>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <thread>
 #include <vector>
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
@@ -41,35 +43,35 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
 
     /* path information, i.e. whether the path is a file, directory, etc.
-       we can get this info much more easily later on in `water/watcher/event`. */
-    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),      */
-    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),     */
-    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link), */
-    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),*/
-    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),*/
+       we can get this info much more easily later on in `wtr/watcher/event`. */
+    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),       */
+    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),      */
+    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),  */
+    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link), */
+    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link), */
 
     /* path attribute events, such as the owner and some xattr data.
        will be worthwhile soon to implement these.
        @todo(next weekend) this. */
     flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
-    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
-    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
+    /* flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other), */
 
     /* some edge-cases which may be interesting later on. */
-    flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
-    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
-    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
-    flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
+    /* flag_pair(kFSEventStreamEventFlagNone,               event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagMount,              event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other), */
+    /* flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other), */
 };
 /* clang-format on */
 
@@ -161,7 +163,7 @@ static bool watch(const char* path, event::callback const& callback)
             };
             for (auto const& flag_it : decode_flags(os_event_flags[i]))
               if (translated_path != nullptr)
-                callback_hook(water::watcher::event::event{
+                callback_hook(wtr::watcher::event::event{
                     translated_path, flag_it, discern_kind(translated_path)});
           }
         };
@@ -185,9 +187,13 @@ static bool watch(const char* path, event::callback const& callback)
 
   auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
 
+  /* this should be the mersenne twister */
+  auto const event_queue_name
+      = ("wtr.watcher.event_queue." + std::to_string(std::rand()));
+
   /* request a high priority queue */
   auto const event_queue = dispatch_queue_create(
-      "water.watcher.event_queue",
+      event_queue_name.c_str(),
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
 
@@ -200,7 +206,7 @@ static bool watch(const char* path, event::callback const& callback)
 
   /* Should the dying callback be here? */
   /*
-    callback(water::watcher::event::event
+    callback(wtr::watcher::event::event
       {"", event::what::destroy, event::kind::watcher});
   */
   return dead_os_ev_queue(event_stream, event_queue);
@@ -247,6 +253,6 @@ from `fswatch`, could be used:
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
-} /* namespace water   */
+} /* namespace wtr   */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */

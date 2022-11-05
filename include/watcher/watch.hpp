@@ -3,7 +3,7 @@
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 
 /* @brief watcher/watch
@@ -31,8 +31,9 @@ namespace watcher {
    Happy hacking. */
 static bool watch(const char* path, event::callback const& living_cb)
 {
-  return detail::adapter::can_watch() ? detail::adapter::watch(path, living_cb)
-                                      : false;
+  return detail::adapter::make_living()
+             ? detail::adapter::watch(path, living_cb)
+             : false;
 }
 
 /* @brief watcher/die
@@ -56,4 +57,4 @@ static bool die(event::callback const& callback)
 }
 
 } /* namespace watcher */
-} /* namespace water   */
+} /* namespace wtr   */

@@ -4,5 +4,5 @@ echo watcher
 - given build
 echo ../build/build
 - given run
-echo ../build/out/water.watcher
+echo ../build/out/wtr.watcher
 

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace detail {
 
@@ -76,4 +76,4 @@ inline constexpr platform_t platform
 
 } /* namespace detail */
 } /* namespace watcher */
-} /* namespace water   */
+} /* namespace wtr   */

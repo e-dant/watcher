@@ -1,15 +1,19 @@
 #pragma once
 
+#include <mutex>
 #include <watcher/event.hpp>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
 
-inline constexpr auto delay_ms = 16;
+namespace {
+static bool watcher_alive = false;            /* NOLINT */
+static auto watcher_alive_mtx = std::mutex{}; /* NOLINT */
+} /* namespace */
 
-static bool watcher_alive = false;
+inline constexpr auto delay_ms = 16;
 
 /*
   @brief watcher/adapter/is_living
@@ -19,7 +23,13 @@ static bool watcher_alive = false;
   Likely may be overloaded by the user in the future.
 */
 
-static bool is_living() { return watcher_alive ? true : false; }
+static bool is_living()
+{
+  watcher_alive_mtx.lock();
+  bool alive = watcher_alive;
+  watcher_alive_mtx.unlock();
+  return alive;
+}
 
 /*
   @brief watcher/adapter/can_watch
@@ -29,13 +39,19 @@ static bool is_living() { return watcher_alive ? true : false; }
   It might do other things or be removed at some point.
 */
 
-static bool can_watch()
+static bool make_living()
 {
+  bool ok = true;
+  watcher_alive_mtx.lock();
+
   if (watcher_alive)
-    return false;
+    ok = false;
+
   else
     watcher_alive = true;
-  return true;
+
+  watcher_alive_mtx.unlock();
+  return ok;
 }
 
 /*
@@ -63,22 +79,32 @@ static bool watch(const char* path, event::callback const& callback);
 
 static bool die(event::callback const& callback)
 {
-  if (watcher_alive) {
-    watcher_alive = false;
+  bool ok = true;
+  watcher_alive_mtx.lock();
+
+  if (watcher_alive)
+    watcher_alive = true;
+
+  else
+    ok = false;
+
+  watcher_alive_mtx.unlock();
+
+  if (ok)
     callback(
         event::event{"s/self/die", event::what::destroy, event::kind::watcher});
-    return true;
-  } else {
+
+  else
     callback(
         event::event{"e/self/die", event::what::destroy, event::kind::watcher});
-    return false;
-  }
+
+  return ok;
 }
 
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
-} /* namespace water */
+} /* namespace wtr */
 
 /* clang-format off */
 

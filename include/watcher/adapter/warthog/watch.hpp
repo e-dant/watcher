@@ -29,7 +29,7 @@
 #include <unordered_map>
 #include <watcher/event.hpp>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
@@ -126,7 +126,7 @@ static bool scan(const char* path, auto const& send_event, bucket_type& bucket)
                                           : false;
 };
 
-/* @brief water/watcher/warthog/tend_bucket
+/* @brief wtr/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
 static bool tend_bucket(const char* path, auto const& send_event,
@@ -244,31 +244,11 @@ static bool watch(const char* path, event::callback const& callback)
                                  : false
                            : false
                      : true;
-  /* clang-format off */
-  /*
-  // This had issues being called late.
-  return is_living()
-             ? tend_bucket(path, callback, bucket)
-                   ? scan(path, callback, bucket)
-                        ? watch(path, callback, is_living)
-                        : dying(callback)
-                   : dying(callback)
-             : dying(callback);
-  */
-  /* clang-format on */
 }
-
-// May be unnecessary for now.
-// In the future, we could allow overloads and defaults like this.
-
-// static bool watch(const char* path, event::callback const& callback) {
-//   return watch(path, callback,
-//                []() -> bool { return watcher_alive ? true : false; });
-// }
 
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
-} /* namespace water */
+} /* namespace wtr */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */

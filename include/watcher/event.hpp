@@ -45,17 +45,17 @@
    - std::chrono::time_point */
 #include <chrono>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace event {
 
 /* @brief watcher/event/types
-   - water::watcher::event
-   - water::watcher::event::kind
-   - water::watcher::event::what
-   - water::watcher::event::callback */
+   - wtr::watcher::event
+   - wtr::watcher::event::kind
+   - wtr::watcher::event::what
+   - wtr::watcher::event::callback */
 
-/* @brief water/watcher/event/kind
+/* @brief wtr/watcher/event/kind
    The essential kinds of paths. */
 enum class kind {
   /* The essentials */
@@ -71,7 +71,7 @@ enum class kind {
   other,
 };
 
-/* @brief water/watcher/event/what
+/* @brief wtr/watcher/event/what
    A structure intended to represent
    what has happened to some path
    at the moment of some affecting event. */
@@ -116,7 +116,7 @@ struct event
 
   ~event() noexcept = default;
 
-  /* @brief water/watcher/event/<<
+  /* @brief wtr/watcher/event/<<
      prints out where, what and kind.
      formats the output as a json object. */
   friend std::ostream& operator<<(std::ostream& os, const event& e)
@@ -163,4 +163,4 @@ using callback = void (*)(const event&);
 
 } /* namespace event */
 } /* namespace watcher */
-} /* namespace water   */
+} /* namespace wtr   */

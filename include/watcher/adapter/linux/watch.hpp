@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-  @brief watcher/adapter/linux
+  @brief wtr/watcher/detail/adapter/linux
 
   The Linux `inotify` adapter.
 */
@@ -23,22 +23,22 @@
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
-namespace water {
+namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
 namespace {
-/* @brief water/watcher/detail/adapter/linux/<anonymous>
+/* @brief wtr/watcher/detail/adapter/linux/<a>
    Anonymous namespace for "private" things. */
 
-/* @brief water/watcher/detail/adapter/linux/<anonymous>/types
+/* @brief wtr/watcher/detail/adapter/linux/<a>/types
    Types:
      - dir_opt_type
      - path_container_type */
 using dir_opt_type = std::filesystem::directory_options;
 using path_container_type = std::unordered_map<int, std::string>;
 
-/* @brief water/watcher/detail/adapter/linux/<anonymous>/constants
+/* @brief wtr/watcher/detail/adapter/linux/<a>/constants
    Constants:
      - event_max_count
      - in_init_opt
@@ -59,11 +59,176 @@ inline constexpr dir_opt_type dir_opt
     = std::filesystem::directory_options::skip_permission_denied
       & std::filesystem::directory_options::follow_directory_symlink;
 
-/* @brief water/watcher/detail/adapter/linux/<anonymous>/functions
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns
    Functions:
-     - do_scan */
 
-/* @brief water/watcher/detail/adapter/linux/<anonymous>/functions/do_scan
+     do_path_container_create
+       -> optional < path_container_type >
+
+     do_event_resource_create
+       -> optional < tuple < epoll_event, epoll_event*, int > >
+
+     do_watch_fd_create
+       -> optional < int >
+
+     do_watch_fd_release
+       -> bool
+
+     do_event_wait_recv
+       -> bool
+
+     do_scan
+       -> bool
+*/
+
+auto do_path_container_create(char const* base_path_c_str, int const watch_fd,
+                              event::callback const& callback)
+    -> std::optional<path_container_type>;
+auto do_event_resource_create(int const watch_fd,
+                              event::callback const& callback)
+    -> std::optional<std::tuple<epoll_event, epoll_event*, int>>;
+auto do_watch_fd_create(event::callback const& callback) -> std::optional<int>;
+auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
+auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
+                        path_container_type& path_container,
+                        event::callback const& callback) -> bool;
+auto do_scan(int fd, path_container_type& path_container,
+             event::callback const& callback) -> bool;
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_path_container_create
+   If the path given is a directory
+     - find all directories above the base path given.
+     - ignore nonexistent directories.
+     - return a map of watch descriptors -> directories.
+   If `path` is a file
+     - return it as the only value in a map.
+     - the watch descriptor key should always be 1. */
+auto do_path_container_create(char const* base_path_c_str, /* NOLINT */
+                              int const watch_fd,
+                              event::callback const& callback)
+    -> std::optional<path_container_type>
+{
+  using rdir_iterator = std::filesystem::recursive_directory_iterator;
+
+  auto dir_ec = std::error_code{};
+  auto base_path = std::string{base_path_c_str};
+  path_container_type path_map;
+  path_map.reserve(path_container_reserve_count);
+
+  auto do_mark = [&](auto& dir) {
+    int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
+    return wd < 0
+        ? [&](){
+          callback(event::event{"e/sys/inotify_add_watch",
+                   event::what::other, event::kind::watcher});
+          return false; }()
+        : [&](){
+          path_map[wd] = dir;
+          return true;  }();
+  };
+
+  if (!do_mark(base_path))
+    return std::nullopt;
+  else if (std::filesystem::is_directory(base_path, dir_ec))
+    /* @todo @note
+       Should we bail from within this loop if `do_mark` fails? */
+    for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
+      if (!dir_ec)
+        if (std::filesystem::is_directory(dir, dir_ec))
+          if (!dir_ec) do_mark(dir.path());
+  return std::move(path_map);
+};
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_event_resource_create
+   Return and initializes epoll events and file descriptors,
+   which are the resources needed for an epoll_wait loop.
+   Or return nothing. */
+auto do_event_resource_create(int const watch_fd, /* NOLINT */
+                              event::callback const& callback)
+    -> std::optional<std::tuple<epoll_event, epoll_event*, int>>
+{
+  struct epoll_event event_conf
+  {
+    .events = EPOLLIN, .data { .fd = watch_fd }
+  };
+  struct epoll_event event_list[event_max_count];
+  int event_fd = epoll_create1(EPOLL_CLOEXEC);
+
+  if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
+    callback(event::event{"e/sys/epoll_ctl", event::what::other,
+                          event::kind::watcher});
+    return std::nullopt;
+  } else
+    return std::move(std::make_tuple(event_conf, event_list, event_fd));
+};
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_create
+   Return an (optional) file descriptor
+   which may access the inotify api. */
+auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
+    -> std::optional<int>
+{
+  int watch_fd
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+      = inotify_init1(in_init_opt);
+#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+      = inotify_init();
+#endif
+
+  if (watch_fd < 0) {
+    callback(event::event{"e/sys/inotify_init1", event::what::other,
+                          event::kind::watcher});
+    return std::nullopt;
+  } else
+    return watch_fd;
+};
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_release
+   Close the file descriptor `fd_watch`,
+   Invoke `callback` on errors. */
+auto do_watch_fd_release(int watch_fd, /* NOLINT */
+                         event::callback const& callback) -> bool
+{
+  if (close(watch_fd) < 0) {
+    callback(
+        event::event{"e/sys/close", event::what::other, event::kind::watcher});
+    return false;
+  } else
+    return true;
+}
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_event_wait_recv
+   - Await filesystem events.
+   - When available, scan them.
+   - Invoke the callback on errors. */
+auto do_event_wait_recv(
+    int watch_fd, /* NOLINT */
+    int event_fd, /* Note the separate file descriptors for inotify and epoll */
+    epoll_event* event_list, path_container_type& path_container,
+    event::callback const& callback) -> bool
+{
+  /* The more time asleep, the better. */
+  int const event_count = epoll_wait(event_fd, event_list, event_max_count, -1);
+
+  auto const do_event_dispatch = [&]() {
+    for (int n = 0; n < event_count; ++n)
+      if (event_list[n].data.fd == watch_fd)
+        return do_scan(watch_fd, path_container, callback);
+    /* We return true on eventless invocations. */
+    return true;
+  };
+
+  auto const do_event_error = [&]() {
+    callback(event::event{"e/sys/epoll_wait", event::what::other,
+                          event::kind::watcher});
+    /* We always return false on errors. */
+    return false;
+  };
+
+  return event_count < 0 ? do_event_error() : do_event_dispatch();
+}
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
    Reads through available (inotify) filesystem events.
    Discerns their path and type.
    Calls the callback.
@@ -73,8 +238,9 @@ inline constexpr dir_opt_type dir_opt
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline bool do_scan(int fd, path_container_type& path_container,
-                    event::callback const& callback)
+auto do_scan(int watch_fd, /* NOLINT */
+             path_container_type& path_container,
+             event::callback const& callback) -> bool
 {
   /* 4096 is a typical page size. */
   static constexpr auto buf_len = 4096;
@@ -99,7 +265,7 @@ inline bool do_scan(int fd, path_container_type& path_container,
   /* Loop while events can be read from the inotify file descriptor. */
   while (true) {
     /* Read events */
-    auto [status, len] = lift_event_recv(fd, buf);
+    auto [status, len] = lift_event_recv(watch_fd, buf);
     /* Handle the errored, eventless and eventful reads */
     switch (status) {
       case event_recv_status::eventful:
@@ -152,12 +318,12 @@ inline bool do_scan(int fd, path_container_type& path_container,
 
 } /* namespace */
 
-/* @note water/watcher/detail/adapter/is_living
+/* @note wtr/watcher/detail/adapter/is_living
    This symbol is defined in watcher/adapter/adapter.hpp
    But clangd has a tough time finding it while editing. */
 static bool is_living(); /* NOLINT */
 
-/* @brief water/watcher/detail/adapter/linux/watch
+/* @brief wtr/watcher/detail/adapter/linux/fns/watch
    Monitors `base_path` for changes.
    Invokes `callback` with an `event` when they happen.
 
@@ -172,128 +338,6 @@ static bool watch(const char* base_path, event::callback const& callback)
   /*
      Functions
    */
-
-  /* If the path given is a directory,
-       - find all directories above the base path given.
-       - ignore nonexistent directories.
-       - return a map of watch descriptors -> directories.
-     If `path` is a file,
-       - return it as the only value in a map.
-       - the watch descriptor key should always be 1. */
-  auto const&& do_path_container_create
-      = [](char const* base_path_c_str, int const watch_fd,
-           event::callback const& callback)
-      -> std::optional<path_container_type> {
-    using rdir_iterator = std::filesystem::recursive_directory_iterator;
-
-    auto dir_ec = std::error_code{};
-    auto base_path = std::string{base_path_c_str};
-    path_container_type path_map;
-    path_map.reserve(path_container_reserve_count);
-
-    auto do_mark = [&](auto& dir) {
-      int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
-      return wd < 0
-        ? [&](){
-          callback(event::event{"e/sys/inotify_add_watch",
-                   event::what::other, event::kind::watcher});
-          return false; }()
-        : [&](){
-          path_map[wd] = dir;
-          return true;  }();
-    };
-
-    if (!do_mark(base_path))
-      return std::nullopt;
-    else if (std::filesystem::is_directory(base_path, dir_ec))
-      /* @todo @note
-         Should we bail from within this loop if `do_mark` fails? */
-      for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
-        if (!dir_ec)
-          if (std::filesystem::is_directory(dir, dir_ec))
-            if (!dir_ec) do_mark(dir.path());
-    return std::move(path_map);
-  };
-
-  /* Return and initializes epoll events and file descriptors.
-     Return the necessary resources for an epoll_wait loop.
-     Or return nothing. */
-  auto const&& do_event_resource_create
-      = [](int const watch_fd, event::callback const& callback)
-      -> std::optional<std::tuple<epoll_event, epoll_event*, int>> {
-    struct epoll_event event_conf
-    {
-      .events = EPOLLIN, .data { .fd = watch_fd }
-    };
-    struct epoll_event event_list[event_max_count];
-    int event_fd = epoll_create1(EPOLL_CLOEXEC);
-
-    if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
-      callback(event::event{"e/sys/epoll_ctl", event::what::other,
-                            event::kind::watcher});
-      return std::nullopt;
-    } else
-      return std::move(std::make_tuple(event_conf, event_list, event_fd));
-  };
-
-  /* Return an optional file descriptor
-     which may access the inotify api. */
-  auto const do_watch_fd_create
-      = [](event::callback const& callback) -> std::optional<int> {
-    int watch_fd
-#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
-        = inotify_init1(in_init_opt);
-#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-        = inotify_init();
-#endif
-
-    if (watch_fd < 0) {
-      callback(event::event{"e/sys/inotify_init1", event::what::other,
-                            event::kind::watcher});
-      return std::nullopt;
-    } else
-      return watch_fd;
-  };
-
-  /* Close the file descriptor `fd_watch`,
-     Invoke `callback` on errors. */
-  auto const do_watch_fd_release
-      = [](int watch_fd, event::callback const& callback) {
-          if (close(watch_fd) < 0) {
-            callback(event::event{"e/sys/close", event::what::other,
-                                  event::kind::watcher});
-            return false;
-          } else
-            return true;
-        };
-
-  /* Await filesystem events.
-     When available, scan them.
-     Invoke the callback on errors. */
-  auto const do_event_wait_recv =
-      [](int event_fd, auto& event_list, int watch_fd,
-         path_container_type& path_container, event::callback const& callback) {
-        /* The more time asleep, the better. */
-        int const event_count
-            = epoll_wait(event_fd, event_list, event_max_count, -1);
-
-        auto const do_event_dispatch = [&]() {
-          for (int n = 0; n < event_count; ++n)
-            if (event_list[n].data.fd == watch_fd)
-              return do_scan(watch_fd, path_container, callback);
-          /* We return true on eventless invocations. */
-          return true;
-        };
-
-        auto const do_event_error = [&]() {
-          callback(event::event{"e/sys/epoll_wait", event::what::other,
-                                event::kind::watcher});
-          /* We always return false on errors. */
-          return false;
-        };
-
-        return event_count < 0 ? do_event_error() : do_event_dispatch();
-      };
 
   /*
      Values
@@ -317,8 +361,8 @@ static bool watch(const char* base_path, event::callback const& callback)
 
       if (event_tuple.has_value()) {
         /* auto&& event_conf = std::get<0>(event_tuple.value()); */
-        auto&& event_list = std::get<1>(event_tuple.value());
-        auto&& event_fd = std::get<2>(event_tuple.value());
+        auto event_list = std::get<1>(event_tuple.value());
+        auto event_fd = std::get<2>(event_tuple.value());
 
         /*
            Work
@@ -326,9 +370,10 @@ static bool watch(const char* base_path, event::callback const& callback)
 
         /* Loop until dead. */
         while (is_living()
-               && do_event_wait_recv(event_fd, event_list, watch_fd,
+               && do_event_wait_recv(watch_fd, event_fd, event_list,
                                      path_container, callback))
           continue;
+
         return do_watch_fd_release(watch_fd, callback);
       } else
         return do_watch_fd_release(watch_fd, callback);
@@ -341,6 +386,6 @@ static bool watch(const char* base_path, event::callback const& callback)
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
-} /* namespace water */
+} /* namespace wtr */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
