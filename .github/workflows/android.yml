@@ -72,5 +72,4 @@ jobs:
 
       - name: Build and Test
         run: |
-          build/build android --no-build-debug
-          build/out/android/release/wtr.watcher . -s 1
+          build/build android --no-build-debug --no-build-test --no-run-test
