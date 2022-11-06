@@ -17,6 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        language:
+          [ 'cpp' ]
         compiler:
           - clang-13.0.0
         compiler_c_short_name:
@@ -55,21 +57,7 @@ jobs:
           add-to-path: true
           local-cache: true
 
-      #- name: Setup Cpp
-      #  uses: aminya/setup-cpp@v1
-      #  with:
-      #    compiler: ${{matrix.compiler}}
-      #    vcvarsall: ${{contains(matrix.os, 'windows')}}
-      #    cmake: true
-      #    ccache: false
-      #    ninja: true
-      #    conan: false
-      #    vcpkg: false
-      #    gcovr: false
-      #    cppcheck: false
-      #    clangtidy: false
-      #    opencppcoverage: false
-
-      - name: Build and Test
+      - name: Build
         run: |
           build/build android --no-build-debug --no-build-test --no-run-test
+

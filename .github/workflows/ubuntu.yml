@@ -17,6 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        language:
+          [ 'cpp' ]
         compiler:
           - clang-13.0.0
         compiler_c_short_name:
@@ -36,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache
+      - name: Setup Cache
         uses: actions/cache@v3
         id: cache
         with:
@@ -45,9 +47,13 @@ jobs:
             ${{github.workspace}}/build/out
           key: ${{runner.os}}-dependencies
 
-      - name: Build and Test
+      - name: Build
         run: |
-          export CXX=$(which clang++)
-          build/build this --no-build-debug
+          export CXX=$(which ${{matrix.compiler_cxx_short_name}})
+          build/build --no-build-debug --no-run-test
+
+      - name: Test
+        run: |
+          build/build --no-build-release --no-build-debug --no-build-test
           build/out/this/release/wtr.watcher . -s 1
 

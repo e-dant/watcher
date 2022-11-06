@@ -1,12 +1,3 @@
-/*
-    @todo @note
-
-    It shouldn't be possible for these tests to fail on Darwin unless the event
-    dispatch queue identifier is reporting events for queues in prior tests.
-
-    Look into that.
-*/
-
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>

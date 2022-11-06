@@ -29,7 +29,7 @@ jobs:
         compiler_cxx_short_name:
           - clang++
         build_type:
-          - Release
+          - Debug
         install_location:
           - .local
         developer_mode:
@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache
+      - name: Setup Cache
         uses: actions/cache@v3
         id: cache
         with:
@@ -73,3 +73,4 @@ jobs:
 
       - name: Analyze
         uses: github/codeql-action/analyze@v1
+

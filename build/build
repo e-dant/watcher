@@ -265,6 +265,8 @@ build::build() {
   local ok=0
   if ! echo "$*" | grep -q -- --no-build-release
   then
+    echo "$SEPERATOR"
+
     this_out_dir="$OUT_PLATFORM_DIR/release"
     this_artifact="$OUT_PLATFORM_DIR/release/wtr.watcher"
 
@@ -299,6 +301,8 @@ build::build() {
     do
       if build::check::sanitizer_allowed_for::$PLATFORM "$S"
       then
+        echo "$SEPERATOR"
+
         this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
         this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
 
@@ -339,6 +343,8 @@ build::build() {
     do
       if build::check::sanitizer_allowed_for::$PLATFORM "$S"
       then
+        echo "$SEPERATOR"
+
         this_out_dir="$OUT_PLATFORM_DIR/test/$S"
 
         mkdir -p "$this_out_dir"
@@ -389,7 +395,8 @@ build::run::test() {
       while read TEST_PATH
       do
         echo "$SEPERATOR"
-        echo "test: $TEST_PATH"
+        echo "test: ${TEST_PATH##*test/}"
+
         test -d tmp_test_watcher && \
           rm -rf tmp_test_watcher
         test -x "$TEST_PATH" && \
@@ -403,11 +410,14 @@ build::run::test() {
 # Shows the artifacts produced.
 # Formats as yaml.
 build::show::artifacts() {
-  echo "$SEPERATOR"
-  echo 'artifacts:'
+  if test -n "${ARTIFACTS[*]}"
+  then
+    echo "$SEPERATOR"
+    echo 'artifacts:'
 
-  for a in ${ARTIFACTS[@]}; do
-  echo " - $a"; done
+    for a in ${ARTIFACTS[@]}; do
+    echo " - $a"; done
+  fi
 }
 
 # @note build/write/current_artifacts
@@ -426,8 +436,6 @@ build::write::current_artifacts() {
 
 # Other than initializing some variables,
 # nothing is done until right here.
-echo "$SEPERATOR"
-
 build::init::cc \
   && build::build "$@" \
   && build::run::test "$@" \
@@ -436,12 +444,10 @@ build::init::cc \
 
 EC=$?
 
-# @TODO
-# undo this once the sanitizers
-# behave in a stable manner
+# @todo
+# Undo this once the sanitizers behave.
+# Which might be a long time...
 EC=0
-
-echo "$SEPERATOR"
 
 cd "$LAST_DIR" \
   || exit 1

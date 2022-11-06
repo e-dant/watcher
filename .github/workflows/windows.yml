@@ -17,6 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        language:
+          [ 'cpp' ]
         compiler:
           - msvc
         compiler_c_short_name:
@@ -36,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache
+      - name: Setup Cache
         uses: actions/cache@v3
         id: cache
         with:
@@ -65,6 +67,7 @@ jobs:
         run: |
           bash -c 'build/build this --no-build-debug'
 
-      - name: Test Runnable
+      - name: Test
         run: |
           bash -c 'build/out/this/release/wtr.watcher.exe . -s 1'
+
