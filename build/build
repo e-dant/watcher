@@ -41,6 +41,10 @@ else
   PLATFORM="$1"
 fi
 
+# @note build/build/seperator
+# This is meant to look like the seperators that Catch uses.
+SEPERATOR='==============================================================================='
+
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.
 # LLVM's asan on Linux is plaguing me with this bug:
@@ -160,6 +164,9 @@ build::get_cmake_generator_opt_for_platform() {
   fi
 }
 
+# @note build/get_cmake_extra_for_platform
+# We need to pass this in from the command line.
+# Most other platform-specifics are within cmake.
 build::get_cmake_extra_for_platform() {
   if test -n "$1"
   then
@@ -381,7 +388,8 @@ build::run::test() {
     do
       while read TEST_PATH
       do
-        echo "test: $TEST"
+        echo "$SEPERATOR"
+        echo "test: $TEST_PATH"
         test -d tmp_test_watcher && \
           rm -rf tmp_test_watcher
         test -x "$TEST_PATH" && \
@@ -391,22 +399,34 @@ build::run::test() {
   fi
 }
 
+# @note build/show/artifacts
+# Shows the artifacts produced.
+# Formats as yaml.
 build::show::artifacts() {
+  echo "$SEPERATOR"
   echo 'artifacts:'
 
   for a in ${ARTIFACTS[@]}; do
   echo " - $a"; done
 }
 
+# @note build/write/current_artifacts
+# Writes, by overwriting, the artifacts,
+# produced in this build invocation only,
+# to the file 'build/out/artifacts.txt'.
 build::write::current_artifacts() {
-  this_out_dir="$OUT_DIR/artifacts.txt"
+  current_artifact_file="$OUT_DIR/artifacts.txt"
 
-  test -e "$this_out_dir" \
-    && rm -rf "$this_out_dir"
+  test -e "$current_artifact_file" \
+    && rm -rf "$current_artifact_file"
 
   for a in ${ARTIFACTS[@]}; do
-  echo "$a" >> "$this_out_dir"; done
+  echo "$a" >> "$current_artifact_file"; done
 }
+
+# Other than initializing some variables,
+# nothing is done until right here.
+echo "$SEPERATOR"
 
 build::init::cc \
   && build::build "$@" \
@@ -416,8 +436,12 @@ build::init::cc \
 
 EC=$?
 
-# @TODO undo this
+# @TODO
+# undo this once the sanitizers
+# behave in a stable manner
 EC=0
+
+echo "$SEPERATOR"
 
 cd "$LAST_DIR" \
   || exit 1
