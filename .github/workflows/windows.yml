@@ -66,4 +66,5 @@ jobs:
           bash -c 'build/build this --no-build-debug'
 
       - name: Test Runnable
-        run: build/out/this/release/Release/wtr.watcher.exe . -s 1
+        run: |
+          bash -c 'build/out/this/release/wtr.watcher.exe . -s 1'

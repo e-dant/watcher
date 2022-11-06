@@ -34,7 +34,12 @@ cd "$(dirname "$0")" \
   || return $?
 THIS_DIR="$PWD"
 
-PLATFORM="$1"
+if echo "$1" | grep -q -- --
+then
+  PLATFORM='this'
+else
+  PLATFORM="$1"
+fi
 
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.
@@ -191,7 +196,18 @@ build::check::sanitizer_allowed_for::macos() {
 }
 
 build::check::sanitizer_allowed_for::windows() {
-  return 0
+  # Windows is absurd.
+  denylist=(
+    'asan'
+    'tsan'
+    'ubsan'
+    'msan'
+  )
+
+  if [[ "${denylist[*]}" =~ "$1" ]]
+  then return 1
+  else return 0
+  fi
 }
 
 build::check::sanitizer_allowed_for::linux() {
@@ -227,6 +243,9 @@ build::check::sanitizer_allowed_for::this() {
   if test $discerned_platform_raw = 'darwin'
   then
     discerned_platform='macos'
+  elif echo "$discerned_platform_raw" | grep -q 'mingw'
+  then
+    discerned_platform='windows'
   else
     discerned_platform="$discerned_platform_raw"
   fi

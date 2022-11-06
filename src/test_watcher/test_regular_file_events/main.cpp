@@ -110,9 +110,18 @@ TEST_CASE("Watch Regular Files", "[watch_regular_files]")
   /* Start */
   // std::cout << R"({"test.wtr.watcher":{"stream":{)" << std::endl;
 
+#ifdef WATER_WATCHER_PLATFORM_WINDOWS_ANY
+  auto const regular_file_store_path_str
+      = regular_file_store_path.string();
+  std::thread([&]() {
+    watch(regular_file_store_path_str.c_str(), test_regular_file_event_handling);
+  }).detach();
+
+#else
   std::thread([&]() {
     watch(regular_file_store_path.c_str(), test_regular_file_event_handling);
   }).detach();
+#endif
 
   // std::this_thread::sleep_for(1s);
 
