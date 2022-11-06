@@ -221,6 +221,7 @@ build::check::sanitizer_allowed_for::windows() {
 build::check::sanitizer_allowed_for::linux() {
   denylist=(
     'asan'
+    'msan'
   )
 
   if [[ "${denylist[*]}" =~ "$1" ]]
