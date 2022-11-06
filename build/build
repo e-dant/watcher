@@ -381,6 +381,7 @@ build::run::test() {
     do
       while read TEST_PATH
       do
+        echo "test: $TEST"
         test -d tmp_test_watcher && \
           rm -rf tmp_test_watcher
         test -x "$TEST_PATH" && \
