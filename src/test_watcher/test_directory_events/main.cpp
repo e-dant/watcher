@@ -1,81 +1,27 @@
-#include <catch2/benchmark/catch_benchmark.hpp>
+/*
+   Watcher
+   Test Directory Events
+*/
+
+/* REQUIRE,
+   TEST_CASE */
 #include <catch2/catch_test_macros.hpp>
+/* milliseconds */
 #include <chrono>
-#include <cstdio>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <ratio>
-#include <string>
+/* create_directory,
+   create_regular_files,
+   remove_regular_files,
+   test_store_path,
+   regular_file_store_path,
+   dir_store_path */
+#include <test_watcher/test_watcher.hpp>
+/* thread,
+   sleep_for */
 #include <thread>
+/* watch,
+   event,
+   die */
 #include <watcher/watcher.hpp>
-
-static constexpr auto time_until_prior_fs_events_clear
-    = std::chrono::milliseconds(10);
-static constexpr auto time_until_death_after_test
-    = std::chrono::milliseconds(10);
-static constexpr auto path_count = 100000;
-
-bool str_eq(auto a, auto b) { return std::strcmp(a, b) == 0; }
-
-auto create_directories(auto path, auto n)
-{
-  using namespace std::filesystem;
-
-  for (int i = 0; i < n; i++) {
-    auto item = std::to_string(i);
-
-    create_directory(path / item);
-
-    // REQUIRE(is_directory(item));
-  }
-}
-
-auto remove_directories(auto path, auto n)
-{
-  using namespace std::filesystem;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path / std::to_string(i);
-
-    if (exists(item)) remove_all(item);
-
-    // REQUIRE(!exists(item));
-  }
-}
-
-void show_strange_event(auto& title, wtr::watcher::event::event const& ev)
-{
-  // std::cout << "warning in " << title << ":"
-  //           << "\n strange event at: " << ev.where << "\n json: {" << ev
-  //           << "\n\n";
-}
-
-void test_directory_event_handling(wtr::watcher::event::event const& this_event)
-{
-  using namespace wtr::watcher;
-
-  /* Print first */
-  // this_event.kind != event::kind::watcher
-  //     ? std::cout << this_event << "," << std::endl
-  //     : std::cout << this_event << std::endl;
-
-  if (this_event.kind != event::kind::watcher) {
-    if (this_event.kind != event::kind::dir) {
-      show_strange_event(__FUNCTION__, this_event);
-
-      // REQUIRE(str_eq(std::filesystem::path(this_event.where).filename().c_str(),
-      //                dir_store_path.filename().c_str()));
-    } else {
-      REQUIRE(this_event.kind == event::kind::dir);
-    }
-  } else {
-    /* - "s/" means "success"
-       - "e/" means "error" */
-    REQUIRE(std::string(this_event.where).starts_with("s/"));
-  }
-}
 
 /* Test that directories are scanned */
 TEST_CASE("Watch Directories", "[watch_directories]")
@@ -99,8 +45,7 @@ TEST_CASE("Watch Directories", "[watch_directories]")
   // std::cout << R"({"test.wtr.watcher":{"stream":{)" << std::endl;
 
 #ifdef WATER_WATCHER_PLATFORM_WINDOWS_ANY
-  auto const regular_file_store_path_str
-      = regular_file_store_path.string();
+  auto const regular_file_store_path_str = regular_file_store_path.string();
   std::thread([&]() {
     watch(regular_file_store_path_str.c_str(), test_directory_event_handling);
   }).detach();
