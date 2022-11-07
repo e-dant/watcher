@@ -1,6 +1,6 @@
 /*
-   Watcher
-   Test Regular File Events
+   Test Watcher
+   Regular File Events
 */
 
 /* REQUIRE,
@@ -24,57 +24,40 @@
 #include <watcher/watcher.hpp>
 
 /* Test that files are scanned */
-TEST_CASE("Watch Regular Files", "[watch_regular_files]")
+TEST_CASE("Regular File Events", "[regular_file_events]")
 {
   /* Setup */
   using namespace wtr::watcher;
+  using namespace wtr::test_watcher;
   using namespace std::chrono_literals;
   using namespace std::filesystem;
   using std::chrono::milliseconds;
 
-  auto const test_store_path
-      = std::filesystem::current_path() / "tmp_test_watcher";
-  auto const regular_file_store_path = test_store_path / "regular_file_store";
-  auto const dir_store_path = test_store_path / "dir_store";
-
+  auto const watch_path = regular_file_store_path;
   create_directory(test_store_path);
-  create_directory(regular_file_store_path);
+  create_directory(watch_path);
+
   std::this_thread::sleep_for(time_until_prior_fs_events_clear);
 
   /* Start */
-  std::cout << R"({"test.wtr.watcher":{"stream":{)" << std::endl;
+  show_event_stream_preamble();
 
-#ifdef WATER_WATCHER_PLATFORM_WINDOWS_ANY
-  auto const regular_file_store_path_str = regular_file_store_path.string();
-  std::thread([&]() {
-    watch(regular_file_store_path_str.c_str(),
-          test_regular_file_event_handling);
-  }).detach();
+  /* Watch */
+  thread_watch(watch_path, test_regular_file_event_handling);
 
-#else
-  std::thread([&]() {
-    watch(regular_file_store_path.c_str(), test_regular_file_event_handling);
-  }).detach();
-#endif
+  /* Create Events */
+  create_regular_files(watch_path, path_count);
 
-  // std::this_thread::sleep_for(1s);
-
-  create_regular_files(test_store_path, path_count);
-
+  /* Wait */
   std::this_thread::sleep_for(time_until_death_after_test);
 
+  /* Stop Watch */
   bool const is_watch_dead = die(test_regular_file_event_handling);
+  auto const alive_for_ms = milliseconds(time_until_death_after_test).count();
+  show_event_stream_postamble(alive_for_ms, is_watch_dead);
 
-  std::cout << "}" << std::endl
-            << R"(,"milliseconds":)"
-            << milliseconds(time_until_death_after_test).count() << std::endl
-            << R"(,"dead":)" << std::boolalpha << is_watch_dead
-            << "}"
-               "}"
-            << std::endl;
-
-  /* Stop */
-  remove_regular_files(test_store_path, path_count);
-  remove(regular_file_store_path);
-  remove(test_store_path);
+  /* Clean */
+  remove_regular_files(watch_path, path_count);
+  remove(watch_path);
+  remove(watch_path);
 }

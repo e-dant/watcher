@@ -5,6 +5,9 @@
 #include <string>     /* string, to_string */
 // #include <catch2/catch_test_macros.hpp> /* REQUIRE */
 
+namespace wtr {
+namespace test_watcher {
+
 auto create_regular_files(auto path, auto n)
 {
   using namespace std::filesystem;
@@ -57,3 +60,6 @@ auto remove_directories(auto path, auto n)
     // REQUIRE(!exists(item));
   }
 }
+
+} /* namespace test_watcher */
+} /* namespace wtr */
