@@ -367,7 +367,7 @@ build::build() {
 
         for TEST in "${TESTS[@]}"
         do
-          this_artifact="$OUT_PLATFORM_DIR/debug/$S/$TEST.wtr.watcher"
+          this_artifact="$OUT_PLATFORM_DIR/test/$S/$TEST.wtr.watcher"
           cmake \
             --build "$this_out_dir" \
             --config Debug \
