@@ -8,8 +8,6 @@
 
 ## Quick Start
 
-Write:
-
 ```cpp
 /* tiny-main.cpp */
 #include <iostream>
@@ -23,18 +21,19 @@ int main(int argc, char** argv) {
 }
 ```
 
-Compile & Run:
-
 ```sh
-# Platform specifics. Big long path. What can you do.
-PLATFORM_EXTRAS=$(test "$(uname)" = Darwin \
-  && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
-
+# Platform specifics. What can you do.
+PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
 eval c++ -std=c++2a -O3 src/watcher/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
-
 # Run
 ./watcher
+```
+
+```json
+"1666393024210001000": {"where": "./watcher/.git/logs/HEAD","what": "modify","kind": "file"},
+"1666393024210026000": {"where": "./watcher/.git/logs/refs/heads/next","what": "modify","kind": "file"},
+"1666393024210032000": {"where": "./watcher/.git/refs/heads/next.lock","what": "create","kind": "other"},
 ```
 
 Enjoy!
