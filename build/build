@@ -43,7 +43,7 @@ fi
 
 # @note build/build/seperator
 # This is meant to look like the seperators that Catch uses.
-SEPERATOR='==============================================================================='
+SEPERATOR='===============================[ watcher/build ]==============================='
 
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.

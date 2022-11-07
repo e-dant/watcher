@@ -38,7 +38,8 @@ static void show_event_stream_postamble(auto alive_for_ms, bool is_watch_dead)
             << std::endl;
 }
 
-static void show_strange_event(auto& title, wtr::watcher::event::event const& ev)
+static void show_strange_event(auto& title,
+                               wtr::watcher::event::event const& ev)
 {
   std::cout << "warning in " << title << ":"
             << "\n strange event at: " << ev.where << "\n json: {" << ev
@@ -99,12 +100,12 @@ static void test_directory_event_handling(
 
 static void thread_watch(std::filesystem::path watch_path, auto& event_handler)
 {
-  auto const p
-#ifdef WATER_WATCHER_PLATFORM_WINDOWS_ANY
-      = watch_path.string();
-#else
-      = watch_path;
-#endif
+  auto const p = watch_path.string();
+  // #ifdef WATER_WATCHER_PLATFORM_WINDOWS_ANY
+  //       = watch_path.string();
+  // #else
+  //       = watch_path;
+  // #endif
 
   std::thread([&]() {
     wtr::watcher::watch(p.c_str(), event_handler);
