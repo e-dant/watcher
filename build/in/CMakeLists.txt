@@ -15,7 +15,7 @@ include(options)
 
 # [build type selection]
 if(WTR_WATCHER_USE_TEST)
-  include(test.wtr.watcher)
+  include(wtr.test_watcher)
 endif()
 if(WTR_WATCHER_USE_RELEASE) # This is the default
   include(wtr.watcher)
