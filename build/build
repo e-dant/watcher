@@ -367,12 +367,12 @@ build::build() {
 
         for TEST in "${TESTS[@]}"
         do
-          this_artifact="$OUT_PLATFORM_DIR/test/$S/$TEST.wtr.watcher"
+          this_artifact="$OUT_PLATFORM_DIR/test/$S/wtr.test_watcher.$TEST"
           cmake \
             --build "$this_out_dir" \
             --config Debug \
             -j8 \
-            --target "$TEST.wtr.watcher" \
+            --target "wtr.test_watcher.$TEST" \
             && ARTIFACTS+=("$this_artifact")
           ok=$((ok + $?))
         done
@@ -397,7 +397,7 @@ build::run::test() {
           rm -rf tmp_test_watcher
         test -x "$TEST_PATH" && \
           "$TEST_PATH"
-      done <<< "$(find . -name "$TEST.wtr.watcher" -type f)"
+      done <<< "$(find . -name "wtr.test_watcher.$TEST" -type f)"
     done
   fi
 }

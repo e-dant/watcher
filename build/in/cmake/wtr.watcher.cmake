@@ -25,7 +25,7 @@ target_link_libraries("${PROJECT_NAME}" PRIVATE
 # [platform specifics]
 if(APPLE)
   set_property(TARGET "${PROJECT_NAME}" PROPERTY
-    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.watcher.wtr")
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.wtr.watcher")
 endif()
 
 # [install]

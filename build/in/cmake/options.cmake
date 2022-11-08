@@ -83,6 +83,7 @@ endif()
 
 # [options: meaning: test]
 if(WTR_WATCHER_USE_TEST)
+  set(TEST_PROJECT_NAME                "wtr.test_watcher")
   set(TEST_REGULAR_FILE_EVENTS_SOURCES "../../src/test_watcher/test_regular_file_events/main.cpp")
   set(TEST_DIRECTORY_EVENTS_SOURCES    "../../src/test_watcher/test_directory_events/main.cpp")
   set(TEST_LINK_LIBRARIES              "${LINK_LIBRARIES}" "Catch2::Catch2WithMain")
