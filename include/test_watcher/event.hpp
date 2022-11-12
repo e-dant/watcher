@@ -13,9 +13,10 @@
    endl */
 #include <iostream>
 /* string,
-   strcmp,
    to_string */
 #include <string>
+/* strcmp */
+#include <cstring>
 /* path, exists */
 #include <filesystem>
 /* regular_file_store_path */
