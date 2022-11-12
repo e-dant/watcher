@@ -19,7 +19,7 @@ target_link_libraries("${TEST_PROJECT_NAME}.test_directory_events" PRIVATE
 if(APPLE)
   set_property(TARGET "${TEST_PROJECT_NAME}.test_directory_events" PROPERTY
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER
-    "org.watcher.wtr.test_directory_events")
+    "org.wtr.watcher.test_directory_events")
 endif()
 
 install(TARGETS                    "${TEST_PROJECT_NAME}.test_directory_events"

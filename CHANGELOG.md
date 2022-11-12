@@ -2,6 +2,12 @@
 
 ## 0.3.4
 
+The unit tests are more robust.
+
+The namespace `water` is now `wtr`.
+
+`wtr::watcher::event` holds a `string`, not `char*`, in `event.where`.
+
 The `build/build` program is more intuitive. See `build/build --help`.
 
 CI runners, especially those for macOS and Linux, have become more efficient and thorough. The use of `build/build` allows many CI runners to build and test across build types and sanitizers more easily than otherwsie. Some platform specifics for the Android and Windows are being sorted out. In the meantime, Android and Windows are using the "old" runner jobs.

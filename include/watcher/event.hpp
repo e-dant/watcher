@@ -38,6 +38,9 @@
 /* - std::ostream */
 #include <ostream>
 
+/* - std::string */
+#include <string>
+
 /* - std::chrono::system_clock::now,
    - std::chrono::duration_cast,
    - std::chrono::system_clock,
@@ -48,6 +51,10 @@
 namespace wtr {
 namespace watcher {
 namespace event {
+
+namespace {
+using std::string;
+}
 
 /* @brief watcher/event/types
    - wtr::watcher::event
@@ -94,15 +101,30 @@ struct event
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const char* where;
+  const std::string where;
   const enum what what;
   const enum kind kind;
   const long long when;
 
-  event(const char* where, const enum what happen, const enum kind kind)
+  event(const char* where, const enum what what, const enum kind kind)
+      : where{string{where}},
+
+        what{what},
+
+        kind{kind},
+
+        /* wow! thanks chrono! */
+        when{std::chrono::duration_cast<std::chrono::nanoseconds>(
+                 std::chrono::time_point<std::chrono::system_clock>{
+                     std::chrono::system_clock::now()}
+                     .time_since_epoch())
+                 .count()}
+  {}
+
+  event(const string where, const enum what what, const enum kind kind)
       : where{where},
 
-        what{happen},
+        what{what},
 
         kind{kind},
 

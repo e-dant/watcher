@@ -1,7 +1,7 @@
 # [directory test]
 
 add_executable("${TEST_PROJECT_NAME}.test_event_targets"
-  "${TEST_DIRECTORY_EVENTS_SOURCES}")
+  "${TEST_EVENT_TARGETS_SOURCES}")
 set_property(TARGET "${TEST_PROJECT_NAME}.test_event_targets" PROPERTY
   CXX_STANDARD 23)
 target_compile_options("${TEST_PROJECT_NAME}.test_event_targets" PRIVATE
@@ -19,7 +19,7 @@ target_link_libraries("${TEST_PROJECT_NAME}.test_event_targets" PRIVATE
 if(APPLE)
   set_property(TARGET "${TEST_PROJECT_NAME}.test_event_targets" PROPERTY
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER
-    "org.watcher.wtr.test_event_targets")
+    "org.wtr.watcher.test_event_targets")
 endif()
 
 install(TARGETS                    "${TEST_PROJECT_NAME}.test_event_targets"

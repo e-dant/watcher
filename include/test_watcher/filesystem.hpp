@@ -1,63 +1,54 @@
 #pragma once
 
-#include <filesystem> /* exists, remove_all */
-#include <fstream>    /* ofstream */
-#include <string>     /* string, to_string */
+#include <filesystem>          /* exists, remove_all */
+#include <fstream>             /* ofstream */
+#include <string>              /* string, to_string */
+#include <watcher/watcher.hpp> /* event */
 // #include <catch2/catch_test_macros.hpp> /* REQUIRE */
 
 namespace wtr {
 namespace test_watcher {
 
-auto create_regular_files(auto path, auto n)
+inline auto create_regular_files(auto path, auto n)
 {
   using namespace std::filesystem;
-  using std::ofstream;
+  using std::ofstream, std::to_string, std::string;
 
   for (int i = 0; i < n; i++) {
-    auto item = std::to_string(i) + std::string(".txt");
-
-    ofstream{path / item};
-
+    ofstream(path + to_string(i) + string(".txt"));
     // REQUIRE(is_regular_file(item));
   }
 }
 
-auto remove_regular_files(auto path, auto n)
+inline auto create_regular_files(std::filesystem::path path, auto n)
 {
-  using namespace std::filesystem;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path / (std::to_string(i) + std::string(".txt"));
-
-    if (exists(item)) remove_all(item);
-
-    // REQUIRE(!exists(item));
-  }
+  using std::string;
+  return create_regular_files(string(path), n);
 }
 
-auto create_directories(auto path, auto n)
+inline auto create_regular_files(std::vector<wtr::watcher::event::event>& events)
+{
+  using std::ofstream;
+  for (auto& ev : events) ofstream{ev.where};
+}
+
+inline auto create_regular_files(auto& paths)
+{
+  using std::ofstream;
+  for (auto& path : paths) ofstream{path};
+}
+
+inline auto create_directories(auto path, auto n)
 {
   using namespace std::filesystem;
+  using std::to_string;
 
   for (int i = 0; i < n; i++) {
-    auto item = std::to_string(i);
+    auto item = to_string(i);
 
     create_directory(path / item);
 
     // REQUIRE(is_directory(item));
-  }
-}
-
-auto remove_directories(auto path, auto n)
-{
-  using namespace std::filesystem;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path / std::to_string(i);
-
-    if (exists(item)) remove_all(item);
-
-    // REQUIRE(!exists(item));
   }
 }
 
