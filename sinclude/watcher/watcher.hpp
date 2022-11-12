@@ -793,7 +793,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
   int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
   if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
-    callback(event::event{"e/sys/epoll_ctl", event::what::other,
+    callback(event::event{"e/sys/epoll_create1", event::what::other,
                           event::kind::watcher});
     return std::nullopt;
   } else
@@ -814,7 +814,7 @@ auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
 #endif
 
   if (watch_fd < 0) {
-    callback(event::event{"e/sys/inotify_init1", event::what::other,
+    callback(event::event{"e/sys/inotify_init1?", event::what::other,
                           event::kind::watcher});
     return std::nullopt;
   } else
@@ -839,11 +839,13 @@ auto do_watch_fd_release(int watch_fd, /* NOLINT */
    - Await filesystem events.
    - When available, scan them.
    - Invoke the callback on errors. */
-auto do_event_wait_recv(
-    int watch_fd, /* NOLINT */
-    int event_fd, /* Note the separate file descriptors for inotify and epoll */
-    epoll_event* event_list, path_container_type& path_container,
-    event::callback const& callback) -> bool
+auto do_event_wait_recv(/* NOLINT */
+                        int watch_fd,
+                        int event_fd, /* Note the separate file descriptors for
+                                         inotify and epoll */
+                        epoll_event* event_list,
+                        path_container_type& path_container,
+                        event::callback const& callback) -> bool
 {
   /* The more time asleep, the better. */
   int const event_count = epoll_wait(event_fd, event_list, event_max_count, -1);
@@ -851,19 +853,26 @@ auto do_event_wait_recv(
   auto const do_event_dispatch = [&]() {
     for (int n = 0; n < event_count; ++n)
       if (event_list[n].data.fd == watch_fd)
-        return do_scan(watch_fd, path_container, callback);
+        if (!do_scan(watch_fd, path_container, callback)) return false;
     /* We return true on eventless invocations. */
     return true;
   };
 
   auto const do_event_error = [&]() {
+    perror("epoll_wait");
     callback(event::event{"e/sys/epoll_wait", event::what::other,
                           event::kind::watcher});
     /* We always return false on errors. */
     return false;
   };
 
-  return event_count < 0 ? do_event_error() : do_event_dispatch();
+  auto is_ok = event_count < 0 ? do_event_error() : do_event_dispatch();
+
+  if (is_ok)
+    return do_event_wait_recv(watch_fd, event_fd, event_list, path_container,
+                              callback);
+  else
+    return false;
 }
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
@@ -943,6 +952,7 @@ auto do_scan(int watch_fd, /* NOLINT */
             callback(event::event{event_path.c_str(), event::what::other,
                                   path_kind});
         }
+        /* We don't want to return here. We run until `eventless`. */
         break;
       case event_recv_status::error:
         callback(event::event{"e/sys/read", event::what::other,
