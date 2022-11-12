@@ -1,286 +1,5 @@
 #pragma once
 
-#include <chrono>     /* milliseconds */
-#include <filesystem> /* current_path, operator/ */
-
-namespace wtr {
-namespace test_watcher {
-
-auto constexpr static prior_fs_events_clear_milliseconds
-    = std::chrono::milliseconds(10);
-auto constexpr static death_after_test_milliseconds
-    = std::chrono::milliseconds(1000);
-auto constexpr static path_count = 10;
-auto const test_store_path
-    = std::filesystem::current_path() / "tmp_test_watcher";
-auto const event_targets_store_path = test_store_path / "event_targets_store";
-auto const regular_file_store_path = test_store_path / "regular_file_store";
-auto const dir_store_path = test_store_path / "dir_store";
-
-} /* namespace test_watcher */
-} /* namespace wtr */
-
-/*
-  @brief watcher/watcher
-
-  This is the public interface.
-  Include and use this file.
-*/
-
-/* clang-format off */
-/* clang-format on */
-
-/* system_clock::now, milliseconds */
-#include <chrono>
-#include <ratio>
-
-namespace wtr {
-namespace test_watcher {
-
-inline auto ms_now()
-{
-  auto time = std::chrono::system_clock::now();
-  auto normalized_time = time.time_since_epoch().count();
-  auto ms_time = std::chrono::milliseconds(normalized_time);
-  return ms_time;
-}
-
-inline auto ms_duration(auto from)
-{
-  return ms_now().count() - from;
-}
-
-inline auto ms_duration(std::chrono::milliseconds from)
-{
-  return (ms_now() - from).count();
-}
-
-} /* namespace test_watcher */
-} /* namespace wtr */
-
-/* cout,
-   endl */
-#include <iostream>
-/* round */
-#include <cmath>
-/* move */
-#include <utility>
-/* prior_fs_events_clear_milliseconds,
-   death_after_test_milliseconds */
-#include <test_watcher/constant.hpp>
-
-namespace wtr {
-namespace test_watcher {
-
-auto seperator(auto test_name, char symbol = '-')
-{
-  using std::string, std::round;
-
-  auto len = 79; /* same as catch2 */
-  auto title = "[ watcher/test/" + string(test_name) + " ]";
-  auto gap_len = round((len - title.length()) / 2);
-  auto side_bar = string(gap_len, symbol);
-  auto&& full = side_bar + title + side_bar;
-  return std::move(full);
-}
-
-auto show_conf(auto test_name, auto test_store_path, auto watch_path)
-{
-  using std::cout, std::endl,
-      wtr::test_watcher::prior_fs_events_clear_milliseconds,
-      wtr::test_watcher::death_after_test_milliseconds;
-
-  cout << seperator(test_name) << endl
-       << test_name << ":" << endl
-       << " test_store_path: " << test_store_path << endl
-       << " watch_path: " << watch_path << endl
-       << " prior_fs_events_clear_milliseconds: "
-       << prior_fs_events_clear_milliseconds.count() << endl
-       << " death_after_test_milliseconds: "
-       << death_after_test_milliseconds.count() << endl;
-}
-
-} /* namespace test_watcher */
-} /* namespace wtr */
-
-/* REQUIRE */
-#include <catch2/catch_test_macros.hpp>
-/* cout,
-   boolalpha,
-   endl */
-#include <string>
-/* string,
-   strcmp */
-#include <string>
-/* path */
-#include <filesystem>
-/* regular_file_store_path */
-#include <test_watcher/constant.hpp>
-/* watch,
-   event */
-
-namespace wtr {
-namespace test_watcher {
-
-bool str_eq(auto a, auto b)
-{
-  return std::strcmp(a, b) == 0;
-}
-
-static void show_event_stream_preamble()
-{
-  std::cout << "{\"wtr.test_watcher\":"
-            << "\n{\"stream\":\n{" << std::endl;
-}
-
-static void show_event_stream_postamble(auto alive_for_ms, bool is_watch_dead)
-{
-  std::cout << "}\n,\"milliseconds\":" << alive_for_ms
-            << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "}}"
-            << std::endl;
-}
-
-static void show_strange_event(auto& title,
-                               wtr::watcher::event::event const& ev)
-{
-  std::cout << "warning in " << title << ":"
-            << "\n strange event at: " << ev.where << "\n json: {" << ev
-            << "\n\n";
-}
-
-static void test_regular_file_event_handling(
-    wtr::watcher::event::event const& this_event)
-{
-  using namespace wtr::watcher;
-
-  /* Print first */
-  this_event.kind != event::kind::watcher
-      ? std::cout << this_event << "," << std::endl
-      : std::cout << this_event << std::endl;
-
-  if (this_event.kind != event::kind::watcher) {
-    if (this_event.kind != event::kind::file) {
-      show_strange_event(__FUNCTION__, this_event);
-
-      // REQUIRE(str_eq(std::filesystem::path(this_event.where).filename().c_str(),
-      //                regular_file_store_path.filename().c_str()));
-    } else {
-      REQUIRE(this_event.kind == event::kind::file);
-    }
-  } else {
-    /* - "s/" means "success"
-       - "e/" means "error" */
-    // REQUIRE(std::string(this_event.where).starts_with("s/"));
-  }
-}
-
-static void test_directory_event_handling(
-    wtr::watcher::event::event const& this_event)
-{
-  using namespace wtr::watcher;
-
-  /* Print first */
-  this_event.kind != event::kind::watcher
-      ? std::cout << this_event << "," << std::endl
-      : std::cout << this_event << std::endl;
-
-  if (this_event.kind != event::kind::watcher) {
-    if (this_event.kind != event::kind::dir) {
-      show_strange_event(__FUNCTION__, this_event);
-
-      // REQUIRE(str_eq(std::filesystem::path(this_event.where).filename().c_str(),
-      //                dir_store_path.filename().c_str()));
-    } else {
-      REQUIRE(this_event.kind == event::kind::dir);
-    }
-  } else {
-    /* - "s/" means "success"
-       - "e/" means "error" */
-    // REQUIRE(std::string(this_event.where).starts_with("s/"));
-  }
-}
-
-} /* namespace test_watcher */
-} /* namespace wtr */
-
-#include <filesystem> /* exists, remove_all */
-#include <fstream>    /* ofstream */
-#include <string>     /* string, to_string */
-// #include <catch2/catch_test_macros.hpp> /* REQUIRE */
-
-namespace wtr {
-namespace test_watcher {
-
-auto create_regular_files(auto path, auto n)
-{
-  using namespace std::filesystem;
-  using std::ofstream, std::to_string, std::string;
-
-  for (int i = 0; i < n; i++) {
-    auto item = to_string(i) + string(".txt");
-
-    ofstream(path + item);
-
-    // REQUIRE(is_regular_file(item));
-  }
-}
-
-auto create_regular_files(std::filesystem::path path, auto n)
-{
-  using std::string;
-  return create_regular_files(string(path), n);
-}
-
-auto remove_regular_files(auto path, auto n)
-{
-  using namespace std::filesystem;
-  using std::to_string, std::string;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path + (to_string(i) + string(".txt"));
-
-    if (exists(item)) remove_all(item);
-
-    // REQUIRE(!exists(item));
-  }
-}
-
-auto remove_regular_files(std::filesystem::path path, auto n)
-{
-  using std::string;
-  return remove_regular_files(string(path), n);
-}
-
-auto create_directories(auto path, auto n)
-{
-  using namespace std::filesystem;
-  using std::to_string;
-
-  for (int i = 0; i < n; i++) {
-    auto item = to_string(i);
-
-    create_directory(path / item);
-
-    // REQUIRE(is_directory(item));
-  }
-}
-
-auto remove_directories(auto path, auto n)
-{
-  using namespace std::filesystem;
-  using std::to_string;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path / to_string(i);
-
-    if (exists(item)) remove_all(item);
-
-    // REQUIRE(!exists(item));
-  }
-}
-
-} /* namespace test_watcher */
-
 namespace wtr {
 namespace watcher {
 namespace detail {
@@ -397,6 +116,9 @@ inline constexpr platform_t platform
 /* - std::ostream */
 #include <ostream>
 
+/* - std::string */
+#include <string>
+
 /* - std::chrono::system_clock::now,
    - std::chrono::duration_cast,
    - std::chrono::system_clock,
@@ -407,6 +129,10 @@ inline constexpr platform_t platform
 namespace wtr {
 namespace watcher {
 namespace event {
+
+namespace {
+using std::string;
+}
 
 /* @brief watcher/event/types
    - wtr::watcher::event
@@ -453,15 +179,30 @@ struct event
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const char* where;
+  const std::string where;
   const enum what what;
   const enum kind kind;
   const long long when;
 
-  event(const char* where, const enum what happen, const enum kind kind)
+  event(const char* where, const enum what what, const enum kind kind)
+      : where{string{where}},
+
+        what{what},
+
+        kind{kind},
+
+        /* wow! thanks chrono! */
+        when{std::chrono::duration_cast<std::chrono::nanoseconds>(
+                 std::chrono::time_point<std::chrono::system_clock>{
+                     std::chrono::system_clock::now()}
+                     .time_since_epoch())
+                 .count()}
+  {}
+
+  event(const string where, const enum what what, const enum kind kind)
       : where{where},
 
-        what{happen},
+        what{what},
 
         kind{kind},
 
