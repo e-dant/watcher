@@ -15,11 +15,15 @@ watcher::hone() {
   cd "$(dirname "$0")/../include"
 
   local HEADER_CONTENT_RAW="$(\
-    find . -type f -name '*.hpp' -exec cat {} \;\
+    cd watcher
+    find . -type f -name '*.hpp' -exec cat {} \;
+    cd ..
   )"
 
   local HEADER_PATH_ALL="$(\
-    find . -type f -name '*.hpp' | sed 's/^\.\///'\
+    cd watcher
+    find . -type f -name '*.hpp' | sed 's/^\.\///'
+    cd ..
   )"
 
   local HEADER_PATH_USED="$(\
