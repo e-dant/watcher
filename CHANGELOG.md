@@ -2,6 +2,8 @@
 
 ## 0.3.4
 
+Linux inotify adapter does not loop away from epoll wait.
+
 The unit tests are more robust.
 
 The namespace `water` is now `wtr`.
