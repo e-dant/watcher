@@ -41,8 +41,6 @@ TEST_CASE("Event Targets", "[event_targets]")
   using std::thread, std::vector, std::string, std::to_string, std::ofstream,
       std::cout, std::endl, std::chrono::milliseconds;
 
-  REQUIRE(path_count % 2 == 0);
-
   auto event_list = vector<event::event>{};
 
   auto const watch_path = event_targets_store_path.string();

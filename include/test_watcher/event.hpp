@@ -28,7 +28,7 @@
 namespace wtr {
 namespace test_watcher {
 
-bool str_eq(auto a, auto b)
+inline bool str_eq(char const* a, char const* b)
 {
   return std::strcmp(a, b) == 0;
 }
@@ -115,7 +115,7 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
 {
   using namespace wtr::watcher;
   using std::vector, std::iota, std::abs, std::filesystem::exists,
-      std::ofstream, std::to_string, std::cout, std::endl;
+      std::ofstream, std::to_string;
 
   /* - The path count must be even
      - The path count must be greater than 1 */
@@ -131,14 +131,12 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
   for (auto& i : path_indices) {
     if (should_reverse ? i >= 0 : i < 0) {
       auto const path = watch_path + "/" + to_string(abs(i) - 0);
-      cout << "creating " << path << endl;
       event_list.emplace_back(
           event::event{path, event::what::create, event::kind::file});
       ofstream{path};
       REQUIRE(exists(path));
     } else {
       auto const path = watch_path + "/" + to_string(abs(i) - 1);
-      cout << "destroying " << path << endl;
       event_list.emplace_back(
           event::event{path, event::what::destroy, event::kind::file});
       remove(path.c_str());
