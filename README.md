@@ -336,11 +336,8 @@ This happens on platforms which lack better alternatives,
 such as BSD and Solaris (`warthog` beats `kqueue`).
 2. On embedded systems (where resources matter regardless).
 
-*Watcher* is still efficient in these cases. However, depending
-on your hardware and whether you need to watch 10-million paths
-or not, a longer `delay_ms` (such as in the seconds-range) might
-be necessary to prevent your machine from entering-the-atmosphere
-temperature.
+*Watcher* is still relatively efficient in these cases, but
+may use a non-negligible amount of CPU time. For a thumb-
+rule, scanning more than one-hundred-thousand paths might
+stutter on hardware from this, or the last, decade.
 
-In all cases, this is a best-in-class filesystem watcher.
-The `warthog` is a capable watcher.
