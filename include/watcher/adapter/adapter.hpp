@@ -23,12 +23,12 @@ inline constexpr auto delay_ms = 16;
   Likely may be overloaded by the user in the future.
 */
 
-static bool is_living()
+inline bool is_living()
 {
   watcher_alive_mtx.lock();
-  bool alive = watcher_alive;
+  bool _ = watcher_alive;
   watcher_alive_mtx.unlock();
-  return alive;
+  return _;
 }
 
 /*
@@ -39,7 +39,7 @@ static bool is_living()
   It might do other things or be removed at some point.
 */
 
-static bool make_living()
+inline bool make_living()
 {
   bool ok = true;
   watcher_alive_mtx.lock();
@@ -69,7 +69,7 @@ static bool make_living()
    when the files being watched change.
 */
 
-static bool watch(const char* path, event::callback const& callback);
+inline bool watch(const char* path, event::callback const& callback);
 
 /*
   @brief watcher/adapter/die
@@ -77,18 +77,21 @@ static bool watch(const char* path, event::callback const& callback);
   Invokes `callback` immediately before destroying itself.
 */
 
-static bool die(event::callback const& callback)
+inline bool die(event::callback const& callback)
 {
   bool ok = true;
-  watcher_alive_mtx.lock();
 
-  if (watcher_alive)
-    watcher_alive = true;
+  {
+    watcher_alive_mtx.lock();
 
-  else
-    ok = false;
+    if (watcher_alive == true)
+      watcher_alive = false;
 
-  watcher_alive_mtx.unlock();
+    else
+      ok = false;
+
+    watcher_alive_mtx.unlock();
+  }
 
   if (ok)
     callback(

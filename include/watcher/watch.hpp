@@ -29,7 +29,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-static bool watch(const char* path, event::callback const& living_cb)
+inline bool watch(const char* path, event::callback const& living_cb)
 {
   return detail::adapter::make_living()
              ? detail::adapter::watch(path, living_cb)
@@ -40,7 +40,7 @@ static bool watch(const char* path, event::callback const& living_cb)
 
    Stops the `watch`.
    Destroys itself. */
-static bool die()
+inline bool die()
 {
   using whatever = const event::event&;
   return detail::adapter::die([](whatever) -> void {});
@@ -51,7 +51,7 @@ static bool die()
    Stops the `watch`.
    Calls `callback`,
    then destroys itself. */
-static bool die(event::callback const& callback)
+inline bool die(event::callback const& callback)
 {
   return detail::adapter::die(callback);
 }
