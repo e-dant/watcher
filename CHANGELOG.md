@@ -2,6 +2,8 @@
 
 ## 0.4.2
 
+Public functions defined in headers prefer `inline` over `static`.
+
 Threads may not race when `epoll_wait` resumes on long wait periods despite `is_living()` being false.
 
 No warnings in `tsan/wtr.test_watcher.test_event_targets`.
