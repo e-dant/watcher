@@ -210,10 +210,11 @@ auto do_event_wait_recv(/* NOLINT */
                         event::callback const& callback) -> bool
 {
   /* The more time asleep, the better. */
-  int const event_count = epoll_wait(event_fd, event_list, event_max_count, -1);
+  int const event_count
+      = epoll_wait(event_fd, event_list, event_max_count, 100);
 
   auto const do_event_dispatch = [&]() {
-    for (int n = 0; n < event_count; ++n)
+    for (int n = 0; n < event_count; n++)
       if (event_list[n].data.fd == watch_fd)
         if (!do_scan(watch_fd, path_container, callback)) return false;
     /* We return true on eventless invocations. */
@@ -227,6 +228,8 @@ auto do_event_wait_recv(/* NOLINT */
     /* We always return false on errors. */
     return false;
   };
+
+  if (!is_living()) return true;
 
   auto is_ok = event_count < 0 ? do_event_error() : do_event_dispatch();
 
@@ -328,11 +331,6 @@ auto do_scan(int watch_fd, /* NOLINT */
 
 } /* namespace */
 
-/* @note wtr/watcher/detail/adapter/is_living
-   This symbol is defined in watcher/adapter/adapter.hpp
-   But clangd has a tough time finding it while editing. */
-static bool is_living(); /* NOLINT */
-
 /* @brief wtr/watcher/detail/adapter/linux/fns/watch
    Monitors `base_path` for changes.
    Invokes `callback` with an `event` when they happen.
@@ -343,7 +341,7 @@ static bool is_living(); /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-static bool watch(const char* base_path, event::callback const& callback)
+inline bool watch(const char* base_path, event::callback const& callback)
 {
   /*
      Functions

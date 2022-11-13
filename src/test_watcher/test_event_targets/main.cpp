@@ -14,7 +14,6 @@
    test_store_path,
    regular_file_store_path,
    dir_store_path */
-#include <ostream>
 #include <test_watcher/test_watcher.hpp>
 /* thread,
    sleep_for */
@@ -25,9 +24,11 @@
 #include <watcher/watcher.hpp>
 /* etc */
 #include <iostream>
+#include <mutex>
 #include <vector>
 
 static auto event_recv_list = std::vector<wtr::watcher::event::event>{};
+static auto event_recv_list_mtx = std::mutex{};
 
 /* Test that files are scanned */
 TEST_CASE("Event Targets", "[event_targets]")
@@ -38,8 +39,8 @@ TEST_CASE("Event Targets", "[event_targets]")
   using namespace std::chrono_literals;
   using namespace std::filesystem;
   using namespace std::this_thread;
-  using std::thread, std::vector, std::string, std::to_string, std::ofstream,
-      std::cout, std::endl, std::chrono::milliseconds;
+  using std::thread, std::vector, std::string, std::cout, std::endl,
+      std::chrono::milliseconds;
 
   auto event_list = vector<event::event>{};
 
@@ -60,24 +61,34 @@ TEST_CASE("Event Targets", "[event_targets]")
   /* Watch */
   thread([&]() {
     auto is_ok = watch(watch_path.c_str(), [](event::event const& ev) {
-      cout << ev << endl;
+      cout << "(living) " << ev << endl;
+      event_recv_list_mtx.lock();
       event_recv_list.push_back(event::event{ev});
+      event_recv_list_mtx.unlock();
     });
     REQUIRE(is_ok);
   }).detach();
 
+  event_recv_list_mtx.lock();
   mk_events(watch_path, path_count, event_list);
+  event_recv_list_mtx.unlock();
 
   /* Wait */
   sleep_for(death_after_test_milliseconds);
+
+  REQUIRE(detail::adapter::is_living());
 
   /* Stop Watch */
   event_list.emplace_back(
       event::event{"s/self/die", event::what::other, event::kind::watcher});
   bool const is_watch_dead = die([](event::event const& ev) {
-    cout << ev << endl;
+    cout << " (dying) " << ev << endl;
+    event_recv_list_mtx.lock();
     event_recv_list.push_back(event::event{ev});
+    event_recv_list_mtx.unlock();
   });
+
+  REQUIRE(is_watch_dead);
 
   auto const alive_for_ms_actual_value = ms_duration(ms_begin);
   auto const alive_for_ms_target_value = death_after_test_milliseconds.count();
