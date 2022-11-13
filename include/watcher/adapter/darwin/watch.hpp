@@ -121,7 +121,7 @@ auto mk_event_stream(const char* path, auto const& callback)
 
 } /* namespace */
 
-static bool watch(const char* path, event::callback const& callback)
+inline bool watch(const char* path, event::callback const& callback)
 {
   using std::chrono::seconds, std::chrono::milliseconds,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
