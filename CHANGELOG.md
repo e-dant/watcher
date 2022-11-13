@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.3.4
+## 0.4.2
+
+Threads may not race when `epoll_wait` resumes on long wait periods despite `is_living()` being false.
+
+No warnings in `tsan/wtr.test_watcher.test_event_targets`.
+
+## 0.4.1
+
+Clean misplaced file
+
+## 0.4.0
 
 Linux inotify adapter does not loop away from epoll wait.
 
