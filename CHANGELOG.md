@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+Single-include amalgamation.
+
+Consider automatic amalgamation.
+
 ## 0.4.2
 
 Public functions defined in headers prefer `inline` over `static`.
