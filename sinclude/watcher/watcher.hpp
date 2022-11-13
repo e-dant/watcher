@@ -287,12 +287,12 @@ inline constexpr auto delay_ms = 16;
   Likely may be overloaded by the user in the future.
 */
 
-static bool is_living()
+inline bool is_living()
 {
   watcher_alive_mtx.lock();
-  bool alive = watcher_alive;
+  bool _ = watcher_alive;
   watcher_alive_mtx.unlock();
-  return alive;
+  return _;
 }
 
 /*
@@ -303,7 +303,7 @@ static bool is_living()
   It might do other things or be removed at some point.
 */
 
-static bool make_living()
+inline bool make_living()
 {
   bool ok = true;
   watcher_alive_mtx.lock();
@@ -333,7 +333,7 @@ static bool make_living()
    when the files being watched change.
 */
 
-static bool watch(const char* path, event::callback const& callback);
+inline bool watch(const char* path, event::callback const& callback);
 
 /*
   @brief watcher/adapter/die
@@ -341,18 +341,21 @@ static bool watch(const char* path, event::callback const& callback);
   Invokes `callback` immediately before destroying itself.
 */
 
-static bool die(event::callback const& callback)
+inline bool die(event::callback const& callback)
 {
   bool ok = true;
-  watcher_alive_mtx.lock();
 
-  if (watcher_alive)
-    watcher_alive = true;
+  {
+    watcher_alive_mtx.lock();
 
-  else
-    ok = false;
+    if (watcher_alive == true)
+      watcher_alive = false;
 
-  watcher_alive_mtx.unlock();
+    else
+      ok = false;
+
+    watcher_alive_mtx.unlock();
+  }
 
   if (ok)
     callback(
@@ -848,10 +851,11 @@ auto do_event_wait_recv(/* NOLINT */
                         event::callback const& callback) -> bool
 {
   /* The more time asleep, the better. */
-  int const event_count = epoll_wait(event_fd, event_list, event_max_count, -1);
+  int const event_count
+      = epoll_wait(event_fd, event_list, event_max_count, 100);
 
   auto const do_event_dispatch = [&]() {
-    for (int n = 0; n < event_count; ++n)
+    for (int n = 0; n < event_count; n++)
       if (event_list[n].data.fd == watch_fd)
         if (!do_scan(watch_fd, path_container, callback)) return false;
     /* We return true on eventless invocations. */
@@ -865,6 +869,8 @@ auto do_event_wait_recv(/* NOLINT */
     /* We always return false on errors. */
     return false;
   };
+
+  if (!is_living()) return true;
 
   auto is_ok = event_count < 0 ? do_event_error() : do_event_dispatch();
 
@@ -966,11 +972,6 @@ auto do_scan(int watch_fd, /* NOLINT */
 
 } /* namespace */
 
-/* @note wtr/watcher/detail/adapter/is_living
-   This symbol is defined in watcher/adapter/adapter.hpp
-   But clangd has a tough time finding it while editing. */
-static bool is_living(); /* NOLINT */
-
 /* @brief wtr/watcher/detail/adapter/linux/fns/watch
    Monitors `base_path` for changes.
    Invokes `callback` with an `event` when they happen.
@@ -981,7 +982,7 @@ static bool is_living(); /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-static bool watch(const char* base_path, event::callback const& callback)
+inline bool watch(const char* base_path, event::callback const& callback)
 {
   /*
      Functions
@@ -1326,7 +1327,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-static bool watch(const char* path, event::callback const& living_cb)
+inline bool watch(const char* path, event::callback const& living_cb)
 {
   return detail::adapter::make_living()
              ? detail::adapter::watch(path, living_cb)
@@ -1337,7 +1338,7 @@ static bool watch(const char* path, event::callback const& living_cb)
 
    Stops the `watch`.
    Destroys itself. */
-static bool die()
+inline bool die()
 {
   using whatever = const event::event&;
   return detail::adapter::die([](whatever) -> void {});
@@ -1348,7 +1349,7 @@ static bool die()
    Stops the `watch`.
    Calls `callback`,
    then destroys itself. */
-static bool die(event::callback const& callback)
+inline bool die(event::callback const& callback)
 {
   return detail::adapter::die(callback);
 }
