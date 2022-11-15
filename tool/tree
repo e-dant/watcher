@@ -1,0 +1,30 @@
+#! /usr/bin/env bash
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.." || exit 1
+
+IGNORE_GLOB='SECURITY.md|LICENSE|README.md|CHANGELOG.md|CONTRIBUTING.md|Dockerfile|Containerfile|CMakeLists.txt|conanfile.txt|cmake|test_watcher|tool'
+
+EXIT_CODE=0
+
+if ! which exa &> /dev/null
+then
+  echo 'please install exa'
+  EXIT_CODE=$((EXIT_CODE + 1))
+else
+  basename "$PWD" && \
+    exa \
+      "$PWD" \
+      --tree \
+      --level 10 \
+      --ignore-glob="$IGNORE_GLOB" \
+      --sort type \
+      --reverse | \
+      tail -n +2
+  EXIT_CODE=$((EXIT_CODE + $?))
+fi
+
+cd "$LAST_DIR" || exit 1
+
+exit $EXIT_CODE
+
