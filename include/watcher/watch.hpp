@@ -29,7 +29,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(const char* path, event::callback const& living_cb)
+inline bool watch(auto const* path, event::callback const& living_cb)
 {
   return detail::adapter::make_living()
              ? detail::adapter::watch(path, living_cb)

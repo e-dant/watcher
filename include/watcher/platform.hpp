@@ -61,13 +61,14 @@ inline constexpr platform_t platform
 # endif /* apple target */
 
 /* windows */
-#elif defined(WIN32)
+#elif defined(WIN32) || defined(_WIN32)
     = platform_t::windows;
 # define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
 # define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 #else
+#warning "host platform is unknown"
     = platform_t::unknown;
 # define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
 #endif
