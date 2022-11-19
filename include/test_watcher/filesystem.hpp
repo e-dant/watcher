@@ -29,7 +29,7 @@ inline auto create_regular_files(auto path, auto n)
 inline auto create_regular_files(std::filesystem::path path, auto n)
 {
   using std::string;
-  return create_regular_files(string(path), n);
+  return create_regular_files(path.string(), n);
 }
 
 inline auto create_regular_files(
