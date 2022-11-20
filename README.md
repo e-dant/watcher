@@ -374,8 +374,7 @@ Windows
 
 ### Directory Tree
 
-> You can generate one yourself, too, by running
-[`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree)
+> You can run [`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree) to view this tree locally.
 
 ```
 watcher
