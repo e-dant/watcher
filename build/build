@@ -68,7 +68,8 @@ SANITIZERS=(
 TESTS=(
   # 'test_regular_file_events'
   # 'test_directory_events'
-  'test_event_targets'
+  'test_watch_targets'
+  'test_concurrent_watch_targets'
 )
 
 # The `build::build` function will append to this list

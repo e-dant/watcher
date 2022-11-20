@@ -12,6 +12,7 @@ include("${catch2_SOURCE_DIR}/extras/Catch.cmake")
 list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 
 # [test targets]
-include("${TEST_PROJECT_NAME}.test_event_targets")
+include("${TEST_PROJECT_NAME}.test_watch_targets")
+include("${TEST_PROJECT_NAME}.test_concurrent_watch_targets")
 include("${TEST_PROJECT_NAME}.test_directory_events")
 include("${TEST_PROJECT_NAME}.test_regular_file_events")

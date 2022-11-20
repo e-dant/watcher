@@ -43,12 +43,11 @@ static void show_event_stream_preamble()
 
 static void show_event_stream_postamble(auto alive_for_ms, bool is_watch_dead)
 {
-    /* And say so */
-    std::cout << "}"
-         << "\n,\"milliseconds\":" << alive_for_ms
-         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
-         << "\n}}}"
-         << std::endl;
+  /* And say so */
+  std::cout << "}"
+            << "\n,\"milliseconds\":" << alive_for_ms
+            << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}"
+            << std::endl;
 }
 
 static void show_strange_event(auto& title,
@@ -116,7 +115,7 @@ static void test_directory_event_handling(
    Half are creation events
    Half are destruction */
 auto mk_events(auto watch_path, auto path_count, auto& event_list,
-               auto should_reverse) -> void
+               auto should_reverse, unsigned long options) -> void
 {
   using namespace wtr::watcher;
   using std::vector, std::iota, std::abs, std::filesystem::exists,
@@ -133,6 +132,10 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
   else
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
+  if (options & mk_events_die_before)
+    event_list.emplace_back(
+        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
+
   for (auto& i : path_indices) {
     if (should_reverse ? i >= 0 : i < 0) {
       auto const path = watch_path + "/" + to_string(abs(i) - 0);
@@ -148,16 +151,24 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
       REQUIRE(!exists(path));
     }
   }
+
+  if (options & mk_events_die_after) {
+    std::cout << "dkshjbfahj\n";
+    event_list.emplace_back(
+        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
+  }
 }
 
-inline auto mk_events(auto watch_path, auto path_count, auto& event_list)
+inline auto mk_events(auto watch_path, auto path_count, auto& event_list,
+                      unsigned long options = mk_events_options)
 {
-  return mk_events(watch_path, path_count, event_list, true);
+  return mk_events(watch_path, path_count, event_list, true, options);
 }
 
-inline auto mk_revents(auto watch_path, auto path_count, auto& event_list)
+inline auto mk_revents(auto watch_path, auto path_count, auto& event_list,
+                       unsigned long options = mk_events_options)
 {
-  return mk_events(watch_path, path_count, event_list, false);
+  return mk_events(watch_path, path_count, event_list, false, options);
 }
 
 } /* namespace test_watcher */
