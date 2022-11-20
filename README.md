@@ -48,7 +48,7 @@ An arbitrary filesystem event watcher which is
 1. Simple
 > *Watcher* is dead simple to use:
 ```cpp
-watch(path, [](auto event::event){cout << event;});
+watch(path, [](auto ev){cout << ev;});
 ```
 
 2. Modular
