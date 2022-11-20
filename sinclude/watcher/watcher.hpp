@@ -388,12 +388,9 @@ inline bool die(event::callback const& callback)
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-
 #include <stdio.h>
 #include <windows.h>
 #include <chrono>
-#include <codecvt>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -404,38 +401,62 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 namespace {
+namespace util {
 
-using windows_flag_t = decltype(FILE_ACTION_ADDED);
+static std::string wstring_to_string(std::wstring const& in)
+{
+  using std::string;
+  size_t len = WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), nullptr, 0,
+                                   nullptr, nullptr);
+  if (!len)
+    return string{};
+  else {
+    std::unique_ptr<char> mem(new char[len]);
+    if (!WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), mem.get(), len,
+                             nullptr, nullptr))
+      return string{};
+    else
+      return string{mem.get(), len};
+  }
+}
 
-using flag_pair = std::pair<windows_flag_t, enum event::what>;
+static std::wstring string_to_wstring(std::string const& in)
+{
+  using std::wstring;
+  size_t len = MultiByteToWideChar(CP_UTF8, 0, in.data(), in.size(), 0, 0);
+  if (!len)
+    return wstring{};
+  else {
+    std::unique_ptr<wchar_t> mem(new wchar_t[len]);
+    if (!MultiByteToWideChar(CP_UTF8, 0, in.data(), in.size(), mem.get(), len))
+      return wstring{};
+    else
+      return wstring{mem.get(), len};
+  }
+}
 
-// This should be able to be an inline constexpr array,
-// but the windows cc disagrees.
-const std::vector<flag_pair> flag_pair_container{
-    flag_pair(FILE_ACTION_ADDED, event::what::create),
-    flag_pair(FILE_ACTION_MODIFIED, event::what::modify),
-    flag_pair(FILE_ACTION_REMOVED, event::what::destroy),
-    flag_pair(FILE_ACTION_RENAMED_OLD_NAME, event::what::rename),
-    flag_pair(FILE_ACTION_RENAMED_NEW_NAME, event::what::rename),
-};
+static std::wstring char_arr_to_wstring(char const* cstr)
+{
+  auto len = strlen(cstr);
+  auto mem = std::vector<wchar_t>(len + 1);
+  mbstowcs_s(nullptr, mem.data(), len + 1, cstr, len);
+  return std::wstring(mem.data());
+}
 
-inline constexpr auto buf_len = sizeof(FILE_NOTIFY_INFORMATION) * 4096;
+} /* namespace util */
 
-inline constexpr auto buf_len_dword = static_cast<DWORD>(buf_len);
-
-static auto buf = calloc(buf_len, sizeof(buf_len));
-
-typedef struct _WATCH_OVERLAPPED
+/* The watch event overlap holds an event buffer */
+struct watch_event_overlap
 {
   OVERLAPPED o;
 
   FILE_NOTIFY_INFORMATION* buffer;
 
-  unsigned int buffersize;
+  unsigned buffersize;
+};
 
-} WATCH_OVERLAPPED, *PWATCH_OVERLAPPED;
-
-struct windows_file_watcher
+/* The watch object holds a watch event overlap */
+struct watch_object
 {
   wtr::watcher::event::callback const& callback;
 
@@ -445,37 +466,36 @@ struct windows_file_watcher
 
   HANDLE* hthreads;
 
-  WATCH_OVERLAPPED* wos;
+  watch_event_overlap* wolap;
 
-  unsigned int count;
+  unsigned count;
 
   int working;
 
   WCHAR directoryname[256];
 };
 
-struct file_watcher_thread_parameter
+/* The watch object thread holds a watch object */
+struct watch_object_thread
 {
-  struct windows_file_watcher* pwatcher;
+  struct watch_object* wobj;
 
   HANDLE hevent;
 };
 
-FILE_NOTIFY_INFORMATION* do_event_recv(PWATCH_OVERLAPPED pwo,
+FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
                                        FILE_NOTIFY_INFORMATION* buffer,
-                                       unsigned int* bufferlength,
-                                       unsigned int buffersize,
-                                       HANDLE hdirectory,
+                                       unsigned* bufferlength,
+                                       unsigned buffersize, HANDLE hdirectory,
                                        event::callback const& callback)
 {
   using namespace wtr::watcher;
 
   *bufferlength = 0;
-
   DWORD bytes_returned = 0;
   OVERLAPPED* po;
-  memset(&pwo->o, 0, sizeof(OVERLAPPED));
-  po = &pwo->o;
+  memset(&wolap->o, 0, sizeof(OVERLAPPED));
+  po = &wolap->o;
 
   if (ReadDirectoryChangesW(
           hdirectory, buffer, buffersize, true,
@@ -485,24 +505,18 @@ FILE_NOTIFY_INFORMATION* do_event_recv(PWATCH_OVERLAPPED pwo,
               | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
           &bytes_returned, po, nullptr))
   {
-    // *bufferlength = bytes_returned > 0 ? bytes_returned : 0;
-    // buffer = bytes_returned > 0 ? buffer : nullptr;
-    if (bytes_returned) {
-      *bufferlength = bytes_returned;
-    } else {
-      buffer = nullptr;
-    }
+    *bufferlength = bytes_returned > 0 ? bytes_returned : 0;
+    buffer = bytes_returned > 0 ? buffer : nullptr;
   } else {
-    auto ec = GetLastError();
-            std::string where = "e/watcher/rdc";
-    switch (ec) {
+    switch (GetLastError()) {
       case ERROR_IO_PENDING:
         *bufferlength = 0;
         buffer = nullptr;
-        callback(event::event{where, event::what::other,
+        callback(event::event{"e/watcher/rdc/io_pending", event::what::other,
                               event::kind::watcher});
+        break;
       default:
-        callback(event::event{where, event::what::other,
+        callback(event::event{"e/watcher/rdc", event::what::other,
                               event::kind::watcher});
         break;
     }
@@ -511,52 +525,47 @@ FILE_NOTIFY_INFORMATION* do_event_recv(PWATCH_OVERLAPPED pwo,
   return buffer;
 }
 
-unsigned int do_event_parse(FILE_NOTIFY_INFORMATION* pfni,
-                            unsigned int bufferlength,
-                            const WCHAR* directoryname,
-                            event::callback const& callback)
+unsigned do_event_parse(FILE_NOTIFY_INFORMATION* pfni, unsigned bufferlength,
+                        wchar_t const* dirname_wc,
+                        event::callback const& callback)
 {
-  unsigned int result = 0;
+  unsigned result = 0;
 
   while (pfni + sizeof(FILE_NOTIFY_INFORMATION) <= pfni + bufferlength) {
-    auto filename_wc
-        = std::wstring{directoryname, pfni->FileNameLength} + L"\n";
+    if (pfni->FileNameLength % 2 == 0) {
+      auto path = util::wstring_to_string(
+          std::wstring{dirname_wc, wcslen(dirname_wc)} + std::wstring{L"\\"}
+          + std::wstring{pfni->FileName, pfni->FileNameLength / 2});
 
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
-    std::string filename = convert.to_bytes(filename_wc);
+      switch (pfni->Action) {
+        case FILE_ACTION_MODIFIED:
+          callback(event::event{path, event::what::modify, event::kind::file});
+          break;
+        case FILE_ACTION_ADDED:
+          callback(event::event{path, event::what::create, event::kind::file});
+          break;
+        case FILE_ACTION_REMOVED:
+          callback(event::event{path, event::what::destroy, event::kind::file});
+          break;
+        case FILE_ACTION_RENAMED_OLD_NAME:
+          callback(event::event{path, event::what::rename, event::kind::file});
+          break;
+        case FILE_ACTION_RENAMED_NEW_NAME:
+          callback(event::event{path, event::what::rename, event::kind::file});
+          break;
+        default: break;
+      }
+      result++;
 
-    switch (pfni->Action) {
-      case FILE_ACTION_MODIFIED:
-        callback(event::event{filename.c_str(), event::what::modify,
-                              event::kind::file});
+      if (pfni->NextEntryOffset == 0)
         break;
-      case FILE_ACTION_ADDED:
-        callback(event::event{filename.c_str(), event::what::create,
-                              event::kind::file});
-        break;
-      case FILE_ACTION_REMOVED:
-        callback(event::event{filename.c_str(), event::what::destroy,
-                              event::kind::file});
-        break;
-      case FILE_ACTION_RENAMED_OLD_NAME:
-        callback(event::event{filename.c_str(), event::what::rename,
-                              event::kind::file});
-        break;
-      case FILE_ACTION_RENAMED_NEW_NAME:
-        callback(event::event{filename.c_str(), event::what::rename,
-                              event::kind::file});
-        break;
-      default: break;
+      else
+        pfni = (FILE_NOTIFY_INFORMATION*)((uint8_t*)pfni
+                                          + pfni->NextEntryOffset);
     }
-    result++;
-
-    if (pfni->NextEntryOffset == 0)
-      break;
-    else
-      pfni = (FILE_NOTIFY_INFORMATION*)((uint8_t*)pfni + pfni->NextEntryOffset);
   }
 
-  return (result);
+  return result;
 }
 
 inline bool do_scan_work_async(int count, const wchar_t* directoryname,
@@ -565,83 +574,84 @@ inline bool do_scan_work_async(int count, const wchar_t* directoryname,
 {
   static constexpr unsigned buffersize = 65536;
 
-  struct windows_file_watcher pwatcher = {.callback = callback};
+  struct watch_object wobj = {.callback = callback};
 
-  struct file_watcher_thread_parameter pfwtp[1];
+  struct watch_object_thread wothr[1];
 
-  pfwtp->hevent = CreateEventW(nullptr, true, false, nullptr);
-  if (pfwtp->hevent) {
-    pwatcher.hthreads
+  wothr->hevent = CreateEventW(nullptr, true, false, nullptr);
+  if (wothr->hevent) {
+    wobj.hthreads
         = (HANDLE*)HeapAlloc(GetProcessHeap(), 0, sizeof(HANDLE) * count);
-    pwatcher.wos = (WATCH_OVERLAPPED*)HeapAlloc(
-        GetProcessHeap(), 0, sizeof(WATCH_OVERLAPPED) * count);
-    pwatcher.count = count;
-    pwatcher.working = true;
-    pwatcher.hcompletion
+    wobj.wolap = (watch_event_overlap*)HeapAlloc(
+        GetProcessHeap(), 0, sizeof(watch_event_overlap) * count);
+    wobj.count = count;
+    wobj.working = true;
+    wobj.hcompletion
         = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-    wcscpy_s(pwatcher.directoryname + 1, dname_len, directoryname);
-    pwatcher.directoryname[0] = static_cast<WCHAR>(wcslen(directoryname));
-    pwatcher.hdirectory = CreateFileW(
+    wcscpy_s(wobj.directoryname + 1, dname_len, directoryname);
+    wobj.directoryname[0] = static_cast<WCHAR>(wcslen(directoryname));
+    wobj.hdirectory = CreateFileW(
         directoryname, FILE_LIST_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
         nullptr);
 
-    CreateIoCompletionPort(pwatcher.hdirectory, pwatcher.hcompletion,
-                           (ULONG_PTR)pwatcher.hdirectory, count);
+    CreateIoCompletionPort(wobj.hdirectory, wobj.hcompletion,
+                           (ULONG_PTR)wobj.hdirectory, count);
 
-    pfwtp->pwatcher = &pwatcher;
+    wothr->wobj = &wobj;
 
     FILE_NOTIFY_INFORMATION* buffer;
     unsigned bufferlength;
 
     for (auto i = 0; i < count; i++) {
-      pwatcher.wos[i].buffersize = buffersize;
-      pwatcher.wos[i].buffer = (FILE_NOTIFY_INFORMATION*)HeapAlloc(
-          GetProcessHeap(), 0, pwatcher.wos[i].buffersize);
-      pwatcher.hthreads[i] = nullptr;
-      buffer = pwatcher.wos[i].buffer;
-      buffer = do_event_recv(&pwatcher.wos[i], buffer, &bufferlength,
-                             buffersize, pwatcher.hdirectory, callback);
+      wobj.wolap[i].buffersize = buffersize;
+      wobj.wolap[i].buffer = (FILE_NOTIFY_INFORMATION*)HeapAlloc(
+          GetProcessHeap(), 0, wobj.wolap[i].buffersize);
+      wobj.hthreads[i] = nullptr;
+      buffer = wobj.wolap[i].buffer;
+      buffer = do_event_recv(&wobj.wolap[i], buffer, &bufferlength, buffersize,
+                             wobj.hdirectory, callback);
       while (buffer != nullptr && bufferlength != 0)
-        do_event_parse(buffer, bufferlength, pwatcher.directoryname, callback);
-      ResetEvent(pfwtp->hevent);
-      pwatcher.hthreads[i] = CreateThread(
+        do_event_parse(buffer, bufferlength, wobj.directoryname, callback);
+      ResetEvent(wothr->hevent);
+      wobj.hthreads[i] = CreateThread(
           nullptr, 0,
           [](LPVOID parameter) -> DWORD {
-            struct file_watcher_thread_parameter* pfwtp
-                = (struct file_watcher_thread_parameter*)parameter;
+            struct watch_object_thread* wothr
+                = (struct watch_object_thread*)parameter;
 
             ULONG_PTR completionkey;
             DWORD numberofbytes;
             BOOL flag;
 
-            SetEvent(pfwtp->hevent);
+            SetEvent(wothr->hevent);
 
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
 
-            while (pfwtp->pwatcher->working) {
+            while (wothr->wobj->working) {
               OVERLAPPED* po;
 
-              flag = GetQueuedCompletionStatus(pfwtp->pwatcher->hcompletion,
+              flag = GetQueuedCompletionStatus(wothr->wobj->hcompletion,
                                                &numberofbytes, &completionkey,
                                                &po, INFINITE);
               if (po) {
-                PWATCH_OVERLAPPED pwo = (PWATCH_OVERLAPPED)CONTAINING_RECORD(
-                    po, WATCH_OVERLAPPED, o);
+                watch_event_overlap* wolap
+                    = (watch_event_overlap*)CONTAINING_RECORD(
+                        po, watch_event_overlap, o);
 
                 if (numberofbytes) {
-                  auto* buffer = (FILE_NOTIFY_INFORMATION*)pwo->buffer;
-                  unsigned int bufferlength = numberofbytes;
+                  auto* buffer = (FILE_NOTIFY_INFORMATION*)wolap->buffer;
+                  unsigned bufferlength = numberofbytes;
 
-                  while (pfwtp->pwatcher->working && buffer && bufferlength) {
+                  while (wothr->wobj->working && buffer && bufferlength) {
                     do_event_parse(buffer, bufferlength,
-                                   pfwtp->pwatcher->directoryname,
-                                   pfwtp->pwatcher->callback);
+                                   wothr->wobj->directoryname,
+                                   wothr->wobj->callback);
 
                     buffer = do_event_recv(
-                        pwo, buffer, &bufferlength, pwo->buffersize,
-                        pfwtp->pwatcher->hdirectory, pfwtp->pwatcher->callback);
+                        wolap, buffer, &bufferlength, wolap->buffersize,
+                        wothr->wobj->hdirectory, wothr->wobj->callback);
                   }
                 }
               }
@@ -649,13 +659,13 @@ inline bool do_scan_work_async(int count, const wchar_t* directoryname,
 
             return 0;
           },
-          (LPVOID)pfwtp, 0, nullptr);
-      if (pwatcher.hthreads[i]) WaitForSingleObject(pfwtp->hevent, INFINITE);
+          (LPVOID)wothr, 0, nullptr);
+      if (wobj.hthreads[i]) WaitForSingleObject(wothr->hevent, INFINITE);
     }
-    CloseHandle(pfwtp->hevent);
+    CloseHandle(wothr->hevent);
   }
 
-  return (0);
+  return 0;
 }
 
 static bool scan(std::wstring& path, event::callback const& callback)
@@ -670,22 +680,12 @@ static bool scan(std::wstring& path, event::callback const& callback)
   return true;
 }
 
-namespace util {
-inline std::wstring char_arr_to_wchar_str(char const* cstr)
-{
-  auto len = strlen(cstr);
-  auto mem = std::vector<wchar_t>(len + 1);
-  mbstowcs_s(nullptr, mem.data(), len + 1, cstr, len);
-  return std::wstring{std::move(mem.data())};
-}
-}  // namespace util
+} /* namespace */
 
-}  // namespace
-
-// check if living
-// scan if so
-// return if not living
-// true if no errors
+/* check if living */
+/* scan if so */
+/* return if not living */
+/* true if no errors */
 
 inline bool watch(wchar_t const* path_wchar_ptr,
                   event::callback const& callback)
@@ -697,16 +697,17 @@ inline bool watch(wchar_t const* path_wchar_ptr,
 
 inline bool watch(char const* path_char_ptr, event::callback const& callback)
 {
-  auto path = util::char_arr_to_wchar_str(path_char_ptr);
+  auto path = util::char_arr_to_wstring(path_char_ptr);
 
   return scan(path, callback);
 }
 
-}  // namespace adapter
-}  // namespace detail
-}  // namespace watcher
-}  // namespace wtr
+} /* namespace adapter */
+} /* namespace detail */
+} /* namespace watcher */
+} /* namespace wtr */
 
+#endif
 
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
