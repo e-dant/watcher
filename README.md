@@ -53,9 +53,9 @@ die(do_something);
 ```
 
 2. Modular
-> *Watcher* is **library, a program, or both**. If you don't
-want to use the library in your project, dont't worry. Just
-build ours and run and you've got yourself a filesystem watcher
+> *Watcher* is **either a library, a program, or both**. If you
+aren't looking to create something with the library, don't worry.
+Just build ours and run and you've got yourself a filesystem watcher
 which prints filesystem events as JSON. Neat. Here's how:
 ```bash
 git clone https://github.com/e-dant/watcher.git && cd watcher
