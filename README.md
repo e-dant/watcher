@@ -45,16 +45,14 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> *Watcher* is dead simple. The entirety of this project
-is expressible in two lines of code:
+> *Watcher* is dead simple. Check this out:
 ```cpp
-watch(path, do_something);
-die(do_something);
+watch(path, [](auto event::event){cout << event;});
 ```
 
 2. Modular
-> *Watcher* is **either a library, a program, or both**. If you
-aren't looking to create something with the library, don't worry.
+> *Watcher* may be used as **a library, a program, or both**.
+If you aren't looking to create something with the library, no worries.
 Just build ours and run and you've got yourself a filesystem watcher
 which prints filesystem events as JSON. Neat. Here's how:
 ```bash
