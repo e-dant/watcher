@@ -70,15 +70,17 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 > We run this project through unit tests against all available
 sanitiziers. The exception to this is Windows, which has one
 unreliable sanitizer and almost no safety instrumentation beyond
-compiler errors. A user should be skeptical of the Windows
-implementation and confident in all others.
+compiler errors. **A user should be skeptical of the Windows
+implementation and confident in all others.**
 
 5. Dependency free
-> The *Watcher* library depends on the C++ Standard Library. For efficiency, we use System APIs where possible on Linux, Darwin and Windows *[2]*. That's all. Our testing and instrumentation suites
-have dependencies, but that's a good thing.
+> The *Watcher* library depends on the C++ Standard Library. For
+greater efficiency, we will use System APIs when possible on Linux,
+Darwin and Windows *[2]*. That's all. Our testing and instrumentation
+suites have dependencies, and that's a good thing.
 
 6. Runnable anywhere
-> *Watcher* is runnable almost anywhere. The only requirement
+> *Watcher* is runnable (almost) anywhere. The only requirement
 is a filesystem.
 
 ---
