@@ -435,7 +435,7 @@ static std::wstring string_to_wstring(std::string const& in)
   }
 }
 
-static std::wstring char_arr_to_wstring(char const* cstr)
+static std::wstring cstring_to_wstring(char const* cstr)
 {
   auto len = strlen(cstr);
   auto mem = std::vector<wchar_t>(len + 1);
@@ -460,27 +460,19 @@ struct watch_object
 {
   wtr::watcher::event::callback const& callback;
 
-  HANDLE hcompletion;
+  HANDLE event_completion_token;
 
   HANDLE hdirectory;
 
-  HANDLE* hthreads;
+  HANDLE hthreads;
+
+  HANDLE event_token;
 
   watch_event_overlap* wolap;
-
-  unsigned count;
 
   int working;
 
   WCHAR directoryname[256];
-};
-
-/* The watch object thread holds a watch object */
-struct watch_object_thread
-{
-  struct watch_object* wobj;
-
-  HANDLE hevent;
 };
 
 FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
@@ -568,114 +560,108 @@ unsigned do_event_parse(FILE_NOTIFY_INFORMATION* pfni, unsigned bufferlength,
   return result;
 }
 
-inline bool do_scan_work_async(int count, const wchar_t* directoryname,
+inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
                                size_t dname_len,
                                event::callback const& callback)
 {
   static constexpr unsigned buffersize = 65536;
 
-  struct watch_object wobj = {.callback = callback};
-
-  struct watch_object_thread wothr[1];
-
-  wothr->hevent = CreateEventW(nullptr, true, false, nullptr);
-  if (wothr->hevent) {
-    wobj.hthreads
-        = (HANDLE*)HeapAlloc(GetProcessHeap(), 0, sizeof(HANDLE) * count);
-    wobj.wolap = (watch_event_overlap*)HeapAlloc(
-        GetProcessHeap(), 0, sizeof(watch_event_overlap) * count);
-    wobj.count = count;
-    wobj.working = true;
-    wobj.hcompletion
+  wobj->event_token = CreateEventW(nullptr, true, false, nullptr);
+  if (wobj->event_token) {
+    wobj->hthreads = (HANDLE*)HeapAlloc(GetProcessHeap(), 0, sizeof(HANDLE));
+    wobj->wolap = (watch_event_overlap*)HeapAlloc(GetProcessHeap(), 0,
+                                                  sizeof(watch_event_overlap));
+    wobj->working = true;
+    wobj->event_completion_token
         = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-    wcscpy_s(wobj.directoryname + 1, dname_len, directoryname);
-    wobj.directoryname[0] = static_cast<WCHAR>(wcslen(directoryname));
-    wobj.hdirectory = CreateFileW(
+    wcscpy_s(wobj->directoryname + 1, dname_len, directoryname);
+    wobj->directoryname[0] = static_cast<WCHAR>(wcslen(directoryname));
+    wobj->hdirectory = CreateFileW(
         directoryname, FILE_LIST_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
         nullptr);
 
-    CreateIoCompletionPort(wobj.hdirectory, wobj.hcompletion,
-                           (ULONG_PTR)wobj.hdirectory, count);
-
-    wothr->wobj = &wobj;
+    CreateIoCompletionPort(wobj->hdirectory, wobj->event_completion_token,
+                           (ULONG_PTR)wobj->hdirectory, 1);
 
     FILE_NOTIFY_INFORMATION* buffer;
     unsigned bufferlength;
 
-    for (auto i = 0; i < count; i++) {
-      wobj.wolap[i].buffersize = buffersize;
-      wobj.wolap[i].buffer = (FILE_NOTIFY_INFORMATION*)HeapAlloc(
-          GetProcessHeap(), 0, wobj.wolap[i].buffersize);
-      wobj.hthreads[i] = nullptr;
-      buffer = wobj.wolap[i].buffer;
-      buffer = do_event_recv(&wobj.wolap[i], buffer, &bufferlength, buffersize,
-                             wobj.hdirectory, callback);
-      while (buffer != nullptr && bufferlength != 0)
-        do_event_parse(buffer, bufferlength, wobj.directoryname, callback);
-      ResetEvent(wothr->hevent);
-      wobj.hthreads[i] = CreateThread(
-          nullptr, 0,
-          [](LPVOID parameter) -> DWORD {
-            struct watch_object_thread* wothr
-                = (struct watch_object_thread*)parameter;
+    wobj->wolap->buffersize = buffersize;
+    wobj->wolap->buffer = (FILE_NOTIFY_INFORMATION*)HeapAlloc(
+        GetProcessHeap(), 0, wobj->wolap->buffersize);
+    wobj->hthreads = nullptr;
+    buffer = wobj->wolap->buffer;
+    buffer = do_event_recv(wobj->wolap, buffer, &bufferlength, buffersize,
+                           wobj->hdirectory, callback);
+    while (buffer != nullptr && bufferlength != 0)
+      do_event_parse(buffer, bufferlength, wobj->directoryname, callback);
+    ResetEvent(wobj->event_token);
+    wobj->hthreads = CreateThread(
+        nullptr, 0,
+        [](void* parameter) -> DWORD {
+          struct watch_object* wobj = (struct watch_object*)parameter;
 
-            ULONG_PTR completionkey;
-            DWORD numberofbytes;
-            BOOL flag;
+          ULONG_PTR completionkey;
+          DWORD numberofbytes;
+          BOOL flag;
 
-            SetEvent(wothr->hevent);
+          SetEvent(wobj->event_token);
 
-            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+          SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
 
-            while (wothr->wobj->working) {
-              OVERLAPPED* po;
+          while (wobj->working) {
+            OVERLAPPED* po;
 
-              flag = GetQueuedCompletionStatus(wothr->wobj->hcompletion,
-                                               &numberofbytes, &completionkey,
-                                               &po, INFINITE);
-              if (po) {
-                watch_event_overlap* wolap
-                    = (watch_event_overlap*)CONTAINING_RECORD(
-                        po, watch_event_overlap, o);
+            flag = GetQueuedCompletionStatus(wobj->event_completion_token,
+                                             &numberofbytes, &completionkey,
+                                             &po, INFINITE);
+            if (po) {
+              watch_event_overlap* wolap
+                  = (watch_event_overlap*)CONTAINING_RECORD(
+                      po, watch_event_overlap, o);
 
-                if (numberofbytes) {
-                  auto* buffer = (FILE_NOTIFY_INFORMATION*)wolap->buffer;
-                  unsigned bufferlength = numberofbytes;
+              if (numberofbytes) {
+                auto* buffer = (FILE_NOTIFY_INFORMATION*)wolap->buffer;
+                unsigned bufferlength = numberofbytes;
 
-                  while (wothr->wobj->working && buffer && bufferlength) {
-                    do_event_parse(buffer, bufferlength,
-                                   wothr->wobj->directoryname,
-                                   wothr->wobj->callback);
+                while (wobj->working && buffer && bufferlength) {
+                  do_event_parse(buffer, bufferlength, wobj->directoryname,
+                                 wobj->callback);
 
-                    buffer = do_event_recv(
-                        wolap, buffer, &bufferlength, wolap->buffersize,
-                        wothr->wobj->hdirectory, wothr->wobj->callback);
-                  }
+                  buffer = do_event_recv(wolap, buffer, &bufferlength,
+                                         wolap->buffersize, wobj->hdirectory,
+                                         wobj->callback);
                 }
               }
             }
+          }
 
-            return 0;
-          },
-          (LPVOID)wothr, 0, nullptr);
-      if (wobj.hthreads[i]) WaitForSingleObject(wothr->hevent, INFINITE);
-    }
-    CloseHandle(wothr->hevent);
+          return 0;
+        },
+        (void*)wobj, 0, nullptr);
+    if (wobj->hthreads) WaitForSingleObject(wobj->event_token, INFINITE);
   }
+  CloseHandle(wobj->event_token);
 
   return 0;
 }
 
 static bool scan(std::wstring& path, event::callback const& callback)
 {
-  static constexpr auto thread_count = 1;
+  using std::this_thread::sleep_for, std::chrono::milliseconds;
 
-  do_scan_work_async(thread_count, path.c_str(), path.size() + 1, callback);
+  do_scan_work_async(new watch_object{.callback = callback}, path.c_str(),
+                     path.size() + 1, callback);
 
   while (true)
-    if (!is_living()) break;
+
+    if (!is_living())
+      break;
+
+    else if constexpr (delay_ms > 0)
+      sleep_for(milliseconds(delay_ms));
 
   return true;
 }
@@ -697,7 +683,7 @@ inline bool watch(wchar_t const* path_wchar_ptr,
 
 inline bool watch(char const* path_char_ptr, event::callback const& callback)
 {
-  auto path = util::char_arr_to_wstring(path_char_ptr);
+  auto path = util::cstring_to_wstring(path_char_ptr);
 
   return scan(path, callback);
 }
