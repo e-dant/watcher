@@ -8,7 +8,8 @@ namespace test_watcher {
 
 unsigned long constexpr static mk_events_options = 0x00000000;
 unsigned long constexpr static mk_events_die_before = 0x00000001;
-unsigned long constexpr static mk_events_die_after = 0x00000002;
+unsigned long constexpr static mk_events_die_after = 0x00000010;
+unsigned long constexpr static mk_events_reverse = 0x00000100;
 
 auto constexpr static prior_fs_events_clear_milliseconds
     = std::chrono::milliseconds(10);

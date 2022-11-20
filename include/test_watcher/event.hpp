@@ -114,8 +114,8 @@ static void test_directory_event_handling(
    Mirror what the Watcher should see
    Half are creation events
    Half are destruction */
-auto mk_events(auto watch_path, auto path_count, auto& event_list,
-               auto should_reverse, unsigned long options) -> void
+static auto mk_events(auto watch_path, auto path_count, auto& event_list,
+                      unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
   using std::vector, std::iota, std::abs, std::filesystem::exists,
@@ -127,17 +127,18 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
   REQUIRE(path_count > 1);
 
   vector<int> path_indices(path_count);
-  if (should_reverse)
+
+  if (options | mk_events_reverse)
     iota(path_indices.rbegin(), path_indices.rend(), -path_count / 2);
   else
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
-  if (options & mk_events_die_before)
+  if (options | mk_events_die_before)
     event_list.emplace_back(
         event::event{"s/self/die", event::what::destroy, event::kind::watcher});
 
   for (auto& i : path_indices) {
-    if (should_reverse ? i >= 0 : i < 0) {
+    if (options | mk_events_reverse ? i >= 0 : i < 0) {
       auto const path = watch_path + "/" + to_string(abs(i) - 0);
       event_list.emplace_back(
           event::event{path, event::what::create, event::kind::file});
@@ -152,23 +153,18 @@ auto mk_events(auto watch_path, auto path_count, auto& event_list,
     }
   }
 
-  if (options & mk_events_die_after) {
-    std::cout << "dkshjbfahj\n";
+  if (options | mk_events_die_after) {
+    std::cout << "dkshjbfahj\n" << std::endl;
     event_list.emplace_back(
         event::event{"s/self/die", event::what::destroy, event::kind::watcher});
   }
 }
 
-inline auto mk_events(auto watch_path, auto path_count, auto& event_list,
-                      unsigned long options = mk_events_options)
-{
-  return mk_events(watch_path, path_count, event_list, true, options);
-}
-
 inline auto mk_revents(auto watch_path, auto path_count, auto& event_list,
                        unsigned long options = mk_events_options)
 {
-  return mk_events(watch_path, path_count, event_list, false, options);
+  return mk_events(watch_path, path_count, event_list,
+                   options |= mk_events_reverse);
 }
 
 } /* namespace test_watcher */
