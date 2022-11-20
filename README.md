@@ -38,54 +38,59 @@ eval c++ -std=c++2a -O3 src/watcher/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
 
 Enjoy!
 
+---
+
 ## Tell Me More
 
-An arbitrary filesystem event watcher which is:
+An arbitrary filesystem event watcher which is
 
-- simple
-- efficient
-- dependency free
-- runnable anywhere
-- header only
+1. Simple
+> *Watcher* is dead simple. The entirety of this project
+is expressible in two lines of code:
+```cpp
+watch(path, do_something);
+die(do_something);
+```
 
-*Watcher* is extremely efficient. In many cases,
-even when scanning thousands of paths, this library
-uses a near-zero amount of resources. *[1]*
-
-*Watcher* is both a library and a program. So,
-if you don't want to use it in another project,
-don't worry. Just build and run and you've got
-yourself a filesystem watcher which prints filesystem
-events as JSON. Neat.
-
-Here's how to do that:
-
+2. Modular
+> *Watcher* is **library, a program, or both**. If you don't
+want to use the library in your project, dont't worry. Just
+build ours and run and you've got yourself a filesystem watcher
+which prints filesystem events as JSON. Neat. Here's how:
 ```bash
-# get
 git clone https://github.com/e-dant/watcher.git && cd watcher
-
-# build (quickly)
 build/build this --no-build-debug --no-build-test --no-run-test
-
-# use
 build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 ```
 
-*Watcher* is trivially easy to use, include,
-and run. (I hope. If not, let me know.)
+3. Efficient
+> In most cases, *Watcher* uses a near-zero amount of resources *[1]*.
+
+4. Safe
+> We run this project through unit tests against all available
+sanitiziers. The exception to this is Windows, which has one
+unreliable sanitizer and almost no safety instrumentation beyond
+compiler errors. A user should be skeptical of the Windows
+implementation and confident in all others.
+
+5. Dependency free
+> The *Watcher* library depends on the C++ Standard Library. For efficiency, we use System APIs where possible on Linux, Darwin and Windows *[2]*. That's all. Our testing and instrumentation suites
+have dependencies, but that's a good thing.
+
+6. Runnable anywhere
+> *Watcher* is runnable almost anywhere. The only requirement
+is a filesystem.
+
+---
 
 ## Usage
 
-> *Note*: If anything is unclear, make an issue about it!
-For deeper information, please see the headers. They are
-well-documented and are intended to be approachable.
-
 ### Important Files
 
-- `watcher.hpp`:
-    Public interface. Someday, this will be a module.
-- `main.cpp`:
-    Build this to use it as a CLI program.
+- `include/watcher/watcher.hpp`:
+    Public interface. Include this to use *Watcher* in your project.
+- `src/watcher/main.cpp`:
+    Build this to use *Watcher* as a CLI program.
 
 ### The Library
 
@@ -119,28 +124,29 @@ filesystem events to the (user-supplied) callback
 given to `watch`.
 
 The `event` object will contain the:
- - Path -- Which is always relative.
- - Type -- one of:
-   - dir
-   - file
-   - hard_link
-   - sym_link
-   - watcher
-   - other
- - Event type -- one of:
-   - rename
-   - modify
-   - create
-   - destroy
-   - owner
-   - other
- - Event time -- In nanoseconds since epoch
+ - Path
+ - Path type:
+   - Directory
+   - File
+   - Hard Link
+   - Symbolic Link
+   - Watcher
+   - Other
+ - Event type:
+   - Rename
+   - Modify
+   - Create
+   - Destroy
+   - Owner
+   - Other
+ - Event time as nanoseconds since epoch
 
 The `watcher` type is special.
 
-Events with this type will include messages from
-the watcher. You may recieve error messages or
-important status updates.
+Events with this type will include important
+messages from the watcher. You may recieve
+notifications about the watcher stopping,
+unwrapping a bad optional, and OS-level errors.
 
 ### Your Project
 
@@ -182,7 +188,10 @@ A `main` program suitable for this task:
 #include <iostream>
 /* std::stoul,
    std::string */
+#include <ratio>
 #include <string>
+/* std::strcmp */
+#include <cstring>
 /* std::thread */
 #include <thread>
 /* std::make_tuple,
@@ -198,7 +207,7 @@ A `main` program suitable for this task:
 namespace helpful_literals {
 using std::this_thread::sleep_for, std::chrono::milliseconds,
     std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
-    std::chrono::days, std::boolalpha, std::stoull, std::thread, std::cout,
+    std::chrono::days, std::boolalpha, std::strcmp, std::thread, std::cout,
     std::endl;
 using namespace wtr;                 /* watch, die */
 using namespace wtr::watcher::event; /* event, what, kind */
@@ -206,7 +215,8 @@ using namespace wtr::watcher::event; /* event, what, kind */
 
 /* Watch a path for some time.
    Stream what happens. */
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   using namespace helpful_literals;
 
   /* Lift the user's choices from the command line.
@@ -223,20 +233,20 @@ int main(int argc, char** argv) {
   auto const [path_to_watch, time_until_death] = [](int argc, char** argv) {
     auto const lift_path_to_watch = [&]() { return argc > 1 ? argv[1] : "."; };
     auto const lift_time_until_death = [&]() {
-      auto time_val = [&time_val_str = argv[3]]() {
-        return stoull(time_val_str);
+      auto const lift_time = [&]() { return std::stoull(argv[3]); };
+      auto const lift_typed_time = [&]() {
+        auto const unit_is = [&](const char* a) { return !strcmp(a, argv[2]); };
+        return unit_is("-ms") || unit_is("-milliseconds")
+                   ? milliseconds(lift_time())
+               : unit_is("-s") || unit_is("-seconds") ? seconds(lift_time())
+               : unit_is("-m") || unit_is("-minutes") ? minutes(lift_time())
+               : unit_is("-h") || unit_is("-hours")   ? hours(lift_time())
+               : unit_is("-d") || unit_is("-days")    ? days(lift_time())
+                                                      : milliseconds(0);
       };
-      auto unit_is = [&tspec = argv[2]](const char* a) -> bool {
-        return std::strcmp(a, tspec) == 0;
-      };
-      return argc > 3 ? unit_is("ms")  ? milliseconds(time_val())
-                        : unit_is("s") ? seconds(time_val())
-                        : unit_is("m") ? minutes(time_val())
-                        : unit_is("h") ? hours(time_val())
-                        : unit_is("d") ? days(time_val())
-                        : argc > 2     ? milliseconds(time_val())
-                                       : milliseconds(0)
-                      : milliseconds(0);
+      return argc == 4   ? lift_typed_time()
+             : argc == 3 ? milliseconds(lift_time())
+                         : milliseconds(0);
     };
     return std::make_tuple(lift_path_to_watch(), lift_time_until_death());
   }(argc, argv);
@@ -250,7 +260,7 @@ int main(int argc, char** argv) {
 
   auto const watch_expire = [&path_to_watch = path_to_watch, &show_event_json,
                              &time_until_death = time_until_death]() -> bool {
-    cout << R"({"wtr.watcher":{"stream":{)" << endl;
+    cout << R"({"wtr":{"watcher":{"stream":{)" << endl;
 
     /* Watch on some other thread */
     thread([&]() { watcher::watch(path_to_watch, show_event_json); }).detach();
@@ -265,11 +275,10 @@ int main(int argc, char** argv) {
        const bool is_watch_dead = watcher::die(); */
 
     /* And say so */
-    cout << "}" << endl
-         << R"(,"milliseconds":)" << time_until_death.count() << endl
-         << R"(,"expired":)" << std::boolalpha << is_watch_dead
-         << "}"
-            "}"
+    cout << "}"
+         << "\n,\"milliseconds\":" << time_until_death.count()
+         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
+         << "\n}}}"
          << endl;
 
     return is_watch_dead;
@@ -340,4 +349,19 @@ such as BSD and Solaris (`warthog` beats `kqueue`).
 may use a non-negligible amount of CPU time. For a thumb-
 rule, scanning more than one-hundred-thousand paths might
 stutter on hardware from this, or the last, decade.
+
+### [2] System Libraries Used
+
+Linux
+- `inotify`
+- `fanotify`
+- `epoll`
+
+Darwin
+- `FSEvents`
+- `dispatch_queue_attr_make_with_qos_class`
+
+Windows
+- `ReadDirectoryChangesW`
+- `IoCompletionPort`
 

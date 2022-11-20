@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 
   auto const watch_expire = [&path_to_watch = path_to_watch, &show_event_json,
                              &time_until_death = time_until_death]() -> bool {
-    cout << R"({"wtr.watcher":{"stream":{)" << endl;
+    cout << R"({"wtr":{"watcher":{"stream":{)" << endl;
 
     /* Watch on some other thread */
     thread([&]() { watcher::watch(path_to_watch, show_event_json); }).detach();
@@ -91,11 +91,10 @@ int main(int argc, char** argv)
        const bool is_watch_dead = watcher::die(); */
 
     /* And say so */
-    cout << "}" << endl
-         << R"(,"milliseconds":)" << time_until_death.count() << endl
-         << R"(,"dead":)" << std::boolalpha << is_watch_dead
-         << "}"
-            "}"
+    cout << "}"
+         << "\n,\"milliseconds\":" << time_until_death.count()
+         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
+         << "\n}}}"
          << endl;
 
     return is_watch_dead;

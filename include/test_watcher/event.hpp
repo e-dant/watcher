@@ -35,15 +35,20 @@ inline bool str_eq(char const* a, char const* b)
 
 static void show_event_stream_preamble()
 {
-  std::cout << "{\"wtr.test_watcher\":"
-            << "\n{\"stream\":\n{" << std::endl;
+  std::cout << "\n{\"wtr\":"
+               "\n{\"test_watcher\":"
+               "\n{\"stream\":"
+               "\n{\n";
 }
 
 static void show_event_stream_postamble(auto alive_for_ms, bool is_watch_dead)
 {
-  std::cout << "}\n,\"milliseconds\":" << alive_for_ms
-            << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "}}"
-            << std::endl;
+    /* And say so */
+    std::cout << "}"
+         << "\n,\"milliseconds\":" << alive_for_ms
+         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
+         << "\n}}}"
+         << std::endl;
 }
 
 static void show_strange_event(auto& title,
