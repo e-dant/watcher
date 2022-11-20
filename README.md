@@ -5,6 +5,7 @@
 ![macOS](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)
 ![Android](https://github.com/e-dant/watcher/actions/workflows/android.yml/badge.svg)
 ![Windows](https://github.com/e-dant/watcher/actions/workflows/windows.yml/badge.svg)
+[![ConanCenter package](https://repology.org/badge/version-for-repo/conancenter/watcher.svg)](https://conan.io/center/watcher)
 
 ## Quick Start
 
