@@ -46,7 +46,7 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> *Watcher* is dead simple. Check this out:
+> *Watcher* is dead simple to use:
 ```cpp
 watch(path, [](auto event::event){cout << event;});
 ```
@@ -63,7 +63,8 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 ```
 
 3. Efficient
-> In most cases, *Watcher* uses a near-zero amount of resources *[1]*.
+> In [most cases](https://github.com/e-dant/watcher/tree/release#exceptions-to-efficient-scanning),
+*Watcher* uses a near-zero amount of resources.
 
 4. Safe
 > We run this project through unit tests against all available
@@ -74,9 +75,9 @@ implementation and confident in all others.**
 
 5. Dependency free
 > The *Watcher* library depends on the C++ Standard Library. For
-greater efficiency, we will use System APIs when possible on Linux,
-Darwin and Windows *[2]*. That's all. Our testing and instrumentation
-suites have dependencies, and that's a good thing.
+greater efficiency, we will use [System APIs](https://github.com/e-dant/watcher/tree/release#directory-tree)
+when possible on Linux, Darwin and Windows. For testing and
+debugging, we use plenty frameworks and instruments.
 
 6. Runnable anywhere
 > *Watcher* is runnable almost anywhere. The only requirement
@@ -86,12 +87,14 @@ is a filesystem.
 
 ## Usage
 
-### Important Files
+### Project Content
 
-- `include/watcher/watcher.hpp`:
-    Public interface. Include this to use *Watcher* in your project.
-- `src/watcher/main.cpp`:
-    Build this to use *Watcher* as a CLI program.
+The important pieces are the (header-only) library and the (optional) CLI program.
+
+- Library: `include/watcher/watcher.hpp`. Include this to use *Watcher* in your project.
+- Program: `src/watcher/main.cpp`. Build this to use *Watcher* from the command line.
+
+A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#directory-tree).
 
 ### The Library
 
@@ -148,6 +151,9 @@ Events with this type will include important
 messages from the watcher. You may recieve
 notifications about the watcher stopping,
 unwrapping a bad optional, and OS-level errors.
+
+[The event header](https://github.com/e-dant/watcher/blob/release/include/watcher/event.hpp)
+is short and approachable.
 
 ### Your Project
 
@@ -337,7 +343,7 @@ cd build/out
 
 ## Notes
 
-### [1] Exceptions to Efficient Scanning
+### Exceptions to Efficient Scanning
 
 There are two cases where *Watcher*'s efficiency takes a hit:
 
@@ -351,7 +357,7 @@ may use a non-negligible amount of CPU time. For a thumb-
 rule, scanning more than one-hundred-thousand paths might
 stutter on hardware from this, or the last, decade.
 
-### [2] System Libraries Used
+### System Libraries
 
 Linux
 - `inotify`
@@ -366,3 +372,40 @@ Windows
 - `ReadDirectoryChangesW`
 - `IoCompletionPort`
 
+### Directory Tree
+
+> You can generate one yourself, too, by running
+[`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree)
+
+```
+watcher
+├── src
+│  └── watcher
+│     ├── tiny-main.cpp
+│     └── main.cpp
+├── sinclude
+│  └── watcher
+│     └── watcher.hpp
+├── include
+│  └── watcher
+│     ├── watcher.hpp
+│     ├── watch.hpp
+│     ├── platform.hpp
+│     ├── event.hpp
+│     └── adapter
+│        ├── adapter.hpp
+│        ├── windows
+│        │  └── watch.hpp
+│        ├── warthog
+│        │  └── watch.hpp
+│        ├── linux
+│        │  └── watch.hpp
+│        ├── darwin
+│        │  └── watch.hpp
+│        └── android
+│           └── watch.hpp
+└── build
+   ├── build
+   ├── out
+   └── in
+```

@@ -3,7 +3,7 @@
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.." || exit 1
 
-IGNORE_GLOB='SECURITY.md|LICENSE|README.md|CHANGELOG.md|CONTRIBUTING.md|Dockerfile|Containerfile|CMakeLists.txt|conanfile.txt|cmake|test_watcher|tool'
+IGNORE_GLOB='SECURITY.md|LICENSE|README.md|CHANGELOG.md|CONTRIBUTING.md|Dockerfile|Containerfile|CMakeLists.txt|conanfile.txt|cmake|test_watcher|tool|artifacts.txt|this|compile_commands.json'
 
 EXIT_CODE=0
 
