@@ -80,7 +80,7 @@ Darwin and Windows *[2]*. That's all. Our testing and instrumentation
 suites have dependencies, and that's a good thing.
 
 6. Runnable anywhere
-> *Watcher* is runnable (almost) anywhere. The only requirement
+> *Watcher* is runnable almost anywhere. The only requirement
 is a filesystem.
 
 ---
