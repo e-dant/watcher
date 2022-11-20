@@ -348,9 +348,9 @@ cd build/out
 
 There are two cases where *Watcher*'s efficiency takes a hit:
 
-1. When the platform-independant `warthog` adapter is used.
-This happens on platforms which lack better alternatives,
-such as BSD and Solaris (`warthog` beats `kqueue`).
+1. When we bring out the `warthog`, our platform-independent
+adapter. This adapter is used on platforms that lack better
+alternatives, such as BSD and Solaris (`warthog` beats `kqueue`).
 2. On embedded systems (where resources matter regardless).
 
 *Watcher* is still relatively efficient in these cases, but
