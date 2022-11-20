@@ -75,7 +75,7 @@ implementation and confident in all others.**
 
 5. Dependency free
 > The *Watcher* library depends on the C++ Standard Library. For
-greater efficiency, we will use [System APIs](https://github.com/e-dant/watcher/tree/release#directory-tree)
+greater efficiency, we will use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
 debugging, we use plenty frameworks and instruments.
 
@@ -357,7 +357,7 @@ may use a non-negligible amount of CPU time. For a thumb-
 rule, scanning more than one-hundred-thousand paths might
 stutter on hardware from this, or the last, decade.
 
-### System Libraries
+### OS APIs Used
 
 Linux
 - `inotify`
