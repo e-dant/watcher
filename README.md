@@ -77,7 +77,8 @@ implementation and confident in all others.**
 > The *Watcher* library depends on the C++ Standard Library. For
 greater efficiency, we will use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
-debugging, we use plenty frameworks and instruments.
+debugging, we use [Snatch](https://github.com/cschreib/snatch) and
+[Sanitizers](https://clang.llvm.org/docs/index.html).
 
 6. Runnable anywhere
 > *Watcher* is runnable almost anywhere. The only requirement
