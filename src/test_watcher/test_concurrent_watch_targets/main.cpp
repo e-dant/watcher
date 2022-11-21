@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <catch2/catch_test_macros.hpp>
+#include <snatch/snatch.hpp>
 /* milliseconds */
 #include <chrono>
 /* create_directory,
@@ -25,6 +25,7 @@
 /* etc */
 #include <iostream>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 static auto event_recv_list = std::vector<wtr::watcher::event::event>{};
@@ -39,67 +40,75 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
   using namespace std::chrono_literals;
   using namespace std::filesystem;
   using namespace std::this_thread;
-  using std::thread, std::vector, std::string, std::cout, std::endl,
-      std::chrono::milliseconds;
+  using std::thread, std::vector, std::string, std::to_string, std::cout,
+      std::endl, std::chrono::milliseconds;
 
   auto event_list = vector<event::event>{};
 
-  auto const watch_path = concurrent_event_targets_store_path.string();
+  auto watch_path_list = std::unordered_map<std::string, bool>{};
 
-  show_conf("concurrent_event_targets", test_store_path, watch_path);
+  for (auto i = 0; i < concurrent_event_targets_concurrency_level; i++) {
+    auto _ = concurrent_event_targets_store_path.string() + to_string(i);
+    watch_path_list[_] = detail::adapter::is_living(_);
+  }
+
+  for (auto const& p : watch_path_list)
+    show_conf("concurrent_event_targets", test_store_path, p.first);
 
   create_directory(test_store_path);
-  create_directory(watch_path);
+  for (auto const& p : watch_path_list) create_directory(p.first);
 
   sleep_for(prior_fs_events_clear_milliseconds);
 
   /* Start */
-  show_event_stream_preamble();
+  // show_event_stream_preamble();
 
   auto ms_begin = ms_now().count();
 
   /* Watch */
-  for (auto i = 0; i < concurrent_event_targets_concurrency_level; i++) {
+  for (auto const& p : watch_path_list)
     thread([&]() {
-      auto is_ok = watch(watch_path.c_str(), [](event::event const& ev) {
-        cout << "(living) " << ev << endl;
+      REQUIRE(detail::adapter::is_living(p.first) == false);
+      auto is_ok = watch(p.first, [](event::event const& ev) {
+        // cout << "(living) " << ev << endl;
         event_recv_list_mtx.lock();
         event_recv_list.push_back(event::event{ev});
         event_recv_list_mtx.unlock();
       });
       REQUIRE(is_ok);
     }).detach();
-  }
 
   event_recv_list_mtx.lock();
-  for (auto i = 0; i < concurrent_event_targets_concurrency_level; i++) {
-    mk_events(watch_path, path_count, event_list,
+  for (auto const& p : watch_path_list)
+    mk_events(p.first, path_count, event_list,
               mk_events_options | mk_events_die_after);
-    // event_list.emplace_back(
-    //     event::event{"s/self/die", event::what::other,
-    //     event::kind::watcher});
-  }
   event_recv_list_mtx.unlock();
 
   /* Wait */
   sleep_for(death_after_test_milliseconds);
 
-  REQUIRE(detail::adapter::is_living());
+  for (auto const& p : watch_path_list)
+    REQUIRE(detail::adapter::is_living(p.first));
 
   /* Stop Watch */
-  bool const is_watch_dead = die([](event::event const& ev) {
-    cout << " (dying) " << ev << endl;
-    event_recv_list_mtx.lock();
-    event_recv_list.push_back(event::event{ev});
-    event_recv_list_mtx.unlock();
-  });
+  for (auto i = 0; i < concurrent_event_targets_concurrency_level; i++) {
+    auto _ = concurrent_event_targets_store_path.string() + to_string(i);
+    watch_path_list.at(_) = die(_, [](event::event const& ev) {
+      // cout << " (dying) " << ev << endl;
+      event_recv_list_mtx.lock();
+      event_recv_list.push_back(event::event{ev});
+      event_recv_list_mtx.unlock();
+    });
+  }
 
-  REQUIRE(is_watch_dead);
+  for (auto const& p : watch_path_list)
+    REQUIRE(detail::adapter::is_living(p.first) == false);
 
   auto const alive_for_ms_actual_value = ms_duration(ms_begin);
   auto const alive_for_ms_target_value = death_after_test_milliseconds.count();
 
-  show_event_stream_postamble(alive_for_ms_target_value, is_watch_dead);
+  // for (auto const& p : watch_path_list)
+  //   show_event_stream_postamble(alive_for_ms_target_value, p.second);
 
   cout << "Alive for:" << endl
        << " Expected: " << alive_for_ms_target_value << "ms" << endl
@@ -113,4 +122,4 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
 
   /* Clean */
   remove_all(test_store_path);
-}
+};

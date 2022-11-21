@@ -17,18 +17,11 @@ namespace test_watcher {
 
 inline auto create_regular_files(auto path, auto n)
 {
-  using namespace std::filesystem;
-  using std::ofstream, std::to_string, std::string;
-
-  for (int i = 0; i < n; i++) {
-    ofstream{path + to_string(i) + string(".txt")};
-    // REQUIRE(is_regular_file(item));
-  }
+  for (int i = 0; i < n; i++) std::ofstream{path + std::to_string(i) + std::string(".txt")};
 }
 
 inline auto create_regular_files(std::filesystem::path path, auto n)
 {
-  using std::string;
   return create_regular_files(path.string(), n);
 }
 
@@ -45,13 +38,8 @@ inline auto create_regular_files(auto& paths)
 
 inline auto create_directories(auto path, auto n)
 {
-  using namespace std::filesystem;
-
-  for (int i = 0; i < n; i++) {
-    auto item = path / std::to_string(i);
-    create_directory(item);
-    REQUIRE(is_directory(item));
-  }
+  for (int i = 0; i < n; i++)
+    std::filesystem::create_directory(path / std::to_string(i));
 }
 
 } /* namespace test_watcher */

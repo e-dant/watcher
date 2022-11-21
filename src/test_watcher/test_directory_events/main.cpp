@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <catch2/catch_test_macros.hpp>
+#include <snatch/snatch.hpp>
 /* milliseconds */
 #include <chrono>
 /* create_directory,
@@ -35,7 +35,8 @@ TEST_CASE("Directory Events", "[directory_events]")
   using std::thread, std::chrono::milliseconds;
 
   auto const watch_path = dir_store_path;
-  auto const event_callback = test_directory_event_handling;
+  auto const event_callback
+      = [](auto this_event) { std::cout << this_event << "," << std::endl; };
 
   show_conf("directory_events", test_store_path, watch_path);
 
@@ -59,7 +60,7 @@ TEST_CASE("Directory Events", "[directory_events]")
   sleep_for(death_after_test_milliseconds);
 
   /* Stop Watch */
-  bool const is_watch_dead = die(event_callback);
+  bool const is_watch_dead = die(watch_path.c_str(), event_callback);
 
   auto const alive_for_ms_target_value = death_after_test_milliseconds.count();
   auto const alive_for_ms_actual_value = ms_duration(ms_begin);
@@ -72,4 +73,4 @@ TEST_CASE("Directory Events", "[directory_events]")
 
   /* Clean */
   remove_all(test_store_path);
-}
+};

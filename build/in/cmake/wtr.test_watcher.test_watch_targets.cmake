@@ -1,18 +1,21 @@
 # [event target test]
 
+set(RUNTIME_TEST_FILES
+  "${TEST_WATCH_TARGETS_SOURCES}")
+
 add_executable("${TEST_PROJECT_NAME}.test_watch_targets"
   "${TEST_WATCH_TARGETS_SOURCES}")
+
 set_property(TARGET "${TEST_PROJECT_NAME}.test_watch_targets" PROPERTY
   CXX_STANDARD 23)
+
 target_compile_options("${TEST_PROJECT_NAME}.test_watch_targets" PRIVATE
   "${TEST_COMPILE_OPTIONS}")
 target_link_options("${TEST_PROJECT_NAME}.test_watch_targets" PRIVATE
   "${TEST_LINK_OPTIONS}")
-target_include_directories("${TEST_PROJECT_NAME}.test_watch_targets" PUBLIC
-  "${TEST_INCLUDE_PATH}")
 
 target_include_directories("${TEST_PROJECT_NAME}.test_watch_targets" PUBLIC
-  "${Catch2_SOURCE_DIR}/src")
+  "${TEST_INCLUDE_PATH}")
 target_link_libraries("${TEST_PROJECT_NAME}.test_watch_targets" PRIVATE
   "${TEST_LINK_LIBRARIES}")
 

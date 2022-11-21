@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     sleep_for(time_until_death);
 
     /* Then die */
-    const bool is_watch_dead = watcher::die(show_event_json);
+    const bool is_watch_dead = watcher::die(path_to_watch, show_event_json);
 
     /* It's also ok to die like this
        const bool is_watch_dead = watcher::die(); */

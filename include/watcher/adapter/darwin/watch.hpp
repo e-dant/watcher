@@ -18,6 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <string>
 #include <thread>
 #include <vector>
 #include <watcher/adapter/adapter.hpp>
@@ -121,12 +122,14 @@ auto mk_event_stream(const char* path, auto const& callback)
 
 } /* namespace */
 
-inline bool watch(const char* path, event::callback const& callback)
+inline bool watch(std::string const& path_str, event::callback const& callback)
 {
-  using std::chrono::seconds, std::chrono::milliseconds,
+  using std::chrono::seconds, std::chrono::milliseconds, std::string,
       std::this_thread::sleep_for, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink,
       std::filesystem::exists;
+
+  auto path = path_str.c_str();
   static auto callback_hook = callback;
   auto const callback_adapter
       = [](ConstFSEventStreamRef, /* stream_ref
@@ -198,7 +201,7 @@ inline bool watch(const char* path, event::callback const& callback)
                                               QOS_CLASS_USER_INITIATED, -10));
 
   if (alive_os_ev_queue(event_stream, event_queue))
-    while (is_living())
+    while (is_living(path_str))
       /* this does nothing to affect processing, but this thread doesn't need to
          run an infinite loop aggressively. It can wait, with some latency,
          until the queue stops, and then clean itself up. */

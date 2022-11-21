@@ -34,7 +34,7 @@ auto show_conf(auto test_name, auto test_store_path, auto watch_path)
 
   cout << seperator(test_name) << endl
        << test_name << ":" << endl
-       << " test_store_path: " << test_store_path << endl
+       << " test_store_path: " << test_store_path.string() << endl
        << " watch_path: " << watch_path << endl
        << " prior_fs_events_clear_milliseconds: "
        << prior_fs_events_clear_milliseconds.count() << endl

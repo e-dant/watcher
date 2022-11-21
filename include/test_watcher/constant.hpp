@@ -17,7 +17,7 @@ auto constexpr static death_after_test_milliseconds
     = std::chrono::milliseconds(1000);
 auto constexpr static path_count = 10;
 
-auto const concurrent_event_targets_concurrency_level = 2;
+auto const concurrent_event_targets_concurrency_level = 3;
 
 auto const test_store_path
     = std::filesystem::current_path() / "tmp_test_watcher";

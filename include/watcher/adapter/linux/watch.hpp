@@ -341,15 +341,13 @@ auto do_scan(int watch_fd, /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-inline bool watch(const char* base_path, event::callback const& callback)
+inline bool watch(std::string const& path_str, event::callback const& callback)
 {
-  /*
-     Functions
-   */
-
   /*
      Values
    */
+
+  auto path = path_str.c_str();
 
   auto watch_fd_optional = do_watch_fd_create(callback);
 
@@ -357,7 +355,7 @@ inline bool watch(const char* base_path, event::callback const& callback)
     auto watch_fd = watch_fd_optional.value();
 
     auto&& path_container_optional
-        = do_path_container_create(base_path, watch_fd, callback);
+        = do_path_container_create(path, watch_fd, callback);
 
     if (path_container_optional.has_value()) {
       /* Find all directories above the base path given.

@@ -2,16 +2,16 @@
 
 /* system_clock::now, milliseconds */
 #include <chrono>
-#include <ratio>
 
 namespace wtr {
 namespace test_watcher {
 
 inline auto ms_now()
 {
-  auto time = std::chrono::system_clock::now();
+  using namespace std::chrono;
+  auto time = system_clock::now();
   auto normalized_time = time.time_since_epoch().count();
-  auto ms_time = std::chrono::milliseconds(normalized_time);
+  auto ms_time = milliseconds(normalized_time);
   return ms_time;
 }
 

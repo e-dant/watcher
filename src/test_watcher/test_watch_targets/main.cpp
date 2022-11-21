@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <catch2/catch_test_macros.hpp>
+#include <snatch/snatch.hpp>
 /* milliseconds */
 #include <chrono>
 /* create_directory,
@@ -76,12 +76,12 @@ TEST_CASE("Event Targets", "[event_targets]")
   /* Wait */
   sleep_for(death_after_test_milliseconds);
 
-  REQUIRE(detail::adapter::is_living());
+  REQUIRE(detail::adapter::is_living(watch_path.c_str()));
 
   /* Stop Watch */
   event_list.emplace_back(
       event::event{"s/self/die", event::what::other, event::kind::watcher});
-  bool const is_watch_dead = die([](event::event const& ev) {
+  bool const is_watch_dead = die(watch_path.c_str(), [](event::event const& ev) {
     cout << " (dying) " << ev << endl;
     event_recv_list_mtx.lock();
     event_recv_list.push_back(event::event{ev});
@@ -107,4 +107,4 @@ TEST_CASE("Event Targets", "[event_targets]")
 
   /* Clean */
   remove_all(test_store_path);
-}
+};

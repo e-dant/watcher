@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
@@ -29,31 +30,23 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(auto const* path, event::callback const& living_cb)
+inline bool watch(std::string const& path, event::callback const& callback)
 {
-  return detail::adapter::make_living()
-             ? detail::adapter::watch(path, living_cb)
+  return detail::adapter::make_living(path)
+             ? detail::adapter::watch(path, callback)
              : false;
 }
 
 /* @brief watcher/die
 
    Stops the `watch`.
-   Destroys itself. */
-inline bool die()
-{
-  using whatever = const event::event&;
-  return detail::adapter::die([](whatever) -> void {});
-}
-
-/* @brief watcher/die
-
-   Stops the `watch`.
    Calls `callback`,
-   then destroys itself. */
-inline bool die(event::callback const& callback)
+   then dies. */
+inline bool die(
+    std::string const& path,
+    event::callback const& callback = [](auto) -> void {})
 {
-  return detail::adapter::die(callback);
+  return detail::adapter::die(path, callback);
 }
 
 } /* namespace watcher */

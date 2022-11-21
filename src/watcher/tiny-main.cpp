@@ -1,6 +1,6 @@
 /* tiny-main.cpp */
 #include <iostream>
-#include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
+#include "../../include/watcher/watcher.hpp" /* Point this to wherever yours is */
 
 int main(int argc, char** argv)
 {

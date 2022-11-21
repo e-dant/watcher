@@ -1,18 +1,21 @@
 # [regular file test]
 
+set(RUNTIME_TEST_FILES
+  "${TEST_REGULAR_FILE_EVENTS_SOURCES}")
+
 add_executable("${TEST_PROJECT_NAME}.test_regular_file_events"
   "${TEST_REGULAR_FILE_EVENTS_SOURCES}")
+
 set_property(TARGET "${TEST_PROJECT_NAME}.test_regular_file_events" PROPERTY
   CXX_STANDARD 23)
+
 target_compile_options("${TEST_PROJECT_NAME}.test_regular_file_events" PRIVATE
   "${TEST_COMPILE_OPTIONS}")
 target_link_options("${TEST_PROJECT_NAME}.test_regular_file_events" PRIVATE
   "${TEST_LINK_OPTIONS}")
-target_include_directories("${TEST_PROJECT_NAME}.test_regular_file_events" PUBLIC
-  "${TEST_INCLUDE_PATH}")
 
 target_include_directories("${TEST_PROJECT_NAME}.test_regular_file_events" PUBLIC
-  "${Catch2_SOURCE_DIR}/src")
+  "${TEST_INCLUDE_PATH}")
 target_link_libraries("${TEST_PROJECT_NAME}.test_regular_file_events" PRIVATE
   "${TEST_LINK_LIBRARIES}")
 
