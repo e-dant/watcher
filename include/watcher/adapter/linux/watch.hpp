@@ -149,7 +149,10 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data { .fd = watch_fd }
+    .events = EPOLLIN, .data
+    {
+      .fd = watch_fd
+    }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd = epoll_create1(EPOLL_CLOEXEC);
@@ -209,9 +212,11 @@ auto do_event_wait_recv(/* NOLINT */
                         path_container_type& path_container,
                         event::callback const& callback) -> bool
 {
-  /* The more time asleep, the better. */
+  /* The more time asleep, the better,
+     as long as we don't sleep forever,
+     because we may need to die. */
   int const event_count
-      = epoll_wait(event_fd, event_list, event_max_count, 100);
+      = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
 
   auto const do_event_dispatch = [&]() {
     for (int n = 0; n < event_count; n++)
@@ -228,8 +233,6 @@ auto do_event_wait_recv(/* NOLINT */
     /* We always return false on errors. */
     return false;
   };
-
-  if (!is_living()) return true;
 
   auto is_ok = event_count < 0 ? do_event_error() : do_event_dispatch();
 
@@ -341,13 +344,16 @@ auto do_scan(int watch_fd, /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-inline bool watch(std::string const& path_str, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback)
+{
+  return watch(path.c_str(), callback);
+}
+
+inline bool watch(char const* path, event::callback const& callback)
 {
   /*
      Values
    */
-
-  auto path = path_str.c_str();
 
   auto watch_fd_optional = do_watch_fd_create(callback);
 
@@ -375,7 +381,7 @@ inline bool watch(std::string const& path_str, event::callback const& callback)
          */
 
         /* Loop until dead. */
-        while (is_living()
+        while (is_living(path)
                && do_event_wait_recv(watch_fd, event_fd, event_list,
                                      path_container, callback))
           continue;

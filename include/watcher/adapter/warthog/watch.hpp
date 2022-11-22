@@ -13,7 +13,7 @@
   filesystem events directly from the OS.
 
   This is the fallback adapter on platforms that either
-    - Only support `kqueue`
+    - Only support `kqueue` (`warthog` beats `kqueue`)
     - Only support the C++ standard library
 */
 
@@ -147,8 +147,7 @@ static bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec))
-        {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
@@ -223,29 +222,34 @@ static bool tend_bucket(const char* path, auto const& send_event,
 
   Unless it should stop, or errors present, `watch` recurses.
 */
-inline bool watch(std::string const& path_str, event::callback const& callback)
+
+inline bool watch(auto const& path, event::callback const& callback)
+{
+  return watch(path.c_str(), callback);
+}
+
+inline bool watch(char const* path, event::callback const& callback)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
-  /* First, sleep for delay_ms.
+  /* Sleep for `delay_ms`.
 
-     Then, keep running if:
-       - The bucket is doing well, and
-       - No errors occured while scanning,
+     Then, keep running if
+       - We are alive
+       - The bucket is doing well
+       - No errors occured while scanning
 
      Otherwise, stop and return false. */
 
   static bucket_type bucket;
 
-  auto path = path_str.c_str();
-
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living() ? tend_bucket(path, callback, bucket)
-                           ? scan(path, callback, bucket)
-                                 ? watch(path, callback)
-                                 : false
-                           : false
-                     : true;
+  return is_living(path) ? tend_bucket(path, callback, bucket)
+                               ? scan(path, callback, bucket)
+                                     ? watch(path, callback)
+                                     : false
+                               : false
+                         : true;
 }
 
 } /* namespace adapter */

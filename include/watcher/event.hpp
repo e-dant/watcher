@@ -53,7 +53,8 @@ namespace watcher {
 namespace event {
 
 namespace {
-using std::string;
+using std::string, std::chrono::duration_cast, std::chrono::nanoseconds,
+    std::chrono::time_point, std::chrono::system_clock;
 }
 
 /* @brief watcher/event/types
@@ -101,39 +102,20 @@ struct event
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const std::string where;
+  const string where;
   const enum what what;
   const enum kind kind;
-  const long long when;
+  const long long when{
+      duration_cast<nanoseconds>(
+          time_point<system_clock>{system_clock::now()}.time_since_epoch())
+          .count()};
 
   event(const char* where, const enum what what, const enum kind kind)
-      : where{string{where}},
-
-        what{what},
-
-        kind{kind},
-
-        /* wow! thanks chrono! */
-        when{std::chrono::duration_cast<std::chrono::nanoseconds>(
-                 std::chrono::time_point<std::chrono::system_clock>{
-                     std::chrono::system_clock::now()}
-                     .time_since_epoch())
-                 .count()}
+      : where{string{where}}, what{what}, kind{kind}
   {}
 
   event(const string where, const enum what what, const enum kind kind)
-      : where{where},
-
-        what{what},
-
-        kind{kind},
-
-        /* wow! thanks chrono! */
-        when{std::chrono::duration_cast<std::chrono::nanoseconds>(
-                 std::chrono::time_point<std::chrono::system_clock>{
-                     std::chrono::system_clock::now()}
-                     .time_since_epoch())
-                 .count()}
+      : where{where}, what{what}, kind{kind}
   {}
 
   ~event() noexcept = default;

@@ -83,14 +83,13 @@ static auto mk_events(auto watch_path, auto path_count, auto& event_list,
         event::event{"s/self/die", event::what::destroy, event::kind::watcher});
 
   for (auto& i : path_indices) {
-    if (options | mk_events_reverse ? i >= 0 : i < 0) {
-      auto const path = watch_path + "/" + to_string(abs(i) - 0);
+    auto const path = watch_path + "/" + to_string(i < 0 ? abs(i) - 1 : abs(i));
+    if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
       event_list.emplace_back(
           event::event{path, event::what::create, event::kind::file});
       ofstream{path};
       assert(exists(path));
     } else {
-      auto const path = watch_path + "/" + to_string(abs(i) - 1);
       event_list.emplace_back(
           event::event{path, event::what::destroy, event::kind::file});
       remove(path.c_str());

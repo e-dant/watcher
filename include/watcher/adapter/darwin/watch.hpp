@@ -33,75 +33,40 @@ namespace {
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
 /* clang-format off */
-inline constexpr auto flag_pair_count = 26;
+inline constexpr auto flag_pair_count = 4;
 inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
   {
     /* basic information about what happened to some path.
-       for now, this group is the important one. */
+       this group is the important one.
+       See note [Extra Event Flags] */
     flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
     flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
     flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
-
-    /* path information, i.e. whether the path is a file, directory, etc.
-       we can get this info much more easily later on in `wtr/watcher/event`. */
-    /* flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),       */
-    /* flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),      */
-    /* flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),  */
-    /* flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link), */
-    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link), */
-
-    /* path attribute events, such as the owner and some xattr data.
-       will be worthwhile soon to implement these.
-       @todo(next weekend) this. */
-    flag_pair(kFSEventStreamEventFlagItemChangeOwner,    event::what::owner),
-    /* flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other), */
-
-    /* some edge-cases which may be interesting later on. */
-    /* flag_pair(kFSEventStreamEventFlagNone,               event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagMount,              event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other), */
-    /* flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other), */
 };
 /* clang-format on */
 
-template <auto const delay_ms = 16>
-auto mk_event_stream(const char* path, auto const& callback)
+auto mk_event_stream(char const* path, auto const& callback)
 {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
       *are* const qualified. using void** is not ok. but it's also ok. */
-  const void* _path_ref
+  void const* path_cfstring
       = CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
-  const void** _path_refref{&_path_ref};
 
   /* We pass along the path we were asked to watch, */
   auto const translated_path
       = CFArrayCreate(nullptr,               /* not sure */
-                      _path_refref,          /* path string(s) */
+                      &path_cfstring,        /* path string(s) */
                       1,                     /* number of paths */
                       &kCFTypeArrayCallBacks /* callback */
       );
+
   /* the time point from which we want to monitor events (which is now), */
   auto const time_flag = kFSEventStreamEventIdSinceNow;
+
   /* the delay, in seconds */
-  static constexpr auto delay_s = []() {
-    if constexpr (delay_ms > 0)
-      return (delay_ms / 1000.0);
-    else
-      return (0);
-  }();
+  static constexpr auto delay_s = delay_ms > 0 ? delay_ms / 1000.0 : 0.0;
 
   /* and the event stream flags */
   auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents
@@ -122,97 +87,107 @@ auto mk_event_stream(const char* path, auto const& callback)
 
 } /* namespace */
 
-inline bool watch(std::string const& path_str, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback)
 {
-  using std::chrono::seconds, std::chrono::milliseconds, std::string,
-      std::this_thread::sleep_for, std::filesystem::is_regular_file,
-      std::filesystem::is_directory, std::filesystem::is_symlink,
-      std::filesystem::exists;
+  return watch(path.c_str(), callback);
+}
 
-  auto path = path_str.c_str();
+inline bool watch(char const* path, event::callback const& callback)
+{
+  using std::chrono::seconds, std::chrono::milliseconds, std::to_string,
+      std::string, std::this_thread::sleep_for,
+      std::filesystem::is_regular_file, std::filesystem::is_directory,
+      std::filesystem::is_symlink, std::filesystem::exists;
+
   static auto callback_hook = callback;
   auto const callback_adapter
-      = [](ConstFSEventStreamRef, /* stream_ref
-                                     (required) */
-           auto*,                 /* callback_info (required) */
-           size_t os_event_count, auto* os_event_paths,
-           const FSEventStreamEventFlags os_event_flags[],
-           const FSEventStreamEventId*) {
-          auto decode_flags = [](const FSEventStreamEventFlags& flag_recv) {
+      = [](ConstFSEventStreamRef const,   /* stream_ref */
+           auto*,                         /* callback_info */
+           size_t const event_recv_count, /* event count */
+           auto* event_recv_paths,        /* paths with events */
+           FSEventStreamEventFlags const* event_recv_what, /* event flags */
+           FSEventStreamEventId const*                     /* event stream id */
+        ) {
+          auto decode_flags = [](FSEventStreamEventFlags const& flag_recv) {
             std::vector<event::what> translation;
             /* @todo this is a slow, dumb search. fix it. */
-            for (const flag_pair& it : flag_pair_container)
+            for (flag_pair const& it : flag_pair_container)
               if (flag_recv & it.first) translation.push_back(it.second);
             return translation;
           };
 
-          for (decltype(os_event_count) i = 0; i < os_event_count; ++i) {
-            auto const _path_info_dict = static_cast<CFDictionaryRef>(
-                CFArrayGetValueAtIndex(static_cast<CFArrayRef>(os_event_paths),
-                                       static_cast<CFIndex>(i)));
-            auto const _path_cfstring
-                = static_cast<CFStringRef>(CFDictionaryGetValue(
-                    _path_info_dict, kFSEventStreamEventExtendedDataPathKey));
-            const char* translated_path
-                = CFStringGetCStringPtr(_path_cfstring, kCFStringEncodingUTF8);
-            /* see note [inode and time] for some extra stuff that can be done
-             * here. */
-            auto const discern_kind = [](const char* path) {
+          for (size_t i = 0; i < event_recv_count; i++) {
+            char const* event_path = [&]() {
+              auto const&& event_path_from_cfdict = [&]() {
+                auto const&& event_path_from_cfarray
+                    = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
+                        static_cast<CFArrayRef>(event_recv_paths),
+                        static_cast<CFIndex>(i)));
+                return static_cast<CFStringRef>(CFDictionaryGetValue(
+                    event_path_from_cfarray,
+                    kFSEventStreamEventExtendedDataPathKey));
+              }();
+              return CFStringGetCStringPtr(event_path_from_cfdict,
+                                           kCFStringEncodingUTF8);
+            }();
+            /* see note [inode and time]
+               for some extra stuff that can be done here. */
+            auto const lift_event_kind = [](auto const& path) {
               return exists(path) ? is_regular_file(path) ? event::kind::file
                                     : is_directory(path)  ? event::kind::dir
                                     : is_symlink(path) ? event::kind::sym_link
                                                        : event::kind::other
                                   : event::kind::other;
             };
-            for (auto const& flag_it : decode_flags(os_event_flags[i]))
-              if (translated_path != nullptr)
+            for (auto const& what_it : decode_flags(event_recv_what[i]))
+              if (event_path != nullptr)
                 callback_hook(wtr::watcher::event::event{
-                    translated_path, flag_it, discern_kind(translated_path)});
+                    event_path, what_it, lift_event_kind(event_path)});
           }
         };
 
-  auto const alive_os_ev_queue
-      = [](const FSEventStreamRef& event_stream, auto const& event_queue) {
-          if (!event_stream || !event_queue) return false;
-          FSEventStreamSetDispatchQueue(event_stream, event_queue);
-          FSEventStreamStart(event_stream);
-          return event_queue ? true : false;
-        };
+  auto const do_make_event_handler_alive
+      = [](FSEventStreamRef const& event_stream,
+           dispatch_queue_t const& event_queue) -> bool {
+    if (!event_stream || !event_queue) return false;
+    FSEventStreamSetDispatchQueue(event_stream, event_queue);
+    FSEventStreamStart(event_stream);
+    return event_queue ? true : false;
+  };
 
-  auto const dead_os_ev_queue
-      = [](const FSEventStreamRef& event_stream, auto const& event_queue) {
+  auto const do_make_event_handler_dead
+      = [](FSEventStreamRef const& event_stream,
+           dispatch_queue_t const& event_queue) {
           FSEventStreamStop(event_stream);
           FSEventStreamInvalidate(event_stream);
           FSEventStreamRelease(event_stream);
           dispatch_release(event_queue);
-          return event_queue ? false : true;
+          /* Assuming macOS > 10.8 or iOS > 6.0,
+             we don't need to check for null on the
+             dispatch queue (our `event_queue`).
+             https://developer.apple.com/documentation
+             /dispatch/1496328-dispatch_release */
         };
 
-  auto const event_stream = mk_event_stream<delay_ms>(path, callback_adapter);
+  auto const event_stream = mk_event_stream(path, callback_adapter);
 
   /* this should be the mersenne twister */
   auto const event_queue_name
-      = ("wtr.watcher.event_queue." + std::to_string(std::rand()));
+      = ("wtr.watcher.event_queue." + to_string(std::rand()));
 
   /* request a high priority queue */
-  auto const event_queue = dispatch_queue_create(
+  dispatch_queue_t event_queue = dispatch_queue_create(
       event_queue_name.c_str(),
       dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                               QOS_CLASS_USER_INITIATED, -10));
 
-  if (alive_os_ev_queue(event_stream, event_queue))
-    while (is_living(path_str))
-      /* this does nothing to affect processing, but this thread doesn't need to
-         run an infinite loop aggressively. It can wait, with some latency,
-         until the queue stops, and then clean itself up. */
+  if (do_make_event_handler_alive(event_stream, event_queue))
+    while (is_living(path))
       if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  /* Should the dying callback be here? */
-  /*
-    callback(wtr::watcher::event::event
-      {"", event::what::destroy, event::kind::watcher});
-  */
-  return dead_os_ev_queue(event_stream, event_queue);
+  do_make_event_handler_dead(event_stream, event_queue);
+
+  return is_living(path) ? false : true;
 }
 
 /*
@@ -251,6 +226,43 @@ from `fswatch`, could be used:
             << " (time/inode " << curr_time << "/" << inode << ")"
             << std::endl;
   ```
+
+## Extra Event Flags
+
+```
+    // path information, i.e. whether the path is a file, directory, etc.
+    // we can get this info much more easily later on in `wtr/watcher/event`.
+
+    // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
+    // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
+    // flag_pair(kFSEventStreamEventFlagItemIsSymlink, event::what::sym_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsHardlink, event::what::hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink,
+event::what::hard_link),
+
+    // path attribute events, such as the owner and some xattr data.
+    // will be worthwhile soon to implement these.
+    // @todo this.
+    // flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
+    // flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
+    // flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    // flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
+
+    // some edge-cases which may be interesting later on.
+    // flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
+    // flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
+    // flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
+    // flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
+    // flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
+    // flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
+    // flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
+    // flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
+    // flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
+    // flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
+    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
+    // flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
+```
+
 */
 
 } /* namespace adapter */

@@ -69,12 +69,16 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
   for (auto const& p : watch_path_list)
     thread([&]() {
       REQUIRE(detail::adapter::is_living(p.first) == false);
-      auto is_ok = watch(p.first, [](event::event const& ev) {
+      auto is_ok = (watch(p.first, [](event::event const& ev) {
         // cout << "(living) " << ev << endl;
         event_recv_list_mtx.lock();
         event_recv_list.push_back(event::event{ev});
         event_recv_list_mtx.unlock();
-      });
+      }));
+      std::cout << "is_living: "
+                << (detail::adapter::is_living(p.first) ? "true" : "false")
+                << std::endl;
+      std::cout << "is_ok: " << (is_ok ? "true" : "false") << std::endl;
       REQUIRE(is_ok);
     }).detach();
 

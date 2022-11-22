@@ -19,6 +19,10 @@
 
 namespace wtr {
 namespace watcher {
+
+/* See the note in watcher/detail/adapter */
+inline bool watch(wchar_t const* path, event::callback const& callback);
+
 namespace detail {
 namespace adapter {
 namespace {
@@ -273,12 +277,14 @@ static bool scan(std::wstring& path, event::callback const& callback)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
+  auto path_str = util::wstring_to_string(path);
+
   do_scan_work_async(new watch_object{.callback = callback}, path.c_str(),
                      path.size() + 1, callback);
 
   while (true)
 
-    if (!is_living())
+    if (!is_living(path_str.c_str()))
       break;
 
     else if constexpr (delay_ms > 0)
@@ -289,23 +295,28 @@ static bool scan(std::wstring& path, event::callback const& callback)
 
 } /* namespace */
 
-/* check if living */
-/* scan if so */
-/* return if not living */
-/* true if no errors */
+/* check if living
+   scan if so
+   return if not living
+   true if no errors */
 
-inline bool watch(wchar_t const* path_wchar_ptr,
-                  event::callback const& callback)
+inline bool watch(wchar_t const* path, event::callback const& callback)
 {
-  auto path = std::wstring{path_wchar_ptr, wcslen(path_wchar_ptr)};
+  return scan(std::wstring{path, wcslen(path)}, callback);
+}
 
+inline bool watch(char const* path, event::callback const& callback)
+{
+  return scan(util::cstring_to_wstring(path), callback);
+}
+
+inline bool watch(std::string const& path, event::callback const& callback)
+{
   return scan(path, callback);
 }
 
-inline bool watch(char const* path_char_ptr, event::callback const& callback)
+inline bool watch(std::wstring const& path, event::callback const& callback)
 {
-  auto path = util::cstring_to_wstring(path_char_ptr);
-
   return scan(path, callback);
 }
 

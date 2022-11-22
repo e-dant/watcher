@@ -9,7 +9,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(snatch)
 
-# [test targets]
+# [test target definitions]
 set(TEST_PROJECT_NAME                     "wtr.test_watcher")
 set(TEST_REGULAR_FILE_EVENTS_SOURCES      "../../src/test_watcher/test_regular_file_events/main.cpp")
 set(TEST_DIRECTORY_EVENTS_SOURCES         "../../src/test_watcher/test_directory_events/main.cpp")
@@ -19,6 +19,8 @@ set(TEST_LINK_LIBRARIES                   "${LINK_LIBRARIES}" "snatch::snatch")
 set(TEST_COMPILE_OPTIONS                  "${COMPILE_OPTIONS}")
 set(TEST_LINK_OPTIONS                     "${LINK_OPTIONS}")
 set(TEST_INCLUDE_PATH                     "${INCLUDE_PATH}")
+
+# [test targets]
 include("${TEST_PROJECT_NAME}.test_watch_targets")
 include("${TEST_PROJECT_NAME}.test_concurrent_watch_targets")
 include("${TEST_PROJECT_NAME}.test_directory_events")

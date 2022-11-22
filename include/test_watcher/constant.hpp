@@ -23,7 +23,7 @@ auto const test_store_path
     = std::filesystem::current_path() / "tmp_test_watcher";
 
 auto const concurrent_event_targets_store_path
-    = test_store_path / "concurrent_event_targets_store";
+    = test_store_path / "concurrent_event_targets_store_";
 auto const event_targets_store_path = test_store_path / "event_targets_store";
 auto const regular_file_store_path = test_store_path / "regular_file_store";
 auto const dir_store_path = test_store_path / "dir_store";
