@@ -1,11 +1,11 @@
 # Watcher
 
-![CodeQL](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)
-![Linux](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml/badge.svg)
-![macOS](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)
-![Android](https://github.com/e-dant/watcher/actions/workflows/android.yml/badge.svg)
-![Windows](https://github.com/e-dant/watcher/actions/workflows/windows.yml/badge.svg)
-[![ConanCenter package](https://repology.org/badge/version-for-repo/conancenter/watcher.svg)](https://conan.io/center/watcher)
+[![CodeQL](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/codeql.yml)
+[![Linux](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml)
+[![macOS](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/macos.yml)
+[![Android](https://github.com/e-dant/watcher/actions/workflows/android.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/android.yml)
+[![Windows](https://github.com/e-dant/watcher/actions/workflows/windows.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/windows.yml)
+[![ConanCenter](https://repology.org/badge/version-for-repo/conancenter/watcher.svg)](https://conan.io/center/watcher)
 
 ## Quick Start
 
