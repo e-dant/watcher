@@ -273,14 +273,18 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
   return 0;
 }
 
-static bool scan(std::wstring& path, event::callback const& callback)
+static bool scan(std::wstring const& path_wstr, event::callback const& callback)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
-  auto path_str = util::wstring_to_string(path);
+  /* @todo We need to find a better way of dealing with wide strings.
+     This shouldn't affect us too much in the perf department because
+     this is not the hot path. I wouldn't be surprised if the character
+     strings lose information after all this back-and-forth. */
+  auto path_str = util::wstring_to_string(path_wstr);
 
-  do_scan_work_async(new watch_object{.callback = callback}, path.c_str(),
-                     path.size() + 1, callback);
+  do_scan_work_async(new watch_object{.callback = callback}, path_wstr.c_str(),
+                     path_wstr.size() + 1, callback);
 
   while (true)
 
@@ -312,7 +316,7 @@ inline bool watch(char const* path, event::callback const& callback)
 
 inline bool watch(std::string const& path, event::callback const& callback)
 {
-  return scan(path, callback);
+  return scan(util::string_to_wstring(path), callback);
 }
 
 inline bool watch(std::wstring const& path, event::callback const& callback)
