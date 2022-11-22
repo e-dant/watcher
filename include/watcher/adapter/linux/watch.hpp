@@ -149,10 +149,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data
-    {
-      .fd = watch_fd
-    }
+    .events = EPOLLIN, .data { .fd = watch_fd }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd = epoll_create1(EPOLL_CLOEXEC);

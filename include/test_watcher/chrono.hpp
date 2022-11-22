@@ -15,10 +15,7 @@ inline auto ms_now()
   return ms_time;
 }
 
-inline auto ms_duration(auto from)
-{
-  return ms_now().count() - from;
-}
+inline auto ms_duration(auto from) { return ms_now().count() - from; }
 
 inline auto ms_duration(std::chrono::milliseconds from)
 {

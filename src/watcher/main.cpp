@@ -93,8 +93,7 @@ int main(int argc, char** argv)
     /* And say so */
     cout << "}"
          << "\n,\"milliseconds\":" << time_until_death.count()
-         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
-         << "\n}}}"
+         << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}"
          << endl;
 
     return is_watch_dead;

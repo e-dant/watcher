@@ -17,7 +17,8 @@ namespace test_watcher {
 
 inline auto create_regular_files(auto path, auto n)
 {
-  for (int i = 0; i < n; i++) std::ofstream{path + std::to_string(i) + std::string(".txt")};
+  for (int i = 0; i < n; i++)
+    std::ofstream{path + std::to_string(i) + std::string(".txt")};
 }
 
 inline auto create_regular_files(std::filesystem::path path, auto n)

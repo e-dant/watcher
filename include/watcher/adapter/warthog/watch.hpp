@@ -147,7 +147,8 @@ static bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)

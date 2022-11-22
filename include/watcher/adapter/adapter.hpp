@@ -58,10 +58,7 @@ inline bool is_living(char const* path)
   return _;
 }
 
-inline bool is_living(auto const& path)
-{
-  return is_living(path.c_str());
-}
+inline bool is_living(auto const& path) { return is_living(path.c_str()); }
 
 /*
   @brief watcher/adapter/can_watch
@@ -86,10 +83,7 @@ inline bool make_living(char const* path)
   return ok;
 }
 
-inline bool make_living(auto const& path)
-{
-  return make_living(path.c_str());
-}
+inline bool make_living(auto const& path) { return make_living(path.c_str()); }
 
 /*
   @brief watcher/adapter/die

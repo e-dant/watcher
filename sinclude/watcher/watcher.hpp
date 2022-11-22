@@ -304,10 +304,7 @@ inline bool is_living(char const* path)
   return _;
 }
 
-inline bool is_living(auto const& path)
-{
-  return is_living(path.c_str());
-}
+inline bool is_living(auto const& path) { return is_living(path.c_str()); }
 
 /*
   @brief watcher/adapter/can_watch
@@ -332,10 +329,7 @@ inline bool make_living(char const* path)
   return ok;
 }
 
-inline bool make_living(auto const& path)
-{
-  return make_living(path.c_str());
-}
+inline bool make_living(auto const& path) { return make_living(path.c_str()); }
 
 /*
   @brief watcher/adapter/die
@@ -381,9 +375,6 @@ inline bool die(auto const& path, event::callback const& callback)
 } /* namespace wtr */
 
 /* clang-format off */
-
-
-
 
 /* clang-format on */
 
@@ -712,7 +703,6 @@ inline bool watch(std::wstring const& path, event::callback const& callback)
 } /* namespace wtr */
 
 #endif
-
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -1128,10 +1118,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data
-    {
-      .fd = watch_fd
-    }
+    .events = EPOLLIN, .data { .fd = watch_fd }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd = epoll_create1(EPOLL_CLOEXEC);
@@ -1536,7 +1523,8 @@ static bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)

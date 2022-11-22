@@ -81,12 +81,13 @@ TEST_CASE("Event Targets", "[event_targets]")
   /* Stop Watch */
   event_list.emplace_back(
       event::event{"s/self/die", event::what::other, event::kind::watcher});
-  bool const is_watch_dead = die(watch_path.c_str(), [](event::event const& ev) {
-    cout << " (dying) " << ev << endl;
-    event_recv_list_mtx.lock();
-    event_recv_list.push_back(event::event{ev});
-    event_recv_list_mtx.unlock();
-  });
+  bool const is_watch_dead
+      = die(watch_path.c_str(), [](event::event const& ev) {
+          cout << " (dying) " << ev << endl;
+          event_recv_list_mtx.lock();
+          event_recv_list.push_back(event::event{ev});
+          event_recv_list_mtx.unlock();
+        });
 
   REQUIRE(is_watch_dead);
 
