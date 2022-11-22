@@ -1,5 +1,7 @@
 #pragma once
 
+/* assert */
+#include <cassert>
 /* vector */
 #include <vector>
 /* abs */
