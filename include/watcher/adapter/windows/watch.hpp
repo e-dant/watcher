@@ -91,7 +91,7 @@ struct watch_object
 
   int working;
 
-  WCHAR directoryname[256];
+  wchar_t directoryname[256];
 };
 
 FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
@@ -136,9 +136,9 @@ FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
   return buffer;
 }
 
-unsigned do_event_parse(FILE_NOTIFY_INFORMATION* pfni, unsigned bufferlength,
-                        wchar_t const* dirname_wc,
-                        event::callback const& callback)
+unsigned do_event_send(FILE_NOTIFY_INFORMATION* pfni,
+                       unsigned const bufferlength, wchar_t const* dirname_wc,
+                       event::callback const& callback)
 {
   unsigned result = 0;
 
@@ -150,19 +150,19 @@ unsigned do_event_parse(FILE_NOTIFY_INFORMATION* pfni, unsigned bufferlength,
 
       switch (pfni->Action) {
         case FILE_ACTION_MODIFIED:
-          callback(event::event{path, event::what::modify, event::kind::file});
+          callback({path, event::what::modify, event::kind::file});
           break;
         case FILE_ACTION_ADDED:
-          callback(event::event{path, event::what::create, event::kind::file});
+          callback({path, event::what::create, event::kind::file});
           break;
         case FILE_ACTION_REMOVED:
-          callback(event::event{path, event::what::destroy, event::kind::file});
+          callback({path, event::what::destroy, event::kind::file});
           break;
         case FILE_ACTION_RENAMED_OLD_NAME:
-          callback(event::event{path, event::what::rename, event::kind::file});
+          callback({path, event::what::rename, event::kind::file});
           break;
         case FILE_ACTION_RENAMED_NEW_NAME:
-          callback(event::event{path, event::what::rename, event::kind::file});
+          callback({path, event::what::rename, event::kind::file});
           break;
         default: break;
       }
@@ -179,7 +179,7 @@ unsigned do_event_parse(FILE_NOTIFY_INFORMATION* pfni, unsigned bufferlength,
   return result;
 }
 
-inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
+inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
                                size_t dname_len,
                                event::callback const& callback)
 {
@@ -194,7 +194,7 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
     wobj->event_completion_token
         = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
     wcscpy_s(wobj->directoryname + 1, dname_len, directoryname);
-    wobj->directoryname[0] = static_cast<WCHAR>(wcslen(directoryname));
+    wobj->directoryname[0] = static_cast<wchar_t>(wcslen(directoryname));
     wobj->hdirectory = CreateFileW(
         directoryname, FILE_LIST_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
@@ -214,8 +214,10 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
     buffer = wobj->wolap->buffer;
     buffer = do_event_recv(wobj->wolap, buffer, &bufferlength, buffersize,
                            wobj->hdirectory, callback);
+
     while (buffer != nullptr && bufferlength != 0)
-      do_event_parse(buffer, bufferlength, wobj->directoryname, callback);
+      do_event_send(buffer, bufferlength, wobj->directoryname, callback);
+
     ResetEvent(wobj->event_token);
     wobj->hthreads = CreateThread(
         nullptr, 0,
@@ -223,7 +225,7 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
           struct watch_object* wobj = (struct watch_object*)parameter;
 
           ULONG_PTR completionkey;
-          DWORD numberofbytes;
+          DWORD byte_ready_count;
           BOOL flag;
 
           SetEvent(wobj->event_token);
@@ -234,20 +236,20 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
             OVERLAPPED* po;
 
             flag = GetQueuedCompletionStatus(wobj->event_completion_token,
-                                             &numberofbytes, &completionkey,
+                                             &byte_ready_count, &completionkey,
                                              &po, INFINITE);
             if (po) {
               watch_event_overlap* wolap
                   = (watch_event_overlap*)CONTAINING_RECORD(
                       po, watch_event_overlap, o);
 
-              if (numberofbytes) {
+              if (byte_ready_count) {
                 auto* buffer = (FILE_NOTIFY_INFORMATION*)wolap->buffer;
-                unsigned bufferlength = numberofbytes;
+                unsigned bufferlength = byte_ready_count;
 
                 while (wobj->working && buffer && bufferlength) {
-                  do_event_parse(buffer, bufferlength, wobj->directoryname,
-                                 wobj->callback);
+                  do_event_send(buffer, bufferlength, wobj->directoryname,
+                                wobj->callback);
 
                   buffer = do_event_recv(wolap, buffer, &bufferlength,
                                          wolap->buffersize, wobj->hdirectory,
