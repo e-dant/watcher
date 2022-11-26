@@ -95,12 +95,17 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
   };
 
   if (msg) {
-    /* cout << "watch_ctl -> msg -> live -> '" << path << "'" << endl; */
-    return live(path, callback) ? watch(path, callback, is_living) : false;
+    auto ok = live(path, callback) ? watch(path, callback, is_living) : false;
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" */
+    /*           << path */
+    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
+    return ok;
   } else {
-    /* cout << "watch_ctl -> msg -> die -> '" << path << "'" << endl; */
     auto ok = die(path, callback);
-    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms + 1));
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" */
+    /*           << path */
+    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
     return ok;
   }
 }
