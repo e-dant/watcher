@@ -106,9 +106,9 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
 }
 
 inline bool watch_ctl(char const* path, event::callback const& callback,
-                      bool const alive)
+                      bool const msg)
 {
-  return watch_ctl(std::string(path), callback, alive);
+  return watch_ctl(std::string(path), callback, msg);
 }
 
 } /* namespace adapter */
