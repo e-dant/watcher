@@ -61,7 +61,8 @@ static void show_strange_event(auto& title,
    Mirror what the Watcher should see
    Half are creation events
    Half are destruction */
-static auto mk_events(auto watch_path, auto path_count, auto& event_list,
+static auto mk_events(auto watch_path, auto path_count,
+                      std::vector<wtr::watcher::event::event>& event_list,
                       unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
@@ -80,28 +81,56 @@ static auto mk_events(auto watch_path, auto path_count, auto& event_list,
   else
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
-  if (options & mk_events_die_before)
-    event_list.emplace_back(
-        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
+  auto ev = event::event{"s/self/live@" + watch_path, event::what::destroy,
+                         event::kind::watcher};
+  event_list.push_back(ev);
+  auto has = false;
+  for (auto& i : event_list)
+    if (i == ev) has = true;
+  assert(has);
+
+  if (options & mk_events_die_before) {
+    auto ev = event::event{"s/self/die@" + watch_path, event::what::destroy,
+                           event::kind::watcher};
+    event_list.push_back(ev);
+    auto has = false;
+    for (auto& i : event_list)
+      if (i == ev) has = true;
+    assert(has);
+  }
 
   for (auto& i : path_indices) {
     auto const path = watch_path + "/" + to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
-      event_list.emplace_back(
-          event::event{path, event::what::create, event::kind::file});
+      auto ev = event::event{path, event::what::create, event::kind::file};
+      event_list.push_back(ev);
       ofstream{path};
+      auto has = false;
+      for (auto& i : event_list)
+        if (i == ev) has = true;
+      assert(has);
       assert(exists(path));
     } else {
-      event_list.emplace_back(
-          event::event{path, event::what::destroy, event::kind::file});
+      auto ev = event::event{path, event::what::destroy, event::kind::file};
+      event_list.push_back(ev);
       remove(path.c_str());
+      auto has = false;
+      for (auto& i : event_list)
+        if (i == ev) has = true;
+      assert(has);
       assert(!exists(path));
     }
   }
 
-  if (options & mk_events_die_after)
-    event_list.emplace_back(
-        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
+  if (options & mk_events_die_after) {
+    auto ev = event::event{"s/self/die@" + watch_path, event::what::destroy,
+                           event::kind::watcher};
+    event_list.push_back(ev);
+    auto has = false;
+    for (auto& i : event_list)
+      if (i == ev) has = true;
+    assert(has);
+  }
 }
 
 inline auto mk_revents(auto watch_path, auto path_count, auto& event_list,

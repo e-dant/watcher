@@ -14,7 +14,7 @@
 namespace wtr {
 namespace test_watcher {
 
-auto seperator(auto test_name, char symbol = '-')
+auto seperator(auto const& test_name, char const symbol = '-')
 {
   using std::string, std::round;
 
@@ -26,20 +26,22 @@ auto seperator(auto test_name, char symbol = '-')
   return std::move(full);
 }
 
-auto show_conf(auto test_name, auto test_store_path, auto watch_path)
+auto show_conf(auto const& test_name, auto const& test_store_path,
+               auto const&... watch_paths)
 {
-  using std::cout, std::endl,
+  using std::cout, std::string,
       wtr::test_watcher::prior_fs_events_clear_milliseconds,
       wtr::test_watcher::death_after_test_milliseconds;
 
-  cout << seperator(test_name) << endl
-       << test_name << ":" << endl
-       << " test_store_path: " << test_store_path.string() << endl
-       << " watch_path: " << watch_path << endl
-       << " prior_fs_events_clear_milliseconds: "
-       << prior_fs_events_clear_milliseconds.count() << endl
-       << " death_after_test_milliseconds: "
-       << death_after_test_milliseconds.count() << endl;
+  auto wps = string{watch_paths...};
+
+  cout << seperator(test_name) << "\n" << test_name << " =>"
+       << "\n\n test store path =>\n  " << test_store_path.string()
+       << "\n\n watch paths =>\n  " << wps
+       << "\n prior fs events clear milliseconds =>\n  "
+       << prior_fs_events_clear_milliseconds.count()
+       << "\n\n death after test milliseconds =>\n  "
+       << death_after_test_milliseconds.count() << "\n";
 }
 
 } /* namespace test_watcher */

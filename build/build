@@ -108,10 +108,10 @@ build::init::cc() {
       CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
       CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
     fi
-    
+
     export CC
     export CXX
-    
+
     return $EC
   fi
 }
@@ -221,8 +221,10 @@ build::check::sanitizer_allowed_for::windows() {
 }
 
 build::check::sanitizer_allowed_for::linux() {
+  # We want msan but need a way to check for clang
+  # because GCC/G++ doesn't have it
   denylist=(
-    'asan'
+    # 'asan'
     'msan'
   )
 
@@ -434,8 +436,9 @@ build::write::current_artifacts() {
 
 # Other than initializing some variables,
 # nothing is done until right here.
-build::init::cc \
-  && build::build "$@" \
+# build::init::cc \
+#   && build::build "$@" \
+build::build "$@" \
   && build::run::test "$@" \
   && build::show::artifacts \
   && build::write::current_artifacts

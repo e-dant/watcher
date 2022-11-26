@@ -33,8 +33,10 @@ namespace {
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/types
    Types:
+     - string
      - dir_opt_type
      - path_container_type */
+using std::string;
 using dir_opt_type = std::filesystem::directory_options;
 using path_container_type = std::unordered_map<int, std::string>;
 
@@ -81,7 +83,7 @@ inline constexpr dir_opt_type dir_opt
        -> bool
 */
 
-auto do_path_container_create(char const* base_path_c_str, int const watch_fd,
+auto do_path_container_create(string const& base_path, int const watch_fd,
                               event::callback const& callback)
     -> std::optional<path_container_type>;
 auto do_event_resource_create(int const watch_fd,
@@ -90,8 +92,9 @@ auto do_event_resource_create(int const watch_fd,
 auto do_watch_fd_create(event::callback const& callback) -> std::optional<int>;
 auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
 auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
-                        path_container_type& path_container,
-                        event::callback const& callback) -> bool;
+                        path_container_type& path_container, string const& path,
+                        event::callback const& callback,
+                        auto const& in_is_living) -> bool;
 auto do_scan(int fd, path_container_type& path_container,
              event::callback const& callback) -> bool;
 
@@ -103,7 +106,7 @@ auto do_scan(int fd, path_container_type& path_container,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-auto do_path_container_create(char const* base_path_c_str, /* NOLINT */
+auto do_path_container_create(string const& base_path, /* NOLINT */
                               int const watch_fd,
                               event::callback const& callback)
     -> std::optional<path_container_type>
@@ -111,7 +114,6 @@ auto do_path_container_create(char const* base_path_c_str, /* NOLINT */
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
 
   auto dir_ec = std::error_code{};
-  auto base_path = std::string{base_path_c_str};
   path_container_type path_map;
   path_map.reserve(path_container_reserve_count);
 
@@ -119,7 +121,7 @@ auto do_path_container_create(char const* base_path_c_str, /* NOLINT */
     int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
     return wd < 0
         ? [&](){
-          callback(event::event{"e/sys/inotify_add_watch",
+          callback({"e/sys/inotify_add_watch",
                    event::what::other, event::kind::watcher});
           return false; }()
         : [&](){
@@ -155,8 +157,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
   int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
   if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
-    callback(event::event{"e/sys/epoll_create1", event::what::other,
-                          event::kind::watcher});
+    callback({"e/sys/epoll_create1", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
     return std::move(std::make_tuple(event_conf, event_list, event_fd));
@@ -176,8 +177,8 @@ auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
 #endif
 
   if (watch_fd < 0) {
-    callback(event::event{"e/sys/inotify_init1?", event::what::other,
-                          event::kind::watcher});
+    callback(
+        {"e/sys/inotify_init1?", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
     return watch_fd;
@@ -190,8 +191,7 @@ auto do_watch_fd_release(int watch_fd, /* NOLINT */
                          event::callback const& callback) -> bool
 {
   if (close(watch_fd) < 0) {
-    callback(
-        event::event{"e/sys/close", event::what::other, event::kind::watcher});
+    callback({"e/sys/close", event::what::other, event::kind::watcher});
     return false;
   } else
     return true;
@@ -207,37 +207,56 @@ auto do_event_wait_recv(/* NOLINT */
                                          inotify and epoll */
                         epoll_event* event_list,
                         path_container_type& path_container,
-                        event::callback const& callback) -> bool
+                        string const& base_path,
+                        event::callback const& callback,
+                        auto const& in_is_living) -> bool
 {
-  /* The more time asleep, the better,
-     as long as we don't sleep forever,
-     because we may need to die. */
-  int const event_count
-      = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
+  auto const do_event_dispatch
+      = [&watch_fd, &event_fd, &event_list, &path_container, &callback]() {
+          /* The more time asleep, the better,
+             as long as we don't sleep forever,
+             because we may need to die. */
+          int const event_count
+              = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
 
-  auto const do_event_dispatch = [&]() {
-    for (int n = 0; n < event_count; n++)
-      if (event_list[n].data.fd == watch_fd)
-        if (!do_scan(watch_fd, path_container, callback)) return false;
-    /* We return true on eventless invocations. */
-    return true;
-  };
+          if (event_count >= 0) {
+            for (int n = 0; n < event_count; n++)
+              if (event_list[n].data.fd == watch_fd)
+                if (!do_scan(watch_fd, path_container, callback)) return false;
+            /* We return true on eventless invocations. */
+            return true;
+          } else {
+            return false;
+          }
+        };
 
-  auto const do_event_error = [&]() {
+  auto const do_event_error = [&callback]() {
     perror("epoll_wait");
-    callback(event::event{"e/sys/epoll_wait", event::what::other,
-                          event::kind::watcher});
+    callback({"e/sys/epoll_wait", event::what::other, event::kind::watcher});
     /* We always return false on errors. */
     return false;
   };
 
-  auto is_ok = event_count < 0 ? do_event_error() : do_event_dispatch();
+  return
+      /* If we are alive */
+      in_is_living(base_path)
+          /* Dispatch pending events to `do_scan` */
+          ? do_event_dispatch()
+                /* And keep running */
+                ? do_event_wait_recv(watch_fd, event_fd, event_list,
+                                     path_container, base_path, callback,
+                                     in_is_living)
+                /* Otherwise, send an error */
+                : do_event_error()
+          /* Death by natural causes */
+          : true;
 
-  if (is_ok)
-    return do_event_wait_recv(watch_fd, event_fd, event_list, path_container,
-                              callback);
-  else
-    return false;
+  /* if (is_ok) */
+  /*   return */
+  /*     do_event_wait_recv(watch_fd, event_fd, event_list, path_container, */
+  /*                             base_path, callback, in_is_living); */
+  /* else */
+  /*   return false; */
 }
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
@@ -295,33 +314,26 @@ auto do_scan(int watch_fd, /* NOLINT */
                                      : event::kind::file;
           int path_wd = event_recv->wd;
           auto event_base_path = path_container.find(path_wd)->second;
-          auto event_path
-              = std::string(event_base_path + "/" + event_recv->name);
+          auto event_path = string(event_base_path + "/" + event_recv->name);
 
           if (event_recv->mask & IN_Q_OVERFLOW)
-            callback(event::event{"e/self/overflow", event::what::other,
-                                  event::kind::watcher});
+            callback(
+                {"e/self/overflow", event::what::other, event::kind::watcher});
           else if (event_recv->mask & IN_CREATE)
-            callback(event::event{event_path.c_str(), event::what::create,
-                                  path_kind});
+            callback({event_path, event::what::create, path_kind});
           else if (event_recv->mask & IN_DELETE)
-            callback(event::event{event_path.c_str(), event::what::destroy,
-                                  path_kind});
+            callback({event_path, event::what::destroy, path_kind});
           else if (event_recv->mask & IN_MOVE)
-            callback(event::event{event_path.c_str(), event::what::rename,
-                                  path_kind});
+            callback({event_path, event::what::rename, path_kind});
           else if (event_recv->mask & IN_MODIFY)
-            callback(event::event{event_path.c_str(), event::what::modify,
-                                  path_kind});
+            callback({event_path, event::what::modify, path_kind});
           else
-            callback(event::event{event_path.c_str(), event::what::other,
-                                  path_kind});
+            callback({event_path, event::what::other, path_kind});
         }
         /* We don't want to return here. We run until `eventless`. */
         break;
       case event_recv_status::error:
-        callback(event::event{"e/sys/read", event::what::other,
-                              event::kind::watcher});
+        callback({"e/sys/read", event::what::other, event::kind::watcher});
         return false;
         break;
       case event_recv_status::eventless: return true; break;
@@ -341,12 +353,8 @@ auto do_scan(int watch_fd, /* NOLINT */
    @param callback
    A callback to perform when the files
    being watched change. */
-inline bool watch(auto const& path, event::callback const& callback)
-{
-  return watch(path.c_str(), callback);
-}
-
-inline bool watch(char const* path, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback,
+                  auto const& in_is_living)
 {
   /*
      Values
@@ -377,12 +385,9 @@ inline bool watch(char const* path, event::callback const& callback)
            Work
          */
 
-        /* Loop until dead. */
-        while (is_living(path)
-               && do_event_wait_recv(watch_fd, event_fd, event_list,
-                                     path_container, callback))
-          continue;
-
+        /* Watch until dead. */
+        do_event_wait_recv(watch_fd, event_fd, event_list, path_container, path,
+                           callback, in_is_living);
         return do_watch_fd_release(watch_fd, callback);
       } else
         return do_watch_fd_release(watch_fd, callback);
@@ -391,6 +396,12 @@ inline bool watch(char const* path, event::callback const& callback)
   } else
     return false;
 }
+
+/* inline bool watch(char const* path, event::callback const& callback, */
+/*                   auto const& in_is_living) */
+/* { */
+/*   return watch(std::string(path), callback, in_is_living); */
+/* } */
 
 } /* namespace adapter */
 } /* namespace detail */

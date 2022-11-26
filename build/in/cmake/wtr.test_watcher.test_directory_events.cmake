@@ -7,7 +7,7 @@ add_executable("${TEST_PROJECT_NAME}.test_directory_events"
   "${TEST_DIRECTORY_EVENTS_SOURCES}")
 
 set_property(TARGET "${TEST_PROJECT_NAME}.test_directory_events" PROPERTY
-  CXX_STANDARD 23)
+  CXX_STANDARD 20)
 
 target_compile_options("${TEST_PROJECT_NAME}.test_directory_events" PRIVATE
   "${TEST_COMPILE_OPTIONS}")

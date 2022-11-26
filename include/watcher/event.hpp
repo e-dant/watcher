@@ -120,6 +120,14 @@ struct event
 
   ~event() noexcept = default;
 
+  /* @brief wtr/watcher/event/==
+     Compares event object for matching
+     `where`, `what` and `kind` members. */
+  friend bool operator==(event const& lhs, event const& rhs) noexcept
+  {
+    return lhs.where == rhs.where && lhs.what == rhs.what && lhs.kind == rhs.kind;
+  }
+
   /* @brief wtr/watcher/event/<<
      prints out where, what and kind.
      formats the output as a json object. */

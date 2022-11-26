@@ -32,9 +32,7 @@ namespace watcher {
    Happy hacking. */
 inline bool watch(auto const& path, event::callback const& callback)
 {
-  return detail::adapter::make_living(path)
-             ? detail::adapter::watch(path, callback)
-             : false;
+  return detail::adapter::watch_ctl(path, callback, true);
 }
 
 /* @brief watcher/die
@@ -45,7 +43,7 @@ inline bool watch(auto const& path, event::callback const& callback)
 inline bool die(
     auto const& path, event::callback const& callback = [](auto) -> void {})
 {
-  return detail::adapter::die(path, callback);
+  return detail::adapter::watch_ctl(path, callback, false);
 }
 
 } /* namespace watcher */

@@ -7,7 +7,7 @@ add_executable("${TEST_PROJECT_NAME}.test_watch_targets"
   "${TEST_WATCH_TARGETS_SOURCES}")
 
 set_property(TARGET "${TEST_PROJECT_NAME}.test_watch_targets" PROPERTY
-  CXX_STANDARD 23)
+  CXX_STANDARD 20)
 
 target_compile_options("${TEST_PROJECT_NAME}.test_watch_targets" PRIVATE
   "${TEST_COMPILE_OPTIONS}")

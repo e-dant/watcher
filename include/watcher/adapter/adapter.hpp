@@ -1,23 +1,20 @@
 #pragma once
 
+#include <chrono>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <watcher/event.hpp>
+//
+// tmp
+//
+#include <iostream>
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-
-namespace {
-
-using std::string, std::mutex, std::unordered_set;
-
-static auto watcher_alive = unordered_set<string>{}; /* NOLINT */
-static auto watcher_alive_mtx = mutex{};             /* NOLINT */
-
-} /* namespace */
 
 inline constexpr auto delay_ms = 16;
 
@@ -39,88 +36,87 @@ inline constexpr auto delay_ms = 16;
   the wide `std::wstring` and `wchar_t const*` variants.
 */
 
-inline bool watch(auto const& path, event::callback const& callback);
-inline bool watch(char const* path, event::callback const& callback);
-
-/*
-  @brief watcher/adapter/is_living
-
-  Used to determine whether `watch` should die.
-
-  Likely may be overloaded by the user in the future.
-*/
-
-inline bool is_living(char const* path)
-{
-  watcher_alive_mtx.lock();
-  bool _ = watcher_alive.contains(path);
-  watcher_alive_mtx.unlock();
-  return _;
+inline bool watch(auto const& path, event::callback const& callback,
+                  auto const& is_living);
+inline bool watch(char const* path, event::callback const& callback,
+                  auto const& is_living) {
+  return watch(std::string(path), callback, is_living);
 }
 
-inline bool is_living(auto const& path) { return is_living(path.c_str()); }
-
-/*
-  @brief watcher/adapter/can_watch
-
-  Call this before `watch` to ensure only one `watch` exists.
-
-  It might do other things or be removed at some point.
-*/
-
-inline bool make_living(char const* path)
+static bool watch_ctl(auto const& path, event::callback const& callback,
+                      bool const msg)
 {
-  bool ok = true;
-  watcher_alive_mtx.lock();
+  static auto wcont = std::unordered_set<std::string>{};
+  static auto wcont_mtx = std::mutex{};
 
-  if (watcher_alive.contains(path))
-    ok = false;
+  auto const& live
+      = [](std::string const& path, event::callback const& callback) -> bool {
+    bool ok = true;
+    wcont_mtx.lock();
 
-  else
-    watcher_alive.insert(path);
+    if (wcont.contains(path))
+      ok = false;
 
-  watcher_alive_mtx.unlock();
-  return ok;
-}
+    else
+      wcont.insert(path);
 
-inline bool make_living(auto const& path) { return make_living(path.c_str()); }
+    /* cout << "watch_ctl -> live -> '" << path << "' => " */
+    /*      << (ok ? "true" : "false") << endl; */
 
-/*
-  @brief watcher/adapter/die
+    wcont_mtx.unlock();
 
-  Invokes `callback` immediately before destroying itself.
-*/
+    callback(event::event{(ok ? "s/self/live@" : "e/self/live@") + path,
+                          event::what::create, event::kind::watcher});
+    return ok;
+  };
 
-inline bool die(char const* path, event::callback const& callback)
-{
-  bool ok = true;
+  auto const& is_living = [](std::string const& path) -> bool {
+    wcont_mtx.lock();
+    bool living = wcont.contains(path);
+    /* std::cout << "watch_ctl -> is_living -> '" << path << "' => " */
+    /*           << (living ? "true" : "false") << std::endl; */
+    wcont_mtx.unlock();
+    return living;
+  };
 
-  {
-    watcher_alive_mtx.lock();
+  auto const die
+      = [](std::string const& path, event::callback const& callback) -> bool {
+    bool ok = true;
 
-    if (watcher_alive.contains(path))
-      watcher_alive.erase(path);
+    wcont_mtx.lock();
+
+    if (wcont.contains(path))
+      wcont.erase(path);
 
     else
       ok = false;
 
-    watcher_alive_mtx.unlock();
+    /* cout << "watch_ctl -> die -> '" << path << "' => " */
+    /*      << (ok ? "true" : "false") << endl; */
+
+    wcont_mtx.unlock();
+
+    callback(event::event{(ok ? "s/self/die@" : "e/self/die@") + path,
+                          event::what::destroy, event::kind::watcher});
+
+    return ok;
+  };
+
+  if (msg) {
+    /* cout << "watch_ctl -> msg -> live -> '" << path << "'" << endl; */
+    return live(path, callback) ? watch(path, callback, is_living) : false;
+  } else {
+    /* cout << "watch_ctl -> msg -> die -> '" << path << "'" << endl; */
+    auto ok = die(path, callback);
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    return ok;
   }
-
-  if (ok)
-    callback(
-        event::event{"s/self/die", event::what::destroy, event::kind::watcher});
-
-  else
-    callback(
-        event::event{"e/self/die", event::what::destroy, event::kind::watcher});
-
-  return ok;
 }
 
-inline bool die(auto const& path, event::callback const& callback)
+inline bool watch_ctl(char const* path, event::callback const& callback,
+                      bool const alive)
 {
-  return die(path.c_str(), callback);
+  return watch_ctl(std::string(path), callback, alive);
 }
 
 } /* namespace adapter */
