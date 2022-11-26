@@ -46,13 +46,13 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 /* clang-format on */
 
-auto mk_event_stream(char const* path, auto const& callback)
+auto mk_event_stream(auto const& path, auto const& callback)
 {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
       *are* const qualified. using void** is not ok. but it's also ok. */
   void const* path_cfstring
-      = CFStringCreateWithCString(nullptr, path, kCFStringEncodingUTF8);
+      = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
 
   /* We pass along the path we were asked to watch, */
   auto const translated_path
@@ -87,12 +87,7 @@ auto mk_event_stream(char const* path, auto const& callback)
 
 } /* namespace */
 
-inline bool watch(auto const& path, event::callback const& callback)
-{
-  return watch(path.c_str(), callback);
-}
-
-inline bool watch(char const* path, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback, auto const& is_living)
 {
   using std::chrono::seconds, std::chrono::milliseconds, std::to_string,
       std::string, std::this_thread::sleep_for,

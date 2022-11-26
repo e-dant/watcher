@@ -6,10 +6,6 @@
 #include <thread>
 #include <unordered_set>
 #include <watcher/event.hpp>
-//
-// tmp
-//
-#include <iostream>
 
 namespace wtr {
 namespace watcher {
