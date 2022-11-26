@@ -224,12 +224,7 @@ static bool tend_bucket(const char* path, auto const& send_event,
   Unless it should stop, or errors present, `watch` recurses.
 */
 
-inline bool watch(auto const& path, event::callback const& callback)
-{
-  return watch(path.c_str(), callback);
-}
-
-inline bool watch(char const* path, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback, auto const is_living)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
@@ -245,8 +240,8 @@ inline bool watch(char const* path, event::callback const& callback)
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living(path) ? tend_bucket(path, callback, bucket)
-                               ? scan(path, callback, bucket)
+  return is_living(path) ? tend_bucket(path.c_str(), callback, bucket)
+                               ? scan(path.c_str(), callback, bucket)
                                      ? watch(path, callback)
                                      : false
                                : false
