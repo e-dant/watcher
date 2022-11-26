@@ -190,7 +190,9 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   do_make_event_handler_dead(event_stream, event_queue);
 
-  return is_living(path) ? false : true;
+  /* We shouldn't call `is_living` more than we need to.
+     Bad runs are returned above. */
+  return true;
 }
 
 inline bool watch(char const* path, event::callback const& callback,
