@@ -48,13 +48,20 @@
    - std::chrono::time_point */
 #include <chrono>
 
+/* - std::filesystem::path */
+#include <filesystem>
+
+/* - std::function */
+#include <functional>
+
 namespace wtr {
 namespace watcher {
 namespace event {
 
 namespace {
-using std::string, std::chrono::duration_cast, std::chrono::nanoseconds,
-    std::chrono::time_point, std::chrono::system_clock;
+using std::string, std::function, std::chrono::duration_cast,
+    std::chrono::nanoseconds, std::chrono::time_point,
+    std::chrono::system_clock;
 }
 
 /* @brief watcher/event/types
@@ -62,22 +69,6 @@ using std::string, std::chrono::duration_cast, std::chrono::nanoseconds,
    - wtr::watcher::event::kind
    - wtr::watcher::event::what
    - wtr::watcher::event::callback */
-
-/* @brief wtr/watcher/event/kind
-   The essential kinds of paths. */
-enum class kind {
-  /* The essentials */
-  dir,
-  file,
-  hard_link,
-  sym_link,
-
-  /* The specials */
-  watcher,
-
-  /* Catch-all */
-  other,
-};
 
 /* @brief wtr/watcher/event/what
    A structure intended to represent
@@ -97,6 +88,22 @@ enum class what {
   other,
 };
 
+/* @brief wtr/watcher/event/kind
+   The essential kinds of paths. */
+enum class kind {
+  /* The essentials */
+  dir,
+  file,
+  hard_link,
+  sym_link,
+
+  /* The specials */
+  watcher,
+
+  /* Catch-all */
+  other,
+};
+
 struct event
 {
   /* I like these names. Very human.
@@ -110,28 +117,46 @@ struct event
           time_point<system_clock>{system_clock::now()}.time_since_epoch())
           .count()};
 
-  event(const char* where, const enum what what, const enum kind kind)
-      : where{string{where}}, what{what}, kind{kind}
-  {}
+  event(char const* where, enum what const what, enum kind const kind) noexcept
+      : where{string{where}}, what{what}, kind{kind} {};
 
-  event(const string where, const enum what what, const enum kind kind)
-      : where{where}, what{what}, kind{kind}
-  {}
+  event(std::filesystem::path const where, enum what const what, enum kind const kind) noexcept
+      : where{where.string()}, what{what}, kind{kind} {};
+
+  event(string const where, enum what const what, enum kind const kind) noexcept
+      : where{where}, what{what}, kind{kind} {};
 
   ~event() noexcept = default;
 
   /* @brief wtr/watcher/event/==
-     Compares event object for matching
-     `where`, `what` and `kind` members. */
+     Compares event objects for equivalent
+     `where`, `what` and `kind` values. */
   friend bool operator==(event const& lhs, event const& rhs) noexcept
   {
-    return lhs.where == rhs.where && lhs.what == rhs.what && lhs.kind == rhs.kind;
-  }
+    /* True if */
+    return
+        /* The path */
+        lhs.where == rhs.where
+        /* And what happened */
+        && lhs.what == rhs.what
+        /* And the kind of path */
+        && lhs.kind == rhs.kind
+        /* And the time */
+        && lhs.when == rhs.when;
+    /* Are the same. */
+  };
+
+  /* @brief wtr/watcher/event/!=
+     Not == */
+  friend bool operator!=(event const& lhs, event const& rhs) noexcept
+  {
+    return !(lhs == rhs);
+  };
 
   /* @brief wtr/watcher/event/<<
      prints out where, what and kind.
      formats the output as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& e)
+  friend std::ostream& operator<<(std::ostream& os, const event& e) noexcept
   {
     /* clang-format off */
     auto const what_repr = [&]() {
@@ -171,7 +196,7 @@ struct event
 /* @brief watcher/event/callback
    Ensure the adapters can recieve events
    and will return nothing. */
-using callback = void (*)(const event&);
+using callback = function<void(event const&)>;
 
 } /* namespace event */
 } /* namespace watcher */

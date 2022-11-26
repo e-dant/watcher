@@ -11,9 +11,6 @@
    event,
    die */
 #include <watcher/watcher.hpp>
-/* etc */
-#include <filesystem>
-#include <iostream>
 /* mutex */
 #include <mutex>
 /* ms_now,
@@ -33,6 +30,9 @@
 #include <tuple>
 /* move */
 #include <utility>
+/* etc */
+#include <filesystem>
+#include <iostream>
 
 namespace wtr {
 namespace test_watcher {
@@ -107,16 +107,19 @@ static auto watch_gather(
       assert(std::filesystem::exists(p));
 
       std::thread([&]() {
-        auto ok
-            = (wtr::watcher::watch(p, [](wtr::watcher::event::event const& ev) {
-                /* cout_mtx.lock(); */
-                /* std::cout << "test @ live -> recv => " << ev << "\n"; */
-                /* cout_mtx.unlock(); */
+        auto ok = (wtr::watcher::watch(
+            p, [&](wtr::watcher::event::event const& ev) {
+              /* cout_mtx.lock(); */
+              /* std::cout << "test @ live -> recv => " << ev << "\n"; */
+              /* cout_mtx.unlock(); */
 
-                event_recv_list_mtx.lock();
-                event_recv_list.push_back(ev);
-                event_recv_list_mtx.unlock();
-              }));
+              event_recv_list_mtx.lock();
+              auto ok_add = true;
+              for (auto const& p : watch_path_list)
+                if (ev.where == p) ok_add = false;
+              if (ok_add) event_recv_list.push_back(ev);
+              event_recv_list_mtx.unlock();
+            }));
 
         /* cout_mtx.lock(); */
         /* std::cout << "test @ live @ result @ '" << p << "' => " */

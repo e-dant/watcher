@@ -71,7 +71,7 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
     return living;
   };
 
-  auto const die
+  auto const& die
       = [](std::string const& path, event::callback const& callback) -> bool {
     bool ok = true;
 

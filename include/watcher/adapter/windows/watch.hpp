@@ -24,43 +24,41 @@ namespace adapter {
 namespace {
 namespace util {
 
-static std::string wstring_to_string(std::wstring const& in)
+inline std::string wstring_to_string(std::wstring const& in)
 {
-  using std::string;
   size_t len = WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), nullptr, 0,
                                    nullptr, nullptr);
   if (!len)
-    return string{};
+    return std::string{};
   else {
     std::unique_ptr<char> mem(new char[len]);
     if (!WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), mem.get(), len,
                              nullptr, nullptr))
-      return string{};
+      return std::string{};
     else
-      return string{mem.get(), len};
+      return std::string{mem.get(), len};
   }
 }
 
-static std::wstring string_to_wstring(std::string const& in)
+inline std::wstring string_to_wstring(std::string const& in)
 {
-  using std::wstring;
   size_t len = MultiByteToWideChar(CP_UTF8, 0, in.data(), in.size(), 0, 0);
   if (!len)
-    return wstring{};
+    return std::wstring{};
   else {
     std::unique_ptr<wchar_t> mem(new wchar_t[len]);
     if (!MultiByteToWideChar(CP_UTF8, 0, in.data(), in.size(), mem.get(), len))
-      return wstring{};
+      return std::wstring{};
     else
-      return wstring{mem.get(), len};
+      return std::wstring{mem.get(), len};
   }
 }
 
-static std::wstring cstring_to_wstring(char const* cstr)
+inline std::wstring cstring_to_wstring(char const* in)
 {
-  auto len = strlen(cstr);
+  auto len = strlen(in);
   auto mem = std::vector<wchar_t>(len + 1);
-  mbstowcs_s(nullptr, mem.data(), len + 1, cstr, len);
+  mbstowcs_s(nullptr, mem.data(), len + 1, in, len);
   return std::wstring(mem.data());
 }
 
@@ -269,7 +267,15 @@ inline bool do_scan_work_async(watch_object* wobj, const wchar_t* directoryname,
   return 0;
 }
 
-static bool scan(std::wstring const& path_wstr, event::callback const& callback)
+} /* namespace */
+
+/* while living
+   watch for events
+   return when dead
+   true if no errors */
+
+inline bool watch(std::wstring const& path, event::callback const& callback,
+                  auto const& is_living)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
@@ -282,42 +288,28 @@ static bool scan(std::wstring const& path_wstr, event::callback const& callback)
   do_scan_work_async(new watch_object{.callback = callback}, path_wstr.c_str(),
                      path_wstr.size() + 1, callback);
 
-  while (true)
-
-    if (!is_living(path_str.c_str()))
-      break;
-
-    else if constexpr (delay_ms > 0)
-      sleep_for(milliseconds(delay_ms));
+  while (is_living(path_str))
+    if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return true;
 }
 
-} /* namespace */
-
-/* check if living
-   scan if so
-   return if not living
-   true if no errors */
-
-inline bool watch(wchar_t const* path, event::callback const& callback)
+inline bool watch(wchar_t const* path, event::callback const& callback,
+                  auto const& is_living)
 {
-  return scan(std::wstring{path, wcslen(path)}, callback);
+  return watch(std::wstring{path, wcslen(path)}, callback, is_living);
 }
 
-inline bool watch(char const* path, event::callback const& callback)
+inline bool watch(char const* path, event::callback const& callback,
+                  auto const& is_living)
 {
-  return scan(util::cstring_to_wstring(path), callback);
+  return watch(util::cstring_to_wstring(path), callback, is_living);
 }
 
-inline bool watch(std::string const& path, event::callback const& callback)
+inline bool watch(std::string const& path, event::callback const& callback,
+                  auto const& is_living)
 {
-  return scan(util::string_to_wstring(path), callback);
-}
-
-inline bool watch(std::wstring const& path, event::callback const& callback)
-{
-  return scan(path, callback);
+  return watch(util::string_to_wstring(path), callback, is_living);
 }
 
 } /* namespace adapter */
