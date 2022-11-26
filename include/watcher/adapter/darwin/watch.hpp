@@ -46,7 +46,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 /* clang-format on */
 
-auto mk_event_stream(auto const& path, auto const& callback)
+auto const do_make_event_stream(auto const& path, auto const& callback)
 {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
@@ -96,6 +96,8 @@ inline bool watch(auto const& path, event::callback const& callback,
       std::filesystem::is_symlink, std::filesystem::exists;
 
   static auto callback_hook = callback;
+  auto ok = true;
+
   auto const callback_adapter
       = [](ConstFSEventStreamRef const,   /* stream_ref */
            auto*,                         /* callback_info */
@@ -142,6 +144,15 @@ inline bool watch(auto const& path, event::callback const& callback,
           }
         };
 
+  auto const do_make_event_queue = [](char const* event_queue_name) {
+    /* Request a high priority queue */
+    dispatch_queue_t event_queue = dispatch_queue_create(
+        event_queue_name,
+        dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
+                                                QOS_CLASS_USER_INITIATED, -10));
+    return event_queue;
+  };
+
   auto const do_make_event_handler_alive
       = [](FSEventStreamRef const& event_stream,
            dispatch_queue_t const& event_queue) -> bool {
@@ -165,21 +176,17 @@ inline bool watch(auto const& path, event::callback const& callback,
              /dispatch/1496328-dispatch_release */
         };
 
-  auto const event_stream = mk_event_stream(path, callback_adapter);
-
-  /* this should be the mersenne twister */
+  /* @todo This should be the mersenne twister */
   auto const event_queue_name
       = ("wtr.watcher.event_queue." + to_string(std::rand()));
 
-  /* request a high priority queue */
-  dispatch_queue_t event_queue = dispatch_queue_create(
-      event_queue_name.c_str(),
-      dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
-                                              QOS_CLASS_USER_INITIATED, -10));
+  auto const event_stream = do_make_event_stream(path, callback_adapter);
+  auto const event_queue = do_make_event_queue(event_queue_name.c_str());
 
-  if (do_make_event_handler_alive(event_stream, event_queue))
-    while (is_living(path))
-      if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+  if (!do_make_event_handler_alive(event_stream, event_queue)) return false;
+
+  while (is_living(path))
+    if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);
 
