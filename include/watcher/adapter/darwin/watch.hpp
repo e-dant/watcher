@@ -87,7 +87,8 @@ auto mk_event_stream(auto const& path, auto const& callback)
 
 } /* namespace */
 
-inline bool watch(auto const& path, event::callback const& callback, auto const& is_living)
+inline bool watch(auto const& path, event::callback const& callback,
+                  auto const& is_living)
 {
   using std::chrono::seconds, std::chrono::milliseconds, std::to_string,
       std::string, std::this_thread::sleep_for,
@@ -183,6 +184,12 @@ inline bool watch(auto const& path, event::callback const& callback, auto const&
   do_make_event_handler_dead(event_stream, event_queue);
 
   return is_living(path) ? false : true;
+}
+
+inline bool watch(char const* path, event::callback const& callback,
+                  auto const& is_living)
+{
+  return watch(std::string(path), callback, is_living);
 }
 
 /*

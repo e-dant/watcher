@@ -151,7 +151,10 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data { .fd = watch_fd }
+    .events = EPOLLIN, .data
+    {
+      .fd = watch_fd
+    }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd = epoll_create1(EPOLL_CLOEXEC);
@@ -397,11 +400,11 @@ inline bool watch(auto const& path, event::callback const& callback,
     return false;
 }
 
-/* inline bool watch(char const* path, event::callback const& callback, */
-/*                   auto const& in_is_living) */
-/* { */
-/*   return watch(std::string(path), callback, in_is_living); */
-/* } */
+inline bool watch(char const* path, event::callback const& callback,
+                  auto const& is_living)
+{
+  return watch(std::string(path), callback, is_living);
+}
 
 } /* namespace adapter */
 } /* namespace detail */

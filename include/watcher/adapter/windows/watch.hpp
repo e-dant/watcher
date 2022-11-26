@@ -19,10 +19,6 @@
 
 namespace wtr {
 namespace watcher {
-
-/* See the note in watcher/detail/adapter */
-inline bool watch(wchar_t const* path, event::callback const& callback);
-
 namespace detail {
 namespace adapter {
 namespace {

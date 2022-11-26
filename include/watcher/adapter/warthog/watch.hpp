@@ -147,8 +147,7 @@ static bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec))
-        {
+             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
@@ -224,7 +223,8 @@ static bool tend_bucket(const char* path, auto const& send_event,
   Unless it should stop, or errors present, `watch` recurses.
 */
 
-inline bool watch(auto const& path, event::callback const& callback, auto const is_living)
+inline bool watch(auto const& path, event::callback const& callback,
+                  auto const is_living)
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
@@ -246,6 +246,12 @@ inline bool watch(auto const& path, event::callback const& callback, auto const 
                                      : false
                                : false
                          : true;
+}
+
+inline bool watch(char const* path, event::callback const& callback,
+                  auto const& is_living)
+{
+  return watch(std::string(path), callback, is_living);
 }
 
 } /* namespace adapter */

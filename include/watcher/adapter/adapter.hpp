@@ -34,10 +34,6 @@ inline constexpr auto delay_ms = 16;
 
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living);
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) {
-  return watch(std::string(path), callback, is_living);
-}
 
 static bool watch_ctl(auto const& path, event::callback const& callback,
                       bool const msg)
