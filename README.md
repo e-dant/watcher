@@ -346,11 +346,6 @@ cd build/out
 
 ### Limitations
 
-- Recursion
-> This library makes heavy use of recursion. To avoid running
-out of memory, the user should always compile with `-O3` in
-release builds.
-
 - Ready State
 > There is no reliable way to communicate when a watcher is
 ready to send events to the callback. For a few thousand paths,

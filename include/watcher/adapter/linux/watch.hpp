@@ -152,10 +152,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data
-    {
-      .fd = watch_fd
-    }
+    .events = EPOLLIN, .data { .fd = watch_fd }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd
@@ -220,52 +217,63 @@ auto do_event_wait_recv(/* NOLINT */
                         event::callback const& callback,
                         auto const& in_is_living) -> bool
 {
-  auto const do_event_dispatch
-      = [&watch_fd, &event_fd, &event_list, &path_container, &callback]() {
-          /* The more time asleep, the better,
-             as long as we don't sleep forever,
-             because we may need to die. */
-          int const event_count
-              = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
+  auto run = [](int watch_fd, int event_fd, epoll_event* event_list,
+                path_container_type& path_container, string const& base_path,
+                event::callback const& callback, auto const& in_is_living) {
+    auto const do_event_dispatch
+        = [](int watch_fd, int event_fd, epoll_event* event_list,
+             path_container_type& path_container,
+             event::callback const& callback) {
+            /* The more time asleep, the better,
+               as long as we don't sleep forever,
+               because we may need to die. */
+            int const event_count
+                = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
 
-          if (event_count >= 0) {
-            for (int n = 0; n < event_count; n++)
-              if (event_list[n].data.fd == watch_fd)
-                if (!do_scan(watch_fd, path_container, callback)) return false;
-            /* We return true on eventless invocations. */
-            return true;
-          } else {
-            return false;
-          }
-        };
+            if (event_count >= 0) {
+              for (int n = 0; n < event_count; n++)
+                if (event_list[n].data.fd == watch_fd)
+                  if (!do_scan(watch_fd, path_container, callback))
+                    return false;
+              /* We return true on eventless invocations. */
+              return true;
+            } else {
+              return false;
+            }
+          };
 
-  auto const do_event_error = [&callback]() {
-    perror("epoll_wait");
-    callback({"e/sys/epoll_wait", event::what::other, event::kind::watcher});
-    /* We always return false on errors. */
-    return false;
+    auto const do_event_error = [](event::callback const& callback) {
+      perror("epoll_wait");
+      callback({"e/sys/epoll_wait", event::what::other, event::kind::watcher});
+      /* We always return false on errors. */
+      return false;
+    };
+
+    return
+        /* If we are alive */
+        in_is_living(base_path)
+            /* Dispatch pending events to `do_scan` */
+            ? do_event_dispatch(watch_fd, event_fd, event_list, path_container,
+                                callback)
+                  /* And keep running */
+                  ? true
+                  /* Otherwise, send an error */
+                  : do_event_error(callback)
+            /* Death by natural causes */
+            : false;
   };
 
-  return
-      /* If we are alive */
-      in_is_living(base_path)
-          /* Dispatch pending events to `do_scan` */
-          ? do_event_dispatch()
-                /* And keep running */
-                ? do_event_wait_recv(watch_fd, event_fd, event_list,
-                                     path_container, base_path, callback,
-                                     in_is_living)
-                /* Otherwise, send an error */
-                : do_event_error()
-          /* Death by natural causes */
-          : true;
+  /* It is important not to capture these values
+     for reasons I can't fully explain but lead
+     to crashes and sanitizer errors regardless.
 
-  /* if (is_ok) */
-  /*   return */
-  /*     do_event_wait_recv(watch_fd, event_fd, event_list, path_container, */
-  /*                             base_path, callback, in_is_living); */
-  /* else */
-  /*   return false; */
+     It is also important not to use a tail call
+     because C++ is not always friendly to them.
+     Especially not while debugging. */
+  while (true)
+    if (!run(watch_fd, event_fd, event_list, path_container, base_path,
+             callback, in_is_living))
+      return true;
 }
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
