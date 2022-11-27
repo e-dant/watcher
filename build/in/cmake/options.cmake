@@ -6,7 +6,7 @@ include(GNUInstallDirs)
 set(SOURCES "../../src/watcher/main.cpp")
 set(INCLUDE_PATH)
 # error on everything
-set(COMPILE_OPTIONS "-Wall" "-Wextra" "-Wpedantic" "-Werror")
+set(COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror")
 set(LINK_OPTIONS)
 
 # Android's stdlib ("bionic") comes with threads.h and pthread.h
