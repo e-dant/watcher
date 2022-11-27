@@ -186,6 +186,7 @@ inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
   static constexpr unsigned buffersize = 65536;
 
   wobj->event_token = CreateEventW(nullptr, true, false, nullptr);
+
   if (wobj->event_token) {
     wobj->hthreads = (HANDLE*)HeapAlloc(GetProcessHeap(), 0, sizeof(HANDLE));
     wobj->wolap = (watch_event_overlap*)HeapAlloc(GetProcessHeap(), 0,
@@ -293,7 +294,7 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
                                       .event_token = nullptr,
                                       .wolap = nullptr,
                                       .working = 0,
-                                      .directoryname = nullptr},
+                                      .directoryname = L""},
                      path.c_str(), path.size() + 1, callback);
 
   while (is_living(path_str))
