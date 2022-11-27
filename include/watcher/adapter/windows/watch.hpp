@@ -226,7 +226,6 @@ inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
 
           ULONG_PTR completionkey;
           DWORD byte_ready_count;
-          BOOL flag;
 
           SetEvent(wobj->event_token);
 
@@ -285,10 +284,10 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
      This shouldn't affect us too much in the perf department because
      this is not the hot path. I wouldn't be surprised if the character
      strings lose information after all this back-and-forth. */
-  auto path_str = util::wstring_to_string(path_wstr);
+  auto path_str = util::wstring_to_string(path);
 
-  do_scan_work_async(new watch_object{.callback = callback}, path_wstr.c_str(),
-                     path_wstr.size() + 1, callback);
+  do_scan_work_async(new watch_object{.callback = callback}, path.c_str(),
+                     path.size() + 1, callback);
 
   while (is_living(path_str))
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
