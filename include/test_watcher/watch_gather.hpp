@@ -18,9 +18,7 @@
 #include <test_watcher/chrono.hpp>
 /* show_conf */
 #include <test_watcher/conf.hpp>
-/* mk_events,
-   show_event_stream_preamble,
-   show_event_stream_postamble */
+/* mk_events */
 #include <test_watcher/event.hpp>
 /* vector */
 #include <vector>
@@ -48,9 +46,9 @@ static auto watch_gather(
     auto const& title = "test", /* Title */
     auto const& store_path      /* Store Path */
     = wtr::test_watcher::test_store_path / "tmp_store",
-    auto const& path_count = 10,           /* Path Event Count */
-    unsigned const& concurrency_level = 1, /* Concurrent Watcher Count */
-    std::chrono::milliseconds const&       /* Simulated Lifetime */
+    int const path_count = 10,       /* Path Event Count */
+    int const concurrency_level = 1, /* Concurrent Watcher Count */
+    std::chrono::milliseconds const  /* Simulated Lifetime */
         alive_for_ms_target
     = std::chrono::milliseconds(1000))
 {

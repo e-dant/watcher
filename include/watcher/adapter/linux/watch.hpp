@@ -138,7 +138,7 @@ auto do_path_container_create(string const& base_path, /* NOLINT */
       if (!dir_ec)
         if (std::filesystem::is_directory(dir, dir_ec))
           if (!dir_ec) do_mark(dir.path());
-  return std::move(path_map);
+  return path_map;
 };
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_event_resource_create

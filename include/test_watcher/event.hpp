@@ -33,29 +33,29 @@ inline bool str_eq(char const* a, char const* b)
   return std::strcmp(a, b) == 0;
 }
 
-static void show_event_stream_preamble()
-{
-  std::cout << "\n{\"wtr\":"
-               "\n{\"test_watcher\":"
-               "\n{\"stream\":"
-               "\n{\n";
-}
+/* static void show_event_stream_preamble() */
+/* { */
+/*   std::cout << "\n{\"wtr\":" */
+/*                "\n{\"test_watcher\":" */
+/*                "\n{\"stream\":" */
+/*                "\n{\n"; */
+/* } */
 
-static void show_event_stream_postamble(auto const& alive_for_ms, bool const& is_watch_dead)
-{
-  std::cout << "}"
-            << "\n,\"milliseconds\":" << alive_for_ms
-            << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}"
-            << std::endl;
-}
+/* static void show_event_stream_postamble(auto const& alive_for_ms, bool const& is_watch_dead) */
+/* { */
+/*   std::cout << "}" */
+/*             << "\n,\"milliseconds\":" << alive_for_ms */
+/*             << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}" */
+/*             << std::endl; */
+/* } */
 
-static void show_strange_event(auto const& title,
-                               wtr::watcher::event::event const& ev)
-{
-  std::cout << "warning in " << title << ":"
-            << "\n strange event at: " << ev.where << "\n json: {" << ev
-            << "\n\n";
-}
+/* static void show_strange_event(auto const& title, */
+/*                                wtr::watcher::event::event const& ev) */
+/* { */
+/*   std::cout << "warning in " << title << ":" */
+/*             << "\n strange event at: " << ev.where << "\n json: {" << ev */
+/*             << "\n\n"; */
+/* } */
 
 /* Make Events
    Mirror what the Watcher should see
