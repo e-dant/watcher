@@ -46,7 +46,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 /* clang-format on */
 
-auto const do_make_event_stream(auto const& path, auto const& callback)
+auto do_make_event_stream(auto const& path, auto const& callback)
 {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
@@ -96,7 +96,6 @@ inline bool watch(auto const& path, event::callback const& callback,
       std::filesystem::is_symlink, std::filesystem::exists;
 
   static auto callback_hook = callback;
-  auto ok = true;
 
   auto const callback_adapter
       = [](ConstFSEventStreamRef const,   /* stream_ref */
