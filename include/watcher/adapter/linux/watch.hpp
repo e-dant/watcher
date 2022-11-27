@@ -162,7 +162,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
       = epoll_create1(EPOLL_CLOEXEC);
 #elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-      = epoll_create1();
+      = epoll_create(0);
 #endif
 
   if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
