@@ -158,7 +158,12 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
     }
   };
   struct epoll_event event_list[event_max_count];
-  int event_fd = epoll_create1(EPOLL_CLOEXEC);
+  int event_fd
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+      = epoll_create1(EPOLL_CLOEXEC);
+#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+      = epoll_create1();
+#endif
 
   if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
     callback({"e/sys/epoll_create1", event::what::other, event::kind::watcher});
