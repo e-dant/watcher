@@ -234,9 +234,9 @@ inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
           while (wobj->working) {
             OVERLAPPED* po;
 
-            flag = GetQueuedCompletionStatus(wobj->event_completion_token,
-                                             &byte_ready_count, &completionkey,
-                                             &po, INFINITE);
+            GetQueuedCompletionStatus(wobj->event_completion_token,
+                                      &byte_ready_count, &completionkey, &po,
+                                      INFINITE);
             if (po) {
               watch_event_overlap* wolap
                   = (watch_event_overlap*)CONTAINING_RECORD(
@@ -286,8 +286,15 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
      strings lose information after all this back-and-forth. */
   auto path_str = util::wstring_to_string(path);
 
-  do_scan_work_async(new watch_object{.callback = callback}, path.c_str(),
-                     path.size() + 1, callback);
+  do_scan_work_async(new watch_object{.callback = callback,
+                                      .event_completion_token = nullptr,
+                                      .hdirectory = nullptr,
+                                      .hthreads = nullptr,
+                                      .event_token = nullptr,
+                                      .wolap = nullptr,
+                                      .working = 0,
+                                      .directoryname = nullptr},
+                     path.c_str(), path.size() + 1, callback);
 
   while (is_living(path_str))
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
