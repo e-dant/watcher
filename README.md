@@ -344,6 +344,19 @@ cd build/out
 
 ## Notes
 
+### Limitations
+
+- Recursion
+> This library makes heavy use of recursion. To avoid running
+out of memory, the user should always compile with `-O3` in
+release builds.
+
+- Ready State
+> There is no reliable way to communicate when a watcher is
+ready to send events to the callback. For a few thousand paths,
+this may take a few milliseconds. For a few million, consider
+waiting a second or so.
+
 ### Exceptions to Efficient Scanning
 
 There are two cases where *Watcher*'s efficiency takes a hit:
@@ -354,8 +367,8 @@ alternatives, such as BSD and Solaris (`warthog` beats `kqueue`).
 2. On embedded systems (where resources matter regardless).
 
 *Watcher* is still relatively efficient in these cases, but
-may use a non-negligible amount of CPU time. For a thumb-
-rule, scanning more than one-hundred-thousand paths might
+may use a non-negligible amount of CPU time. For a thumb-rule,
+scanning more than one-hundred-thousand paths might
 stutter on hardware from this, or the last, decade.
 
 ### OS APIs Used
