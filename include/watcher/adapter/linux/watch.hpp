@@ -7,7 +7,8 @@
 */
 
 #include <watcher/platform.hpp>
-#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
+    || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 
 #include <sys/epoll.h>
 #include <sys/inotify.h>
