@@ -163,7 +163,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
     callback({"e/sys/epoll_create1", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
-    return std::move(std::make_tuple(event_conf, event_list, event_fd));
+    return std::make_tuple(event_conf, event_list, event_fd);
 };
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_create
