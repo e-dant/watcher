@@ -230,20 +230,19 @@ auto do_event_wait_recv(/* NOLINT */
             int const event_count
                 = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
 
-            if (event_count >= 0) {
+            if (event_count > 0) {
               for (int n = 0; n < event_count; n++)
                 if (event_list[n].data.fd == watch_fd)
                   if (!do_scan(watch_fd, path_container, callback))
                     return false;
-              /* We return true on eventless invocations. */
               return true;
             } else {
-              return false;
+              /* We return true on eventless invocations. */
+              return true;
             }
           };
 
     auto const do_event_error = [](event::callback const& callback) {
-      perror("epoll_wait");
       callback({"e/sys/epoll_wait", event::what::other, event::kind::watcher});
       /* We always return false on errors. */
       return false;
