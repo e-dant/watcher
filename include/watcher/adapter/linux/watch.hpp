@@ -163,7 +163,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 #endif
 
   if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
-    callback({"e/sys/epoll_create1", event::what::other, event::kind::watcher});
+    callback({"e/sys/epoll_create", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
     return std::make_tuple(event_conf, event_list, event_fd);
@@ -184,7 +184,7 @@ auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
 
   if (watch_fd < 0) {
     callback(
-        {"e/sys/inotify_init1?", event::what::other, event::kind::watcher});
+        {"e/sys/inotify_init", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
     return watch_fd;
