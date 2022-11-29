@@ -184,7 +184,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   if (!do_make_event_handler_alive(event_stream, event_queue)) return false;
 
-  while (is_living(path))
+  while (is_living())
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);

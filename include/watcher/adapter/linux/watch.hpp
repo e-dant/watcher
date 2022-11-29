@@ -93,9 +93,9 @@ auto do_event_resource_create(int const watch_fd,
 auto do_watch_fd_create(event::callback const& callback) -> std::optional<int>;
 auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
 auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
-                        path_container_type& path_container, string const& path,
-                        event::callback const& callback,
-                        auto const& in_is_living) -> bool;
+                        path_container_type& path_container,
+                        event::callback const& callback, auto const& is_living)
+    -> bool;
 auto do_scan(int fd, path_container_type& path_container,
              event::callback const& callback) -> bool;
 
@@ -152,10 +152,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data
-    {
-      .fd = watch_fd
-    }
+    .events = EPOLLIN, .data { .fd = watch_fd }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd
@@ -219,20 +216,17 @@ auto do_event_wait_recv(/* NOLINT */
                         epoll_event* event_list,
                         /* For matching paths */
                         path_container_type& path_container,
-                        /* See `in_is_living` */
-                        string const& base_path,
                         /* For sending messages (esp. events) */
                         event::callback const& callback,
                         /* For checking if we're alive */
-                        auto const& in_is_living) -> bool
+                        auto const& is_living) -> bool
 {
-#if 1
   auto const do_error = [&](string const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
     return false;
   };
 
-  while (in_is_living(base_path)) {
+  while (is_living()) {
     int event_count
         = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
     if (event_count < 0)
@@ -244,30 +238,6 @@ auto do_event_wait_recv(/* NOLINT */
             return do_error("e/self/scan");
   }
   return true;
-#else
-  while (true) {
-    if (!in_is_living(base_path)) {
-      return true;
-    }
-    int event_count
-        = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
-    if (event_count < 0) {
-      callback({"e/sys/epoll_wait", event::what::other, event::kind::watcher});
-      return false;
-    } else if (event_count > 0) {
-      for (int n = 0; n < event_count; ++n) {
-        if (event_list[n].data.fd == watch_fd) {
-          if (!do_scan(watch_fd, path_container, callback)) {
-            callback(
-                {"e/self/do_scan", event::what::other, event::kind::watcher});
-            return true;
-          }
-        }
-      }
-    }
-    return true;
-  }
-#endif
 }
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
@@ -295,7 +265,7 @@ auto do_scan(int watch_fd, /* NOLINT */
     ssize_t len = read(fd, buf, buf_len);
 
     /* EAGAIN means no events were found.
-       We return `eventless` in this case. */
+       We return `eventless` in that case. */
     if (len < 0 && errno != EAGAIN)
       return std::make_pair(event_recv_status::error, len);
     else if (len <= 0)
@@ -365,7 +335,7 @@ auto do_scan(int watch_fd, /* NOLINT */
    A callback to perform when the files
    being watched change. */
 inline bool watch(auto const& path, event::callback const& callback,
-                  auto const& in_is_living)
+                  auto const& is_living)
 {
   /*
      Values
@@ -388,7 +358,7 @@ inline bool watch(auto const& path, event::callback const& callback,
       auto&& event_tuple = do_event_resource_create(watch_fd, callback);
 
       if (event_tuple.has_value()) {
-        /* auto&& event_conf = std::get<0>(event_tuple.value()); */
+        /* event_conf is 0th */
         auto event_list = std::get<1>(event_tuple.value());
         auto event_fd = std::get<2>(event_tuple.value());
 
@@ -398,7 +368,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 
         /* Watch until dead. */
         return do_event_wait_recv(watch_fd, event_fd, event_list,
-                                  path_container, path, callback, in_is_living)
+                                  path_container, callback, is_living)
                && do_watch_fd_release(watch_fd, callback);
       } else
         return do_watch_fd_release(watch_fd, callback);

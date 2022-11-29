@@ -95,7 +95,10 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
   };
 
   if (msg) {
-    auto ok = live(path, callback) ? watch(path, callback, is_living) : false;
+    auto ok = live(path, callback) ? watch(
+                  path, callback,
+                  [&is_living, &path]() -> bool { return is_living(path); })
+                                   : false;
     /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" */
     /*           << path */
     /*           << "' => " << (ok ? "true" : "false") << std::endl; */
