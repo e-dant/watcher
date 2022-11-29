@@ -224,7 +224,7 @@ build::check::sanitizer_allowed_for::linux() {
   # We want msan but need a way to check for clang
   # because GCC/G++ doesn't have it
   denylist=(
-    # 'asan'
+    'asan'
     'msan'
   )
 
@@ -247,7 +247,8 @@ build::check::sanitizer_allowed_for::this() {
   sanitizer_query="$1"
 
   discerned_platform_raw="$(uname | tr '[:upper:]' '[:lower:]')"
-  if test $discerned_platform_raw = 'darwin'
+
+  if test "$discerned_platform_raw" = 'darwin'
   then
     discerned_platform='macos'
   elif echo "$discerned_platform_raw" | grep -q 'mingw'
