@@ -297,7 +297,7 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
                                       .directoryname = L""},
                      path.c_str(), path.size() + 1, callback);
 
-  while (is_living())
+  while (is_living(path_str))
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return true;
