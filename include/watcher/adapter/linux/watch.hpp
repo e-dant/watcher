@@ -36,10 +36,10 @@ namespace {
    Types:
      - string
      - dir_opt_type
-     - path_container_type */
+     - path_map_type */
 using std::string;
 using dir_opt_type = std::filesystem::directory_options;
-using path_container_type = std::unordered_map<int, std::string>;
+using path_map_type = std::unordered_map<int, std::string>;
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/constants
    Constants:
@@ -48,7 +48,7 @@ using path_container_type = std::unordered_map<int, std::string>;
      - in_watch_opt
      - dir_opt */
 inline constexpr auto event_max_count = 1;
-inline constexpr auto path_container_reserve_count = 256;
+inline constexpr auto path_map_reserve_count = 256;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
 /* @todo
    Measure perf of IN_ALL_EVENTS */
@@ -65,8 +65,8 @@ inline constexpr dir_opt_type dir_opt
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns
    Functions:
 
-     do_path_container_create
-       -> optional < path_container_type >
+     do_path_map_create
+       -> optional < path_map_type >
 
      do_event_resource_create
        -> optional < tuple < epoll_event, epoll_event*, int > >
@@ -77,17 +77,13 @@ inline constexpr dir_opt_type dir_opt
      do_watch_fd_release
        -> bool
 
-     do_event_wait_recv
-       -> bool
-
      do_scan
        -> bool
 */
 
-inline auto do_path_container_create(string const& base_path,
-                                     int const watch_fd,
-                                     event::callback const& callback) noexcept
-    -> std::optional<path_container_type>;
+inline auto do_path_map_create(string const& base_path, int const watch_fd,
+                               event::callback const& callback) noexcept
+    -> path_map_type;
 inline auto do_event_resource_create(int const watch_fd,
                                      event::callback const& callback) noexcept
     -> std::optional<std::tuple<epoll_event, epoll_event*, int>>;
@@ -96,16 +92,10 @@ inline auto do_watch_fd_create(event::callback const& callback) noexcept
 inline auto do_watch_fd_release(int watch_fd,
                                 event::callback const& callback) noexcept
     -> bool;
-inline auto do_event_wait_recv(int watch_fd, int event_fd,
-                               epoll_event* event_list,
-                               path_container_type& path_container,
-                               string const& base_path,
-                               event::callback const& callback,
-                               auto const& is_living) noexcept -> bool;
-inline auto do_scan(int fd, path_container_type& path_container,
+inline auto do_scan(int fd, path_map_type& path_map,
                     event::callback const& callback) noexcept -> bool;
 
-/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_path_container_create
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_path_map_create
    If the path given is a directory
      - find all directories above the base path given.
      - ignore nonexistent directories.
@@ -113,31 +103,30 @@ inline auto do_scan(int fd, path_container_type& path_container,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_container_create(string const& base_path,
-                                     int const watch_fd,
-                                     event::callback const& callback) noexcept
-    -> std::optional<path_container_type>
+inline auto do_path_map_create(string const& base_path, int const watch_fd,
+                               event::callback const& callback) noexcept
+    -> path_map_type
 {
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
 
   auto dir_ec = std::error_code{};
-  path_container_type path_map;
-  path_map.reserve(path_container_reserve_count);
+  path_map_type path_map;
+  path_map.reserve(path_map_reserve_count);
 
   auto do_mark = [&](auto& dir) {
     int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
     return wd < 0
         ? [&](){
-          callback({"e/sys/inotify_add_watch",
-                   event::what::other, event::kind::watcher});
-          return false; }()
+            callback({"e/sys/inotify_add_watch",
+                     event::what::other, event::kind::watcher});
+            return false; }()
         : [&](){
-          path_map[wd] = dir;
-          return true;  }();
+            path_map[wd] = dir;
+            return true;  }();
   };
 
   if (!do_mark(base_path))
-    return std::nullopt;
+    return path_map_type{};
   else if (std::filesystem::is_directory(base_path, dir_ec))
     /* @todo @note
        Should we bail from within this loop if `do_mark` fails? */
@@ -209,45 +198,6 @@ inline auto do_watch_fd_release(int watch_fd,
     return true;
 }
 
-/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_event_wait_recv
-   - Await filesystem events.
-   - When available, scan them.
-   - Invoke the callback on errors. */
-inline auto do_event_wait_recv(
-    /* For `inotify` */
-    int watch_fd,
-    /* For `epoll` */
-    int event_fd,
-    /* AKA 'interest list' */
-    epoll_event* event_list,
-    /* For matching paths */
-    path_container_type& path_container,
-    /* For passing to `is_living` */
-    string const& base_path,
-    /* For sending messages (esp. events) */
-    event::callback const& callback,
-    /* For checking if we're alive */
-    auto const& is_living) noexcept -> bool
-{
-  auto const do_error = [&](string const& msg) -> bool {
-    callback({msg, event::what::other, event::kind::watcher});
-    return false;
-  };
-
-  while (is_living(base_path)) {
-    int event_count
-        = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
-    if (event_count < 0)
-      return do_error("e/sys/epoll_wait");
-    else if (event_count > 0)
-      for (int n = 0; n < event_count; ++n)
-        if (event_list[n].data.fd == watch_fd)
-          if (!do_scan(watch_fd, path_container, callback))
-            return do_error("e/self/scan");
-  }
-  return true;
-}
-
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
    Reads through available (inotify) filesystem events.
    Discerns their path and type.
@@ -258,7 +208,7 @@ inline auto do_event_wait_recv(
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline auto do_scan(int watch_fd, path_container_type& path_container,
+inline auto do_scan(int watch_fd, path_map_type& path_map,
                     event::callback const& callback) noexcept -> bool
 {
   /* 4096 is a typical page size. */
@@ -301,22 +251,29 @@ inline auto do_scan(int watch_fd, path_container_type& path_container,
                                      ? event::kind::dir
                                      : event::kind::file;
           int path_wd = event_recv->wd;
-          auto event_base_path = path_container.find(path_wd)->second;
+          auto event_base_path = path_map.find(path_wd)->second;
           auto event_path = string(event_base_path + "/" + event_recv->name);
 
-          if (event_recv->mask & IN_Q_OVERFLOW)
+          if (event_recv->mask & IN_Q_OVERFLOW) {
             callback(
                 {"e/self/overflow", event::what::other, event::kind::watcher});
-          else if (event_recv->mask & IN_CREATE)
+          } else if (event_recv->mask & IN_CREATE) {
             callback({event_path, event::what::create, path_kind});
-          else if (event_recv->mask & IN_DELETE)
+            if (path_kind == event::kind::dir) {
+              int new_watch_fd = inotify_add_watch(watch_fd, event_path.c_str(),
+                                                   in_watch_opt);
+              path_map[new_watch_fd] = event_path;
+            }
+          } else if (event_recv->mask & IN_DELETE) {
             callback({event_path, event::what::destroy, path_kind});
-          else if (event_recv->mask & IN_MOVE)
+            /* @todo rm watch, rm path map entry */
+          } else if (event_recv->mask & IN_MOVE) {
             callback({event_path, event::what::rename, path_kind});
-          else if (event_recv->mask & IN_MODIFY)
+          } else if (event_recv->mask & IN_MODIFY) {
             callback({event_path, event::what::modify, path_kind});
-          else
+          } else {
             callback({event_path, event::what::other, path_kind});
+          }
         }
         /* We don't want to return here. We run until `eventless`. */
         break;
@@ -344,43 +301,53 @@ inline auto do_scan(int watch_fd, path_container_type& path_container,
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  /*
-     Values
-   */
+  auto const do_error = [&callback](string const& msg) -> bool {
+    callback({msg, event::what::other, event::kind::watcher});
+    return false;
+  };
+
+  /* Gather resources:
+       - watch fd -- for inotify
+       - path map -- for event to path lookup
+       - event list -- for epoll
+       - event fd -- for epoll */
 
   auto watch_fd_optional = do_watch_fd_create(callback);
 
   if (watch_fd_optional.has_value()) {
     auto watch_fd = watch_fd_optional.value();
 
-    auto&& path_container_optional
-        = do_path_container_create(path, watch_fd, callback);
+    auto&& path_map = do_path_map_create(path, watch_fd, callback);
 
-    if (path_container_optional.has_value()) {
-      /* Find all directories above the base path given.
-         Make a map of watch descriptors -> paths. */
-      path_container_type&& path_container
-          = std::move(path_container_optional.value());
+    auto&& event_tuple = do_event_resource_create(watch_fd, callback);
 
-      auto&& event_tuple = do_event_resource_create(watch_fd, callback);
+    if (event_tuple.has_value()) {
+      /* event_conf is 0th */
+      auto event_list = std::get<1>(event_tuple.value());
+      auto event_fd = std::get<2>(event_tuple.value());
 
-      if (event_tuple.has_value()) {
-        /* event_conf is 0th */
-        auto event_list = std::get<1>(event_tuple.value());
-        auto event_fd = std::get<2>(event_tuple.value());
+      /* Do work until dead:
+          - Await filesystem events
+          - Invoke `callback` on errors and events */
 
-        /*
-           Work
-         */
+      while (is_living(path) && !path_map.empty()) {
+        int event_count
+            = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
+        if (event_count < 0)
+          return do_watch_fd_release(watch_fd, callback)
+                 && do_error("e/sys/epoll_wait");
+        else if (event_count > 0)
+          for (int n = 0; n < event_count; ++n)
+            if (event_list[n].data.fd == watch_fd)
+              if (!do_scan(watch_fd, path_map, callback))
+                return do_watch_fd_release(watch_fd, callback)
+                       && do_error("e/self/scan");
+      }
+      return do_watch_fd_release(watch_fd, callback);
 
-        /* Watch until dead. */
-        return do_event_wait_recv(watch_fd, event_fd, event_list,
-                                  path_container, path, callback, is_living)
-               && do_watch_fd_release(watch_fd, callback);
-      } else
-        return do_watch_fd_release(watch_fd, callback);
     } else
       return do_watch_fd_release(watch_fd, callback);
+
   } else
     return false;
 }
