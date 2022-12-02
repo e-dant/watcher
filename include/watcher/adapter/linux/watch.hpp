@@ -94,7 +94,9 @@ auto do_watch_fd_create(event::callback const& callback) -> std::optional<int>;
 auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
 auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
                         path_container_type& path_container,
-                        event::callback const& callback, auto const& is_living)
+                        string const& base_path,
+                        event::callback const& callback,
+                        auto const& is_living)
     -> bool;
 auto do_scan(int fd, path_container_type& path_container,
              event::callback const& callback) -> bool;
@@ -216,6 +218,8 @@ auto do_event_wait_recv(/* NOLINT */
                         epoll_event* event_list,
                         /* For matching paths */
                         path_container_type& path_container,
+                        /* For passing to `is_living` */
+                        string const& base_path,
                         /* For sending messages (esp. events) */
                         event::callback const& callback,
                         /* For checking if we're alive */
@@ -226,7 +230,7 @@ auto do_event_wait_recv(/* NOLINT */
     return false;
   };
 
-  while (is_living()) {
+  while (is_living(base_path)) {
     int event_count
         = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
     if (event_count < 0)
@@ -368,7 +372,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 
         /* Watch until dead. */
         return do_event_wait_recv(watch_fd, event_fd, event_list,
-                                  path_container, callback, is_living)
+                                  path_container, path, callback, is_living)
                && do_watch_fd_release(watch_fd, callback);
       } else
         return do_watch_fd_release(watch_fd, callback);
