@@ -95,8 +95,7 @@ auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
 auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
                         path_container_type& path_container,
                         string const& base_path,
-                        event::callback const& callback,
-                        auto const& is_living)
+                        event::callback const& callback, auto const& is_living)
     -> bool;
 auto do_scan(int fd, path_container_type& path_container,
              event::callback const& callback) -> bool;
@@ -185,8 +184,7 @@ auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
 #endif
 
   if (watch_fd < 0) {
-    callback(
-        {"e/sys/inotify_init", event::what::other, event::kind::watcher});
+    callback({"e/sys/inotify_init", event::what::other, event::kind::watcher});
     return std::nullopt;
   } else
     return watch_fd;

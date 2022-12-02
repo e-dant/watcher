@@ -120,7 +120,8 @@ struct event
   event(char const* where, enum what const what, enum kind const kind) noexcept
       : where{string{where}}, what{what}, kind{kind} {};
 
-  event(std::filesystem::path const where, enum what const what, enum kind const kind) noexcept
+  event(std::filesystem::path const where, enum what const what,
+        enum kind const kind) noexcept
       : where{where.string()}, what{what}, kind{kind} {};
 
   event(string const where, enum what const what, enum kind const kind) noexcept

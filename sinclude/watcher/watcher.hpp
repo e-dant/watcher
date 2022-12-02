@@ -198,7 +198,8 @@ struct event
   event(char const* where, enum what const what, enum kind const kind) noexcept
       : where{string{where}}, what{what}, kind{kind} {};
 
-  event(std::filesystem::path const where, enum what const what, enum kind const kind) noexcept
+  event(std::filesystem::path const where, enum what const what,
+        enum kind const kind) noexcept
       : where{where.string()}, what{what}, kind{kind} {};
 
   event(string const where, enum what const what, enum kind const kind) noexcept
@@ -401,9 +402,6 @@ inline bool watch_ctl(char const* path, event::callback const& callback,
 } /* namespace wtr */
 
 /* clang-format off */
-
-
-
 
 /* clang-format on */
 
@@ -726,7 +724,6 @@ inline bool watch(std::string const& path, event::callback const& callback,
 } /* namespace wtr */
 
 #endif
-
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -1155,10 +1152,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 {
   struct epoll_event event_conf
   {
-    .events = EPOLLIN, .data
-    {
-      .fd = watch_fd
-    }
+    .events = EPOLLIN, .data { .fd = watch_fd }
   };
   struct epoll_event event_list[event_max_count];
   int event_fd = epoll_create1(EPOLL_CLOEXEC);

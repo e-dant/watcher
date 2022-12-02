@@ -41,11 +41,13 @@ inline bool str_eq(char const* a, char const* b)
 /*                "\n{\n"; */
 /* } */
 
-/* static void show_event_stream_postamble(auto const& alive_for_ms, bool const& is_watch_dead) */
+/* static void show_event_stream_postamble(auto const& alive_for_ms, bool const&
+ * is_watch_dead) */
 /* { */
 /*   std::cout << "}" */
 /*             << "\n,\"milliseconds\":" << alive_for_ms */
-/*             << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}" */
+/*             << "\n,\"dead\":" << std::boolalpha << is_watch_dead << "\n}}}"
+ */
 /*             << std::endl; */
 /* } */
 
@@ -133,7 +135,8 @@ static auto mk_events(auto const& watch_path, auto const& path_count,
   }
 }
 
-inline auto mk_revents(auto const& watch_path, auto const& path_count, auto const& event_list,
+inline auto mk_revents(auto const& watch_path, auto const& path_count,
+                       auto const& event_list,
                        unsigned long options = mk_events_options)
 {
   return mk_events(watch_path, path_count, event_list,
