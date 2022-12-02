@@ -51,7 +51,7 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-static bool scan(const char* path, auto const& send_event, bucket_type& bucket)
+inline bool scan(const char* path, auto const& send_event, bucket_type& bucket) noexcept
 {
   /* @brief watcher/adapter/warthog/scan_file
      - Scans a (single) file for changes.
@@ -129,8 +129,8 @@ static bool scan(const char* path, auto const& send_event, bucket_type& bucket)
 /* @brief wtr/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-static bool tend_bucket(const char* path, auto const& send_event,
-                        bucket_type& bucket)
+inline bool tend_bucket(const char* path, auto const& send_event,
+                        bucket_type& bucket) noexcept
 {
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
@@ -224,7 +224,7 @@ static bool tend_bucket(const char* path, auto const& send_event,
 */
 
 inline bool watch(auto const& path, event::callback const& callback,
-                  auto const is_living)
+                  auto const is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
@@ -249,7 +249,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 }
 
 inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(std::string(path), callback, is_living);
 }

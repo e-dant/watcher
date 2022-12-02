@@ -84,21 +84,26 @@ inline constexpr dir_opt_type dir_opt
        -> bool
 */
 
-auto do_path_container_create(string const& base_path, int const watch_fd,
-                              event::callback const& callback)
+inline auto do_path_container_create(string const& base_path,
+                                     int const watch_fd,
+                                     event::callback const& callback) noexcept
     -> std::optional<path_container_type>;
-auto do_event_resource_create(int const watch_fd,
-                              event::callback const& callback)
+inline auto do_event_resource_create(int const watch_fd,
+                                     event::callback const& callback) noexcept
     -> std::optional<std::tuple<epoll_event, epoll_event*, int>>;
-auto do_watch_fd_create(event::callback const& callback) -> std::optional<int>;
-auto do_watch_fd_release(int watch_fd, event::callback const& callback) -> bool;
-auto do_event_wait_recv(int watch_fd, int event_fd, epoll_event* event_list,
-                        path_container_type& path_container,
-                        string const& base_path,
-                        event::callback const& callback, auto const& is_living)
+inline auto do_watch_fd_create(event::callback const& callback) noexcept
+    -> std::optional<int>;
+inline auto do_watch_fd_release(int watch_fd,
+                                event::callback const& callback) noexcept
     -> bool;
-auto do_scan(int fd, path_container_type& path_container,
-             event::callback const& callback) -> bool;
+inline auto do_event_wait_recv(int watch_fd, int event_fd,
+                               epoll_event* event_list,
+                               path_container_type& path_container,
+                               string const& base_path,
+                               event::callback const& callback,
+                               auto const& is_living) noexcept -> bool;
+inline auto do_scan(int fd, path_container_type& path_container,
+                    event::callback const& callback) noexcept -> bool;
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_path_container_create
    If the path given is a directory
@@ -108,9 +113,9 @@ auto do_scan(int fd, path_container_type& path_container,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-auto do_path_container_create(string const& base_path, /* NOLINT */
-                              int const watch_fd,
-                              event::callback const& callback)
+inline auto do_path_container_create(string const& base_path,
+                                     int const watch_fd,
+                                     event::callback const& callback) noexcept
     -> std::optional<path_container_type>
 {
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
@@ -147,8 +152,8 @@ auto do_path_container_create(string const& base_path, /* NOLINT */
    Return and initializes epoll events and file descriptors,
    which are the resources needed for an epoll_wait loop.
    Or return nothing. */
-auto do_event_resource_create(int const watch_fd, /* NOLINT */
-                              event::callback const& callback)
+inline auto do_event_resource_create(int const watch_fd,
+                                     event::callback const& callback) noexcept
     -> std::optional<std::tuple<epoll_event, epoll_event*, int>>
 {
   struct epoll_event event_conf
@@ -173,7 +178,7 @@ auto do_event_resource_create(int const watch_fd, /* NOLINT */
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_create
    Return an (optional) file descriptor
    which may access the inotify api. */
-auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
+inline auto do_watch_fd_create(event::callback const& callback) noexcept
     -> std::optional<int>
 {
   int watch_fd
@@ -193,8 +198,9 @@ auto do_watch_fd_create(event::callback const& callback) /* NOLINT */
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_release
    Close the file descriptor `fd_watch`,
    Invoke `callback` on errors. */
-auto do_watch_fd_release(int watch_fd, /* NOLINT */
-                         event::callback const& callback) -> bool
+inline auto do_watch_fd_release(int watch_fd,
+                                event::callback const& callback) noexcept
+    -> bool
 {
   if (close(watch_fd) < 0) {
     callback({"e/sys/close", event::what::other, event::kind::watcher});
@@ -207,21 +213,21 @@ auto do_watch_fd_release(int watch_fd, /* NOLINT */
    - Await filesystem events.
    - When available, scan them.
    - Invoke the callback on errors. */
-auto do_event_wait_recv(/* NOLINT */
-                        /* For `inotify` */
-                        int watch_fd,
-                        /* For `epoll` */
-                        int event_fd,
-                        /* AKA 'interest list' */
-                        epoll_event* event_list,
-                        /* For matching paths */
-                        path_container_type& path_container,
-                        /* For passing to `is_living` */
-                        string const& base_path,
-                        /* For sending messages (esp. events) */
-                        event::callback const& callback,
-                        /* For checking if we're alive */
-                        auto const& is_living) -> bool
+inline auto do_event_wait_recv(
+    /* For `inotify` */
+    int watch_fd,
+    /* For `epoll` */
+    int event_fd,
+    /* AKA 'interest list' */
+    epoll_event* event_list,
+    /* For matching paths */
+    path_container_type& path_container,
+    /* For passing to `is_living` */
+    string const& base_path,
+    /* For sending messages (esp. events) */
+    event::callback const& callback,
+    /* For checking if we're alive */
+    auto const& is_living) noexcept -> bool
 {
   auto const do_error = [&](string const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
@@ -252,9 +258,8 @@ auto do_event_wait_recv(/* NOLINT */
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-auto do_scan(int watch_fd, /* NOLINT */
-             path_container_type& path_container,
-             event::callback const& callback) -> bool
+inline auto do_scan(int watch_fd, path_container_type& path_container,
+                    event::callback const& callback) noexcept -> bool
 {
   /* 4096 is a typical page size. */
   static constexpr auto buf_len = 4096;
@@ -337,7 +342,7 @@ auto do_scan(int watch_fd, /* NOLINT */
    A callback to perform when the files
    being watched change. */
 inline bool watch(auto const& path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   /*
      Values
@@ -381,7 +386,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 }
 
 inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(std::string(path), callback, is_living);
 }

@@ -24,7 +24,7 @@ namespace adapter {
 namespace {
 namespace util {
 
-inline std::string wstring_to_string(std::wstring const& in)
+inline std::string wstring_to_string(std::wstring const& in) noexcept
 {
   size_t len = WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), nullptr, 0,
                                    nullptr, nullptr);
@@ -40,7 +40,7 @@ inline std::string wstring_to_string(std::wstring const& in)
   }
 }
 
-inline std::wstring string_to_wstring(std::string const& in)
+inline std::wstring string_to_wstring(std::string const& in) noexcept
 {
   size_t len = MultiByteToWideChar(CP_UTF8, 0, in.data(), in.size(), 0, 0);
   if (!len)
@@ -54,7 +54,7 @@ inline std::wstring string_to_wstring(std::string const& in)
   }
 }
 
-inline std::wstring cstring_to_wstring(char const* in)
+inline std::wstring cstring_to_wstring(char const* in) noexcept
 {
   auto len = strlen(in);
   auto mem = std::vector<wchar_t>(len + 1);
@@ -98,7 +98,7 @@ FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
                                        FILE_NOTIFY_INFORMATION* buffer,
                                        unsigned* bufferlength,
                                        unsigned buffersize, HANDLE hdirectory,
-                                       event::callback const& callback)
+                                       event::callback const& callback) noexcept
 {
   using namespace wtr::watcher;
 
@@ -138,7 +138,7 @@ FILE_NOTIFY_INFORMATION* do_event_recv(watch_event_overlap* wolap,
 
 unsigned do_event_send(FILE_NOTIFY_INFORMATION* pfni,
                        unsigned const bufferlength, wchar_t const* dirname_wc,
-                       event::callback const& callback)
+                       event::callback const& callback) noexcept
 {
   unsigned result = 0;
 
@@ -181,7 +181,7 @@ unsigned do_event_send(FILE_NOTIFY_INFORMATION* pfni,
 
 inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
                                size_t dname_len,
-                               event::callback const& callback)
+                               event::callback const& callback) noexcept
 {
   static constexpr unsigned buffersize = 65536;
 
@@ -277,7 +277,7 @@ inline bool do_scan_work_async(watch_object* wobj, wchar_t const* directoryname,
    true if no errors */
 
 inline bool watch(std::wstring const& path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
@@ -304,19 +304,19 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
 }
 
 inline bool watch(wchar_t const* path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(std::wstring{path, wcslen(path)}, callback, is_living);
 }
 
 inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(util::cstring_to_wstring(path), callback, is_living);
 }
 
 inline bool watch(std::string const& path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(util::string_to_wstring(path), callback, is_living);
 }

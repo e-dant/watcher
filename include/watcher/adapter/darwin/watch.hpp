@@ -46,7 +46,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
 };
 /* clang-format on */
 
-auto do_make_event_stream(auto const& path, auto const& callback)
+auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 {
   /*  the contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
@@ -88,7 +88,7 @@ auto do_make_event_stream(auto const& path, auto const& callback)
 } /* namespace */
 
 inline bool watch(auto const& path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   using std::chrono::seconds, std::chrono::milliseconds, std::to_string,
       std::string, std::this_thread::sleep_for,
@@ -195,7 +195,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 }
 
 inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living)
+                  auto const& is_living) noexcept
 {
   return watch(std::string(path), callback, is_living);
 }

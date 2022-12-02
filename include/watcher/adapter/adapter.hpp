@@ -33,10 +33,10 @@ inline constexpr auto delay_ms = 16;
 */
 
 inline bool watch(auto const& path, event::callback const& callback,
-                  auto const& is_living);
+                  auto const& is_living) noexcept;
 
 static bool watch_ctl(auto const& path, event::callback const& callback,
-                      bool const msg)
+                      bool const msg) noexcept
 {
   static auto wcont = std::unordered_set<std::string>{};
   static auto wcont_mtx = std::mutex{};
@@ -111,7 +111,7 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
 }
 
 inline bool watch_ctl(char const* path, event::callback const& callback,
-                      bool const msg)
+                      bool const msg) noexcept
 {
   return watch_ctl(std::string(path), callback, msg);
 }
