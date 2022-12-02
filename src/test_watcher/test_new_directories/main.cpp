@@ -46,8 +46,8 @@ TEST_CASE("New Directories", "[new_directories]")
   auto const store_path_first = base_store_path / "new_directories_first_store";
   auto const store_path_second
       = base_store_path / "new_directories_second_store";
-  auto const store_path_list
-      = std::vector<std::string>{base_store_path, store_path_first, store_path_second};
+  auto const store_path_list = std::vector<std::string>{
+      base_store_path, store_path_first, store_path_second};
 
   std::filesystem::create_directory(base_store_path);
 

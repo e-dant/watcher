@@ -403,9 +403,6 @@ inline bool watch_ctl(char const* path, event::callback const& callback,
 
 /* clang-format off */
 
-
-
-
 /* clang-format on */
 
 /*
@@ -734,7 +731,6 @@ inline bool watch(std::string const& path, event::callback const& callback,
 } /* namespace wtr */
 
 #endif
-
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
