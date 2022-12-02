@@ -31,7 +31,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(auto const& path, event::callback const& callback)
+inline bool watch(auto const& path, event::callback const& callback) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, true);
 }
@@ -42,7 +42,7 @@ inline bool watch(auto const& path, event::callback const& callback)
    Calls `callback`,
    then dies. */
 inline bool die(
-    auto const& path, event::callback const& callback = [](auto) -> void {})
+    auto const& path, event::callback const& callback = [](auto) -> void {}) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, false);
 }
