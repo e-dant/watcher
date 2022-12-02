@@ -42,7 +42,8 @@ inline bool watch(auto const& path, event::callback const& callback) noexcept
    Calls `callback`,
    then dies. */
 inline bool die(
-    auto const& path, event::callback const& callback = [](auto) -> void {}) noexcept
+    auto const& path,
+    event::callback const& callback = [](auto) -> void {}) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, false);
 }

@@ -51,7 +51,8 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-inline bool scan(const char* path, auto const& send_event, bucket_type& bucket) noexcept
+inline bool scan(const char* path, auto const& send_event,
+                 bucket_type& bucket) noexcept
 {
   /* @brief watcher/adapter/warthog/scan_file
      - Scans a (single) file for changes.
