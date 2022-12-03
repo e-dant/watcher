@@ -42,7 +42,7 @@ namespace test_watcher {
     - Return expected and recieved events
    @todo
     Make printing an option */
-static auto watch_gather(
+auto watch_gather(
     auto const& title = "test", /* Title */
     auto const& store_path      /* Store Path */
     = wtr::test_watcher::test_store_path / "tmp_store",
@@ -52,16 +52,16 @@ static auto watch_gather(
         alive_for_ms_target
     = std::chrono::milliseconds(1000))
 {
-  static auto event_recv_list = std::vector<wtr::watcher::event::event>{};
-  static auto event_recv_list_mtx = std::mutex{};
+  auto event_recv_list = std::vector<wtr::watcher::event::event>{};
+  auto event_recv_list_mtx = std::mutex{};
 
-  static auto event_list = std::vector<wtr::watcher::event::event>{};
-  static auto watch_path_list = std::vector<std::string>{};
+  auto event_list = std::vector<wtr::watcher::event::event>{};
+  auto watch_path_list = std::vector<std::string>{};
 
-  /* static auto cout_mtx = std::mutex{}; */
+  /* auto cout_mtx = std::mutex{}; */
 
-  static constexpr auto pre_create_event_delay = std::chrono::milliseconds(500);
-  static constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(500);
+  constexpr auto pre_create_event_delay = std::chrono::milliseconds(500);
+  constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(500);
 
   /* Setup */
   {
@@ -159,7 +159,7 @@ static auto watch_gather(
       /* std::cout << "test @ die @ create @ '" << p << "'\n"; */
       assert(std::filesystem::exists(p));
 
-      auto ok = wtr::watcher::die(p, [](wtr::watcher::event::event const& ev) {
+      auto ok = wtr::watcher::die(p, [&event_recv_list, &event_recv_list_mtx](wtr::watcher::event::event const& ev) {
         /* cout_mtx.lock(); */
         /* std::cout << "test @ die -> recv => " << ev << "\n"; */
         /* cout_mtx.unlock(); */
