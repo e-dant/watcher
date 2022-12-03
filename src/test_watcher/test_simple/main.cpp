@@ -108,8 +108,10 @@ TEST_CASE("Simple", "[simple]")
           event_recv_list_mtx.unlock();
         });
 
+  auto const watch_ok = watch_handle.get();
+
   REQUIRE(die_ok);
-  REQUIRE(watch_handle.get());
+  REQUIRE(watch_ok);
 
   std::cout << "events sent =>\n";
   for (auto const& ev : event_sent_list) {
