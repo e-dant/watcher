@@ -45,47 +45,53 @@ TEST_CASE("Simple", "[simple]")
   auto const base_store_path = wtr::test_watcher::test_store_path;
   auto const store_path = base_store_path / "simple_store";
 
-  std::filesystem::create_directory(base_store_path / store_path);
+  std::filesystem::create_directories(base_store_path / store_path);
 
-  auto const watch_ok = wtr::watcher::watch(
-      store_path, [&](wtr::watcher::event::event const& ev) {
-        cout_mtx.lock();
-        std::cout << "test @ '" << store_path << "' @ live -> recv\n => " << ev
-                  << "\n\n";
-        cout_mtx.unlock();
+  auto watch_thread = std::thread([&]() {
+    auto const watch_ok = wtr::watcher::watch(
+        store_path, [&](wtr::watcher::event::event const& ev) {
+          cout_mtx.lock();
+          std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
+                    << ev << "\n\n";
+          cout_mtx.unlock();
 
-        event_recv_list_mtx.lock();
-        event_recv_list.push_back(ev);
-        event_recv_list_mtx.unlock();
-      });
+          event_recv_list_mtx.lock();
+          event_recv_list.push_back(ev);
+          event_recv_list_mtx.unlock();
+        });
+    REQUIRE(watch_ok);
+  });
+
+  watch_thread.detach();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   for (int i = 0; i < path_count; ++i) {
-    auto const new_dir_path = store_path / ("dir" + std::to_string(i));
+    auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
     std::filesystem::create_directory(new_dir_path);
-    REQUIRE(std::filesystem::exists(new_dir_path));
+    // REQUIRE(d_ok);
+    // REQUIRE(std::filesystem::exists(new_dir_path));
     event_list.push_back(wtr::watcher::event::event{
         new_dir_path, wtr::watcher::event::what::create,
         wtr::watcher::event::kind::dir});
 
     auto const new_file_path
-        = new_dir_path / "file" / (std::to_string(i) + ".txt");
+        = new_dir_path / "new_file" / (std::to_string(i) + ".txt");
     auto f = std::ofstream{new_file_path};
     f.close();
-    REQUIRE(std::filesystem::exists(new_file_path));
+    // REQUIRE(std::filesystem::exists(new_file_path));
     event_list.push_back(wtr::watcher::event::event{
         new_file_path, wtr::watcher::event::what::create,
         wtr::watcher::event::kind::file});
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    /* std::this_thread::sleep_for(std::chrono::milliseconds(100)); */
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
 
   std::filesystem::remove_all(base_store_path);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
 
   auto const die_ok = wtr::watcher::die(
       store_path, [&](wtr::watcher::event::event const& ev) {
@@ -99,7 +105,10 @@ TEST_CASE("Simple", "[simple]")
         event_recv_list_mtx.unlock();
       });
 
-  REQUIRE(watch_ok);
+  while(watch_thread.joinable() == true) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  watch_thread.join();
   REQUIRE(die_ok);
 
   for (event::event const& ev : event_list) {
