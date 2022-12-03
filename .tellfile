@@ -3,15 +3,15 @@ echo watcher
 - given build
 echo build/build
 - given run
-echo build/out/wtr.watcher
+echo build/out/this/release/wtr.watcher
 - given bun
 echo eval `tell build`' && eval '`tell run`
 - given dbuild
-echo build/build This Debug
+echo build/build
 - given drun
 echo lldb build/out/wtr.watcher
 - given dbun
 echo eval `tell dbuild`' && lldb build/out/wtr.watcher'
 - given clean
-echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_* ; unlink compile_commands.json'
+echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_*'
 
