@@ -55,8 +55,8 @@ TEST_CASE("New Directories", "[new_directories]")
     auto ok = (wtr::watcher::watch(
         base_store_path, [&](wtr::watcher::event::event const& ev) {
           cout_mtx.lock();
-          std::cout << "test @ '" << base_store_path << "' @ live -> recv => "
-                    << ev << "\n";
+          std::cout << "test @ '" << base_store_path << "' @ live -> recv\n => "
+                    << ev << "\n\n";
           cout_mtx.unlock();
 
           event_recv_list_mtx.lock();
@@ -76,8 +76,8 @@ TEST_CASE("New Directories", "[new_directories]")
       auto ok
           = (wtr::watcher::watch(p, [&](wtr::watcher::event::event const& ev) {
               cout_mtx.lock();
-              std::cout << "test @ '" << p << "' @ live -> recv => " << ev
-                        << "\n";
+              std::cout << "test @ '" << p << "' @ live -> recv\n => " << ev
+                        << "\n\n";
               cout_mtx.unlock();
 
               event_recv_list_mtx.lock();
@@ -119,7 +119,7 @@ TEST_CASE("New Directories", "[new_directories]")
   for (auto const& p : store_path_list)
     wtr::watcher::die(p, [](wtr::watcher::event::event const& ev) {
       cout_mtx.lock();
-      std::cout << "test @ die -> recv => " << ev << "\n";
+      std::cout << "test @ die -> recv\n => " << ev << "\n\n";
       cout_mtx.unlock();
 
       event_recv_list_mtx.lock();

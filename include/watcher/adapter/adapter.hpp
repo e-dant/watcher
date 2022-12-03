@@ -1,5 +1,12 @@
 #pragma once
 
+//
+//
+//
+#include <iostream>
+//
+//
+//
 #include <chrono>
 #include <mutex>
 #include <string>
@@ -52,8 +59,8 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
     else
       wcont.insert(path);
 
-    /* cout << "watch_ctl -> live -> '" << path << "' => " */
-    /*      << (ok ? "true" : "false") << endl; */
+    std::cout << "watch_ctl -> live -> '" << path << "' => "
+              << (ok ? "true" : "false") << std::endl;
 
     wcont_mtx.unlock();
 
@@ -65,8 +72,8 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
   auto const& is_living = [](std::string const& path) -> bool {
     wcont_mtx.lock();
     bool living = wcont.contains(path);
-    /* std::cout << "watch_ctl -> is_living -> '" << path << "' => " */
-    /*           << (living ? "true" : "false") << std::endl; */
+    std::cout << "watch_ctl -> is_living -> '" << path << "' => "
+              << (living ? "true" : "false") << std::endl;
     wcont_mtx.unlock();
     return living;
   };
@@ -83,8 +90,8 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
     else
       ok = false;
 
-    /* cout << "watch_ctl -> die -> '" << path << "' => " */
-    /*      << (ok ? "true" : "false") << endl; */
+    std::cout << "watch_ctl -> die -> '" << path << "' => "
+              << (ok ? "true" : "false") << std::endl;
 
     wcont_mtx.unlock();
 
@@ -96,16 +103,14 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
 
   if (msg) {
     auto ok = live(path, callback) ? watch(path, callback, is_living) : false;
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" */
-    /*           << path */
-    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
+    std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path
+              << "' => " << (ok ? "true" : "false") << std::endl;
     return ok;
   } else {
     auto ok = die(path, callback);
     std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms + 1));
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" */
-    /*           << path */
-    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
+    std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" << path
+              << "' => " << (ok ? "true" : "false") << std::endl;
     return ok;
   }
 }

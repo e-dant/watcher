@@ -339,9 +339,10 @@ inline bool watch(auto const& path, event::callback const& callback,
         else if (event_count > 0)
           for (int n = 0; n < event_count; ++n)
             if (event_list[n].data.fd == watch_fd)
-              if (!do_scan(watch_fd, path_map, callback))
-                return do_watch_fd_release(watch_fd, callback)
-                       && do_error("e/self/scan");
+              if (is_living(path))
+                if (!do_scan(watch_fd, path_map, callback))
+                  return do_watch_fd_release(watch_fd, callback)
+                         && do_error("e/self/scan");
       }
       return do_watch_fd_release(watch_fd, callback);
 
