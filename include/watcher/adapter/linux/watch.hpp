@@ -43,19 +43,29 @@ using path_map_type = std::unordered_map<int, std::string>;
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/constants
    Constants:
-     - event_max_count
+     - event_max_count:
+         Number of events allowed to be given to do_scan
+         (returned by `epoll_wait`). Any number between 1
+         and some large number should be fine. We don't
+         lose events if we 'miss' them, the events are
+         still waiting in the next call to `epoll_wait`.
      - in_init_opt
+         Use non-blocking IO.
      - in_watch_opt
-     - dir_opt */
-inline constexpr auto event_max_count = 1;
-inline constexpr auto path_map_reserve_count = 256;
-inline constexpr auto in_init_opt = IN_NONBLOCK;
-/* @todo
-   Measure perf of IN_ALL_EVENTS */
-/* @todo
-   Handle move events properly.
+         Everything we can get.
+     - dir_opt
+         Follow symlinks, ignore paths which we don't
+         have read permission on.
+     - scan_buf_len:
+         4096, which is a typical page size.
+   @todo
+   - Measure perf of IN_ALL_EVENTS
+   - Handle move events properly.
      - Use IN_MOVED_TO
      - Use event::<something> */
+inline constexpr auto event_max_count = 1;
+inline constexpr auto scan_buf_len = 4096;
+inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt
     = IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 inline constexpr dir_opt_type dir_opt
@@ -108,6 +118,8 @@ inline auto do_path_map_create(string const& base_path, int const watch_fd,
     -> path_map_type
 {
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
+
+  constexpr auto path_map_reserve_count = 256;
 
   auto dir_ec = std::error_code{};
   path_map_type path_map;
@@ -211,15 +223,13 @@ inline auto do_watch_fd_release(int watch_fd,
 inline auto do_scan(int watch_fd, path_map_type& path_map,
                     event::callback const& callback) noexcept -> bool
 {
-  /* 4096 is a typical page size. */
-  static constexpr auto buf_len = 4096;
-  alignas(struct inotify_event) char buf[buf_len];
+  alignas(struct inotify_event) char buf[scan_buf_len];
 
   enum class event_recv_status { eventful, eventless, error };
 
   auto const lift_event_recv = [](int fd, char* buf) {
     /* Read some events. */
-    ssize_t len = read(fd, buf, buf_len);
+    ssize_t len = read(fd, buf, scan_buf_len);
 
     /* EAGAIN means no events were found.
        We return `eventless` in that case. */

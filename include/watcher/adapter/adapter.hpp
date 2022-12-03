@@ -42,14 +42,14 @@ inline constexpr auto delay_ms = 16;
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living) noexcept;
 
-static bool watch_ctl(auto const& path, event::callback const& callback,
+inline bool watch_ctl(auto const& path, event::callback const& callback,
                       bool const msg) noexcept
 {
-  static auto wcont = std::unordered_set<std::string>{};
-  static auto wcont_mtx = std::mutex{};
+  auto wcont = std::unordered_set<std::string>{};
+  auto wcont_mtx = std::mutex{};
 
   auto const& live
-      = [](std::string const& path, event::callback const& callback) -> bool {
+      = [&wcont, &wcont_mtx](std::string const& path, event::callback const& callback) -> bool {
     bool ok = true;
     wcont_mtx.lock();
 
@@ -69,7 +69,7 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
     return ok;
   };
 
-  auto const& is_living = [](std::string const& path) -> bool {
+  auto const& is_living = [&wcont, &wcont_mtx](std::string const& path) -> bool {
     wcont_mtx.lock();
     bool living = wcont.contains(path);
     std::cout << "watch_ctl -> is_living -> '" << path << "' => "
@@ -79,7 +79,7 @@ static bool watch_ctl(auto const& path, event::callback const& callback,
   };
 
   auto const& die
-      = [](std::string const& path, event::callback const& callback) -> bool {
+      = [&wcont, &wcont_mtx](std::string const& path, event::callback const& callback) -> bool {
     bool ok = true;
 
     wcont_mtx.lock();

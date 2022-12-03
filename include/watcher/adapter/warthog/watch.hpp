@@ -237,7 +237,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 
      Otherwise, stop and return false. */
 
-  static bucket_type bucket;
+  bucket_type bucket;
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
