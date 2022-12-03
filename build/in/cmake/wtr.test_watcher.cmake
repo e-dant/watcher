@@ -4,7 +4,7 @@ include(FetchContent)
 FetchContent_Declare(
   snatch
   GIT_REPOSITORY https://github.com/cschreib/snatch.git
-  GIT_TAG        6f3a95e57f9bb4130d308890c19ec3588b0d1c94 # main
+  GIT_TAG        c0b6ac4efe4019e4846e8967fe21de864b0cc1ed # Friday, December 2nd, 2022 @ main
   # f313bccafe98aaef617af3bf457d091d8d50cdcd # 0.1.3
 )
 FetchContent_MakeAvailable(snatch)

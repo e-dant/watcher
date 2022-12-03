@@ -14,8 +14,10 @@
 #include <tuple>
 /* cout, endl */
 #include <iostream>
-/* thread */
-#include <thread>
+/* async,
+   future,
+   promise */
+#include <future>
 /* vector */
 #include <vector>
 /* string */
@@ -35,88 +37,90 @@ TEST_CASE("Simple", "[simple]")
 
   static constexpr auto path_count = 3;
 
-  static auto event_recv_list = std::vector<wtr::watcher::event::event>{};
+  static auto event_recv_list = std::vector<event::event>{};
   static auto event_recv_list_mtx = std::mutex{};
   static auto cout_mtx = std::mutex{};
 
-  static auto event_list = std::vector<wtr::watcher::event::event>{};
+  static auto event_sent_list = std::vector<event::event>{};
+
   static auto watch_path_list = std::vector<std::string>{};
 
   auto const base_store_path = wtr::test_watcher::test_store_path;
-  auto const store_path = base_store_path / "simple_store";
+  static auto const store_path = base_store_path / "simple_store";
 
-  std::filesystem::create_directories(base_store_path / store_path);
+  std::filesystem::create_directories(store_path);
+  REQUIRE(std::filesystem::exists(base_store_path)
+          && std::filesystem::exists(store_path));
 
-  auto watch_thread = std::thread([&]() {
-    auto const watch_ok = wtr::watcher::watch(
-        store_path, [&](wtr::watcher::event::event const& ev) {
-          cout_mtx.lock();
-          std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
-                    << ev << "\n\n";
-          cout_mtx.unlock();
+  event_sent_list.push_back({"s/self/live@" + store_path.string(),
+                             event::what::create, event::kind::watcher});
 
-          event_recv_list_mtx.lock();
-          event_recv_list.push_back(ev);
-          event_recv_list_mtx.unlock();
-        });
-    REQUIRE(watch_ok);
+  auto watch_handle = std::async(std::launch::async, []() {
+    auto const watch_ok
+        = wtr::watcher::watch(store_path, [](event::event const& ev) {
+            cout_mtx.lock();
+            std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
+                      << ev << "\n\n";
+            cout_mtx.unlock();
+
+            event_recv_list_mtx.lock();
+            event_recv_list.push_back(ev);
+            event_recv_list_mtx.unlock();
+          });
+    return watch_ok;
   });
-
-  watch_thread.detach();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   for (int i = 0; i < path_count; ++i) {
     auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
     std::filesystem::create_directory(new_dir_path);
-    // REQUIRE(d_ok);
-    // REQUIRE(std::filesystem::exists(new_dir_path));
-    event_list.push_back(wtr::watcher::event::event{
-        new_dir_path, wtr::watcher::event::what::create,
-        wtr::watcher::event::kind::dir});
+
+    REQUIRE(std::filesystem::is_directory(new_dir_path));
+
+    event_sent_list.push_back(
+        {new_dir_path, event::what::create, event::kind::dir});
 
     auto const new_file_path
-        = new_dir_path / "new_file" / (std::to_string(i) + ".txt");
-    auto f = std::ofstream{new_file_path};
-    f.close();
-    // REQUIRE(std::filesystem::exists(new_file_path));
-    event_list.push_back(wtr::watcher::event::event{
-        new_file_path, wtr::watcher::event::what::create,
-        wtr::watcher::event::kind::file});
+        = store_path / ("new_file" + std::to_string(i) + ".txt");
+    std::ofstream(new_file_path).close();
 
-    /* std::this_thread::sleep_for(std::chrono::milliseconds(100)); */
-  }
+    REQUIRE(std::filesystem::is_regular_file(new_file_path));
 
-  /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
+    event_sent_list.push_back(
+        {new_file_path, event::what::create, event::kind::file});
 
-  std::filesystem::remove_all(base_store_path);
-
-  /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
-
-  auto const die_ok = wtr::watcher::die(
-      store_path, [&](wtr::watcher::event::event const& ev) {
-        cout_mtx.lock();
-        std::cout << "test @ '" << store_path << "' @ die -> recv\n => " << ev
-                  << "\n\n";
-        cout_mtx.unlock();
-
-        event_recv_list_mtx.lock();
-        event_recv_list.push_back(ev);
-        event_recv_list_mtx.unlock();
-      });
-
-  while(watch_thread.joinable() == true) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
-  watch_thread.join();
+
+  event_sent_list.push_back({"s/self/live@" + store_path.string(),
+                             event::what::create, event::kind::watcher});
+
+  auto const die_ok
+      = wtr::watcher::die(store_path, [&](event::event const& ev) {
+          cout_mtx.lock();
+          std::cout << "test @ '" << store_path << "' @ die -> recv\n => " << ev
+                    << "\n\n";
+          cout_mtx.unlock();
+
+          event_recv_list_mtx.lock();
+          event_recv_list.push_back(ev);
+          event_recv_list_mtx.unlock();
+        });
+
   REQUIRE(die_ok);
+  REQUIRE(watch_handle.get());
 
-  for (event::event const& ev : event_list) {
-    std::cout << "event => " << ev.where << "\n";
-  }
-  for (event::event const& ev : event_recv_list) {
-    std::cout << "event recv => " << ev.where << "\n";
+  std::cout << "events sent =>\n";
+  for (auto const& ev : event_sent_list) {
+    std::cout << " " << ev.where << ",\n";
   }
 
-  REQUIRE(true);
+  std::cout << "events recv =>\n";
+  for (auto const& ev : event_recv_list) {
+    std::cout << " " << ev.where << ",\n";
+  }
+
+  std::filesystem::remove_all(base_store_path);
+  REQUIRE(!std::filesystem::exists(base_store_path));
 };
