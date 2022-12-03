@@ -38,9 +38,6 @@
 /* - std::ostream */
 #include <ostream>
 
-/* - std::string */
-#include <string>
-
 /* - std::chrono::system_clock::now,
    - std::chrono::duration_cast,
    - std::chrono::system_clock,
@@ -59,10 +56,9 @@ namespace watcher {
 namespace event {
 
 namespace {
-using std::string, std::function, std::chrono::duration_cast,
-    std::chrono::nanoseconds, std::chrono::time_point,
-    std::chrono::system_clock;
-}
+using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
+    std::chrono::time_point, std::chrono::system_clock;
+} /* namespace */
 
 /* @brief watcher/event/types
    - wtr::watcher::event
@@ -104,12 +100,40 @@ enum class kind {
   other,
 };
 
+namespace {
+inline auto what_repr(auto const& ev)
+{
+  switch (ev.what) {
+    case what::rename: return "rename";
+    case what::modify: return "modify";
+    case what::create: return "create";
+    case what::destroy: return "destroy";
+    case what::owner: return "owner";
+    case what::other: return "other";
+    default: return "other";
+  }
+}
+
+inline auto kind_repr(auto const& ev)
+{
+  switch (ev.kind) {
+    case kind::dir: return "dir";
+    case kind::file: return "file";
+    case kind::hard_link: return "hard_link";
+    case kind::sym_link: return "sym_link";
+    case kind::watcher: return "watcher";
+    case kind::other: return "other";
+    default: return "other";
+  }
+}
+} /* namespace */
+
 struct event
 {
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const string where;
+  const std::filesystem::path where;
   const enum what what;
   const enum kind kind;
   const long long when{
@@ -117,14 +141,8 @@ struct event
           time_point<system_clock>{system_clock::now()}.time_since_epoch())
           .count()};
 
-  event(char const* where, enum what const what, enum kind const kind) noexcept
-      : where{string{where}}, what{what}, kind{kind} {};
-
   event(std::filesystem::path const where, enum what const what,
         enum kind const kind) noexcept
-      : where{where.string()}, what{what}, kind{kind} {};
-
-  event(string const where, enum what const what, enum kind const kind) noexcept
       : where{where}, what{what}, kind{kind} {};
 
   ~event() noexcept = default;
@@ -157,38 +175,14 @@ struct event
   /* @brief wtr/watcher/event/<<
      prints out where, what and kind.
      formats the output as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& e) noexcept
+  friend std::ostream& operator<<(std::ostream& os, const event& ev) noexcept
   {
     /* clang-format off */
-    auto const what_repr = [&]() {
-      switch (e.what) {
-        case what::rename:  return "rename";
-        case what::modify:  return "modify";
-        case what::create:  return "create";
-        case what::destroy: return "destroy";
-        case what::owner:   return "owner";
-        case what::other:   return "other";
-        default:            return "other";
-      }
-    }();
-
-    auto const kind_repr = [&]() {
-      switch (e.kind) {
-        case kind::dir:       return "dir";
-        case kind::file:      return "file";
-        case kind::hard_link: return "hard_link";
-        case kind::sym_link:  return "sym_link";
-        case kind::watcher:   return "watcher";
-        case kind::other:     return "other";
-        default:              return "other";
-      }
-    }();
-
-    return os << R"(")" << e.when << R"(":)"
+    return os << R"(")" << ev.when << R"(":)"
               << "{"
-                  << R"("where":")" << e.where   << R"(",)"
-                  << R"("what":")"  << what_repr << R"(",)"
-                  << R"("kind":")"  << kind_repr << R"(")"
+                  << R"("where":")" << ev.where      << R"(",)"
+                  << R"("what":")"  << what_repr(ev) << R"(",)"
+                  << R"("kind":")"  << kind_repr(ev) << R"(")"
               << "}";
     /* clang-format on */
   }

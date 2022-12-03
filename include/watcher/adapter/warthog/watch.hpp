@@ -17,16 +17,20 @@
     - Only support the C++ standard library
 */
 
+/* type: milliseconds */
 #include <chrono>
-#include <filesystem>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <random>
+/* obj: string */
 #include <string>
+/* lots of stuff */
+#include <filesystem>
+/* obj: error_code */
 #include <system_error>
+/* fn: this_thread::sleep_for */
 #include <thread>
+/* obj: unordered_map */
 #include <unordered_map>
+/* type: event::callback
+   obj: event::event */
 #include <watcher/event.hpp>
 
 namespace wtr {
@@ -37,7 +41,7 @@ namespace { /* anonymous namespace for "private" things */
 /* clang-format off */
 
 inline constexpr std::filesystem::directory_options
-  dir_opt = 
+  scan_dir_options = 
     /* This is ridiculous */
     std::filesystem::directory_options::skip_permission_denied 
     & std::filesystem::directory_options::follow_directory_symlink;
@@ -51,7 +55,7 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-inline bool scan(const char* path, auto const& send_event,
+inline bool scan(std::filesystem::path const& path, auto const& send_event,
                  bucket_type& bucket) noexcept
 {
   /* @brief watcher/adapter/warthog/scan_file
@@ -59,7 +63,7 @@ inline bool scan(const char* path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file = [&](const char* file, auto const& send_event) -> bool {
+  auto const scan_file = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -102,7 +106,7 @@ inline bool scan(const char* path, auto const& send_event,
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
   auto const scan_directory
-      = [&](const char* dir, auto const& send_event) -> bool {
+      = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -110,13 +114,12 @@ inline bool scan(const char* path, auto const& send_event,
       /* try to iterate through its contents */
       auto dir_it_ec = std::error_code{};
       for (auto const& file :
-           recursive_directory_iterator(dir, dir_opt, dir_it_ec))
+           recursive_directory_iterator(dir, scan_dir_options, dir_it_ec))
         /* while handling errors */
         if (dir_it_ec)
           return false;
         else
-          /* msvc complains without this cast */
-          scan_file((const char*)(file.path().c_str()), send_event);
+          scan_file(file.path(), send_event);
       return true;
     } else
       return false;
@@ -130,13 +133,13 @@ inline bool scan(const char* path, auto const& send_event,
 /* @brief wtr/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-inline bool tend_bucket(const char* path, auto const& send_event,
-                        bucket_type& bucket) noexcept
+inline bool tend_bucket(std::filesystem::path const& path,
+                        auto const& send_event, bucket_type& bucket) noexcept
 {
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
-  auto const populate = [&](const char* path) -> bool {
+  auto const populate = [&](std::filesystem::path const& path) -> bool {
     using std::filesystem::exists, std::filesystem::is_directory,
         std::filesystem::recursive_directory_iterator,
         std::filesystem::last_write_time;
@@ -148,15 +151,16 @@ inline bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, scan_dir_options, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
-              bucket[file.path().string()] = lwt;
+              bucket[file.path()] = lwt;
             else
               /* @todo use this practice elsewhere or make a fn for it
                  otherwise, this might be confusing and inconsistent. */
-              bucket[file.path().string()] = last_write_time(path);
+              bucket[file.path()] = last_write_time(path);
           }
         }
       }
@@ -173,7 +177,8 @@ inline bool tend_bucket(const char* path, auto const& send_event,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const prune = [&](const char* path, auto const& send_event) -> bool {
+  auto const prune
+      = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
@@ -186,8 +191,7 @@ inline bool tend_bucket(const char* path, auto const& send_event,
           /* if not, call the closure, indicating destruction,
              and remove it from our bucket. */
           : [&]() {
-              send_event(event::event{bucket_it->first.c_str(),
-                                      event::what::destroy,
+              send_event(event::event{bucket_it->first, event::what::destroy,
                                       is_regular_file(path) ? event::kind::file
                                       : is_directory(path)  ? event::kind::dir
                                       : is_symlink(path) ? event::kind::sym_link
@@ -224,8 +228,9 @@ inline bool tend_bucket(const char* path, auto const& send_event,
   Unless it should stop, or errors present, `watch` recurses.
 */
 
-inline bool watch(auto const& path, event::callback const& callback,
-                  auto const is_living) noexcept
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
+                  auto const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
@@ -241,18 +246,12 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living(path) ? tend_bucket(path.c_str(), callback, bucket)
-                               ? scan(path.c_str(), callback, bucket)
-                                     ? watch(path, callback)
+  return is_living(path) ? tend_bucket(path, callback, bucket)
+                               ? scan(path, callback, bucket)
+                                     ? watch(path, callback, is_living)
                                      : false
                                : false
                          : true;
-}
-
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::string(path), callback, is_living);
 }
 
 } /* namespace adapter */

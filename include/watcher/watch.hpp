@@ -1,8 +1,10 @@
 #pragma once
 
-/* watch_ctl */
+/* type: path */
+#include <filesystem>
+/* fn: watch_ctl */
 #include <watcher/adapter/adapter.hpp>
-/* callback */
+/* type: callback */
 #include <watcher/event.hpp>
 
 namespace wtr {
@@ -31,7 +33,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(auto const& path, event::callback const& callback) noexcept
+inline bool watch(std::filesystem::path const& path, event::callback const& callback) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, true);
 }
@@ -42,7 +44,7 @@ inline bool watch(auto const& path, event::callback const& callback) noexcept
    Calls `callback`,
    then dies. */
 inline bool die(
-    auto const& path,
+    std::filesystem::path const& path,
     event::callback const& callback = [](auto) -> void {}) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, false);

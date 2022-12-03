@@ -7,11 +7,14 @@
 //
 //
 //
-#include <chrono>
+/* obj: path */
+#include <filesystem>
+/* obj: mutex */
 #include <mutex>
-#include <string>
-#include <thread>
+/* obj: unordered_set */
 #include <unordered_set>
+/* fn: watch
+   fn: die */
 #include <watcher/event.hpp>
 
 namespace wtr {
@@ -34,71 +37,86 @@ inline constexpr auto delay_ms = 16;
   @param callback:
    A `callback` to invoke with an `event` object
    when the files being watched change.
-
-  Other platforms might define more overloads, such as
-  the wide `std::wstring` and `wchar_t const*` variants.
 */
 
-inline bool watch(auto const& path, event::callback const& callback,
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
                   auto const& is_living) noexcept;
 
-inline bool watch_ctl(auto const& path, event::callback const& callback,
-                      bool const msg) noexcept
+inline bool watch_ctl(std::filesystem::path const& path,
+                      event::callback const& callback, bool const msg) noexcept
 {
-  auto wcont = std::unordered_set<std::string>{};
-  auto wcont_mtx = std::mutex{};
+  auto const path_id = [&path]() -> unsigned long {
+    auto path_str = path.string();
+    return std::hash<decltype(path_str)>{}(path_str);
+  };
 
-  auto const& live
-      = [&wcont, &wcont_mtx](std::string const& path, event::callback const& callback) -> bool {
-    bool ok = true;
-    wcont_mtx.lock();
+  static auto watcher_container = std::unordered_set<unsigned long>{};
+  static auto watcher_container_mtx = std::mutex{};
 
-    if (wcont.contains(path))
-      ok = false;
+  auto const& live = [&path_id](std::filesystem::path const& path,
+                                event::callback const& callback) -> bool {
+    auto const id = path_id();
+
+    bool alive = true;
+
+    watcher_container_mtx.lock();
+
+    if (watcher_container.contains(id))
+      alive = false;
 
     else
-      wcont.insert(path);
+      watcher_container.insert(id);
 
-    std::cout << "watch_ctl -> live -> '" << path << "' => "
-              << (ok ? "true" : "false") << std::endl;
+    std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => "
+              << (alive ? "true" : "false") << std::endl;
 
-    wcont_mtx.unlock();
+    watcher_container_mtx.unlock();
 
-    callback(event::event{(ok ? "s/self/live@" : "e/self/live@") + path,
+    callback(event::event{(alive ? "s/self/live@" : "e/self/live@") / path,
                           event::what::create, event::kind::watcher});
-    return ok;
+    return alive;
   };
 
-  auto const& is_living = [&wcont, &wcont_mtx](std::string const& path) -> bool {
-    wcont_mtx.lock();
-    bool living = wcont.contains(path);
-    std::cout << "watch_ctl -> is_living -> '" << path << "' => "
-              << (living ? "true" : "false") << std::endl;
-    wcont_mtx.unlock();
-    return living;
+  auto const& is_living
+      = [&path_id](std::filesystem::path const& path) -> bool {
+    auto const id = path_id();
+
+    watcher_container_mtx.lock();
+
+    bool alive = watcher_container.contains(id);
+
+    std::cout << "watch_ctl -> is_living -> '" << path << "' -> " << id
+              << " => " << (alive ? "true" : "false") << std::endl;
+
+    watcher_container_mtx.unlock();
+
+    return alive;
   };
 
-  auto const& die
-      = [&wcont, &wcont_mtx](std::string const& path, event::callback const& callback) -> bool {
-    bool ok = true;
+  auto const& die = [&path_id](std::filesystem::path const& path,
+                               event::callback const& callback) -> bool {
+    auto const id = path_id();
 
-    wcont_mtx.lock();
+    bool dead = true;
 
-    if (wcont.contains(path))
-      wcont.erase(path);
+    watcher_container_mtx.lock();
+
+    if (watcher_container.contains(id))
+      watcher_container.erase(id);
 
     else
-      ok = false;
+      dead = false;
 
-    std::cout << "watch_ctl -> die -> '" << path << "' => "
-              << (ok ? "true" : "false") << std::endl;
+    std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => "
+              << (dead ? "true" : "false") << std::endl;
 
-    wcont_mtx.unlock();
+    watcher_container_mtx.unlock();
 
-    callback(event::event{(ok ? "s/self/die@" : "e/self/die@") + path,
+    callback(event::event{(dead ? "s/self/die@" : "e/self/die@") / path,
                           event::what::destroy, event::kind::watcher});
 
-    return ok;
+    return dead;
   };
 
   if (msg) {
@@ -108,17 +126,10 @@ inline bool watch_ctl(auto const& path, event::callback const& callback,
     return ok;
   } else {
     auto ok = die(path, callback);
-    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms + 1));
     std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" << path
               << "' => " << (ok ? "true" : "false") << std::endl;
     return ok;
   }
-}
-
-inline bool watch_ctl(char const* path, event::callback const& callback,
-                      bool const msg) noexcept
-{
-  return watch_ctl(std::string(path), callback, msg);
 }
 
 } /* namespace adapter */
@@ -126,7 +137,8 @@ inline bool watch_ctl(char const* path, event::callback const& callback,
 } /* namespace watcher */
 } /* namespace wtr */
 
-/* We need these down here because we forward-declare them above.
+/* We need these headers at the bottom because the function they
+   implement, `watch`, is forward-declared above.
    We need to include `<watcher/platform.hpp>` first because the
    platform definitions there decide which adapter is used.
    The `warthog` adapter is a fallback. */

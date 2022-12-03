@@ -7,8 +7,10 @@
 */
 
 #include <watcher/platform.hpp>
+
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if !defined(WATER_WATCHER_USE_WARTHOG)
 
 #include <sys/epoll.h>
 #include <sys/inotify.h>
@@ -17,7 +19,6 @@
 #include <filesystem>
 #include <iostream>
 #include <optional>
-#include <string>
 #include <thread>
 #include <tuple>
 #include <unordered_map>
@@ -32,15 +33,6 @@ namespace {
 /* @brief wtr/watcher/detail/adapter/linux/<a>
    Anonymous namespace for "private" things. */
 
-/* @brief wtr/watcher/detail/adapter/linux/<a>/types
-   Types:
-     - string
-     - dir_opt_type
-     - path_map_type */
-using std::string;
-using dir_opt_type = std::filesystem::directory_options;
-using path_map_type = std::unordered_map<int, std::string>;
-
 /* @brief wtr/watcher/detail/adapter/linux/<a>/constants
    Constants:
      - event_max_count:
@@ -53,9 +45,6 @@ using path_map_type = std::unordered_map<int, std::string>;
          Use non-blocking IO.
      - in_watch_opt
          Everything we can get.
-     - dir_opt
-         Follow symlinks, ignore paths which we don't
-         have read permission on.
      - scan_buf_len:
          4096, which is a typical page size.
    @todo
@@ -63,14 +52,13 @@ using path_map_type = std::unordered_map<int, std::string>;
    - Handle move events properly.
      - Use IN_MOVED_TO
      - Use event::<something> */
+using path_map_type = std::unordered_map<int, std::filesystem::path>;
+
 inline constexpr auto event_max_count = 1;
 inline constexpr auto scan_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt
     = IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
-inline constexpr dir_opt_type dir_opt
-    = std::filesystem::directory_options::skip_permission_denied
-      & std::filesystem::directory_options::follow_directory_symlink;
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns
    Functions:
@@ -91,7 +79,8 @@ inline constexpr dir_opt_type dir_opt
        -> bool
 */
 
-inline auto do_path_map_create(string const& base_path, int const watch_fd,
+inline auto do_path_map_create(std::filesystem::path const& base_path,
+                               int const watch_fd,
                                event::callback const& callback) noexcept
     -> path_map_type;
 inline auto do_event_resource_create(int const watch_fd,
@@ -113,11 +102,16 @@ inline auto do_scan(int fd, path_map_type& path_map,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_map_create(string const& base_path, int const watch_fd,
+inline auto do_path_map_create(std::filesystem::path const& base_path,
+                               int const watch_fd,
                                event::callback const& callback) noexcept
     -> path_map_type
 {
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
+  /* Follow symlinks, ignore paths which we don't have permissions for. */
+  constexpr auto dir_opt
+      = std::filesystem::directory_options::skip_permission_denied
+        & std::filesystem::directory_options::follow_directory_symlink;
 
   constexpr auto path_map_reserve_count = 256;
 
@@ -261,8 +255,9 @@ inline auto do_scan(int watch_fd, path_map_type& path_map,
                                      ? event::kind::dir
                                      : event::kind::file;
           int path_wd = event_recv->wd;
-          auto event_base_path = path_map.find(path_wd)->second;
-          auto event_path = string(event_base_path + "/" + event_recv->name);
+          auto event_dir_path = path_map.find(path_wd)->second;
+          auto event_base_name = std::filesystem::path(event_recv->name);
+          auto event_path = event_dir_path / event_base_name;
 
           if (event_recv->mask & IN_Q_OVERFLOW) {
             callback(
@@ -308,10 +303,10 @@ inline auto do_scan(int watch_fd, path_map_type& path_map,
    @param callback
    A callback to perform when the files
    being watched change. */
-inline bool watch(auto const& path, event::callback const& callback,
+inline bool watch(std::filesystem::path const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  auto const do_error = [&callback](string const& msg) -> bool {
+  auto const do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
     return false;
   };
@@ -363,15 +358,10 @@ inline bool watch(auto const& path, event::callback const& callback,
     return false;
 }
 
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::string(path), callback, is_living);
-}
-
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
+#endif /* if !defined(WATER_WATCHER_USE_WARTHOG) */
