@@ -126,6 +126,11 @@ inline bool watch_ctl(char const* path, event::callback const& callback,
 } /* namespace watcher */
 } /* namespace wtr */
 
+/* We need these down here because we forward-declare them above.
+   We need to include `<watcher/platform.hpp>` first because the
+   platform definitions there decide which adapter is used.
+   The `warthog` adapter is a fallback. */
+
 /* clang-format off */
 
 #include <watcher/platform.hpp>
@@ -134,7 +139,6 @@ inline bool watch_ctl(char const* path, event::callback const& callback,
 #include <watcher/adapter/darwin/watch.hpp>
 #include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/android/watch.hpp>
-
 #include <watcher/adapter/warthog/watch.hpp>
 
 /* clang-format on */
