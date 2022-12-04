@@ -116,9 +116,6 @@ inline constexpr platform_t platform
 /* - std::ostream */
 #include <ostream>
 
-/* - std::string */
-#include <string>
-
 /* - std::chrono::system_clock::now,
    - std::chrono::duration_cast,
    - std::chrono::system_clock,
@@ -137,10 +134,9 @@ namespace watcher {
 namespace event {
 
 namespace {
-using std::string, std::function, std::chrono::duration_cast,
-    std::chrono::nanoseconds, std::chrono::time_point,
-    std::chrono::system_clock;
-}
+using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
+    std::chrono::time_point, std::chrono::system_clock;
+} /* namespace */
 
 /* @brief watcher/event/types
    - wtr::watcher::event
@@ -182,12 +178,40 @@ enum class kind {
   other,
 };
 
+namespace {
+inline auto what_repr(auto const& ev)
+{
+  switch (ev.what) {
+    case what::rename: return "rename";
+    case what::modify: return "modify";
+    case what::create: return "create";
+    case what::destroy: return "destroy";
+    case what::owner: return "owner";
+    case what::other: return "other";
+    default: return "other";
+  }
+}
+
+inline auto kind_repr(auto const& ev)
+{
+  switch (ev.kind) {
+    case kind::dir: return "dir";
+    case kind::file: return "file";
+    case kind::hard_link: return "hard_link";
+    case kind::sym_link: return "sym_link";
+    case kind::watcher: return "watcher";
+    case kind::other: return "other";
+    default: return "other";
+  }
+}
+} /* namespace */
+
 struct event
 {
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const string where;
+  const std::filesystem::path where;
   const enum what what;
   const enum kind kind;
   const long long when{
@@ -195,14 +219,8 @@ struct event
           time_point<system_clock>{system_clock::now()}.time_since_epoch())
           .count()};
 
-  event(char const* where, enum what const what, enum kind const kind) noexcept
-      : where{string{where}}, what{what}, kind{kind} {};
-
   event(std::filesystem::path const where, enum what const what,
         enum kind const kind) noexcept
-      : where{where.string()}, what{what}, kind{kind} {};
-
-  event(string const where, enum what const what, enum kind const kind) noexcept
       : where{where}, what{what}, kind{kind} {};
 
   ~event() noexcept = default;
@@ -233,40 +251,16 @@ struct event
   };
 
   /* @brief wtr/watcher/event/<<
-     prints out where, what and kind.
-     formats the output as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& e) noexcept
+     Streams out `where`, `what` and `kind`.
+     Formats the stream as a json object. */
+  friend std::ostream& operator<<(std::ostream& os, const event& ev) noexcept
   {
     /* clang-format off */
-    auto const what_repr = [&]() {
-      switch (e.what) {
-        case what::rename:  return "rename";
-        case what::modify:  return "modify";
-        case what::create:  return "create";
-        case what::destroy: return "destroy";
-        case what::owner:   return "owner";
-        case what::other:   return "other";
-        default:            return "other";
-      }
-    }();
-
-    auto const kind_repr = [&]() {
-      switch (e.kind) {
-        case kind::dir:       return "dir";
-        case kind::file:      return "file";
-        case kind::hard_link: return "hard_link";
-        case kind::sym_link:  return "sym_link";
-        case kind::watcher:   return "watcher";
-        case kind::other:     return "other";
-        default:              return "other";
-      }
-    }();
-
-    return os << R"(")" << e.when << R"(":)"
+    return os << R"(")" << ev.when << R"(":)"
               << "{"
-                  << R"("where":")" << e.where   << R"(",)"
-                  << R"("what":")"  << what_repr << R"(",)"
-                  << R"("kind":")"  << kind_repr << R"(")"
+                  << R"("where":)" << ev.where      << R"(,)"
+                  << R"("what":")"  << what_repr(ev) << R"(",)"
+                  << R"("kind":")"  << kind_repr(ev) << R"(")"
               << "}";
     /* clang-format on */
   }
@@ -281,11 +275,29 @@ using callback = function<void(event const&)>;
 } /* namespace watcher */
 } /* namespace wtr   */
 
-#include <chrono>
+/* // */
+/* // */
+/* // */
+/* #include <iostream> */
+/* // */
+/* // */
+/* // */
+/* obj: path */
+#include <filesystem>
+/* obj: mutex */
 #include <mutex>
-#include <string>
-#include <thread>
-#include <unordered_set>
+/* obj: unordered_map */
+#include <unordered_map>
+/* fn: watch
+   fn: die */
+
+/* clang-format off */
+
+/* #define WATER_WATCHER_USE_WARTHOG */
+
+
+
+/* clang-format on */
 
 namespace wtr {
 namespace watcher {
@@ -294,119 +306,96 @@ namespace adapter {
 
 inline constexpr auto delay_ms = 16;
 
-/*
-  @brief watcher/adapter/watch
-  Monitors `path` for changes.
-  Invokes `callback` with an `event` when they happen.
-  `watch` stops when asked to or irrecoverable errors occur.
-  All events, including errors, are passed to `callback`.
-
-  @param path:
-   A `path` to watch for filesystem events.
-
-  @param callback:
-   A `callback` to invoke with an `event` object
-   when the files being watched change.
-
-  Other platforms might define more overloads, such as
-  the wide `std::wstring` and `wchar_t const*` variants.
-*/
-
-inline bool watch(auto const& path, event::callback const& callback,
-                  auto const& is_living) noexcept;
-
-static bool watch_ctl(auto const& path, event::callback const& callback,
-                      bool const msg) noexcept
+inline bool watch_ctl(std::filesystem::path const& path,
+                      event::callback const& callback, bool const msg) noexcept
 {
-  static auto wcont = std::unordered_set<std::string>{};
-  static auto wcont_mtx = std::mutex{};
-
-  auto const& live
-      = [](std::string const& path, event::callback const& callback) -> bool {
-    bool ok = true;
-    wcont_mtx.lock();
-
-    if (wcont.contains(path))
-      ok = false;
-
-    else
-      wcont.insert(path);
-
-    /* cout << "watch_ctl -> live -> '" << path << "' => " */
-    /*      << (ok ? "true" : "false") << endl; */
-
-    wcont_mtx.unlock();
-
-    callback(event::event{(ok ? "s/self/live@" : "e/self/live@") + path,
-                          event::what::create, event::kind::watcher});
-    return ok;
+  auto const path_id = [&path]() -> unsigned long {
+    auto path_str = path.string();
+    return std::hash<decltype(path_str)>{}(path_str);
   };
 
-  auto const& is_living = [](std::string const& path) -> bool {
-    wcont_mtx.lock();
-    bool living = wcont.contains(path);
-    /* std::cout << "watch_ctl -> is_living -> '" << path << "' => " */
-    /*           << (living ? "true" : "false") << std::endl; */
-    wcont_mtx.unlock();
-    return living;
-  };
+  static auto watcher_container = std::unordered_map<unsigned long, unsigned long>{};
+  static auto watcher_mtx = std::mutex{};
 
-  auto const& die
-      = [](std::string const& path, event::callback const& callback) -> bool {
-    bool ok = true;
+  auto const& live = [&path_id](std::filesystem::path const& path,
+                                event::callback const& callback) -> bool {
+    auto _ = std::scoped_lock{watcher_mtx};
 
-    wcont_mtx.lock();
+    auto const id = path_id();
 
-    if (wcont.contains(path))
-      wcont.erase(path);
+    bool alive = true;
+
+    if (watcher_container.contains(id))
+      watcher_container.at(id) += 1;
 
     else
-      ok = false;
+      watcher_container[id] = 1;
 
-    /* cout << "watch_ctl -> die -> '" << path << "' => " */
-    /*      << (ok ? "true" : "false") << endl; */
+    /* std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => " */
+    /*           << (alive ? "true" : "false") << std::endl; */
 
-    wcont_mtx.unlock();
+    callback({(alive ? "s/self/live@" : "e/self/live@") + path.string(),
+              event::what::create, event::kind::watcher});
+    return alive;
+  };
 
-    callback(event::event{(ok ? "s/self/die@" : "e/self/die@") + path,
-                          event::what::destroy, event::kind::watcher});
+  auto const& die = [&path_id](std::filesystem::path const& path,
+                               event::callback const& callback) -> bool {
+    auto _ = std::scoped_lock{watcher_mtx};
 
-    return ok;
+    auto const id = path_id();
+
+    bool dead = true;
+
+    if (watcher_container.contains(id))
+      if (watcher_container.at(id) > 1)
+        watcher_container.at(id) -= 1;
+      else
+        watcher_container.erase(id);
+    else
+      dead = false;
+
+    /* std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => " */
+    /*           << (dead ? "true" : "false") << std::endl; */
+
+    callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
+              event::what::destroy, event::kind::watcher});
+
+    return dead;
+  };
+
+  auto const& is_living = [&path_id]() -> bool {
+    auto _ = std::scoped_lock{watcher_mtx};
+
+    auto const id = path_id();
+
+    bool alive = watcher_container.contains(id);
+
+    /* std::cout << "watch_ctl -> is_living -> '" << path << "' -> " << id */
+    /*           << " => " << (alive ? "true" : "false") << std::endl; */
+
+    return alive;
   };
 
   if (msg) {
-    auto ok = live(path, callback) ? watch(path, callback, is_living) : false;
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" */
-    /*           << path */
-    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
-    return ok;
+    auto alive
+        = live(path, callback) ? watch(path, callback, is_living) : false;
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path */
+    /*           << "' => " << (alive ? "true" : "false") << std::endl; */
+    return alive;
   } else {
-    auto ok = die(path, callback);
-    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms + 1));
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" */
-    /*           << path */
-    /*           << "' => " << (ok ? "true" : "false") << std::endl; */
-    return ok;
+    auto dead = die(path, callback);
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> die -> '" << path
+     */
+    /*           << "' => " << (dead ? "true" : "false") << std::endl; */
+    return dead;
   }
-}
-
-inline bool watch_ctl(char const* path, event::callback const& callback,
-                      bool const msg) noexcept
-{
-  return watch_ctl(std::string(path), callback, msg);
 }
 
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
-
-/* clang-format off */
-
-
-
-
-/* clang-format on */
 
 /*
   @brief watcher/adapter/windows
@@ -1020,8 +1009,10 @@ event::what::hard_link),
   The Linux `inotify` adapter.
 */
 
+
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if !defined(WATER_WATCHER_USE_WARTHOG)
 
 #include <sys/epoll.h>
 #include <sys/inotify.h>
@@ -1030,7 +1021,6 @@ event::what::hard_link),
 #include <filesystem>
 #include <iostream>
 #include <optional>
-#include <string>
 #include <thread>
 #include <tuple>
 #include <unordered_map>
@@ -1039,71 +1029,78 @@ namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-namespace {
+
 /* @brief wtr/watcher/detail/adapter/linux/<a>
    Anonymous namespace for "private" things. */
-
-/* @brief wtr/watcher/detail/adapter/linux/<a>/types
-   Types:
-     - string
-     - dir_opt_type
-     - path_map_type */
-using std::string;
-using dir_opt_type = std::filesystem::directory_options;
-using path_map_type = std::unordered_map<int, std::string>;
+namespace {
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/constants
-   Constants:
-     - event_max_count
-     - in_init_opt
-     - in_watch_opt
-     - dir_opt */
-inline constexpr auto event_max_count = 1;
-inline constexpr auto path_map_reserve_count = 256;
-inline constexpr auto in_init_opt = IN_NONBLOCK;
-/* @todo
-   Measure perf of IN_ALL_EVENTS */
-/* @todo
-   Handle move events properly.
+   - event_max_count
+       Number of events allowed to be given to do_scan
+       (returned by `epoll_wait`). Any number between 1
+       and some large number should be fine. We don't
+       lose events if we 'miss' them, the events are
+       still waiting in the next call to `epoll_wait`.
+   - in_init_opt
+       Use non-blocking IO.
+   - in_watch_opt
+       Everything we can get.
+   - scan_buf_len:
+       4096, which is a typical page size.
+   @todo
+   - Measure perf of IN_ALL_EVENTS
+   - Handle move events properly.
      - Use IN_MOVED_TO
      - Use event::<something> */
+inline constexpr auto event_max_count = 1;
+inline constexpr auto scan_buf_len = 4096;
+inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt
     = IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
-inline constexpr dir_opt_type dir_opt
-    = std::filesystem::directory_options::skip_permission_denied
-      & std::filesystem::directory_options::follow_directory_symlink;
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/types
+   - path_map_type
+       An alias for a map of file descriptors to paths.
+   - sys_resource_type
+       An object representing an inotify file descriptor,
+       an epoll file descriptor, an epoll configuration,
+       and whether or not these resources are valid. */
+using path_map_type = std::unordered_map<int, std::filesystem::path>;
+struct sys_resource_type
+{
+  bool valid;
+  int watch_fd;
+  int event_fd;
+  struct epoll_event event_conf;
+  // struct epoll_event event_list[event_max_count];
+};
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns
    Functions:
 
      do_path_map_create
-       -> optional < path_map_type >
+       -> path_map_type
 
-     do_event_resource_create
-       -> optional < tuple < epoll_event, epoll_event*, int > >
+     do_sys_resource_create
+       -> sys_resource_type
 
-     do_watch_fd_create
-       -> optional < int >
-
-     do_watch_fd_release
+     do_resource_release
        -> bool
 
      do_scan
        -> bool
 */
 
-inline auto do_path_map_create(string const& base_path, int const watch_fd,
+inline auto do_path_map_create(std::filesystem::path const& base_path,
+                               int const watch_fd,
                                event::callback const& callback) noexcept
     -> path_map_type;
-inline auto do_event_resource_create(int const watch_fd,
-                                     event::callback const& callback) noexcept
-    -> std::optional<std::tuple<epoll_event, epoll_event*, int>>;
-inline auto do_watch_fd_create(event::callback const& callback) noexcept
-    -> std::optional<int>;
-inline auto do_watch_fd_release(int watch_fd,
+inline auto do_sys_resource_create(event::callback const& callback) noexcept
+    -> sys_resource_type;
+inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool;
-inline auto do_scan(int fd, path_map_type& path_map,
+inline auto do_scan(int watch_fd, path_map_type& path_map,
                     event::callback const& callback) noexcept -> bool;
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_path_map_create
@@ -1114,11 +1111,18 @@ inline auto do_scan(int fd, path_map_type& path_map,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_map_create(string const& base_path, int const watch_fd,
+inline auto do_path_map_create(std::filesystem::path const& base_path,
+                               int const watch_fd,
                                event::callback const& callback) noexcept
     -> path_map_type
 {
   using rdir_iterator = std::filesystem::recursive_directory_iterator;
+  /* Follow symlinks, ignore paths which we don't have permissions for. */
+  constexpr auto dir_opt
+      = std::filesystem::directory_options::skip_permission_denied
+        & std::filesystem::directory_options::follow_directory_symlink;
+
+  constexpr auto path_map_reserve_count = 256;
 
   auto dir_ec = std::error_code{};
   path_map_type path_map;
@@ -1148,65 +1152,73 @@ inline auto do_path_map_create(string const& base_path, int const watch_fd,
   return path_map;
 };
 
-/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_event_resource_create
-   Return and initializes epoll events and file descriptors,
-   which are the resources needed for an epoll_wait loop.
-   Or return nothing. */
-inline auto do_event_resource_create(int const watch_fd,
-                                     event::callback const& callback) noexcept
-    -> std::optional<std::tuple<epoll_event, epoll_event*, int>>
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_sys_resource_create
+   Produces a `sys_resource_type` with the file descriptors from
+   `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
+inline auto do_sys_resource_create(event::callback const& callback) noexcept
+    -> sys_resource_type
 {
-  struct epoll_event event_conf
-  {
-    .events = EPOLLIN, .data { .fd = watch_fd }
-  };
-  struct epoll_event event_list[event_max_count];
-  int event_fd
-#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
-      = epoll_create1(EPOLL_CLOEXEC);
-#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-      = epoll_create(0);
-#endif
+  auto const do_error
+      = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
+          callback({msg, event::what::other, event::kind::watcher});
+          return sys_resource_type{
+              .valid = false,
+              .watch_fd = watch_fd,
+              .event_fd = event_fd,
+              .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
+        };
 
-  if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) < 0) {
-    callback({"e/sys/epoll_create", event::what::other, event::kind::watcher});
-    return std::nullopt;
-  } else
-    return std::make_tuple(event_conf, event_list, event_fd);
-};
-
-/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_create
-   Return an (optional) file descriptor
-   which may access the inotify api. */
-inline auto do_watch_fd_create(event::callback const& callback) noexcept
-    -> std::optional<int>
-{
   int watch_fd
-#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
-      = inotify_init1(in_init_opt);
-#elif defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
       = inotify_init();
+#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+      = inotify_init1(in_init_opt);
 #endif
 
-  if (watch_fd < 0) {
-    callback({"e/sys/inotify_init", event::what::other, event::kind::watcher});
-    return std::nullopt;
-  } else
-    return watch_fd;
-};
+  if (watch_fd >= 0) {
+    struct epoll_event event_conf
+    {
+      .events = EPOLLIN, .data { .fd = watch_fd }
+    };
 
-/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_watch_fd_release
-   Close the file descriptor `fd_watch`,
+    int event_fd
+#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+        = epoll_create(event_max_count);
+#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+        = epoll_create1(EPOLL_CLOEXEC);
+#endif
+
+    if (event_fd >= 0)
+      if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
+        return sys_resource_type{.valid = true,
+                                 .watch_fd = watch_fd,
+                                 .event_fd = event_fd,
+                                 .event_conf = event_conf};
+      else
+        return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
+    else
+      return do_error("e/sys/epoll_create", watch_fd, event_fd);
+  } else {
+    return do_error("e/sys/inotify_init", watch_fd);
+  }
+}
+
+/* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_resource_release
+   Close the file descriptors `watch_fd` and `event_fd`.
    Invoke `callback` on errors. */
-inline auto do_watch_fd_release(int watch_fd,
+inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool
 {
-  if (close(watch_fd) < 0) {
-    callback({"e/sys/close", event::what::other, event::kind::watcher});
-    return false;
-  } else
-    return true;
+  auto const watch_fd_close_ok = close(watch_fd) == 0;
+  auto const event_fd_close_ok = close(event_fd) == 0;
+  if (!watch_fd_close_ok)
+    callback(
+        {"e/sys/close/watch_fd", event::what::other, event::kind::watcher});
+  if (!event_fd_close_ok)
+    callback(
+        {"e/sys/close/event_fd", event::what::other, event::kind::watcher});
+  return watch_fd_close_ok && event_fd_close_ok;
 }
 
 /* @brief wtr/watcher/detail/adapter/linux/<a>/fns/do_scan
@@ -1222,15 +1234,13 @@ inline auto do_watch_fd_release(int watch_fd,
 inline auto do_scan(int watch_fd, path_map_type& path_map,
                     event::callback const& callback) noexcept -> bool
 {
-  /* 4096 is a typical page size. */
-  static constexpr auto buf_len = 4096;
-  alignas(struct inotify_event) char buf[buf_len];
+  alignas(struct inotify_event) char buf[scan_buf_len];
 
   enum class event_recv_status { eventful, eventless, error };
 
   auto const lift_event_recv = [](int fd, char* buf) {
     /* Read some events. */
-    ssize_t len = read(fd, buf, buf_len);
+    ssize_t len = read(fd, buf, scan_buf_len);
 
     /* EAGAIN means no events were found.
        We return `eventless` in that case. */
@@ -1262,12 +1272,13 @@ inline auto do_scan(int watch_fd, path_map_type& path_map,
                                      ? event::kind::dir
                                      : event::kind::file;
           int path_wd = event_recv->wd;
-          auto event_base_path = path_map.find(path_wd)->second;
-          auto event_path = string(event_base_path + "/" + event_recv->name);
+          auto event_dir_path = path_map.find(path_wd)->second;
+          auto event_base_name = std::filesystem::path(event_recv->name);
+          auto event_path = event_dir_path / event_base_name;
 
           if (event_recv->mask & IN_Q_OVERFLOW) {
-            callback(
-                {"e/self/overflow", event::what::other, event::kind::watcher});
+            callback({"e/self/overflow@" / event_dir_path, event::what::other,
+                      event::kind::watcher});
           } else if (event_recv->mask & IN_CREATE) {
             callback({event_path, event::what::create, path_kind});
             if (path_kind == event::kind::dir) {
@@ -1299,74 +1310,73 @@ inline auto do_scan(int watch_fd, path_map_type& path_map,
 
 } /* namespace */
 
-/* @brief wtr/watcher/detail/adapter/linux/fns/watch
-   Monitors `base_path` for changes.
-   Invokes `callback` with an `event` when they happen.
+/*
+  @brief watcher/detail/adapter/watch
+  Monitors `path` for changes.
+  Invokes `callback` with an `event` when they happen.
+  `watch` stops when asked to or irrecoverable errors occur.
+  All events, including errors, are passed to `callback`.
 
-   @param base_path
-   The path to watch for filesystem events.
+  @param path
+    A filesystem path to watch for events.
 
-   @param callback
-   A callback to perform when the files
-   being watched change. */
-inline bool watch(auto const& path, event::callback const& callback,
+  @param callback
+    A function to invoke with an `event` object
+    when the files being watched change.
+
+  @param is_living
+    A function to decide whether we're dead.
+*/
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  auto const do_error = [&callback](string const& msg) -> bool {
+  auto const do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
     return false;
   };
 
-  /* Gather resources:
-       - watch fd -- for inotify
-       - path map -- for event to path lookup
-       - event list -- for epoll
-       - event fd -- for epoll */
+  /* Gather these resources:
+       - system resources
+           For inotify and epoll
+       - event recieve list
+           For receiving epoll events
+       - path map
+           For event to path lookups */
 
-  auto watch_fd_optional = do_watch_fd_create(callback);
+  struct sys_resource_type sr = do_sys_resource_create(callback);
+  if (sr.valid) {
+    auto path_map = do_path_map_create(path, sr.watch_fd, callback);
+    if (path_map.size() > 0) {
+      struct epoll_event event_recv_list[event_max_count];
 
-  if (watch_fd_optional.has_value()) {
-    auto watch_fd = watch_fd_optional.value();
-
-    auto&& path_map = do_path_map_create(path, watch_fd, callback);
-
-    auto&& event_tuple = do_event_resource_create(watch_fd, callback);
-
-    if (event_tuple.has_value()) {
-      /* event_conf is 0th */
-      auto event_list = std::get<1>(event_tuple.value());
-      auto event_fd = std::get<2>(event_tuple.value());
-
-      /* Do work until dead:
+      /* Do this work until dead:
           - Await filesystem events
           - Invoke `callback` on errors and events */
 
-      while (is_living(path) && !path_map.empty()) {
+      while (is_living()) {
         int event_count
-            = epoll_wait(event_fd, event_list, event_max_count, delay_ms);
+            = epoll_wait(sr.event_fd, event_recv_list, event_max_count, 1);
         if (event_count < 0)
-          return do_watch_fd_release(watch_fd, callback)
-                 && do_error("e/sys/epoll_wait");
+          return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+                 && do_error("e/sys/epoll_wait@" / path);
         else if (event_count > 0)
-          for (int n = 0; n < event_count; ++n)
-            if (event_list[n].data.fd == watch_fd)
-              if (!do_scan(watch_fd, path_map, callback))
-                return do_watch_fd_release(watch_fd, callback)
-                       && do_error("e/self/scan");
+          for (int n = 0; n < event_count; n++)
+            if (event_recv_list[n].data.fd == sr.watch_fd)
+              if (is_living())
+                if (!do_scan(sr.watch_fd, path_map, callback))
+                  return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+                         && do_error("e/self/scan@" / path);
       }
-      return do_watch_fd_release(watch_fd, callback);
-
-    } else
-      return do_watch_fd_release(watch_fd, callback);
-
-  } else
-    return false;
-}
-
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::string(path), callback, is_living);
+      return do_resource_release(sr.watch_fd, sr.event_fd, callback);
+    } else {
+      return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+             && do_error("e/self/path_map@" / path);
+    }
+  } else {
+    return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+           && do_error("e/self/sys_resource@" / path);
+  }
 }
 
 } /* namespace adapter */
@@ -1374,7 +1384,9 @@ inline bool watch(char const* path, event::callback const& callback,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
+#endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
+          || defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
+#endif /* if !defined(WATER_WATCHER_USE_WARTHOG) */
 
 /*
   @brief watcher/adapter/android
@@ -1401,16 +1413,20 @@ inline bool watch(char const* path, event::callback const& callback,
     - Only support the C++ standard library
 */
 
+/* type: milliseconds */
 #include <chrono>
-#include <filesystem>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <random>
+/* obj: string */
 #include <string>
+/* lots of stuff */
+#include <filesystem>
+/* obj: error_code */
 #include <system_error>
+/* fn: this_thread::sleep_for */
 #include <thread>
+/* obj: unordered_map */
 #include <unordered_map>
+/* type: event::callback
+   obj: event::event */
 
 namespace wtr {
 namespace watcher {
@@ -1420,7 +1436,7 @@ namespace { /* anonymous namespace for "private" things */
 /* clang-format off */
 
 inline constexpr std::filesystem::directory_options
-  dir_opt = 
+  scan_dir_options = 
     /* This is ridiculous */
     std::filesystem::directory_options::skip_permission_denied 
     & std::filesystem::directory_options::follow_directory_symlink;
@@ -1434,7 +1450,7 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-inline bool scan(const char* path, auto const& send_event,
+inline bool scan(std::filesystem::path const& path, auto const& send_event,
                  bucket_type& bucket) noexcept
 {
   /* @brief watcher/adapter/warthog/scan_file
@@ -1442,7 +1458,7 @@ inline bool scan(const char* path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file = [&](const char* file, auto const& send_event) -> bool {
+  auto const scan_file = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -1485,7 +1501,7 @@ inline bool scan(const char* path, auto const& send_event,
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
   auto const scan_directory
-      = [&](const char* dir, auto const& send_event) -> bool {
+      = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -1493,13 +1509,12 @@ inline bool scan(const char* path, auto const& send_event,
       /* try to iterate through its contents */
       auto dir_it_ec = std::error_code{};
       for (auto const& file :
-           recursive_directory_iterator(dir, dir_opt, dir_it_ec))
+           recursive_directory_iterator(dir, scan_dir_options, dir_it_ec))
         /* while handling errors */
         if (dir_it_ec)
           return false;
         else
-          /* msvc complains without this cast */
-          scan_file((const char*)(file.path().c_str()), send_event);
+          scan_file(file.path(), send_event);
       return true;
     } else
       return false;
@@ -1513,13 +1528,13 @@ inline bool scan(const char* path, auto const& send_event,
 /* @brief wtr/watcher/warthog/tend_bucket
    If the bucket is empty, try to populate it.
    otherwise, prune it. */
-inline bool tend_bucket(const char* path, auto const& send_event,
-                        bucket_type& bucket) noexcept
+inline bool tend_bucket(std::filesystem::path const& path,
+                        auto const& send_event, bucket_type& bucket) noexcept
 {
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
-  auto const populate = [&](const char* path) -> bool {
+  auto const populate = [&](std::filesystem::path const& path) -> bool {
     using std::filesystem::exists, std::filesystem::is_directory,
         std::filesystem::recursive_directory_iterator,
         std::filesystem::last_write_time;
@@ -1531,15 +1546,16 @@ inline bool tend_bucket(const char* path, auto const& send_event,
       /* this is a directory */
       if (is_directory(path)) {
         for (auto const& file :
-             recursive_directory_iterator(path, dir_opt, dir_it_ec)) {
+             recursive_directory_iterator(path, scan_dir_options, dir_it_ec))
+        {
           if (!dir_it_ec) {
             auto const lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
-              bucket[file.path().string()] = lwt;
+              bucket[file.path()] = lwt;
             else
               /* @todo use this practice elsewhere or make a fn for it
                  otherwise, this might be confusing and inconsistent. */
-              bucket[file.path().string()] = last_write_time(path);
+              bucket[file.path()] = last_write_time(path);
           }
         }
       }
@@ -1556,7 +1572,8 @@ inline bool tend_bucket(const char* path, auto const& send_event,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const prune = [&](const char* path, auto const& send_event) -> bool {
+  auto const prune
+      = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
@@ -1569,8 +1586,7 @@ inline bool tend_bucket(const char* path, auto const& send_event,
           /* if not, call the closure, indicating destruction,
              and remove it from our bucket. */
           : [&]() {
-              send_event(event::event{bucket_it->first.c_str(),
-                                      event::what::destroy,
+              send_event(event::event{bucket_it->first, event::what::destroy,
                                       is_regular_file(path) ? event::kind::file
                                       : is_directory(path)  ? event::kind::dir
                                       : is_symlink(path) ? event::kind::sym_link
@@ -1607,8 +1623,9 @@ inline bool tend_bucket(const char* path, auto const& send_event,
   Unless it should stop, or errors present, `watch` recurses.
 */
 
-inline bool watch(auto const& path, event::callback const& callback,
-                  auto const is_living) noexcept
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
+                  auto const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
@@ -1620,22 +1637,16 @@ inline bool watch(auto const& path, event::callback const& callback,
 
      Otherwise, stop and return false. */
 
-  static bucket_type bucket;
+  bucket_type bucket;
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living(path) ? tend_bucket(path.c_str(), callback, bucket)
-                               ? scan(path.c_str(), callback, bucket)
-                                     ? watch(path, callback)
+  return is_living(path) ? tend_bucket(path, callback, bucket)
+                               ? scan(path, callback, bucket)
+                                     ? watch(path, callback, is_living)
                                      : false
                                : false
                          : true;
-}
-
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::string(path), callback, is_living);
 }
 
 } /* namespace adapter */
@@ -1645,8 +1656,10 @@ inline bool watch(char const* path, event::callback const& callback,
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
 
-/* watch_ctl */
-/* callback */
+/* type: path */
+#include <filesystem>
+/* fn: watch_ctl */
+/* type: callback */
 
 namespace wtr {
 namespace watcher {
@@ -1674,7 +1687,7 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(auto const& path, event::callback const& callback) noexcept
+inline bool watch(std::filesystem::path const& path, event::callback const& callback) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, true);
 }
@@ -1685,7 +1698,7 @@ inline bool watch(auto const& path, event::callback const& callback) noexcept
    Calls `callback`,
    then dies. */
 inline bool die(
-    auto const& path,
+    std::filesystem::path const& path,
     event::callback const& callback = [](auto) -> void {}) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, false);
