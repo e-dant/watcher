@@ -675,14 +675,11 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
      strings lose information after all this back-and-forth. */
   auto path_str = util::wstring_to_string(path);
 
-  do_scan_work_async(new watch_object{.callback = callback,
-                                      .event_completion_token = nullptr,
-                                      .hdirectory = nullptr,
-                                      .hthreads = nullptr,
-                                      .event_token = nullptr,
-                                      .wolap = nullptr,
-                                      .working = 0,
-                                      .directoryname = L""},
+  /* MSVC rejects the `.directoryname` field with this message:
+     `C99 designator 'directoryname' outside aggregate initializer`.
+     So, we're not using aggregate initializers now. */
+  do_scan_work_async(new watch_object{callback, nullptr, nullptr, nullptr,
+                                      nullptr, nullptr, 0, L""},
                      path.c_str(), path.size() + 1, callback);
 
   while (is_living())
@@ -715,6 +712,7 @@ inline bool watch(std::string const& path, event::callback const& callback,
 } /* namespace wtr */
 
 #endif
+
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -999,6 +997,7 @@ event::what::hard_link),
 
   The Linux `inotify` adapter.
 */
+
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
