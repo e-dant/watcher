@@ -15,9 +15,11 @@
 #include <string>
 /* strcmp */
 #include <cstring>
-/* path, exists */
+/* path,
+   remove,
+   exists */
 #include <filesystem>
-/* regular_file_store_path */
+/* mk_events_options */
 #include <test_watcher/constant.hpp>
 /* watch,
    event */
@@ -40,15 +42,14 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
                unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
-  using std::vector, std::iota, std::abs, std::filesystem::exists,
-      std::ofstream, std::to_string;
+  using std::iota, std::abs, std::filesystem::exists;
 
   /* - The path count must be even
      - The path count must be greater than 1 */
   assert(path_count % 2 == 0);
   assert(path_count > 1);
 
-  vector<int> path_indices(path_count);
+  std::vector<int> path_indices(path_count);
 
   if (options & mk_events_reverse)
     iota(path_indices.rbegin(), path_indices.rend(), -path_count / 2);
@@ -74,25 +75,25 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
   }
 
   for (auto& i : path_indices) {
-    auto const path = base_path / to_string(i < 0 ? abs(i) - 1 : abs(i));
+    auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
       auto ev = event::event{path, event::what::create, event::kind::file};
       event_list.push_back(ev);
-      ofstream{path};
+      std::ofstream{path}; /* NOLINT */
       auto has = false;
       for (auto& i : event_list)
         if (i == ev) has = true;
       assert(has);
-      assert(exists(path));
+      assert(std::filesystem::exists(path));
     } else {
       auto ev = event::event{path, event::what::destroy, event::kind::file};
       event_list.push_back(ev);
-      remove(path.c_str());
+      std::filesystem::remove(path);
       auto has = false;
       for (auto& i : event_list)
         if (i == ev) has = true;
       assert(has);
-      assert(!exists(path));
+      assert(!std::filesystem::exists(path));
     }
   }
 
