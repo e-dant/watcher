@@ -281,6 +281,8 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
+  static constexpr auto delay_ms = 16;
+
   /* @todo We need to find a better way of dealing with wide strings.
      This shouldn't affect us too much in the perf department because
      this is not the hot path. I wouldn't be surprised if the character

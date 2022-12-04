@@ -337,12 +337,16 @@ inline bool watch(std::filesystem::path const& path,
   };
 
   /* Gather these resources:
+       - delay
+           In milliseconds, for epoll
        - system resources
            For inotify and epoll
        - event recieve list
            For receiving epoll events
        - path map
            For event to path lookups */
+
+  static constexpr auto delay_ms = 16;
 
   struct sys_resource_type sr = do_sys_resource_create(callback);
   if (sr.valid) {
@@ -356,7 +360,7 @@ inline bool watch(std::filesystem::path const& path,
 
       while (is_living()) {
         int event_count
-            = epoll_wait(sr.event_fd, event_recv_list, event_max_count, 1);
+            = epoll_wait(sr.event_fd, event_recv_list, event_max_count, delay_ms);
         if (event_count < 0)
           return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                  && do_error("e/sys/epoll_wait@" / path);

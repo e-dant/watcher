@@ -245,6 +245,8 @@ inline bool watch(std::filesystem::path const& path,
 
   bucket_type bucket;
 
+  static constexpr auto delay_ms = 16;
+
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return is_living() ? tend_bucket(path, callback, bucket)
