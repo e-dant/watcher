@@ -1,12 +1,5 @@
 #pragma once
 
-/* // */
-/* // */
-/* // */
-/* #include <iostream> */
-/* // */
-/* // */
-/* // */
 /* obj: path */
 #include <filesystem>
 /* obj: mutex */
@@ -18,25 +11,18 @@
 #include <watcher/event.hpp>
 
 /* clang-format off */
-
-/* #define WATER_WATCHER_USE_WARTHOG */
-
 #include <watcher/platform.hpp>
-
 #include <watcher/adapter/windows/watch.hpp>
 #include <watcher/adapter/darwin/watch.hpp>
 #include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/android/watch.hpp>
 #include <watcher/adapter/warthog/watch.hpp>
-
 /* clang-format on */
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-
-inline constexpr auto delay_ms = 16;
 
 inline bool watch_ctl(std::filesystem::path const& path,
                       event::callback const& callback, bool const msg) noexcept

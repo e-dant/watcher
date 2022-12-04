@@ -32,19 +32,20 @@ namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
-/* clang-format off */
+inline constexpr auto delay_ms = 16;
 inline constexpr auto flag_pair_count = 4;
 inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
   {
     /* basic information about what happened to some path.
        this group is the important one.
        See note [Extra Event Flags] */
+    /* clang-format off */
     flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
     flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
     flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+    /* clang-format on */
 };
-/* clang-format on */
 
 auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 {
@@ -184,13 +185,13 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   if (!do_make_event_handler_alive(event_stream, event_queue)) return false;
 
-  while (is_living(path))
+  while (is_living())
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);
 
-  /* We shouldn't call `is_living` more than we need to.
-     Bad runs are returned above. */
+  /* Here, `true` means we were alive at all.
+     Errors are handled through the callback. */
   return true;
 }
 
