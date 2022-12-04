@@ -359,8 +359,8 @@ inline bool watch(std::filesystem::path const& path,
           - Invoke `callback` on errors and events */
 
       while (is_living()) {
-        int event_count
-            = epoll_wait(sr.event_fd, event_recv_list, event_max_count, delay_ms);
+        int event_count = epoll_wait(sr.event_fd, event_recv_list,
+                                     event_max_count, delay_ms);
         if (event_count < 0)
           return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                  && do_error("e/sys/epoll_wait@" / path);
