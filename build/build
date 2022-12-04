@@ -137,7 +137,7 @@ build::compdb() {
 build::get_cmake_system_name_opt_for_platform() {
   if test -n "$1"
   then
-    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
       macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
       windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
       linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
@@ -153,7 +153,7 @@ build::get_cmake_generator_opt_for_platform() {
   then
     # we need to use `tr` here because the bash on
     # some github runners reject the ${var,,} syntax
-    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
       # We use Make for now because we want this
       # to run in github actions without dependencies.
       macos)   echo "-G 'Xcode'";          return;;
@@ -174,7 +174,7 @@ build::get_cmake_generator_opt_for_platform() {
 build::get_cmake_extra_for_platform() {
   if test -n "$1"
   then
-    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
       android)
         echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'"
         return;;
@@ -185,7 +185,7 @@ build::get_cmake_extra_for_platform() {
 build::get_config_name_for_build_type() {
   if test -n "$1"
   then
-    case "$(echo $1 | tr '[:upper:]' '[:lower:]')" in
+    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
       release) echo 'Release'; return;;
       debug)   echo 'Debug';   return;;
       *)       echo 'Debug';   return;;
@@ -198,10 +198,10 @@ build::get_config_name_for_build_type() {
 build::check::sanitizer_allowed_for::macos() {
   denylist=(
     'msan'
-    'tsan'
+    # 'tsan'
   )
 
-  if [[ "${denylist[*]}" =~ "$1" ]]
+  if [[ "${denylist[*]}" =~ $1 ]]
   then return 1
   else return 0
   fi
@@ -216,7 +216,7 @@ build::check::sanitizer_allowed_for::windows() {
     'msan'
   )
 
-  if [[ "${denylist[*]}" =~ "$1" ]]
+  if [[ "${denylist[*]}" =~ $1 ]]
   then return 1
   else return 0
   fi
@@ -226,11 +226,10 @@ build::check::sanitizer_allowed_for::linux() {
   # We want msan but need a way to check for clang
   # because GCC/G++ doesn't have it
   denylist=(
-    #'asan'
     'msan'
   )
 
-  if [[ "${denylist[*]}" =~ "$1" ]]
+  if [[ "${denylist[*]}" =~ $1 ]]
   then return 1
   else return 0
   fi
@@ -241,7 +240,7 @@ build::check::sanitizer_allowed_for::android() {
 }
 
 build::check::sanitizer_allowed_for::ios() {
-  build::check::sanitizer_allowed_for::ios "$1"
+  build::check::sanitizer_allowed_for::macos "$1"
   return $?
 }
 
@@ -260,7 +259,7 @@ build::check::sanitizer_allowed_for::this() {
     discerned_platform="$discerned_platform_raw"
   fi
 
-  build::check::sanitizer_allowed_for::$discerned_platform "$sanitizer_query"
+  eval "build::check::sanitizer_allowed_for::$discerned_platform" "$sanitizer_query"
   return $?
 }
 
@@ -323,7 +322,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
             $(build::get_cmake_extra_for_platform $PLATFORM) \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON")
+            -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON")
 
         # echo "$cmake_config_command"
 
@@ -364,7 +363,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
             $(build::get_cmake_extra_for_platform $PLATFORM) \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DWTR_WATCHER_USE_$(echo $S | tr '[:lower:]' '[:upper:]')=ON \
+            -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON \
             -DWTR_WATCHER_USE_TEST=ON")
 
         # echo "$cmake_config_command"
@@ -395,7 +394,7 @@ build::run::test() {
   then
     for TEST in "${TESTS[@]}"
     do
-      while read TEST_PATH
+      while read -r TEST_PATH
       do
         echo "$SEPERATOR"
         echo "test: ${TEST_PATH##*test/}"
@@ -418,7 +417,7 @@ build::show::artifacts() {
     echo "$SEPERATOR"
     echo 'artifacts:'
 
-    for a in ${ARTIFACTS[@]}; do
+    for a in "${ARTIFACTS[@]}"; do
     echo " - $a"; done
   fi
 }
@@ -433,7 +432,7 @@ build::write::current_artifacts() {
   test -e "$current_artifact_file" \
     && rm -rf "$current_artifact_file"
 
-  for a in ${ARTIFACTS[@]}; do
+  for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
 }
 
