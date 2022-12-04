@@ -32,6 +32,7 @@ namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
+inline constexpr auto delay_ms = 16;
 inline constexpr auto flag_pair_count = 4;
 inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
     /* basic information about what happened to some path.
@@ -65,7 +66,6 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
   auto const time_flag = kFSEventStreamEventIdSinceNow;
 
   /* the delay, in seconds */
-  static constexpr auto delay_ms = 16;
   static constexpr auto delay_s = delay_ms > 0 ? delay_ms / 1000.0 : 0.0;
 
   /* and the event stream flags */
