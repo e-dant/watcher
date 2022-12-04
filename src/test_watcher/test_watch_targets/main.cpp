@@ -25,15 +25,17 @@ TEST_CASE("Event Targets", "[event_targets]")
   auto const store_path
       = wtr::test_watcher::test_store_path / "event_targets_store";
 
-  auto [event_list, event_recv_list] = wtr::test_watcher::watch_gather(
+  auto [event_sent_list, event_recv_list] = wtr::test_watcher::watch_gather(
       "Event Targets", store_path, path_count);
 
-  for (event::event const& ev : event_list) {
-    std::cout << "event => " << ev.where << "\n";
-  }
-  for (event::event const& ev : event_recv_list) {
-    std::cout << "event recv => " << ev.where << "\n";
+  std::cout << "events sent =>\n";
+  for (auto const& ev : event_sent_list) {
+    std::cout << " " << ev.where << ",\n";
   }
 
-  REQUIRE(true);
+  std::cout << "events recv =>\n";
+  for (auto const& ev : event_recv_list) {
+    std::cout << " " << ev.where << ",\n";
+  }
+
 };

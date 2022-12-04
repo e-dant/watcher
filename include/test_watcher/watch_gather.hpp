@@ -4,9 +4,12 @@
 #include <chrono>
 /* assert */
 #include <cassert>
-/* thread,
-   sleep_for */
+/* this_thread::sleep_for */
 #include <thread>
+/* async,
+   future,
+   promise */
+#include <future>
 /* watch,
    event,
    die */
@@ -36,29 +39,33 @@ namespace wtr {
 namespace test_watcher {
 
 /* @brief
-    - Create watcher(s)
-    - Create event(s)
-    - Kill watcher(s)
-    - Return expected and recieved events
+     - Create a watcher for each `concurrency_level`
+     - For each watcher:
+       - Create event(s)
+       - Kill watcher(s)
+
+   @return
+     pair of expected and recieved events
+
    @todo
-    Make printing an option */
-auto watch_gather(
-    auto const& title = "test", /* Title */
-    auto const& store_path      /* Store Path */
-    = wtr::test_watcher::test_store_path / "tmp_store",
-    int const path_count = 10,       /* Path Event Count */
-    int const concurrency_level = 1, /* Concurrent Watcher Count */
-    std::chrono::milliseconds const  /* Simulated Lifetime */
-        alive_for_ms_target
-    = std::chrono::milliseconds(1000))
+     Make printing an option */
+auto watch_gather(auto const& title = "test", /* Title */
+                  auto const& store_path      /* Store Path */
+                  = wtr::test_watcher::test_store_path / "tmp_store",
+                  int const path_count = 10, /* Path Event Count */
+                  int const concurrency_level
+                  = 1,                            /* Concurrent Watcher Count */
+                  std::chrono::milliseconds const /* Simulated Lifetime */
+                      alive_for_ms_target
+                  = std::chrono::milliseconds(1000))
 {
   auto event_recv_list = std::vector<wtr::watcher::event::event>{};
   auto event_recv_list_mtx = std::mutex{};
 
   auto event_list = std::vector<wtr::watcher::event::event>{};
-  auto watch_path_list = std::vector<std::string>{};
+  auto watch_path_list = std::vector<std::filesystem::path>{};
 
-  /* auto cout_mtx = std::mutex{}; */
+  auto futures = std::vector<std::future<bool>>{};
 
   constexpr auto pre_create_event_delay = std::chrono::milliseconds(500);
   constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(500);
@@ -67,13 +74,11 @@ auto watch_gather(
   {
     assert(alive_for_ms_target.count() > 0);
 
-    for (auto i = 0; i < concurrency_level; i++) {
-      auto _ = store_path.string() + std::to_string(i);
-      watch_path_list.push_back(_);
-    }
+    for (auto i = 0; i < concurrency_level; i++)
+      watch_path_list.push_back(store_path / std::to_string(i));
 
     auto wps = std::string{};
-    for (auto const& p : watch_path_list) wps += '"' + p + "\",\n  ";
+    for (auto const& p : watch_path_list) wps += "\"" + p.string() + "\",\n  ";
 
     wtr::test_watcher::show_conf(title, store_path, wps);
 
@@ -89,11 +94,8 @@ auto watch_gather(
     }
   }
 
-  /* for (auto const& p : watch_path_list) */
-  /*   wtr::test_watcher::show_event_stream_preamble(); */
-
   /* Start Time */
-  auto ms_begin = std::chrono::duration_cast<std::chrono::milliseconds>(
+  auto const ms_begin = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch());
 
   assert(ms_begin.count() > 0);
@@ -101,31 +103,20 @@ auto watch_gather(
   /* Watch Paths */
   {
     for (auto const& p : watch_path_list) {
-      /* std::cout << "test @ live @ create @ '" << p << "'\n"; */
       assert(std::filesystem::exists(p));
 
-      std::thread([&]() {
-        auto ok = (wtr::watcher::watch(
+      futures.push_back(std::async(std::launch::async, [&]() {
+        auto const watch_ok = (wtr::watcher::watch(
             p, [&](wtr::watcher::event::event const& ev) {
-              /* cout_mtx.lock(); */
-              /* std::cout << "test @ live -> recv => " << ev << "\n"; */
-              /* cout_mtx.unlock(); */
+              auto _ = std::scoped_lock{event_recv_list_mtx};
 
-              event_recv_list_mtx.lock();
               auto ok_add = true;
               for (auto const& p : watch_path_list)
                 if (ev.where == p) ok_add = false;
               if (ok_add) event_recv_list.push_back(ev);
-              event_recv_list_mtx.unlock();
             }));
-
-        /* cout_mtx.lock(); */
-        /* std::cout << "test @ live @ result @ '" << p << "' => " */
-        /*           << (ok ? "true\n" : "false\n"); */
-        /* cout_mtx.unlock(); */
-
-        assert(ok);
-      }).detach();
+        return watch_ok;
+      }));
     }
   }
 
@@ -136,7 +127,7 @@ auto watch_gather(
 
   /* Create Filesystem Events */
   {
-    event_recv_list_mtx.lock();
+    auto _ = std::scoped_lock{event_recv_list_mtx};
     for (auto const& p : watch_path_list) {
       wtr::test_watcher::mk_events(
           p, path_count, event_list,
@@ -144,7 +135,6 @@ auto watch_gather(
               | wtr::test_watcher::mk_events_die_after);
       assert(std::filesystem::exists(p));
     }
-    event_recv_list_mtx.unlock();
   }
 
   /* Wait */
@@ -155,27 +145,17 @@ auto watch_gather(
   /* Stop Watchers */
   {
     for (auto i = 0; i < concurrency_level; i++) {
-      auto p = store_path.string() + std::to_string(i);
-      /* std::cout << "test @ die @ create @ '" << p << "'\n"; */
+      auto const p = store_path / std::to_string(i);
       assert(std::filesystem::exists(p));
-
-      auto ok = wtr::watcher::die(p, [&event_recv_list, &event_recv_list_mtx](wtr::watcher::event::event const& ev) {
-        /* cout_mtx.lock(); */
-        /* std::cout << "test @ die -> recv => " << ev << "\n"; */
-        /* cout_mtx.unlock(); */
-
-        event_recv_list_mtx.lock();
-        event_recv_list.push_back(ev);
-        event_recv_list_mtx.unlock();
-      });
-
-      /* cout_mtx.lock(); */
-      /* std::cout << "test @ die @ result @ '" << p << "' => " */
-      /*           << (ok ? "true\n" : "false\n"); */
-      /* cout_mtx.unlock(); */
-
-      assert(ok);
+      auto dead
+          = wtr::watcher::die(p, [&event_recv_list, &event_recv_list_mtx](
+                                     wtr::watcher::event::event const& ev) {
+              auto _ = std::scoped_lock{event_recv_list_mtx};
+              event_recv_list.push_back(ev);
+            });
+      assert(dead);
     }
+    for (auto& f : futures) assert(f.get());
   }
 
   /* Show Results */

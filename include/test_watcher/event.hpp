@@ -8,10 +8,8 @@
 #include <cmath>
 /* iota */
 #include <numeric>
-/* cout,
-   boolalpha,
-   endl */
-#include <iostream>
+/* ofstream */
+#include <fstream>
 /* string,
    to_string */
 #include <string>
@@ -37,7 +35,7 @@ inline bool str_eq(char const* a, char const* b)
    Mirror what the Watcher should see
    Half are creation events
    Half are destruction */
-auto mk_events(auto const& watch_path, auto const& path_count,
+auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
                       std::vector<wtr::watcher::event::event>& event_list,
                       unsigned long options = mk_events_options) -> void
 {
@@ -57,7 +55,7 @@ auto mk_events(auto const& watch_path, auto const& path_count,
   else
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
-  auto ev = event::event{"s/self/live@" + watch_path, event::what::destroy,
+  auto ev = event::event{"s/self/live@" / base_path, event::what::destroy,
                          event::kind::watcher};
   event_list.push_back(ev);
   auto has = false;
@@ -66,7 +64,7 @@ auto mk_events(auto const& watch_path, auto const& path_count,
   assert(has);
 
   if (options & mk_events_die_before) {
-    auto ev = event::event{"s/self/die@" + watch_path, event::what::destroy,
+    auto ev = event::event{"s/self/die@" / base_path, event::what::destroy,
                            event::kind::watcher};
     event_list.push_back(ev);
     auto has = false;
@@ -76,7 +74,7 @@ auto mk_events(auto const& watch_path, auto const& path_count,
   }
 
   for (auto& i : path_indices) {
-    auto const path = watch_path + "/" + to_string(i < 0 ? abs(i) - 1 : abs(i));
+    auto const path = base_path / to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
       auto ev = event::event{path, event::what::create, event::kind::file};
       event_list.push_back(ev);
@@ -99,7 +97,7 @@ auto mk_events(auto const& watch_path, auto const& path_count,
   }
 
   if (options & mk_events_die_after) {
-    auto ev = event::event{"s/self/die@" + watch_path, event::what::destroy,
+    auto ev = event::event{"s/self/die@" / base_path, event::what::destroy,
                            event::kind::watcher};
     event_list.push_back(ev);
     auto has = false;

@@ -173,14 +173,14 @@ struct event
   };
 
   /* @brief wtr/watcher/event/<<
-     prints out where, what and kind.
-     formats the output as a json object. */
+     Streams out `where`, `what` and `kind`.
+     Formats the stream as a json object. */
   friend std::ostream& operator<<(std::ostream& os, const event& ev) noexcept
   {
     /* clang-format off */
     return os << R"(")" << ev.when << R"(":)"
               << "{"
-                  << R"("where":")" << ev.where      << R"(",)"
+                  << R"("where":)" << ev.where      << R"(,)"
                   << R"("what":")"  << what_repr(ev) << R"(",)"
                   << R"("kind":")"  << kind_repr(ev) << R"(")"
               << "}";
