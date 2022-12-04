@@ -275,13 +275,6 @@ using callback = function<void(event const&)>;
 } /* namespace watcher */
 } /* namespace wtr   */
 
-/* // */
-/* // */
-/* // */
-/* #include <iostream> */
-/* // */
-/* // */
-/* // */
 /* obj: path */
 #include <filesystem>
 /* obj: mutex */
@@ -292,17 +285,12 @@ using callback = function<void(event const&)>;
    fn: die */
 
 /* clang-format off */
-
-/* #define WATER_WATCHER_USE_WARTHOG */
-
 /* clang-format on */
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-
-inline constexpr auto delay_ms = 16;
 
 inline bool watch_ctl(std::filesystem::path const& path,
                       event::callback const& callback, bool const msg) noexcept
@@ -695,7 +683,7 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
                                       .directoryname = L""},
                      path.c_str(), path.size() + 1, callback);
 
-  while (is_living(path_str))
+  while (is_living())
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   return true;
@@ -726,6 +714,7 @@ inline bool watch(std::string const& path, event::callback const& callback,
 
 #endif
 
+
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
@@ -754,19 +743,19 @@ namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
-/* clang-format off */
+inline constexpr auto delay_ms = 16;
 inline constexpr auto flag_pair_count = 4;
-inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
-  {
+inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
     /* basic information about what happened to some path.
        this group is the important one.
        See note [Extra Event Flags] */
+    /* clang-format off */
     flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
     flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
     flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
     flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+    /* clang-format on */
 };
-/* clang-format on */
 
 auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 {
@@ -906,13 +895,13 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   if (!do_make_event_handler_alive(event_stream, event_queue)) return false;
 
-  while (is_living(path))
+  while (is_living())
     if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);
 
-  /* We shouldn't call `is_living` more than we need to.
-     Bad runs are returned above. */
+  /* Here, `true` means we were alive at all.
+     Errors are handled through the callback. */
   return true;
 }
 
@@ -1009,6 +998,7 @@ event::what::hard_link),
 
   The Linux `inotify` adapter.
 */
+
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1642,12 +1632,12 @@ inline bool watch(std::filesystem::path const& path,
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living(path) ? tend_bucket(path, callback, bucket)
-                               ? scan(path, callback, bucket)
-                                     ? watch(path, callback, is_living)
-                                     : false
-                               : false
-                         : true;
+  return is_living() ? tend_bucket(path, callback, bucket)
+                           ? scan(path, callback, bucket)
+                                 ? watch(path, callback, is_living)
+                                 : false
+                           : false
+                     : true;
 }
 
 } /* namespace adapter */
