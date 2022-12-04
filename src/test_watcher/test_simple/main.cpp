@@ -58,7 +58,7 @@ TEST_CASE("Simple", "[simple]")
   auto watch_handle = std::async(std::launch::async, []() {
     auto const watch_ok
         = wtr::watcher::watch(store_path, [](event::event const& ev) {
-        auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
+            auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
             std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
                       << ev << "\n\n";
@@ -96,7 +96,7 @@ TEST_CASE("Simple", "[simple]")
 
   auto const die_ok
       = wtr::watcher::die(store_path, [&](event::event const& ev) {
-        auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
+          auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
           std::cout << "test @ '" << store_path << "' @ die -> recv\n => " << ev
                     << "\n\n";

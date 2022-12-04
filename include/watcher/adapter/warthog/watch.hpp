@@ -63,7 +63,8 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
+  auto const scan_file
+      = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {

@@ -46,7 +46,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     return std::hash<decltype(path_str)>{}(path_str);
   };
 
-  static auto watcher_container = std::unordered_map<unsigned long, unsigned long>{};
+  static auto watcher_container
+      = std::unordered_map<unsigned long, unsigned long>{};
   static auto watcher_mtx = std::mutex{};
 
   auto const& live = [&path_id](std::filesystem::path const& path,
@@ -63,7 +64,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     else
       watcher_container[id] = 1;
 
-    /* std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => " */
+    /* std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => "
+     */
     /*           << (alive ? "true" : "false") << std::endl; */
 
     callback({(alive ? "s/self/live@" : "e/self/live@") + path.string(),
@@ -87,7 +89,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     else
       dead = false;
 
-    /* std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => " */
+    /* std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => "
+     */
     /*           << (dead ? "true" : "false") << std::endl; */
 
     callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
@@ -112,7 +115,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
   if (msg) {
     auto alive
         = live(path, callback) ? watch(path, callback, is_living) : false;
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path */
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path
+     */
     /*           << "' => " << (alive ? "true" : "false") << std::endl; */
     return alive;
   } else {

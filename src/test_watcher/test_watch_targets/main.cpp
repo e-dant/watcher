@@ -37,5 +37,4 @@ TEST_CASE("Event Targets", "[event_targets]")
   for (auto const& ev : event_recv_list) {
     std::cout << " " << ev.where << ",\n";
   }
-
 };

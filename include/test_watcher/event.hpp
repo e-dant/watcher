@@ -36,8 +36,8 @@ inline bool str_eq(char const* a, char const* b)
    Half are creation events
    Half are destruction */
 auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
-                      std::vector<wtr::watcher::event::event>& event_list,
-                      unsigned long options = mk_events_options) -> void
+               std::vector<wtr::watcher::event::event>& event_list,
+               unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
   using std::vector, std::iota, std::abs, std::filesystem::exists,

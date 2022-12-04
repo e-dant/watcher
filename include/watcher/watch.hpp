@@ -33,7 +33,8 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(std::filesystem::path const& path, event::callback const& callback) noexcept
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, true);
 }

@@ -295,8 +295,6 @@ using callback = function<void(event const&)>;
 
 /* #define WATER_WATCHER_USE_WARTHOG */
 
-
-
 /* clang-format on */
 
 namespace wtr {
@@ -314,7 +312,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     return std::hash<decltype(path_str)>{}(path_str);
   };
 
-  static auto watcher_container = std::unordered_map<unsigned long, unsigned long>{};
+  static auto watcher_container
+      = std::unordered_map<unsigned long, unsigned long>{};
   static auto watcher_mtx = std::mutex{};
 
   auto const& live = [&path_id](std::filesystem::path const& path,
@@ -331,7 +330,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     else
       watcher_container[id] = 1;
 
-    /* std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => " */
+    /* std::cout << "watch_ctl -> live -> '" << path << "' -> " << id << " => "
+     */
     /*           << (alive ? "true" : "false") << std::endl; */
 
     callback({(alive ? "s/self/live@" : "e/self/live@") + path.string(),
@@ -355,7 +355,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
     else
       dead = false;
 
-    /* std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => " */
+    /* std::cout << "watch_ctl -> die -> '" << path << "' -> " << id << " => "
+     */
     /*           << (dead ? "true" : "false") << std::endl; */
 
     callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
@@ -380,7 +381,8 @@ inline bool watch_ctl(std::filesystem::path const& path,
   if (msg) {
     auto alive
         = live(path, callback) ? watch(path, callback, is_living) : false;
-    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path */
+    /* std::cout << "watch -> adapter -> watch_ctl -> msg -> live -> '" << path
+     */
     /*           << "' => " << (alive ? "true" : "false") << std::endl; */
     return alive;
   } else {
@@ -724,7 +726,6 @@ inline bool watch(std::string const& path, event::callback const& callback,
 
 #endif
 
-
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
@@ -1008,7 +1009,6 @@ event::what::hard_link),
 
   The Linux `inotify` adapter.
 */
-
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1458,7 +1458,8 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
+  auto const scan_file
+      = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -1687,7 +1688,8 @@ namespace watcher {
    That's it.
 
    Happy hacking. */
-inline bool watch(std::filesystem::path const& path, event::callback const& callback) noexcept
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, true);
 }
