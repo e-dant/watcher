@@ -34,8 +34,7 @@ using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
 inline constexpr auto delay_ms = 16;
 inline constexpr auto flag_pair_count = 4;
-inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container
-  {
+inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
     /* basic information about what happened to some path.
        this group is the important one.
        See note [Extra Event Flags] */
