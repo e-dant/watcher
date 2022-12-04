@@ -247,12 +247,12 @@ inline bool watch(std::filesystem::path const& path,
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
-  return is_living(path) ? tend_bucket(path, callback, bucket)
-                               ? scan(path, callback, bucket)
-                                     ? watch(path, callback, is_living)
-                                     : false
-                               : false
-                         : true;
+  return is_living() ? tend_bucket(path, callback, bucket)
+                           ? scan(path, callback, bucket)
+                                 ? watch(path, callback, is_living)
+                                 : false
+                           : false
+                     : true;
 }
 
 } /* namespace adapter */
