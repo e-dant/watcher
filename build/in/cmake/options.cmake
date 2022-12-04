@@ -5,8 +5,14 @@ include(GNUInstallDirs)
 # [options: defaults: sources and prerequisites]
 set(SOURCES "../../src/watcher/main.cpp")
 set(INCLUDE_PATH)
-# error on everything
+# [options: cc: error on everything]
+if(MSVC)
+# It's not that we don't want these, it's just that I hate Windows.
+# Also, MSVC doesn't support some of these arguments, so it's not possible.
+set(COMPILE_OPTIONS)
+else()
 set(COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror")
+endif()
 set(LINK_OPTIONS)
 
 # Android's stdlib ("bionic") comes with threads.h and pthread.h
