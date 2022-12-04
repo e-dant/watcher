@@ -292,14 +292,8 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
   /* MSVC rejects the `.directoryname` field with this message:
      `C99 designator 'directoryname' outside aggregate initializer`.
      So, we're not using aggregate initializers now. */
-  do_scan_work_async(new watch_object{callback,
-                                      nullptr,
-                                      nullptr,
-                                      nullptr,
-                                      nullptr,
-                                      nullptr,
-                                      0,
-                                      L""},
+  do_scan_work_async(new watch_object{callback, nullptr, nullptr, nullptr,
+                                      nullptr, nullptr, 0, L""},
                      path.c_str(), path.size() + 1, callback);
 
   while (is_living())
