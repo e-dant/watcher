@@ -667,6 +667,8 @@ inline bool watch(std::wstring const& path, event::callback const& callback,
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
+  static constexpr auto delay_ms = 16;
+
   /* @todo We need to find a better way of dealing with wide strings.
      This shouldn't affect us too much in the perf department because
      this is not the hot path. I wouldn't be surprised if the character
@@ -714,6 +716,7 @@ inline bool watch(std::string const& path, event::callback const& callback,
 
 #endif
 
+
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
@@ -742,7 +745,6 @@ namespace {
 
 using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
 
-inline constexpr auto delay_ms = 16;
 inline constexpr auto flag_pair_count = 4;
 inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
     /* basic information about what happened to some path.
@@ -758,7 +760,7 @@ inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
 
 auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 {
-  /*  the contortions here are to please darwin.
+  /*  The contortions here are to please darwin.
       importantly, `path_as_refref` and its underlying types
       *are* const qualified. using void** is not ok. but it's also ok. */
   void const* path_cfstring
@@ -776,6 +778,7 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
   auto const time_flag = kFSEventStreamEventIdSinceNow;
 
   /* the delay, in seconds */
+  static constexpr auto delay_ms = 16;
   static constexpr auto delay_s = delay_ms > 0 ? delay_ms / 1000.0 : 0.0;
 
   /* and the event stream flags */
@@ -785,13 +788,13 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
                                   | kFSEventStreamCreateFlagNoDefer;
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
-      nullptr,           /* allocator */
-      callback,          /* callback; what to do */
-      nullptr,           /* context (see note [event stream context]) */
-      translated_path,   /* where to watch */
-      time_flag,         /* since when (we choose since now) */
-      delay_s,           /* time between fs event scans */
-      event_stream_flags /* what data to gather and how */
+      nullptr,           /* Allocator */
+      callback,          /* Callback; what to do */
+      nullptr,           /* Context (see note [event stream context]) */
+      translated_path,   /* Where to watch */
+      time_flag,         /* Since when (we choose since now) */
+      delay_s,           /* Time between fs event scans */
+      event_stream_flags /* What data to gather and how */
   );
 }
 
@@ -997,6 +1000,7 @@ event::what::hard_link),
 
   The Linux `inotify` adapter.
 */
+
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1325,12 +1329,16 @@ inline bool watch(std::filesystem::path const& path,
   };
 
   /* Gather these resources:
+       - delay
+           In milliseconds, for epoll
        - system resources
            For inotify and epoll
        - event recieve list
            For receiving epoll events
        - path map
            For event to path lookups */
+
+  static constexpr auto delay_ms = 16;
 
   struct sys_resource_type sr = do_sys_resource_create(callback);
   if (sr.valid) {
@@ -1343,8 +1351,8 @@ inline bool watch(std::filesystem::path const& path,
           - Invoke `callback` on errors and events */
 
       while (is_living()) {
-        int event_count
-            = epoll_wait(sr.event_fd, event_recv_list, event_max_count, 1);
+        int event_count = epoll_wait(sr.event_fd, event_recv_list,
+                                     event_max_count, delay_ms);
         if (event_count < 0)
           return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                  && do_error("e/sys/epoll_wait@" / path);
@@ -1627,6 +1635,8 @@ inline bool watch(std::filesystem::path const& path,
      Otherwise, stop and return false. */
 
   bucket_type bucket;
+
+  static constexpr auto delay_ms = 16;
 
   if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
 
