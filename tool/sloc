@@ -1,6 +1,15 @@
 #! /usr/bin/env bash
 
-if ! cloc . --json | jq '."C/C++ Header".code + ."C++".code'
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.." \
+  || exit 1
+if which -s cloc \
+  && which -s jq
 then
-  echo please install cloc
+  cloc . --json \
+    | jq '."C/C++ Header".code + ."C++".code'
+else
+  echo please install cloc and jq
 fi
+cd "$LAST_DIR" \
+  || exit 1
