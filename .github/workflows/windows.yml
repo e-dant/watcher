@@ -69,6 +69,6 @@ jobs:
 
       - name: Test
         run: |
-          bash -c 'for P in "$(find . -name wtr.watcher.\*)"; do eval "$P" -s 2; done'
-          bash -c 'for T in "$(find . -name wtr.test_watcher.\*)"; do eval "$T"; done'
+          bash -c 'while read -r P; do if test -n "$P"; then eval "$P" -s 2; fi; done <<< "$(find . -name wtr.watcher.\*.exe)"'
+          bash -c 'while read -r T; do if test -n "$T"; then eval "$T"; fi; done <<< "$(find . -name wtr.test_watcher.\*.exe)"'
 
