@@ -65,9 +65,10 @@ jobs:
 
       - name: Build
         run: |
-          bash -c 'build/build this --no-build-debug'
+          bash -c 'build/build --no-run-test'
 
       - name: Test
         run: |
-          bash -c 'build/out/this/release/wtr.watcher.exe . -s 1'
+          bash -c 'for P in "$(find . -name wtr.watcher.\*)"; do eval "$P" -s 2; done'
+          bash -c 'for T in "$(find . -name wtr.test_watcher.\*)"; do eval "$T"; done'
 
