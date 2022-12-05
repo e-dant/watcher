@@ -47,7 +47,9 @@ An arbitrary filesystem event watcher which is
 
 1. Simple
 > These [2711](https://github.com/e-dant/watcher/blob/release/tool/sloc)
-lines were written to be **read and used**.
+lines were written to be
+**[read](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp)**.
+The API is dead simple:
 ```cpp
 watch(path, [](auto ev){cout << ev;});
 ```
