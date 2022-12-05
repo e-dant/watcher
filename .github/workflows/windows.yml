@@ -69,6 +69,10 @@ jobs:
 
       - name: Test
         run: |
-          bash -c 'while read -r P; do if test -n "$P"; then eval "$P" -s 2; fi; done <<< "$(find . -name wtr.watcher.\*.exe)"'
-          bash -c 'while read -r T; do if test -n "$T"; then eval "$T"; fi; done <<< "$(find . -name wtr.test_watcher.\*.exe)"'
+          bash -c 'build/out/this/release/wtr.watcher.exe -s 5'
+          bash -c 'build/out/this/debug/nosan/wtr.watcher.exe -s 5'
+          bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_watch_targets'
+          bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_concurrent_watch_targets'
+          bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_new_directories'
+          bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_simple'
 

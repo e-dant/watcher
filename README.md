@@ -64,7 +64,8 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 
 3. Efficient
 > In [most cases](https://github.com/e-dant/watcher/tree/release#exceptions-to-efficient-scanning),
-*Watcher* uses a near-zero amount of resources.
+*Watcher* uses a near-zero amount of resources and makes
+[efficienct use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 
 4. Safe
 > We run this project through unit tests against all available
@@ -380,6 +381,32 @@ Darwin
 Windows
 - `ReadDirectoryChangesW`
 - `IoCompletionPort`
+
+### Cache Efficiency
+
+```sh
+$ tool/test/dir &
+$ tool/test/file &
+$ valgrind --tool=cachegrind wtr.watcher ~ -s 30
+```
+
+```txt
+I   refs:      797,368,564
+I1  misses:          6,807
+LLi misses:          2,799
+I1  miss rate:        0.00%
+LLi miss rate:        0.00%
+
+D   refs:      338,544,669  (224,680,988 rd   + 113,863,681 wr)
+D1  misses:         35,331  (     24,823 rd   +      10,508 wr)
+LLd misses:         11,884  (      8,121 rd   +       3,763 wr)
+D1  miss rate:         0.0% (        0.0%     +         0.0%  )
+
+LLd miss rate:         0.0% (        0.0%     +         0.0%  )
+LL refs:            42,138  (     31,630 rd   +      10,508 wr)
+LL misses:          14,683  (     10,920 rd   +       3,763 wr)
+LL miss rate:          0.0% (        0.0%     +         0.0%  )
+```
 
 ### Directory Tree
 
