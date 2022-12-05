@@ -69,8 +69,10 @@ jobs:
 
       - name: Test
         run: |
-          bash -c 'build/out/this/release/wtr.watcher.exe -s 5'
-          bash -c 'build/out/this/debug/nosan/wtr.watcher.exe -s 5'
+          bash -c 'build/out/this/release/wtr.watcher.exe . -s 5'
+          bash -c 'build/out/this/debug/nosan/wtr.watcher.exe . -s 5'
+          bash -c 'eval build/out/this/release/wtr.watcher.exe "$PWD" -s 5'
+          bash -c 'eval build/out/this/debug/nosan/wtr.watcher.exe "$PWD" -s 5'
           bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_watch_targets'
           bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_concurrent_watch_targets'
           bash -c 'build/out/this/test/nosan/wtr.test_watcher.test_new_directories'
