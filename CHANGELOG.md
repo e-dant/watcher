@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.2
+
+The changelog for `0.5.0` is updated. Again.
+
+## 0.5.1
+
+The changelog for `0.5.0` is updated.
+
+## 0.5.0
+
+Gives support for several watchers. When watchers exist for the same path,
+*Watcher* thinks of its resources on that path like a shared pointer.
+
+A warning from the thread sanitizer is gone.
+
+*Watcher* and its unit tests pass all sanitizers and unit tests without warnings.
+
+The readme is more readable. More notes exist, and links to them are used.
+
+A ConanCenter badge is beside the other badges in the readme.
+
+Instead of overloads and templates for path types, `std::filesystem::path` is used.
+
+Define a project roadmap for release `1.0.0`.
+
+Unit tests are more robust. A "Simple" unit test is added.
+
 ## 0.4.3
 
 Single-include amalgamation.
