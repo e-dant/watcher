@@ -46,9 +46,13 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> *Watcher* is dead simple to use:
+> The [2711](https://github.com/e-dant/watcher/blob/release/tool/sloc)
+lines that are *Watcher* were written to be **read and used**.
 ```cpp
 watch(path, [](auto ev){cout << ev;});
+```
+```sh
+wtr.watcher ~
 ```
 
 2. Modular
@@ -75,8 +79,8 @@ compiler errors. **A user should be skeptical of the Windows
 implementation and confident in all others.**
 
 5. Dependency free
-> The *Watcher* library depends on the C++ Standard Library. For
-greater efficiency, we will use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
+> *Watcher* depends on the C++ Standard Library. For efficiency,
+we use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
 debugging, we use [Snatch](https://github.com/cschreib/snatch) and
 [Sanitizers](https://clang.llvm.org/docs/index.html).
@@ -110,7 +114,7 @@ into your project. Include as:
 After that, there are two things the user needs:
   - The `watch` function
   - The `die` function
-  - The `event` structure
+  - The `event` object
 
 `watch` takes a path, which is a string-like thing, and a
 callback, with is a function-like thing. Passing `watch`
