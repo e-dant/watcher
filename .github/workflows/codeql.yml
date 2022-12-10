@@ -11,8 +11,9 @@ on:
     branches: [ release, next ]
   pull_request:
     branches: [ release, next ]
-  # schedule:
-  #   - cron: '38 0 * * 5'
+  # At 3:00am on Friday. Every week, every month.
+  schedule:
+    - cron: '00 3 * * 5'
 
 jobs:
   analyze:
