@@ -2,7 +2,8 @@
 
 watcher::hone() {
   local USAGE="
-  $(dirname "$0")/hone < option > { option }
+  "$0" < option > { option }
+
   option:
     --header-content-amalgam
     --header-content-used
@@ -10,7 +11,9 @@ watcher::hone() {
     --header-path-used
     --header-path-all
     --help
-  "
+
+  example:
+    tool/hone --header-content-amalgam > sinclude/watcher/watcher.hpp"
   local LAST_DIR="$PWD"
   cd "$(dirname "$0")/../include"
 
