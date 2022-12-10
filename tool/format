@@ -6,5 +6,5 @@ while read F
 do
   clang-format -i "$F"
 done \
-  <<< "$(find . -name '*' | grep -oE '.*\.(cpp|cc|hpp|h)$')"
+  <<< "$(find include src -type f -name '*.cpp' -or -name '*.hpp')"
 cd "$LAST_DIR"
