@@ -17,13 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language:
-          [ 'cpp' ]
-        compiler:
-          - msvc
-        compiler_c_short_name:
-          - msvc
-        compiler_cxx_short_name:
+        cxx_compiler:
           - msvc
         build_type:
           - Release
@@ -51,7 +45,7 @@ jobs:
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
-          compiler: ${{matrix.compiler}}
+          compiler: ${{matrix.cxx_compiler}}
           vcvarsall: ${{contains(matrix.os, 'windows')}}
           cmake: true
           ccache: false

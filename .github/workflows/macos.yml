@@ -17,20 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language:
-          [ 'cpp' ]
-        compiler:
-          - clang-13.0.0
-        compiler_c_short_name:
+        cxx_compiler:
           - clang
-        compiler_cxx_short_name:
-          - clang++
-        build_type:
-          - Release
         install_location:
           - .local
-        developer_mode:
-          - OFF
 
     runs-on: macos-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci macos]')"
@@ -49,7 +39,7 @@ jobs:
 
       - name: Build
         run: |
-          export CXX=$(which ${{matrix.compiler_cxx_short_name}})
+          export CXX="$(which "${{matrix.cxx_compiler}}")"
           build/build --no-build-debug --no-run-test
 
       - name: Test
