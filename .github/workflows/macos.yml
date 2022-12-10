@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         cxx_compiler:
-          - clang
+          - clang++
         install_location:
           - .local
 
