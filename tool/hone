@@ -49,10 +49,14 @@ watcher::hone() {
     while read C; do cat "$C"; done <<< "$HEADER_PATH_USED"\
   )"
 
+  local PROJECT_ID='WTR_WATCHER_8973564ED9F278A21F3E12037288412F'
+
   local HEADER_CONTENT_AMALGAM="$(\
-    echo '#pragma once' \
+    echo "#ifndef $PROJECT_ID" \
+      && echo "#define $PROJECT_ID" \
       && echo "$HEADER_CONTENT_USED" \
         | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
+      && echo "#endif // $PROJECT_ID" \
   )"
 
   if test -n "$*"
