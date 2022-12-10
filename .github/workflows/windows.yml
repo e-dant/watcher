@@ -70,7 +70,7 @@ jobs:
       - name: Test
         run: |
           bash -c 'build/build --no-build-release --no-build-debug --no-build-test'
-          bash -c 'build/out/this/release/wtr.watcher.exe . -s 5'
-          bash -c 'build/out/this/debug/nosan/wtr.watcher.exe . -s 5'
-          bash -c 'eval build/out/this/release/wtr.watcher.exe "$PWD" -s 5'
-          bash -c 'eval build/out/this/debug/nosan/wtr.watcher.exe "$PWD" -s 5'
+          bash -c 'build/out/this/release/wtr.watcher.exe . -s 5 &'
+          bash -c 'build/out/this/debug/nosan/wtr.watcher.exe . -s 5 &'
+          bash -c 'eval build/out/this/release/wtr.watcher.exe "$PWD" -s 5 &'
+          bash -c 'eval build/out/this/debug/nosan/wtr.watcher.exe "$PWD" -s 5 &'

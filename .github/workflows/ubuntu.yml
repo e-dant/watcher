@@ -55,5 +55,14 @@ jobs:
       - name: Test
         run: |
           build/build --no-build-release --no-build-debug --no-build-test
-          build/out/this/release/wtr.watcher . -s 1
+          build/out/this/release/wtr.watcher . -s 5 &
+          build/out/this/debug/asan/wtr.watcher . -s 5 &
+          build/out/this/debug/msan/wtr.watcher . -s 5 &
+          build/out/this/debug/ubsan/wtr.watcher . -s 5 &
+          build/out/this/debug/nosan/wtr.watcher . -s 5 &
+          build/out/this/release/wtr.watcher "$PWD" -s 5 &
+          build/out/this/debug/asan/wtr.watcher "$PWD" -s 5 &
+          build/out/this/debug/msan/wtr.watcher "$PWD" -s 5 &
+          build/out/this/debug/ubsan/wtr.watcher "$PWD" -s 5 &
+          build/out/this/debug/nosan/wtr.watcher "$PWD" -s 5 &
 
