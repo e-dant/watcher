@@ -51,7 +51,7 @@ jobs:
       - name: Setup CodeQL
         uses: github/codeql-action/init@v2
         with:
-          languages: [ 'cpp' ]
+          languages: 'cpp'
 
       - name: Build
         run: |
