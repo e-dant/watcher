@@ -403,12 +403,12 @@ build::run::test() {
           rm -rf tmp_test_watcher
         test -x "$TEST_PATH" && \
           "$TEST_PATH"
-      done <<< "$(find . -name "wtr.test_watcher.$TEST" -type f)"
+      done <<< "$(find . -type f -name "wtr.test_watcher.$TEST" -or -name "wtr.test_watcher.$TEST.exe")"
     done
   fi
 }
 
-# @note build/show/artifacts
+# @brief build/show/artifacts
 # Shows the artifacts produced.
 # Formats as yaml.
 build::show::artifacts() {
