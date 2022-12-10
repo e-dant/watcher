@@ -4,21 +4,23 @@ if echo "$*" | grep -q -- '--help'
 then
   echo "
   Usage
-    $0 [platform = this 
+    $0 [platform = this
       [--no-build-release]
       [--no-build-debug]
       [--no-build-test]
       [--no-run-test]
+      [--install]
     ]
 
   Arguments
-    platform:             this*, android, ios, windows, linux, macos
+    platform:             this, android, ios, windows, linux, macos
 
   Options
-    --no-build-release:   skip fully optimized builds
-    --no-build-debug:     skip builds with sanitizers and debug symbols
-    --no-build-test:      skip builds with sanitizers, benchmarks and unit tests
-    --no-run-test:        skip running the benchmarks and unit tests
+    --no-build-release:   Skip builds with optimizations
+    --no-build-debug:     Skip builds with sanitizers and debug symbols
+    --no-build-test:      Skip builds with sanitizers, benchmarks and unit tests
+    --no-run-test:        Skip running the benchmarks and unit tests
+    --install:            Install the release build
 
   Summary
     Build the Watcher.
@@ -436,14 +438,26 @@ build::write::current_artifacts() {
   echo "$a" >> "$current_artifact_file"; done
 }
 
+build::install() {
+  if echo "$*" | grep -q -- --install
+  then
+    release_artifact_dir="$(dirname "$(grep 'release/wtr.watcher' "$OUT_DIR/artifacts.txt")")"
+    maybe_sudo="$(test "$(id -u)" = 0 || echo sudo)"
+
+    test -d "$release_artifact_dir" \
+      && eval "$maybe_sudo" cmake --install "$release_artifact_dir"
+
+    return $?
+  fi
+}
+
 # Other than initializing some variables,
 # nothing is done until right here.
-# build::init::cc \
-#   && build::build "$@" \
 build::build "$@" \
   && build::run::test "$@" \
   && build::show::artifacts \
-  && build::write::current_artifacts
+  && build::write::current_artifacts \
+  && build::install "$@"
 
 EC=$?
 
