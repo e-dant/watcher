@@ -197,114 +197,91 @@ I loaded it up with a little help from `sed 's/},}/}}/g' | jq`.
 A `main` program suitable for this task:
 
 ```cpp
-/* std::boolalpha,
-   std::cout,
-   std::endl */
+
+#include <chrono>
 #include <iostream>
-/* std::stoul,
-   std::string */
-#include <ratio>
 #include <string>
-/* std::strcmp */
 #include <cstring>
-/* std::thread */
-#include <thread>
-/* std::make_tuple,
-   std::tuple */
+#include <future>
+#include <filesystem>
 #include <tuple>
-/* wtr::watcher::event::event,
-   wtr::watcher::event::what,
-   wtr::watcher::event::kind,
-   wtr::watcher::watch,
-   wtr::watcher::die */
 #include <watcher/watcher.hpp>
 
-namespace helpful_literals {
-using std::this_thread::sleep_for, std::chrono::milliseconds,
-    std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
-    std::chrono::days, std::boolalpha, std::strcmp, std::thread, std::cout,
-    std::endl;
-using namespace wtr;                 /* watch, die */
-using namespace wtr::watcher::event; /* event, what, kind */
-} /* namespace helpful_literals */
-
-/* Watch a path for some time.
-   Stream what happens. */
 int main(int argc, char** argv)
 {
-  using namespace helpful_literals;
+  using namespace wtr::watcher;
+  using namespace std::chrono_literals;
 
-  /* Lift the user's choices from the command line.
-     The options may be:
-     1. Path to watch (optional)
-     2. Time unit (optional, defaults to milliseconds)
-     3. Time until death (optional)
+  auto const lift_options = [](auto const& argc, auto const& argv) {
+    using namespace std::chrono;
 
-     If the path to watch is unspecified,
-     we use the user's current directory.
-
-     If we aren't told when to die,
-     we never do. */
-  auto const [path_to_watch, time_until_death] = [](int argc, char** argv) {
-    auto const lift_path_to_watch = [&]() { return argc > 1 ? argv[1] : "."; };
-    auto const lift_time_until_death = [&]() {
-      auto const lift_time = [&]() { return std::stoull(argv[3]); };
-      auto const lift_typed_time = [&]() {
-        auto const unit_is = [&](const char* a) { return !strcmp(a, argv[2]); };
-        return unit_is("-ms") || unit_is("-milliseconds")
-                   ? milliseconds(lift_time())
-               : unit_is("-s") || unit_is("-seconds") ? seconds(lift_time())
-               : unit_is("-m") || unit_is("-minutes") ? minutes(lift_time())
-               : unit_is("-h") || unit_is("-hours")   ? hours(lift_time())
-               : unit_is("-d") || unit_is("-days")    ? days(lift_time())
-                                                      : milliseconds(0);
-      };
-      return argc == 4   ? lift_typed_time()
-             : argc == 3 ? milliseconds(lift_time())
-                         : milliseconds(0);
+    auto const path = [&]() {
+      namespace fs = std::filesystem;
+      auto const maybe_given_path = fs::path(argc > 1 ? argv[1] : ".");
+      return fs::exists(maybe_given_path) ? fs::absolute(maybe_given_path)
+                                          : fs::current_path();
     };
-    return std::make_tuple(lift_path_to_watch(), lift_time_until_death());
-  }(argc, argv);
 
-  /* Show what happens. Format as json. Use event's stream operator. */
-  auto const show_event_json = [](const event& this_event) {
-    /* See note [Manual Parsing] */
-    this_event.kind != kind::watcher ? cout << this_event << "," << endl
-                                     : cout << this_event << endl;
+    auto const unit = [&](auto const& f) {
+      auto const opt
+          = [&](char const* a) { return std::strcmp(a, argv[2]) == 0; };
+      return opt("-nanoseconds") || opt("-ns")     ? nanoseconds(f())
+             : opt("-microseconds") || opt("-mcs") ? microseconds(f())
+             : opt("-milliseconds") || opt("-ms")  ? milliseconds(f())
+             : opt("-seconds") || opt("-s")        ? seconds(f())
+             : opt("-minutes") || opt("-m")        ? minutes(f())
+             : opt("-hours") || opt("-h")          ? hours(f())
+             : opt("-days") || opt("-d")           ? days(f())
+             : opt("-weeks") || opt("-w")          ? weeks(f())
+             : opt("-months") || opt("-mts")       ? months(f())
+             : opt("-years") || opt("-y")          ? years(f())
+                                                   : milliseconds(f());
+    };
+
+    auto const time = [&]() { return argc > 3 ? std::stoull(argv[3]) : 0; };
+
+    return std::make_tuple(path(), unit(time));
   };
 
-  auto const watch_expire = [&path_to_watch = path_to_watch, &show_event_json,
-                             &time_until_death = time_until_death]() -> bool {
-    cout << R"({"wtr":{"watcher":{"stream":{)" << endl;
+  auto const stream_json = [](auto const& this_event) {
+    using event::kind::watcher, event::what::destroy;
 
-    /* Watch on some other thread */
-    thread([&]() { watcher::watch(path_to_watch, show_event_json); }).detach();
+    auto const maybe_comma
+        = this_event.kind == watcher && this_event.what == destroy ? "" : ",";
 
-    /* Until our time expires */
-    sleep_for(time_until_death);
-
-    /* Then die */
-    const bool is_watch_dead = watcher::die(show_event_json);
-
-    /* It's also ok to die like this
-       const bool is_watch_dead = watcher::die(); */
-
-    /* And say so */
-    cout << "}"
-         << "\n,\"milliseconds\":" << time_until_death.count()
-         << "\n,\"dead\":" << std::boolalpha << is_watch_dead
-         << "\n}}}"
-         << endl;
-
-    return is_watch_dead;
+    std::cout << this_event << maybe_comma << std::endl;
   };
 
-  return time_until_death > milliseconds(0)
-             /* Either watch for some time */
-             ? watch_expire() ? 0 : 1
-             /* Or run forever */
-             : watcher::watch(path_to_watch, show_event_json);
+  auto const watch_expire = [](auto const& path, auto const& callback,
+                               auto const& alive_for) -> bool {
+    using namespace std::chrono;
+    auto const then = system_clock::now();
+    std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
+
+    auto life = std::async(std::launch::async,
+                           [&]() { return watch(path, callback); });
+
+    life.wait_for(alive_for);
+
+    auto const died = die(path, callback);
+    auto const lived = life.get();
+
+    std::cout << "}"
+              << "\n,\"milliseconds\":"
+              << duration_cast<milliseconds>(system_clock::now() - then).count()
+              << "\n,\"dead\":" << (died && lived ? "true" : "false") << "\n}}}"
+              << std::endl;
+
+    return died && lived;
+  };
+
+  auto const [path, alive_for] = lift_options(argc, argv);
+
+  return alive_for > 0ns
+             ? !watch_expire(path, stream_json, alive_for)
+             : !watch(path, stream_json);
 }
+
 ```
 
 ## Consume
