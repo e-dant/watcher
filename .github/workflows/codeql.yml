@@ -55,7 +55,7 @@ jobs:
 
       - name: Build
         run: |
-          export CXX="$(which "${{cxx_compiler}}")"
+          export CXX="$(which "${{matrix.cxx_compiler}}")"
           cmake -S build/in -B build/out/this/codeql -DCMAKE_BUILD_TYPE="${{matrix.build_type}}"
           cmake --build build/out/this/codeql --config "${{matrix.build_type}}"
 
