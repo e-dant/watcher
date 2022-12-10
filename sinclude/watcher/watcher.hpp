@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WTR_WATCHER_8973564ED9F278A21F3E12037288412F
+#define WTR_WATCHER_8973564ED9F278A21F3E12037288412F
 
 namespace wtr {
 namespace watcher {
@@ -1703,3 +1704,4 @@ inline bool die(
 
 } /* namespace watcher */
 } /* namespace wtr   */
+#endif // WTR_WATCHER_8973564ED9F278A21F3E12037288412F
