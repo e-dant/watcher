@@ -1,20 +1,20 @@
 /* std::chrono::<units> */
 #include <chrono>
-/* std::cout
-   std::endl */
-#include <iostream>
-/* std::stoull */
-#include <string>
 /* std::strcmp */
 #include <cstring>
-/* std::launch::async
-   std::async */
-#include <future>
 /* std::filesystem::current_path
    std::filesystem::absolute
    std::filesystem::exists
    std::filesystem::path */
 #include <filesystem>
+/* std::launch::async
+   std::async */
+#include <future>
+/* std::cout
+   std::endl */
+#include <iostream>
+/* std::stoull */
+#include <string>
 /* std::make_tuple */
 #include <tuple>
 /* wtr::watcher::event::event
