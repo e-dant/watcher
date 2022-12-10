@@ -713,7 +713,6 @@ inline bool watch(std::string const& path, event::callback const& callback,
 
 #endif
 
-
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
@@ -997,7 +996,6 @@ event::what::hard_link),
 
   The Linux `inotify` adapter.
 */
-
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
