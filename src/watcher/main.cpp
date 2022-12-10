@@ -46,7 +46,7 @@ int main(int argc, char** argv)
   auto const lift_options = [](auto const& argc, auto const& argv) {
     using namespace std::chrono;
 
-    auto const path = [&]() {
+    auto const path = [&] {
       namespace fs = std::filesystem;
       auto const maybe_given_path = fs::path(argc > 1 ? argv[1] : ".");
       return fs::exists(maybe_given_path) ? fs::absolute(maybe_given_path)
@@ -54,24 +54,39 @@ int main(int argc, char** argv)
     };
 
     auto const unit = [&](auto const& f) {
-      auto const opt
-          = [&](char const* a) { return std::strcmp(a, argv[2]) == 0; };
-      return opt("-nanoseconds") || opt("-ns")     ? nanoseconds(f())
-             : opt("-microseconds") || opt("-mcs") ? microseconds(f())
-             : opt("-milliseconds") || opt("-ms")  ? milliseconds(f())
-             : opt("-seconds") || opt("-s")        ? seconds(f())
-             : opt("-minutes") || opt("-m")        ? minutes(f())
-             : opt("-hours") || opt("-h")          ? hours(f())
-             : opt("-days") || opt("-d")           ? days(f())
-             : opt("-weeks") || opt("-w")          ? weeks(f())
-             : opt("-months") || opt("-mts")       ? months(f())
-             : opt("-years") || opt("-y")          ? years(f())
-                                                   : milliseconds(f());
+      auto const argis = [&](char const* a) {
+        return argc > 2 ? std::strcmp(a, argv[2]) == 0 : false;
+      };
+      return argis("-nanoseconds") || argis("-ns")     ? nanoseconds(f())
+             : argis("-microseconds") || argis("-mcs") ? microseconds(f())
+             : argis("-milliseconds") || argis("-ms")  ? milliseconds(f())
+             : argis("-seconds") || argis("-s")        ? seconds(f())
+             : argis("-minutes") || argis("-m")        ? minutes(f())
+             : argis("-hours") || argis("-h")          ? hours(f())
+             : argis("-days") || argis("-d")           ? days(f())
+             : argis("-weeks") || argis("-w")          ? weeks(f())
+             : argis("-months") || argis("-mts")       ? months(f())
+             : argis("-years") || argis("-y")          ? years(f())
+                                                       : milliseconds(f());
     };
 
-    auto const time = [&]() { return argc > 3 ? std::stoull(argv[3]) : 0; };
+    auto const help = [&]() -> std::function<bool()> {
+      auto const argcmp = [&](auto const i, char const* a) {
+        return argc > i ? std::strcmp(a, argv[i]) == 0 : false;
+      };
+      for (auto i = 0; i < argc; i++)
+        if (argcmp(i, "-h") || argcmp(i, "--help"))
+          return [] {
+            std::cout << "wtr.watcher [ path = . [ time = 0 [ unit = ms ] ] ]"
+                      << std::endl;
+            return true;
+          };
+      return [] { return false; };
+    };
 
-    return std::make_tuple(path(), unit(time));
+    auto const time = [&] { return argc > 3 ? std::stoull(argv[3]) : 0; };
+
+    return std::make_tuple(path(), unit(time), help());
   };
 
   /* Show what happens.
@@ -96,8 +111,8 @@ int main(int argc, char** argv)
 
     /* This is the heart of the function.
        Watching, concurrently. */
-    auto life = std::async(std::launch::async,
-                           [&]() { return watch(path, callback); });
+    auto life
+        = std::async(std::launch::async, [&] { return watch(path, callback); });
 
     /* Until our time is up. */
     life.wait_for(alive_for);
@@ -115,11 +130,18 @@ int main(int argc, char** argv)
     return died && lived;
   };
 
-  auto const [path, alive_for] = lift_options(argc, argv);
+  auto const [path, alive_for, help] = lift_options(argc, argv);
 
-  return alive_for > 0ns
-             /* Either watch for some time */
-             ? !watch_expire(path, stream_json, alive_for)
-             /* Or run forever */
-             : !watch(path, stream_json);
+  /* Might show help,
+     Watch for some time,
+     Or run forever. */
+  return help()
+
+             ? 0
+
+             : alive_for > 0ns
+
+                   ? !watch_expire(path, stream_json, alive_for)
+
+                   : !watch(path, stream_json);
 }
