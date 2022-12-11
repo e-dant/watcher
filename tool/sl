@@ -3,6 +3,7 @@
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.." || exit 1
 echo "\
+total lines: $(($(tool/sloc) + $(tool/slod)))
 lines of code: $(tool/sloc)
 lines of documentation: $(tool/slod)
 ratio of code to documentation: $(echo "scale=1; $(tool/sloc)/$(tool/slod)" | bc)"
