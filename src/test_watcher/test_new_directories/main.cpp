@@ -56,51 +56,19 @@ TEST_CASE("New Directories", "[new_directories]")
 
   std::filesystem::create_directory(base_store_path);
 
+  auto watcher_future = (std::async(std::launch::async, [&base_store_path]() {
+    auto const watch_ok = wtr::watcher::watch(
+        base_store_path, [&](wtr::watcher::event::event const& ev) {
+          auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
+
+          std::cout << ev << std::endl;
+
+          event_recv_list.push_back(ev);
+        });
+    return watch_ok;
+  }));
+
   for (auto const& p : store_path_list) std::filesystem::create_directory(p);
-
-  auto gather_watcher_futures = [&]() {
-    std::vector<std::future<bool>> futures;
-
-    futures.push_back(std::async(std::launch::async, [&base_store_path]() {
-      auto const watch_ok = wtr::watcher::watch(
-          base_store_path, [&](wtr::watcher::event::event const& ev) {
-            auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
-
-            std::cout << "test @ " << base_store_path << " @ live -> recv\n => "
-                      << ev << "\n\n";
-
-            auto ok_add = true;
-
-            for (auto const& p : watch_path_list)
-              if (ev.where == p) ok_add = false;
-
-            if (ok_add) event_recv_list.push_back(ev);
-          });
-      return watch_ok;
-    }));
-
-    for (auto const& p : store_path_list) {
-      futures.push_back(std::async(std::launch::async, [&p]() {
-        auto const watch_ok
-            = wtr::watcher::watch(p, [&](wtr::watcher::event::event const& ev) {
-                auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
-
-                std::cout << "test @ " << p << " @ live -> recv\n => " << ev
-                          << "\n\n";
-
-                auto ok_add = true;
-
-                for (auto const& p : watch_path_list)
-                  if (ev.where == p) ok_add = false;
-
-                if (ok_add) event_recv_list.push_back(ev);
-              });
-        return watch_ok;
-      }));
-    }
-
-    return futures;
-  }();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -128,21 +96,12 @@ TEST_CASE("New Directories", "[new_directories]")
                     [&base_store_path](wtr::watcher::event::event const& ev) {
                       auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
-                      std::cout << "test @ " << base_store_path
-                                << " @ die -> recv\n => " << ev << "\n\n";
+                      std::cout << ev << std::endl;
 
                       event_recv_list.push_back(ev);
                     });
-  for (auto const& p : store_path_list)
-    wtr::watcher::die(p, [&p](wtr::watcher::event::event const& ev) {
-      auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
-      std::cout << "test @ " << p << " @ die -> recv\n => " << ev << "\n\n";
-
-      event_recv_list.push_back(ev);
-    });
-
-  for (auto& f : gather_watcher_futures) REQUIRE(f.get());
+  REQUIRE(watcher_future.get());
 
   std::cout << "events sent =>\n";
   for (auto const& ev : event_sent_list) {
