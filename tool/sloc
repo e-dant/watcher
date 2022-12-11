@@ -6,8 +6,15 @@ cd "$(dirname "$0")/.." \
 if which -s cloc \
   && which -s jq
 then
-  cloc . --json \
-    | jq '."C/C++ Header".code + ."C++".code'
+  SLOC="$(\
+    cloc README.md src include --json \
+      | jq '."C/C++ Header"."code" + ."C++"."code"')"
+  SLOD="$(\
+    cloc README.md src include --json \
+    | jq '."Markdown"."code" + ."C/C++ Header"."comment" + ."C++"."comment"')"
+
+  echo "significant lines of code: $SLOC"
+  echo "lines of documentation: $SLOD"
 else
   echo please install cloc and jq
 fi
