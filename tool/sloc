@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 LAST_DIR="$PWD"
+EC=1
 cd "$(dirname "$0")/.." \
   || exit 1
 if which -s cloc \
@@ -17,6 +18,8 @@ then
   echo "lines of documentation: $SLOD"
 else
   echo please install cloc and jq
+  EC=1
 fi
 cd "$LAST_DIR" \
   || exit 1
+exit $EC
