@@ -2,7 +2,9 @@
 
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/.." || exit 1
-echo "significant lines of code: $(tool/sloc)"
-echo "lines of documentation: $(tool/slod)"
+echo "\
+lines of code: $(tool/sloc)
+lines of documentation: $(tool/slod)
+ratio of code to documentation: $(echo "scale=3; $(tool/sloc)/$(tool/slod)" | bc)"
 cd "$LAST_DIR" || exit 1
 
