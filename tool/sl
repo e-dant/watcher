@@ -1,0 +1,8 @@
+#! /usr/bin/env bash
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.." || exit 1
+echo "significant lines of code: $(tool/sloc)"
+echo "lines of documentation: $(tool/slod)"
+cd "$LAST_DIR" || exit 1
+
