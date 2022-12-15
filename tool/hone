@@ -49,7 +49,7 @@ watcher::hone() {
     while read C; do cat "$C"; done <<< "$HEADER_PATH_USED"\
   )"
 
-  local PROJECT_ID='WTR_WATCHER_8973564ED9F278A21F3E12037288412F'
+  local PROJECT_ID='8973564ED9F278A21F3E12037288412FBAF175F889'
 
   local HEADER_CONTENT_AMALGAM="$(\
     echo "#ifndef $PROJECT_ID" \
