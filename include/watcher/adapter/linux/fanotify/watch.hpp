@@ -259,10 +259,9 @@ inline auto do_event_recv(int watch_fd,
                   AT_FDCWD, (struct file_handle*)dfid_info->handle,
                   O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
               if (fd > 0) {
+                char path_accumulator[PATH_MAX];
                 char procpath[128];
                 snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-                char path_accumulator[PATH_MAX];
-
                 auto const dirname_len
                     = readlink(procpath, path_accumulator,
                                sizeof(path_accumulator) - sizeof('\0'));
