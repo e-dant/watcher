@@ -101,7 +101,7 @@ inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool;
 inline auto do_event_recv(int watch_fd, path_map_type& path_map,
-                    event::callback const& callback) noexcept -> bool;
+                          event::callback const& callback) noexcept -> bool;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
    If the path given is a directory
@@ -232,7 +232,7 @@ inline auto do_resource_release(int watch_fd, int event_fd,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
 inline auto do_event_recv(int watch_fd, path_map_type& path_map,
-                    event::callback const& callback) noexcept -> bool
+                          event::callback const& callback) noexcept -> bool
 {
   alignas(struct inotify_event) char buf[event_buf_len];
 
