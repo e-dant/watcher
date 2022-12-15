@@ -196,58 +196,6 @@ inline auto do_resource_release(int watch_fd, int event_fd,
   return watch_fd_close_ok && event_fd_close_ok;
 }
 
-/* Get the path to the filesystem event.
-   There are a number of ways to do this.
-   We could cache an in-memory file tree,
-   like we do with `inotify`. That makes
-   startup time slower for large trees and
-   increases memory usage. Although, the
-   in-memory tree has constant-time lookup
-   and avoids the need for this hot system
-   call to `readlink`.
-   We're using `readlink` for now because
-   it's what the `fanotify` man page shows
-   as an example. */
-/* char procfd_path[PATH_MAX]; */
-/* snprintf(procfd_path, sizeof(procfd_path), "/proc/self/fd/%d", */
-/*          metadata->fd); */
-/* auto const path_len = readlink(procfd_path, path, sizeof(path) - 1);
- */
-/* if (path_len < 0) */
-/*   return do_error("e/sys/readlink", callback); */
-/* else { */
-/* path[path_len] = '\0'; */
-/* std::filesystem::path path{"test"}; */
-
-/* if (metadata->mask & FAN_ONDIR) { */
-/*   if (metadata->mask & (FAN_CREATE)) */
-/*     callback({path, event::what::create, event::kind::dir}); */
-/*   else if (metadata->mask & (FAN_MODIFY)) */
-/*     callback({path, event::what::modify, event::kind::dir}); */
-/*   else if (metadata->mask & (FAN_DELETE)) */
-/*     callback({path, event::what::destroy, event::kind::dir}); */
-/*   else if (metadata->mask & (FAN_MOVED_FROM)) */
-/*     callback({path, event::what::rename, event::kind::dir}); */
-/*   else if (metadata->mask & (FAN_MOVED_TO)) */
-/*     callback({path, event::what::rename, event::kind::dir}); */
-/*   else callback({path, event::what::other, event::kind::other}); */
-/* } else { */
-/*   else if (metadata->mask & (FAN_CREATE)) */
-/*       callback({path, event::what::create, event::kind::file}); */
-/*   else if (metadata->mask & (FAN_MODIFY)) */
-/*       callback({path, event::what::modify, event::kind::file}); */
-/*   else if (metadata->mask & (FAN_DELETE)) */
-/*       callback({path, event::what::destroy, event::kind::file}); */
-/*   else if (metadata->mask & (FAN_MOVED_FROM)) */
-/*       callback({path, event::what::rename, event::kind::file}); */
-/*   else if (metadata->mask & (FAN_MOVED_TO)) */
-/*       callback({path, event::what::rename, event::kind::file}); */
-/*   else callback({path, event::what::other, event::kind::other}); */
-/* } */
-
-/* close(metadata->fd); */
-/* } */
-
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_recv
    Reads through available (fanotify) filesystem events.
    Discerns their path and type.
@@ -257,7 +205,6 @@ inline auto do_resource_release(int watch_fd, int event_fd,
 inline auto do_event_recv(int watch_fd,
                           event::callback const& callback) noexcept -> bool
 {
-  /* char path[PATH_MAX]; */
   struct fanotify_event_metadata event_buf[event_buf_len];
   /* Read some events. */
   auto event_read = read(watch_fd, event_buf, sizeof(event_buf));
@@ -315,6 +262,7 @@ inline auto do_event_recv(int watch_fd,
                 char procpath[128];
                 snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
                 char path_accumulator[PATH_MAX];
+
                 auto const dirname_len
                     = readlink(procpath, path_accumulator,
                                sizeof(path_accumulator) - sizeof('\0'));
@@ -416,11 +364,9 @@ inline auto do_event_recv(int watch_fd,
                                 event::kind::file});
                   }
                 } else {
-                  perror("");
                   return do_error("e/sys/readlink", callback);
                 }
               } else {
-                perror("");
                 return do_error("e/sys/open", callback);
               }
             } else {
