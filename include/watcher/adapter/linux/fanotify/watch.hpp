@@ -6,9 +6,6 @@
   The Linux `fanotify` adapter.
 */
 
-#include <climits>
-#include <cstdio>
-#include <cstring>
 #include <watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
@@ -16,17 +13,14 @@
 #if !defined(WATER_WATCHER_USE_WARTHOG)
 
 #include <fcntl.h>
-#include <linux/fanotify.h>
 #include <sys/epoll.h>
 #include <sys/fanotify.h>
 #include <unistd.h>
 #include <chrono>
+#include <climits>
+#include <cstdio>
+#include <cstring>
 #include <filesystem>
-#include <iostream>
-#include <optional>
-#include <thread>
-#include <tuple>
-#include <unordered_map>
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
@@ -147,9 +141,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
 
     auto do_mark = [&](auto& dir) {
       int wd = fanotify_mark(watch_fd, FAN_MARK_ADD,
-                             FAN_ONDIR
-                                 /* | FAN_EVENT_ON_CHILD */
-                                 | FAN_CREATE | FAN_MODIFY | FAN_DELETE
+                             FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
                                  | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
                              AT_FDCWD, dir.c_str());
       if (wd >= 0)
@@ -177,7 +169,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
   /* Init Flags:
        Post-event reporting, non-blocking IO, and close-on-exec.
      Init Extra Flags:
-       Read-only, large files, and close-on-exec.
+       Read-only and close-on-exec.
      If we were making a filesystem auditor, we could use
      `FAN_CLASS_PRE_CONTENT|FAN_UNLIMITED_QUEUE|FAN_UNLIMITED_MARKS`. */
   /* clang-format off */
