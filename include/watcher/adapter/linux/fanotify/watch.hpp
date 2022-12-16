@@ -97,9 +97,11 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type;
 inline auto do_resource_release(int watch_fd, int event_fd,
+                                std::filesystem::path const& watch_base_path,
                                 event::callback const& callback) noexcept
     -> bool;
-inline auto do_event_recv(int watch_fd, std::filesystem::path const& base_path,
+inline auto do_event_recv(int watch_fd,
+                          std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool;
 inline auto do_error(auto const& msg, event::callback const& callback) noexcept
     -> bool
@@ -125,7 +127,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
               .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
         };
   auto const do_gather_path_marks
-      = [](int const watch_fd, std::filesystem::path const& base_path,
+      = [](int const watch_fd, std::filesystem::path const& watch_base_path,
            event::callback const& callback) -> std::vector<int> {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
     /* Follow symlinks, ignore paths which we don't have permissions for. */
@@ -151,12 +153,12 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
       return true;
     };
 
-    if (!do_mark(base_path))
+    if (!do_mark(watch_base_path))
       return marks;
-    else if (std::filesystem::is_directory(base_path, dir_ec))
+    else if (std::filesystem::is_directory(watch_base_path, dir_ec))
       /* @todo @note
          Should we bail from within this loop if `do_mark` fails? */
-      for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
+      for (auto const& dir : rdir_iterator(watch_base_path, dir_opt, dir_ec))
         if (!dir_ec)
           if (std::filesystem::is_directory(dir, dir_ec))
             if (!dir_ec)
@@ -204,16 +206,16 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    .event_fd = event_fd,
                                    .event_conf = event_conf};
         } else {
-          return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
+          return do_error("e/sys/epoll_ctl@" / path, watch_fd, event_fd);
         }
       } else {
-        return do_error("e/sys/epoll_create", watch_fd, event_fd);
+        return do_error("e/sys/epoll_create@" / path, watch_fd, event_fd);
       }
     } else {
-      return do_error("e/sys/fanotify_mark", watch_fd);
+      return do_error("e/sys/fanotify_mark@" / path, watch_fd);
     }
   } else {
-    return do_error("e/sys/fanotify_init", watch_fd);
+    return do_error("e/sys/fanotify_init@" / path, watch_fd);
   }
 }
 
@@ -221,17 +223,18 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
    Close the file descriptors `watch_fd` and `event_fd`.
    Invoke `callback` on errors. */
 inline auto do_resource_release(int watch_fd, int event_fd,
+                                std::filesystem::path const& watch_base_path,
                                 event::callback const& callback) noexcept
     -> bool
 {
   auto const watch_fd_close_ok = close(watch_fd) == 0;
   auto const event_fd_close_ok = close(event_fd) == 0;
   if (!watch_fd_close_ok)
-    callback(
-        {"e/sys/close/watch_fd", event::what::other, event::kind::watcher});
+    callback({"e/sys/close/watch_fd@" / watch_base_path, event::what::other,
+              event::kind::watcher});
   if (!event_fd_close_ok)
-    callback(
-        {"e/sys/close/event_fd", event::what::other, event::kind::watcher});
+    callback({"e/sys/close/event_fd@" / watch_base_path, event::what::other,
+              event::kind::watcher});
   return watch_fd_close_ok && event_fd_close_ok;
 }
 
@@ -470,19 +473,20 @@ inline bool watch(std::filesystem::path const& path,
       int event_count = epoll_wait(sr.event_fd, event_recv_list,
                                    event_wait_queue_max, delay_ms);
       if (event_count < 0)
-        return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+        return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
                && do_error("e/sys/epoll_wait@" / path, callback);
       else if (event_count > 0)
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd)
             if (is_living())
               if (!do_event_recv(sr.watch_fd, path, callback))
-                return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+                return do_resource_release(sr.watch_fd, sr.event_fd, path,
+                                           callback)
                        && do_error("e/self/event_recv@" / path, callback);
     }
-    return do_resource_release(sr.watch_fd, sr.event_fd, callback);
+    return do_resource_release(sr.watch_fd, sr.event_fd, path, callback);
   } else {
-    return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+    return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
            && do_error("e/self/sys_resource@" / path, callback);
   }
 }

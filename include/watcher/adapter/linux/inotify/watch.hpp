@@ -99,16 +99,17 @@ struct sys_resource_type
 */
 
 inline auto do_path_map_create(int const watch_fd,
-                               std::filesystem::path const& base_path,
+                               std::filesystem::path const& watch_base_path,
                                event::callback const& callback) noexcept
     -> path_map_type;
 inline auto do_sys_resource_create(event::callback const& callback) noexcept
     -> sys_resource_type;
 inline auto do_resource_release(int watch_fd, int event_fd,
+                                std::filesystem::path const& watch_base_path,
                                 event::callback const& callback) noexcept
     -> bool;
 inline auto do_event_recv(int watch_fd, path_map_type& path_map,
-                          std::filesystem::path const& base_path,
+                          std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
@@ -120,7 +121,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
 inline auto do_path_map_create(int const watch_fd,
-                               std::filesystem::path const& base_path,
+                               std::filesystem::path const& watch_base_path,
                                event::callback const& callback) noexcept
     -> path_map_type
 {
@@ -141,12 +142,12 @@ inline auto do_path_map_create(int const watch_fd,
     return wd > 0 ? path_map.emplace(wd, dir).first != path_map.end() : false;
   };
 
-  if (!do_mark(base_path))
+  if (!do_mark(watch_base_path))
     return path_map_type{};
-  else if (std::filesystem::is_directory(base_path, dir_ec))
+  else if (std::filesystem::is_directory(watch_base_path, dir_ec))
     /* @todo @note
        Should we bail from within this loop if `do_mark` fails? */
-    for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
+    for (auto const& dir : rdir_iterator(watch_base_path, dir_opt, dir_ec))
       if (!dir_ec)
         if (std::filesystem::is_directory(dir, dir_ec))
           if (!dir_ec)
@@ -211,17 +212,18 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
    Close the file descriptors `watch_fd` and `event_fd`.
    Invoke `callback` on errors. */
 inline auto do_resource_release(int watch_fd, int event_fd,
+                                std::filesystem::path const& watch_base_path,
                                 event::callback const& callback) noexcept
     -> bool
 {
   auto const watch_fd_close_ok = close(watch_fd) == 0;
   auto const event_fd_close_ok = close(event_fd) == 0;
   if (!watch_fd_close_ok)
-    callback(
-        {"e/sys/close/watch_fd", event::what::other, event::kind::watcher});
+    callback({"e/sys/close/watch_fd@" / watch_base_path, event::what::other,
+              event::kind::watcher});
   if (!event_fd_close_ok)
-    callback(
-        {"e/sys/close/event_fd", event::what::other, event::kind::watcher});
+    callback({"e/sys/close/event_fd@" / watch_base_path, event::what::other,
+              event::kind::watcher});
   return watch_fd_close_ok && event_fd_close_ok;
 }
 
@@ -364,23 +366,24 @@ inline bool watch(std::filesystem::path const& path,
         int event_count = epoll_wait(sr.event_fd, event_recv_list,
                                      event_wait_queue_max, delay_ms);
         if (event_count < 0)
-          return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+          return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
                  && do_error("e/sys/epoll_wait@" / path);
         else if (event_count > 0)
           for (int n = 0; n < event_count; n++)
             if (event_recv_list[n].data.fd == sr.watch_fd)
               if (is_living())
                 if (!do_event_recv(sr.watch_fd, path_map, path, callback))
-                  return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+                  return do_resource_release(sr.watch_fd, sr.event_fd, path,
+                                             callback)
                          && do_error("e/self/event_recv@" / path);
       }
-      return do_resource_release(sr.watch_fd, sr.event_fd, callback);
+      return do_resource_release(sr.watch_fd, sr.event_fd, path, callback);
     } else {
-      return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+      return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
              && do_error("e/self/path_map@" / path);
     }
   } else {
-    return do_resource_release(sr.watch_fd, sr.event_fd, callback)
+    return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
            && do_error("e/self/sys_resource@" / path);
   }
 }
