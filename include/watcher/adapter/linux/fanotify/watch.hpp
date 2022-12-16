@@ -41,25 +41,40 @@ namespace fanotify {
 namespace {
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/constants
-   - event_max_count
+   - delay
+       The delay, in milliseconds, while `epoll_wait` will
+       'sleep' for until we are woken up. We usually check
+       if we're still alive at that point.
+   - event_wait_queue_max
        Number of events allowed to be given to do_event_recv
        (returned by `epoll_wait`). Any number between 1
        and some large number should be fine. We don't
        lose events if we 'miss' them, the events are
        still waiting in the next call to `epoll_wait`.
    - event_buf_len:
-       4096, which is a typical page size.
-   @todo
-   - Handle move events properly. */
-inline constexpr auto event_max_count = 1;
-inline constexpr auto event_buf_len = 4096;
+       For our event buffer, 4096 is a typical page size
+       and sufficiently large to hold a great many events.
+       That's a good thumb-rule, and it might be the best
+       value to use because there will be a possibly long
+       character string (for the filename) in the event.
+       We can infer some things about the size we need for
+       the event buffer, but it's unlikely to be meaningful
+       because of the variably sized character string being
+       reported. We could use something like:
+          event_buf_len
+            = ((event_wait_queue_max + PATH_MAX)
+            * (3 * sizeof(struct fanotify_event_metadata)));
+       But that's a lot of flourish for 72 bytes that won't
+       be meaningful. */
+inline constexpr auto delay_ms = 16;
+inline constexpr auto event_wait_queue_max = 1;
+inline constexpr auto event_buf_len = event_wait_queue_max * PATH_MAX;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
    - sys_resource_type
        An object representing an fanotify file descriptor,
        an epoll file descriptor, an epoll configuration,
        and whether or not these resources are valid. */
-/* using path_map_type = std::unordered_map<int, std::filesystem::path>; */
 struct sys_resource_type
 {
   bool valid;
@@ -115,6 +130,56 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
               .event_fd = event_fd,
               .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
         };
+  auto const do_gather_path_marks = []( int const watch_fd, std::filesystem::path const& base_path,
+                               event::callback const& callback)
+    -> std::vector<int>
+{
+  using rdir_iterator = std::filesystem::recursive_directory_iterator;
+  /* Follow symlinks, ignore paths which we don't have permissions for. */
+  static constexpr auto dir_opt
+      = std::filesystem::directory_options::skip_permission_denied
+        & std::filesystem::directory_options::follow_directory_symlink;
+
+  static constexpr auto marks_reserve_count = 256;
+
+  auto dir_ec = std::error_code{};
+  std::vector<int> marks;
+  marks.reserve(marks_reserve_count);
+
+  auto do_mark = [&](auto& dir) {
+    int wd = fanotify_mark(watch_fd,
+                      FAN_MARK_ADD,
+                      FAN_ONDIR
+                      /* | FAN_EVENT_ON_CHILD */
+                      | FAN_CREATE
+                      | FAN_MODIFY
+                      | FAN_DELETE
+                      | FAN_MOVE
+                      | FAN_DELETE_SELF
+                      | FAN_MOVE_SELF,
+                      AT_FDCWD,
+                      dir.c_str());
+    if (wd >= 0)
+      marks.emplace_back(wd);
+    else
+      return false;
+    return true;
+  };
+
+  if (!do_mark(base_path))
+    return marks;
+  else if (std::filesystem::is_directory(base_path, dir_ec))
+    /* @todo @note
+       Should we bail from within this loop if `do_mark` fails? */
+    for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
+      if (!dir_ec)
+        if (std::filesystem::is_directory(dir, dir_ec))
+          if (!dir_ec)
+            if (!do_mark(dir.path()))
+              callback({"w/sys/path_unwatched@" / dir.path(),
+                        event::what::other, event::kind::watcher});
+  return marks;
+};
 
   /* Init Flags:
        Post-event reporting, non-blocking IO, and close-on-exec.
@@ -130,19 +195,8 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                       | O_NONBLOCK
                       | O_CLOEXEC);
   if (watch_fd >= 0) {
-    if (fanotify_mark(watch_fd,
-                      FAN_MARK_ADD,
-                      FAN_ONDIR
-                      /* | FAN_EVENT_ON_CHILD */
-                      | FAN_CREATE
-                      | FAN_MODIFY
-                      | FAN_DELETE
-                      | FAN_MOVE
-                      | FAN_DELETE_SELF
-                      | FAN_MOVE_SELF,
-                      AT_FDCWD,
-                      path.c_str())
-        >= 0)
+    auto marks = do_gather_path_marks(watch_fd, path, callback);
+    if (!marks.empty())
     {
       /* clang-format on */
       struct epoll_event event_conf
@@ -205,8 +259,8 @@ inline auto do_resource_release(int watch_fd, int event_fd,
 inline auto do_event_recv(int watch_fd,
                           event::callback const& callback) noexcept -> bool
 {
-  struct fanotify_event_metadata event_buf[event_buf_len];
   /* Read some events. */
+  alignas(struct fanotify_event_metadata) char event_buf[event_buf_len];
   auto event_read = read(watch_fd, event_buf, sizeof(event_buf));
 
   /* Error */
@@ -410,27 +464,23 @@ inline bool watch(std::filesystem::path const& path,
                   auto const& is_living) noexcept
 {
   /* Gather these resources:
-       - delay
-           In milliseconds, for epoll
        - system resources
            For fanotify and epoll
        - event recieve list
            For receiving epoll events */
 
-  static constexpr auto delay_ms = 16;
-
   struct sys_resource_type sr = do_sys_resource_create(path, callback);
 
   if (sr.valid) {
-    struct epoll_event event_recv_list[event_max_count];
+    struct epoll_event event_recv_list[event_wait_queue_max];
 
     /* Do this work until dead:
         - Await filesystem events
         - Invoke `callback` on errors and events */
 
     while (is_living()) {
-      int event_count
-          = epoll_wait(sr.event_fd, event_recv_list, event_max_count, delay_ms);
+      int event_count = epoll_wait(sr.event_fd, event_recv_list,
+                                   event_wait_queue_max, delay_ms);
       if (event_count < 0)
         return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                && do_error("e/sys/epoll_wait@" / path, callback);

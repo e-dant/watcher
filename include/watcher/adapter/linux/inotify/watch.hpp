@@ -36,24 +36,31 @@ namespace inotify {
 namespace {
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/constants
-   - event_max_count
+   - delay
+       The delay, in milliseconds, while `epoll_wait` will
+       'sleep' for until we are woken up. We usually check
+       if we're still alive at that point.
+   - event_wait_queue_max
        Number of events allowed to be given to do_event_recv
        (returned by `epoll_wait`). Any number between 1
        and some large number should be fine. We don't
        lose events if we 'miss' them, the events are
        still waiting in the next call to `epoll_wait`.
+   - event_buf_len:
+       For our event buffer, 4096 is a typical page size
+       and sufficiently large to hold a great many events.
+       That's a good thumb-rule.
    - in_init_opt
        Use non-blocking IO.
    - in_watch_opt
        Everything we can get.
-   - event_buf_len:
-       4096, which is a typical page size.
    @todo
    - Measure perf of IN_ALL_EVENTS
    - Handle move events properly.
      - Use IN_MOVED_TO
      - Use event::<something> */
-inline constexpr auto event_max_count = 1;
+inline constexpr auto delay_ms = 16;
+inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt
@@ -130,14 +137,7 @@ inline auto do_path_map_create(std::filesystem::path const& base_path,
 
   auto do_mark = [&](auto& dir) {
     int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
-    return wd < 0
-        ? [&] {
-            callback({"e/sys/inotify_add_watch",
-                     event::what::other, event::kind::watcher});
-            return false; }()
-        : [&] {
-            path_map[wd] = dir;
-            return true;  }();
+    return wd > 0 ? path_map.emplace(wd, dir).first != path_map.end() : false;
   };
 
   if (!do_mark(base_path))
@@ -148,7 +148,10 @@ inline auto do_path_map_create(std::filesystem::path const& base_path,
     for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
       if (!dir_ec)
         if (std::filesystem::is_directory(dir, dir_ec))
-          if (!dir_ec) do_mark(dir.path());
+          if (!dir_ec)
+            if (!do_mark(dir.path()))
+              callback({"w/sys/path_unwatched@" / dir.path(),
+                        event::what::other, event::kind::watcher});
   return path_map;
 };
 
@@ -183,7 +186,7 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
 
     int event_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-        = epoll_create(event_max_count);
+        = epoll_create(event_wait_queue_max);
 #elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
         = epoll_create1(EPOLL_CLOEXEC);
 #endif
@@ -337,8 +340,6 @@ inline bool watch(std::filesystem::path const& path,
   };
 
   /* Gather these resources:
-       - delay
-           In milliseconds, for epoll
        - system resources
            For inotify and epoll
        - event recieve list
@@ -346,13 +347,11 @@ inline bool watch(std::filesystem::path const& path,
        - path map
            For event to path lookups */
 
-  static constexpr auto delay_ms = 16;
-
   struct sys_resource_type sr = do_sys_resource_create(callback);
   if (sr.valid) {
     auto path_map = do_path_map_create(path, sr.watch_fd, callback);
     if (path_map.size() > 0) {
-      struct epoll_event event_recv_list[event_max_count];
+      struct epoll_event event_recv_list[event_wait_queue_max];
 
       /* Do this work until dead:
           - Await filesystem events
@@ -360,7 +359,7 @@ inline bool watch(std::filesystem::path const& path,
 
       while (is_living()) {
         int event_count = epoll_wait(sr.event_fd, event_recv_list,
-                                     event_max_count, delay_ms);
+                                     event_wait_queue_max, delay_ms);
         if (event_count < 0)
           return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                  && do_error("e/sys/epoll_wait@" / path);
