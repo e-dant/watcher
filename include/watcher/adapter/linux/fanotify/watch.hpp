@@ -105,7 +105,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
 inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool;
-inline auto do_event_recv(int watch_fd,
+inline auto do_event_recv(int watch_fd, std::filesystem::path const& base_path,
                           event::callback const& callback) noexcept -> bool;
 inline auto do_error(auto const& msg, event::callback const& callback) noexcept
     -> bool
@@ -250,6 +250,7 @@ inline auto do_resource_release(int watch_fd, int event_fd,
    Returns false on eventful errors.
 */
 inline auto do_event_recv(int watch_fd,
+                          std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool
 {
   /* Read some events. */
@@ -265,8 +266,8 @@ inline auto do_event_recv(int watch_fd,
   /* Eventful */
   else {
     if (event_read == event_buf_len)
-      callback(
-          {"w/self/near_overflow", event::what::other, event::kind::watcher});
+      callback({"w/self/near_overflow@" / watch_base_path, event::what::other,
+                event::kind::watcher});
 
     /* Loop over everything in the event buffer. */
     for (struct fanotify_event_metadata* metadata
@@ -410,23 +411,25 @@ inline auto do_event_recv(int watch_fd,
                                 event::kind::file});
                   }
                 } else {
-                  return do_error("e/sys/readlink", callback);
+                  return do_error("e/sys/readlink@" / watch_base_path,
+                                  callback);
                 }
               } else {
-                return do_error("e/sys/open", callback);
+                callback({"w/sys/open@" / watch_base_path, event::what::other,
+                          event::kind::watcher});
               }
             } else {
-              callback({"w/self/strange_event", event::what::other,
-                        event::kind::watcher});
+              callback({"w/self/wrong_event_info@" / watch_base_path,
+                        event::what::other, event::kind::watcher});
             }
           } else {
-            return do_error("e/sys/overflow", callback);
+            return do_error("e/sys/overflow@" / watch_base_path, callback);
           }
         } else {
-          return do_error("e/sys/kernel_version", callback);
+          return do_error("e/sys/kernel_version@" / watch_base_path, callback);
         }
       } else {
-        return do_error("e/sys/fanotify_strange_fd", callback);
+        return do_error("e/sys/wrong_event_fd@" / watch_base_path, callback);
       }
     }
   }
@@ -481,7 +484,7 @@ inline bool watch(std::filesystem::path const& path,
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd)
             if (is_living())
-              if (!do_event_recv(sr.watch_fd, callback))
+              if (!do_event_recv(sr.watch_fd, path, callback))
                 return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                        && do_error("e/self/event_recv@" / path, callback);
     }

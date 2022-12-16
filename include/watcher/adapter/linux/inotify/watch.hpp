@@ -108,6 +108,7 @@ inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool;
 inline auto do_event_recv(int watch_fd, path_map_type& path_map,
+                          std::filesystem::path const& base_path,
                           event::callback const& callback) noexcept -> bool;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
@@ -235,6 +236,7 @@ inline auto do_resource_release(int watch_fd, int event_fd,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
 inline auto do_event_recv(int watch_fd, path_map_type& path_map,
+                          std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool
 {
   alignas(struct inotify_event) char buf[event_buf_len];
@@ -280,7 +282,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
           auto event_path = event_dir_path / event_base_name;
 
           if (this_event->mask & IN_Q_OVERFLOW) {
-            callback({"e/self/overflow@" / event_dir_path, event::what::other,
+            callback({"e/self/overflow@" / watch_base_path, event::what::other,
                       event::kind::watcher});
           } else if (this_event->mask & IN_CREATE) {
             callback({event_path, event::what::create, path_kind});
@@ -303,7 +305,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
         /* We don't want to return here. We run until `eventless`. */
         break;
       case event_recv_state::error:
-        callback({"e/sys/read", event::what::other, event::kind::watcher});
+        callback({"e/sys/read@" / watch_base_path, event::what::other,
+                  event::kind::watcher});
         return false;
         break;
       case event_recv_state::eventless: return true; break;
@@ -367,7 +370,7 @@ inline bool watch(std::filesystem::path const& path,
           for (int n = 0; n < event_count; n++)
             if (event_recv_list[n].data.fd == sr.watch_fd)
               if (is_living())
-                if (!do_event_recv(sr.watch_fd, path_map, callback))
+                if (!do_event_recv(sr.watch_fd, path_map, path, callback))
                   return do_resource_release(sr.watch_fd, sr.event_fd, callback)
                          && do_error("e/self/event_recv@" / path);
       }
