@@ -130,56 +130,49 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
               .event_fd = event_fd,
               .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
         };
-  auto const do_gather_path_marks = []( int const watch_fd, std::filesystem::path const& base_path,
-                               event::callback const& callback)
-    -> std::vector<int>
-{
-  using rdir_iterator = std::filesystem::recursive_directory_iterator;
-  /* Follow symlinks, ignore paths which we don't have permissions for. */
-  static constexpr auto dir_opt
-      = std::filesystem::directory_options::skip_permission_denied
-        & std::filesystem::directory_options::follow_directory_symlink;
+  auto const do_gather_path_marks
+      = [](int const watch_fd, std::filesystem::path const& base_path,
+           event::callback const& callback) -> std::vector<int> {
+    using rdir_iterator = std::filesystem::recursive_directory_iterator;
+    /* Follow symlinks, ignore paths which we don't have permissions for. */
+    static constexpr auto dir_opt
+        = std::filesystem::directory_options::skip_permission_denied
+          & std::filesystem::directory_options::follow_directory_symlink;
 
-  static constexpr auto marks_reserve_count = 256;
+    static constexpr auto marks_reserve_count = 256;
 
-  auto dir_ec = std::error_code{};
-  std::vector<int> marks;
-  marks.reserve(marks_reserve_count);
+    auto dir_ec = std::error_code{};
+    std::vector<int> marks;
+    marks.reserve(marks_reserve_count);
 
-  auto do_mark = [&](auto& dir) {
-    int wd = fanotify_mark(watch_fd,
-                      FAN_MARK_ADD,
-                      FAN_ONDIR
-                      /* | FAN_EVENT_ON_CHILD */
-                      | FAN_CREATE
-                      | FAN_MODIFY
-                      | FAN_DELETE
-                      | FAN_MOVE
-                      | FAN_DELETE_SELF
-                      | FAN_MOVE_SELF,
-                      AT_FDCWD,
-                      dir.c_str());
-    if (wd >= 0)
-      marks.emplace_back(wd);
-    else
-      return false;
-    return true;
-  };
+    auto do_mark = [&](auto& dir) {
+      int wd = fanotify_mark(watch_fd, FAN_MARK_ADD,
+                             FAN_ONDIR
+                                 /* | FAN_EVENT_ON_CHILD */
+                                 | FAN_CREATE | FAN_MODIFY | FAN_DELETE
+                                 | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                             AT_FDCWD, dir.c_str());
+      if (wd >= 0)
+        marks.emplace_back(wd);
+      else
+        return false;
+      return true;
+    };
 
-  if (!do_mark(base_path))
+    if (!do_mark(base_path))
+      return marks;
+    else if (std::filesystem::is_directory(base_path, dir_ec))
+      /* @todo @note
+         Should we bail from within this loop if `do_mark` fails? */
+      for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
+        if (!dir_ec)
+          if (std::filesystem::is_directory(dir, dir_ec))
+            if (!dir_ec)
+              if (!do_mark(dir.path()))
+                callback({"w/sys/path_unwatched@" / dir.path(),
+                          event::what::other, event::kind::watcher});
     return marks;
-  else if (std::filesystem::is_directory(base_path, dir_ec))
-    /* @todo @note
-       Should we bail from within this loop if `do_mark` fails? */
-    for (auto const& dir : rdir_iterator(base_path, dir_opt, dir_ec))
-      if (!dir_ec)
-        if (std::filesystem::is_directory(dir, dir_ec))
-          if (!dir_ec)
-            if (!do_mark(dir.path()))
-              callback({"w/sys/path_unwatched@" / dir.path(),
-                        event::what::other, event::kind::watcher});
-  return marks;
-};
+  };
 
   /* Init Flags:
        Post-event reporting, non-blocking IO, and close-on-exec.
