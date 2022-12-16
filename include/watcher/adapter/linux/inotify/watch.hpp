@@ -98,8 +98,8 @@ struct sys_resource_type
        -> bool
 */
 
-inline auto do_path_map_create(std::filesystem::path const& base_path,
-                               int const watch_fd,
+inline auto do_path_map_create(int const watch_fd,
+                               std::filesystem::path const& base_path,
                                event::callback const& callback) noexcept
     -> path_map_type;
 inline auto do_sys_resource_create(event::callback const& callback) noexcept
@@ -118,8 +118,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_map_create(std::filesystem::path const& base_path,
-                               int const watch_fd,
+inline auto do_path_map_create(int const watch_fd,
+                               std::filesystem::path const& base_path,
                                event::callback const& callback) noexcept
     -> path_map_type
 {
@@ -349,7 +349,7 @@ inline bool watch(std::filesystem::path const& path,
 
   struct sys_resource_type sr = do_sys_resource_create(callback);
   if (sr.valid) {
-    auto path_map = do_path_map_create(path, sr.watch_fd, callback);
+    auto path_map = do_path_map_create(sr.watch_fd, path, callback);
     if (path_map.size() > 0) {
       struct epoll_event event_recv_list[event_wait_queue_max];
 
