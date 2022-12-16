@@ -161,7 +161,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
           if (std::filesystem::is_directory(dir, dir_ec))
             if (!dir_ec)
               if (!do_mark(dir.path()))
-                callback({"w/sys/path_unwatched@" / dir.path(),
+                callback({"w/sys/path_unwatched@@" / dir.path(),
                           event::what::other, event::kind::watcher});
     return marks;
   };
