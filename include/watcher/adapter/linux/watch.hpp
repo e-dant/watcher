@@ -3,7 +3,7 @@
 /*
   @brief wtr/watcher/detail/adapter/linux
 
-  The Linux `inotify` adapter.
+  The Linux adapters.
 */
 
 #include <watcher/platform.hpp>
@@ -28,7 +28,7 @@ namespace adapter {
 
   Monitors `path` for changes.
   Invokes `callback` with an `event` when they happen.
-  `watch` stops when asked to or irrecoverable errors occur.
+  `watch` stops when asked to or unrecoverable errors occur.
   All events, including errors, are passed to `callback`.
 
   @param path
