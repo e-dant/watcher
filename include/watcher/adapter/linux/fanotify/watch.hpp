@@ -16,6 +16,7 @@
 #include <sys/epoll.h>
 #include <sys/fanotify.h>
 #include <unistd.h>
+#include <cerrno>
 #include <chrono>
 #include <climits>
 #include <cstdio>
@@ -91,6 +92,9 @@ struct sys_resource_type
 
      do_error
        -> bool
+
+     do_warning
+       -> bool
 */
 
 inline auto do_sys_resource_create(std::filesystem::path const& path,
@@ -103,11 +107,23 @@ inline auto do_resource_release(int watch_fd, int event_fd,
 inline auto do_event_recv(int watch_fd,
                           std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool;
-inline auto do_error(auto const& msg, event::callback const& callback) noexcept
-    -> bool
+inline auto do_error(auto const& error, auto const& path,
+                     event::callback const& callback) noexcept -> bool
 {
+  auto msg = std::string(error)
+                 .append("(")
+                 .append(strerror(errno))
+                 .append(")@")
+                 .append(path);
   callback({msg, event::what::other, event::kind::watcher});
   return false;
+};
+inline auto do_warning(auto const& error, auto const& path,
+                       event::callback const& callback) noexcept -> bool
+{
+  auto msg = std::string(error).append("@").append(path);
+  callback({msg, event::what::other, event::kind::watcher});
+  return true;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_create
@@ -117,15 +133,20 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const do_error
-      = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
-          callback({msg, event::what::other, event::kind::watcher});
-          return sys_resource_type{
-              .valid = false,
-              .watch_fd = watch_fd,
-              .event_fd = event_fd,
-              .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
-        };
+  auto const do_error = [&callback](auto const& error, auto const& path,
+                                    int watch_fd, int event_fd = -1) {
+    auto msg = std::string(error)
+                   .append("(")
+                   .append(strerror(errno))
+                   .append(")@")
+                   .append(path);
+    callback({msg, event::what::other, event::kind::watcher});
+    return sys_resource_type{
+        .valid = false,
+        .watch_fd = watch_fd,
+        .event_fd = event_fd,
+        .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
+  };
   auto const do_gather_path_marks
       = [](int const watch_fd, std::filesystem::path const& watch_base_path,
            event::callback const& callback) -> std::vector<int> {
@@ -163,8 +184,10 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
           if (std::filesystem::is_directory(dir, dir_ec))
             if (!dir_ec)
               if (!do_mark(dir.path()))
-                callback({"w/sys/path_unwatched@@" / dir.path(),
-                          event::what::other, event::kind::watcher});
+                do_warning(
+                    "w/sys/path_unwatched",
+                    std::string(watch_base_path).append("@").append(dir.path()),
+                    callback);
     return marks;
   };
 
@@ -206,16 +229,16 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    .event_fd = event_fd,
                                    .event_conf = event_conf};
         } else {
-          return do_error("e/sys/epoll_ctl@" / path, watch_fd, event_fd);
+          return do_error("e/sys/epoll_ctl", path, watch_fd, event_fd);
         }
       } else {
-        return do_error("e/sys/epoll_create@" / path, watch_fd, event_fd);
+        return do_error("e/sys/epoll_create", path, watch_fd, event_fd);
       }
     } else {
-      return do_error("e/sys/fanotify_mark@" / path, watch_fd);
+      return do_error("e/sys/fanotify_mark", path, watch_fd);
     }
   } else {
-    return do_error("e/sys/fanotify_init@" / path, watch_fd);
+    return do_error("e/sys/fanotify_init", path, watch_fd);
   }
 }
 
@@ -230,11 +253,9 @@ inline auto do_resource_release(int watch_fd, int event_fd,
   auto const watch_fd_close_ok = close(watch_fd) == 0;
   auto const event_fd_close_ok = close(event_fd) == 0;
   if (!watch_fd_close_ok)
-    callback({"e/sys/close/watch_fd@" / watch_base_path, event::what::other,
-              event::kind::watcher});
+    do_error("e/sys/close/watch_fd", watch_base_path, callback);
   if (!event_fd_close_ok)
-    callback({"e/sys/close/event_fd@" / watch_base_path, event::what::other,
-              event::kind::watcher});
+    do_error("e/sys/close/event_fd", watch_base_path, callback);
   return watch_fd_close_ok && event_fd_close_ok;
 }
 
@@ -254,15 +275,14 @@ inline auto do_event_recv(int watch_fd,
 
   /* Error */
   if (event_read < 0 && errno != EAGAIN)
-    return do_error("e/sys/read", callback);
+    return do_error("e/sys/read", watch_base_path, callback);
   /* Eventless */
   else if (event_read == 0)
     return true;
   /* Eventful */
   else {
     if (event_read == event_buf_len)
-      callback({"w/self/near_overflow@" / watch_base_path, event::what::other,
-                event::kind::watcher});
+      do_warning("w/sys/read/near_overflow", watch_base_path, callback);
 
     /* Loop over everything in the event buffer. */
     for (struct fanotify_event_metadata* metadata
@@ -406,25 +426,23 @@ inline auto do_event_recv(int watch_fd,
                                 event::kind::file});
                   }
                 } else {
-                  return do_error("e/sys/readlink@" / watch_base_path,
-                                  callback);
+                  return do_error("e/sys/readlink", watch_base_path, callback);
                 }
               } else {
-                callback({"w/sys/open@" / watch_base_path, event::what::other,
-                          event::kind::watcher});
+                return do_warning("w/sys/open", watch_base_path, callback);
               }
             } else {
-              callback({"w/self/wrong_event_info@" / watch_base_path,
-                        event::what::other, event::kind::watcher});
+              return do_warning("w/self/wrong_event_info", watch_base_path,
+                                callback);
             }
           } else {
-            return do_error("e/sys/overflow@" / watch_base_path, callback);
+            return do_error("e/sys/overflow", watch_base_path, callback);
           }
         } else {
-          return do_error("e/sys/kernel_version@" / watch_base_path, callback);
+          return do_error("e/sys/kernel_version", watch_base_path, callback);
         }
       } else {
-        return do_error("e/sys/wrong_event_fd@" / watch_base_path, callback);
+        return do_error("e/sys/wrong_event_fd", watch_base_path, callback);
       }
     }
   }
@@ -474,7 +492,7 @@ inline bool watch(std::filesystem::path const& path,
                                    event_wait_queue_max, delay_ms);
       if (event_count < 0)
         return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
-               && do_error("e/sys/epoll_wait@" / path, callback);
+               && do_error("e/sys/epoll_wait", path, callback);
       else if (event_count > 0)
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd)
@@ -482,12 +500,12 @@ inline bool watch(std::filesystem::path const& path,
               if (!do_event_recv(sr.watch_fd, path, callback))
                 return do_resource_release(sr.watch_fd, sr.event_fd, path,
                                            callback)
-                       && do_error("e/self/event_recv@" / path, callback);
+                       && do_error("e/self/event_recv", path, callback);
     }
     return do_resource_release(sr.watch_fd, sr.event_fd, path, callback);
   } else {
     return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
-           && do_error("e/self/sys_resource@" / path, callback);
+           && do_error("e/self/sys_resource", path, callback);
   }
 }
 
