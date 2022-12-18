@@ -101,9 +101,9 @@ enum class kind {
 };
 
 namespace {
-inline auto what_repr(auto const& ev)
+inline auto what_repr(enum what const& w)
 {
-  switch (ev.what) {
+  switch (w) {
     case what::rename: return "rename";
     case what::modify: return "modify";
     case what::create: return "create";
@@ -114,9 +114,9 @@ inline auto what_repr(auto const& ev)
   }
 }
 
-inline auto kind_repr(auto const& ev)
+inline auto kind_repr(enum kind const& k)
 {
-  switch (ev.kind) {
+  switch (k) {
     case kind::dir: return "dir";
     case kind::file: return "file";
     case kind::hard_link: return "hard_link";
@@ -175,18 +175,32 @@ struct event
   /* @brief wtr/watcher/event/<<
      Streams out `where`, `what` and `kind`.
      Formats the stream as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, const event& ev) noexcept
+  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
   {
     /* clang-format off */
     return os << R"(")" << ev.when << R"(":)"
               << "{"
                   << R"("where":)" << ev.where      << R"(,)"
-                  << R"("what":")"  << what_repr(ev) << R"(",)"
-                  << R"("kind":")"  << kind_repr(ev) << R"(")"
+                  << R"("what":")"  << what_repr(ev.what) << R"(",)"
+                  << R"("kind":")"  << kind_repr(ev.kind) << R"(")"
               << "}";
     /* clang-format on */
   }
 };
+
+/* @brief wtr/watcher/event/<<
+   Streams out the event's `what` field. */
+inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
+{
+  return os << "\"" << what_repr(w) << "\"";
+}
+
+/* @brief wtr/watcher/event/<<
+   Streams out the event's `kind` field. */
+inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
+{
+  return os << "\"" << kind_repr(k) << "\"";
+}
 
 /* @brief watcher/event/callback
    Ensure the adapters can recieve events
