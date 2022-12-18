@@ -33,11 +33,11 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
 
   std::cout << "events sent =>\n";
   for (auto const& ev : event_sent_list) {
-    std::cout << " " << ev.where << ",\n";
+    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
   }
 
   std::cout << "events recv =>\n";
   for (auto const& ev : event_recv_list) {
-    std::cout << " " << ev.where << ",\n";
+    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
   }
 };

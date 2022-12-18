@@ -36,7 +36,7 @@ TEST_CASE("Directory Events", "[directory_events]")
 
   auto const watch_path = dir_store_path;
   auto const event_callback
-      = [](auto this_event) { std::cout << this_event << "," << std::endl; };
+      = [](auto this_event) { std::cout << this_event << std::endl; };
 
   show_conf("directory_events", test_store_path, watch_path);
 

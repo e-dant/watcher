@@ -60,8 +60,9 @@ TEST_CASE("Simple", "[simple]")
         = wtr::watcher::watch(store_path, [](event::event const& ev) {
             auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
-            std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
-                      << ev << "\n\n";
+            if (ev.kind == event::kind::watcher)
+              std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
+                        << ev << "\n\n";
 
             event_recv_list.push_back(ev);
           });
@@ -98,8 +99,9 @@ TEST_CASE("Simple", "[simple]")
       = wtr::watcher::die(store_path, [&](event::event const& ev) {
           auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
 
-          std::cout << "test @ '" << store_path << "' @ die -> recv\n => " << ev
-                    << "\n\n";
+          if (ev.kind == event::kind::watcher)
+            std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
+                      << ev << "\n\n";
 
           event_recv_list.push_back(ev);
         });
@@ -111,12 +113,12 @@ TEST_CASE("Simple", "[simple]")
 
   std::cout << "events sent =>\n";
   for (auto const& ev : event_sent_list) {
-    std::cout << " " << ev.where << ",\n";
+    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
   }
 
   std::cout << "events recv =>\n";
   for (auto const& ev : event_recv_list) {
-    std::cout << " " << ev.where << ",\n";
+    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
   }
 
   std::filesystem::remove_all(base_store_path);
