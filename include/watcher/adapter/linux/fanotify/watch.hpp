@@ -22,6 +22,9 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
 #include <watcher/adapter/adapter.hpp>
 #include <watcher/event.hpp>
 
@@ -63,31 +66,47 @@ namespace {
        be meaningful. */
 inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
-inline constexpr auto event_buf_len = event_wait_queue_max * PATH_MAX;
+inline constexpr auto event_buf_len
+    = PATH_MAX;  // event_wait_queue_max * PATH_MAX;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
    - sys_resource_type
-       An object representing an fanotify file descriptor,
-       an epoll file descriptor, an epoll configuration,
-       and whether or not these resources are valid. */
+       An object holding:
+         - An fanotify file descriptor
+         - An epoll file descriptor
+         - An epoll configuration
+         - A set of watch marks (as returned by fanotify_mark)
+         - A map of (sub)path handles to filesystem paths (names)
+         - A boolean representing the validity of these resources */
+using path_mark_container_type = std::unordered_set<int>;
+using dir_name_container_type
+    = std::unordered_map<unsigned long, std::filesystem::path>;
+
 struct sys_resource_type
 {
   bool valid;
   int watch_fd;
   int event_fd;
   struct epoll_event event_conf;
+  path_mark_container_type path_mark_container;
+  dir_name_container_type dir_name_container;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns
-   Functions:
 
      do_sys_resource_create
        -> sys_resource_type
 
-     do_resource_release
+     do_sys_resource_destroy
        -> bool
 
      do_event_recv
+       -> bool
+
+     do_path_mark_add
+       -> bool
+
+     do_path_mark_remove
        -> bool
 
      do_error
@@ -97,16 +116,54 @@ struct sys_resource_type
        -> bool
 */
 
-inline auto do_sys_resource_create(std::filesystem::path const& path,
-                                   event::callback const& callback) noexcept
+inline auto do_sys_resource_create(std::filesystem::path const&,
+                                   event::callback const&) noexcept
     -> sys_resource_type;
-inline auto do_resource_release(int watch_fd, int event_fd,
-                                std::filesystem::path const& watch_base_path,
-                                event::callback const& callback) noexcept
+inline auto do_sys_resource_destroy(sys_resource_type&,
+                                    std::filesystem::path const&,
+                                    event::callback const&) noexcept -> bool;
+inline auto do_event_recv(sys_resource_type&, std::filesystem::path const&,
+                          event::callback const&) noexcept -> bool;
+inline auto do_path_mark_add(std::filesystem::path const&, int,
+                             path_mark_container_type&) noexcept -> bool;
+inline auto do_path_mark_remove(std::filesystem::path const&, int,
+                                path_mark_container_type&) noexcept -> bool;
+inline auto do_error(auto const&, auto const&, event::callback const&) noexcept
     -> bool;
-inline auto do_event_recv(int watch_fd,
-                          std::filesystem::path const& watch_base_path,
-                          event::callback const& callback) noexcept -> bool;
+inline auto do_warning(auto const&, auto const&,
+                       event::callback const&) noexcept -> bool;
+
+inline auto do_path_mark_add(std::filesystem::path const& full_path,
+                             int watch_fd,
+                             path_mark_container_type& pmc) noexcept -> bool
+{
+  int wd = fanotify_mark(watch_fd, FAN_MARK_ADD,
+                         FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
+                             | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                         AT_FDCWD, full_path.c_str());
+  if (wd >= 0)
+    pmc.insert(wd);
+  else
+    return false;
+  return true;
+};
+
+inline auto do_path_mark_remove(std::filesystem::path const& full_path,
+                                int watch_fd,
+                                path_mark_container_type& pmc) noexcept -> bool
+{
+  int wd = fanotify_mark(watch_fd, FAN_MARK_REMOVE,
+                         FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
+                             | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                         AT_FDCWD, full_path.c_str());
+  auto const at = pmc.find(wd);
+  if (wd >= 0 && at != pmc.end())
+    pmc.erase(at);
+  else
+    return false;
+  return true;
+};
+
 inline auto do_error(auto const& error, auto const& path,
                      event::callback const& callback) noexcept -> bool
 {
@@ -118,6 +175,7 @@ inline auto do_error(auto const& error, auto const& path,
   callback({msg, event::what::other, event::kind::watcher});
   return false;
 };
+
 inline auto do_warning(auto const& error, auto const& path,
                        event::callback const& callback) noexcept -> bool
 {
@@ -145,54 +203,47 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
         .valid = false,
         .watch_fd = watch_fd,
         .event_fd = event_fd,
-        .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
+        .event_conf = {.events = 0, .data = {.fd = watch_fd}},
+        .path_mark_container = {},
+        .dir_name_container = {},
+    };
   };
-  auto const do_gather_path_marks
+  auto const do_path_map_container_create
       = [](int const watch_fd, std::filesystem::path const& watch_base_path,
-           event::callback const& callback) -> std::vector<int> {
+           event::callback const& callback) -> path_mark_container_type {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
+
     /* Follow symlinks, ignore paths which we don't have permissions for. */
     static constexpr auto dir_opt
         = std::filesystem::directory_options::skip_permission_denied
           & std::filesystem::directory_options::follow_directory_symlink;
 
-    static constexpr auto marks_reserve_count = 256;
+    static constexpr auto rsrv_count = 1024;
 
-    auto dir_ec = std::error_code{};
-    std::vector<int> marks;
-    marks.reserve(marks_reserve_count);
+    /* auto dir_ec = std::error_code{}; */
+    path_mark_container_type pmc;
+    pmc.reserve(rsrv_count);
 
-    auto do_mark = [&](auto& dir) {
-      int wd = fanotify_mark(watch_fd, FAN_MARK_ADD,
-                             FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
-                                 | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
-                             AT_FDCWD, dir.c_str());
-      if (wd >= 0)
-        marks.emplace_back(wd);
-      else
-        return false;
-      return true;
-    };
+    if (!do_path_mark_add(watch_base_path, watch_fd, pmc))
+      return pmc;
 
-    if (!do_mark(watch_base_path))
-      return marks;
-    else if (std::filesystem::is_directory(watch_base_path, dir_ec))
-      /* @todo @note
-         Should we bail from within this loop if `do_mark` fails? */
-      for (auto const& dir : rdir_iterator(watch_base_path, dir_opt, dir_ec))
-        if (!dir_ec)
-          if (std::filesystem::is_directory(dir, dir_ec))
-            if (!dir_ec)
-              if (!do_mark(dir.path()))
-                do_warning(
-                    "w/sys/path_unwatched",
-                    std::string(watch_base_path).append("@").append(dir.path()),
-                    callback);
-    return marks;
+    else if (std::filesystem::is_directory(watch_base_path))
+      try {
+        for (auto const& dir : rdir_iterator(watch_base_path, dir_opt))
+          if (std::filesystem::is_directory(dir))
+            if (!do_path_mark_add(dir.path(), watch_fd, pmc))
+              do_warning(
+                  "w/sys/not_watched",
+                  std::string(watch_base_path).append("@").append(dir.path()),
+                  callback);
+      } catch (...) {
+        do_warning("w/sys/not_watched", watch_base_path, callback);
+      }
+    return pmc;
   };
 
   /* Init Flags:
-       Post-event reporting, non-blocking IO, and close-on-exec.
+       Post-event reporting, non-blocking IO and unlimited marks.
      Init Extra Flags:
        Read-only and close-on-exec.
      If we were making a filesystem auditor, we could use
@@ -200,13 +251,15 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
   /* clang-format off */
   int watch_fd
       = fanotify_init(FAN_CLASS_NOTIF
-                      | FAN_REPORT_DFID_NAME,
+                      | FAN_REPORT_DFID_NAME
+                      | FAN_UNLIMITED_QUEUE
+                      | FAN_UNLIMITED_MARKS,
                       O_RDONLY
                       | O_NONBLOCK
                       | O_CLOEXEC);
   if (watch_fd >= 0) {
-    auto marks = do_gather_path_marks(watch_fd, path, callback);
-    if (!marks.empty())
+    auto pmc = do_path_map_container_create(watch_fd, path, callback);
+    if (!pmc.empty())
     {
       /* clang-format on */
       struct epoll_event event_conf
@@ -224,10 +277,14 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
 
       if (event_fd >= 0) {
         if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0) {
-          return sys_resource_type{.valid = true,
-                                   .watch_fd = watch_fd,
-                                   .event_fd = event_fd,
-                                   .event_conf = event_conf};
+          return sys_resource_type{
+              .valid = true,
+              .watch_fd = watch_fd,
+              .event_fd = event_fd,
+              .event_conf = event_conf,
+              .path_mark_container = std::move(pmc),
+              .dir_name_container = {},
+          };
         } else {
           return do_error("e/sys/epoll_ctl", path, watch_fd, event_fd);
         }
@@ -242,16 +299,15 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
   }
 }
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_resource_release
-   Close the file descriptors `watch_fd` and `event_fd`.
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_destroy
+   Close the resources in the system resource type `sr`.
    Invoke `callback` on errors. */
-inline auto do_resource_release(int watch_fd, int event_fd,
-                                std::filesystem::path const& watch_base_path,
-                                event::callback const& callback) noexcept
-    -> bool
+inline auto do_sys_resource_destroy(
+    sys_resource_type& sr, std::filesystem::path const& watch_base_path,
+    event::callback const& callback) noexcept -> bool
 {
-  auto const watch_fd_close_ok = close(watch_fd) == 0;
-  auto const event_fd_close_ok = close(event_fd) == 0;
+  auto const watch_fd_close_ok = close(sr.watch_fd) == 0;
+  auto const event_fd_close_ok = close(sr.event_fd) == 0;
   if (!watch_fd_close_ok)
     do_error("e/sys/close/watch_fd", watch_base_path, callback);
   if (!event_fd_close_ok)
@@ -259,195 +315,276 @@ inline auto do_resource_release(int watch_fd, int event_fd,
   return watch_fd_close_ok && event_fd_close_ok;
 }
 
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/lift_event_path
+   This lifts a path from our cache, in the system resource object `sr`, if
+   available. Otherwise, it will try to read a directory and directory entry.
+   Sometimes, such as on a directory being destroyed and the file not being
+   able to be opened, the directory entry is the only event info. We can still
+   get the rest of the path in those cases, however, by looking up the cached
+   "upper" directory that event belongs to.
+   Using the cache is helpful in other cases, too. This is an averaged bench of
+   the three paths this function can go down:
+     - Cache:            2427ns
+     - Dir:              8905ns
+     - Dir + Dir Entry:  31966ns */
+inline auto lift_event_path(sys_resource_type& sr,
+                            decltype(fanotify_event_metadata::mask) const& mask,
+                            auto const& dfid_info,
+                            std::filesystem::path const& watch_base_path,
+                            event::callback const& callback) noexcept
+    -> std::optional<std::filesystem::path>
+{
+  auto const& nip
+      = [&]() -> std::optional<
+                  std::pair<std::filesystem::path const, unsigned long const>> {
+    /* The shenanigans we do here depend on this event being
+       `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
+       some info about the directory and the directory entry
+       (the filename) of this event that doesn't exist when
+       other event types are reported. In particular, we need
+       a file descriptor to the directory (which we use
+       `readlink` on) and a character string representing the
+       name of the directory entry.
+       TLDR: We need information for the full path of the event,
+       information which is only reported inside this `if`.
+
+           [ The following is (mostly) quoting from the kernel ]
+           Variable size struct for
+           dir file handle + child file handle + name
+
+           [ Omitting definition of `fanotify_info` here ]
+
+           (struct fanotify_fh) dir_fh starts at
+             buf[0]
+
+           (optional) dir2_fh starts at
+             buf[dir_fh_totlen]
+
+           (optional) file_fh starts at
+             buf[dir_fh_totlen + dir2_fh_totlen]
+
+           name starts at
+             buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
+           ...
+
+           [ end quote ]
+
+
+       The kernel guarentees that there is a null-terminated
+       character string to the event's directory entry
+       after the file handle to the directory.
+       Confusing, right?
+    */
+
+    auto const path_accum_append
+        = [](auto& path_accum, auto const& dfid_info, auto const& dir_fh,
+             auto const& dirname_len) -> void {
+      char* name_info = (char*)(dfid_info + 1);
+      char* filename
+          = (char*)(name_info + sizeof(struct file_handle)
+                    + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
+                    + sizeof(dir_fh->handle_type));
+      if (filename != nullptr && strcmp(filename, ".") != 0)
+        snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
+                 "/%s", filename);
+    };
+
+    auto const path_accum_front = [](auto& path_accum, auto const& dfid_info,
+                                     auto const& dir_fh) -> void {
+      char* name_info = (char*)(dfid_info + 1);
+      char* filename
+          = (char*)(name_info + sizeof(struct file_handle)
+                    + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
+                    + sizeof(dir_fh->handle_type));
+      if (filename != nullptr && strcmp(filename, ".") != 0)
+        snprintf(path_accum, sizeof(path_accum), "/%s", filename);
+    };
+
+    auto const dir_fh = (struct file_handle*)dfid_info->handle;
+
+    unsigned long dir_id{(unsigned long)(std::abs(dir_fh->handle_type))};
+
+    for (unsigned i = 0; i < dir_fh->handle_bytes; i++)
+      dir_id += dir_fh->f_handle[i];
+
+    auto const dit = sr.dir_name_container.find(dir_id);
+
+    if (dit != sr.dir_name_container.end()) {
+      /* We already have a path name, use it */
+      char path_accum[PATH_MAX];
+      auto dirname = dit->second.c_str();
+      auto dirname_len = dit->second.string().length();
+      snprintf(path_accum, sizeof(path_accum), "%s", dirname);
+      path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
+
+      return std::make_pair(std::filesystem::path(path_accum), dir_id);
+
+    } else {
+      /* We can get a path name, so get that and use it */
+      char path_accum[PATH_MAX];
+      int fd = open_by_handle_at(AT_FDCWD, dir_fh,
+                                 O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
+      if (fd > 0) {
+        char procpath[128];
+        snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
+        auto const dirname_len
+            = readlink(procpath, path_accum, sizeof(path_accum) - sizeof('\0'));
+        close(fd);
+
+        if (dirname_len > 0) {
+          path_accum[dirname_len] = '\0';
+          /* Put the directory name in the path accumulator.
+             Then, if a directory entry for this event exists
+             And it's not the directory itself
+             Put it in the path accumulator. */
+          path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
+
+          return std::make_pair(std::filesystem::path(path_accum), dir_id);
+        }
+
+        do_warning("w/sys/readlink", watch_base_path, callback);
+        return std::nullopt;
+      } else {
+        path_accum_front(path_accum, dfid_info, dir_fh);
+
+        return std::make_pair(std::filesystem::path(path_accum), dir_id);
+      }
+    }
+  }();
+
+  if (nip.has_value()) {
+    auto& [full_path, dir_id] = nip.value();
+    if (mask & FAN_ONDIR) {
+      if (mask & FAN_CREATE) {
+        auto const& at = sr.dir_name_container.find(dir_id);
+        if (at == sr.dir_name_container.end()) {
+          sr.dir_name_container.emplace(dir_id, full_path.parent_path());
+        }
+        do_path_mark_add(full_path, sr.watch_fd, sr.path_mark_container);
+      } else if (mask & FAN_DELETE) {
+        do_path_mark_remove(full_path, sr.watch_fd, sr.path_mark_container);
+        auto const& at = sr.dir_name_container.find(dir_id);
+        if (at != sr.dir_name_container.end()) sr.dir_name_container.erase(at);
+      }
+    }
+    return full_path;
+  }
+  return std::nullopt;
+};
+
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/event_send
+   This is the heart of the adapter.
+   Everything flows from here. */
+inline auto event_send(decltype(fanotify_event_metadata::mask) const& mask,
+                       std::optional<std::filesystem::path> const& path,
+                       event::callback const& callback) noexcept -> void
+{
+  using namespace wtr::watcher::event;
+
+  if (path.has_value()) {
+    auto const& p = path.value();
+    if (mask & FAN_ONDIR) {
+      if (mask & FAN_CREATE)
+        callback({p, what::create, kind::dir});
+      else if (mask & FAN_MODIFY)
+        callback({p, what::modify, kind::dir});
+      else if (mask & FAN_DELETE)
+        callback({p, what::destroy, kind::dir});
+      else if (mask & FAN_MOVED_FROM)
+        callback({p, what::rename, kind::dir});
+      else if (mask & FAN_MOVED_TO)
+        callback({p, what::rename, kind::dir});
+      else
+        callback({p, what::other, kind::dir});
+
+    } else {
+      if (mask & FAN_CREATE)
+        callback({p, what::create, kind::file});
+      else if (mask & FAN_MODIFY)
+        callback({p, what::modify, kind::file});
+      else if (mask & FAN_DELETE)
+        callback({p, what::destroy, kind::file});
+      else if (mask & FAN_MOVED_FROM)
+        callback({p, what::rename, kind::file});
+      else if (mask & FAN_MOVED_TO)
+        callback({p, what::rename, kind::file});
+      else
+        callback({p, what::other, kind::file});
+    }
+  } else {
+    do_warning("w/self/no_path", "", callback);
+  }
+};
+
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_recv
    Reads through available (fanotify) filesystem events.
    Discerns their path and type.
    Calls the callback.
    Returns false on eventful errors.
-*/
-inline auto do_event_recv(int watch_fd,
+   @note
+   The `metadata->fd` field contains either a file
+   descriptor or the value `FAN_NOFD`. File descriptors
+   are always greater than 0. `FAN_NOFD` represents an
+   event queue overflow for `fanotify` listeners which
+   are _not_ monitoring file handles, such as mount
+   monitors. The file handle is in the metadata when an
+   `fanotify` listener is monitoring events by their
+   file handles.
+   The `metadata->vers` field may differ between kernel
+   versions, so we check it against what we have been
+   compiled with. */
+inline auto do_event_recv(sys_resource_type& sr,
                           std::filesystem::path const& watch_base_path,
                           event::callback const& callback) noexcept -> bool
 {
   /* Read some events. */
   alignas(struct fanotify_event_metadata) char event_buf[event_buf_len];
-  auto event_read = read(watch_fd, event_buf, sizeof(event_buf));
+  auto event_read = read(sr.watch_fd, event_buf, sizeof(event_buf));
 
   /* Error */
   if (event_read < 0 && errno != EAGAIN)
     return do_error("e/sys/read", watch_base_path, callback);
-  /* Eventless */
-  else if (event_read == 0)
-    return true;
-  /* Eventful */
-  else {
-    if (event_read == event_buf_len)
-      do_warning("w/sys/read/near_overflow", watch_base_path, callback);
 
+  /* Eventful */
+  else if (event_read > 0)
     /* Loop over everything in the event buffer. */
-    for (struct fanotify_event_metadata* metadata
-         = (struct fanotify_event_metadata*)event_buf;
+    for (auto* metadata = (struct fanotify_event_metadata const*)event_buf;
          FAN_EVENT_OK(metadata, event_read);
          metadata = FAN_EVENT_NEXT(metadata, event_read))
-    {
-      struct fanotify_event_info_fid* dfid_info
-          = (struct fanotify_event_info_fid*)(metadata + 1);
+      if (metadata->fd == FAN_NOFD)
+        if (metadata->vers == FANOTIFY_METADATA_VERSION)
+          if (!(metadata->mask & FAN_Q_OVERFLOW))
+            if (((fanotify_event_info_fid*)(metadata + 1))->hdr.info_type
+                == FAN_EVENT_INFO_TYPE_DFID_NAME)
 
-      /* The `metadata->fd` field contains either a file
-         descriptor or the value `FAN_NOFD`. File descriptors
-         are always greater than 0. `FAN_NOFD` represents an
-         event queue overflow for `fanotify` listeners which
-         are _not_ monitoring file handles, such as mount
-         monitors. The file handle is in the metadata when an
-         `fanotify` listener is monitoring events by their
-         file handles.
-         The `metadata->vers` field may differ between kernel
-         versions, so we check it against what we have been
-         compiled with. */
-      if (metadata->fd == FAN_NOFD) {
-        if (metadata->vers == FANOTIFY_METADATA_VERSION) {
-          if (!(metadata->mask & FAN_Q_OVERFLOW)) {
-            if (dfid_info->hdr.info_type == FAN_EVENT_INFO_TYPE_DFID_NAME) {
-              /* The shenanigans we do here depend on this event being
-                 `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
-                 some info about the directory and the directory entry
-                 (the filename) of this event that doesn't exist when
-                 other event types are reported. In particular, we need
-                 a file descriptor to the directory (which we use
-                 `readlink` on) and a character string representing the
-                 name of the directory entry.
-                 TLDR: We need information for the full path of the event,
-                 information which is only reported inside this `if`. */
-              int fd = open_by_handle_at(
-                  AT_FDCWD, (struct file_handle*)dfid_info->handle,
-                  O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
-              if (fd > 0) {
-                char path_accumulator[PATH_MAX];
-                char procpath[128];
-                snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-                auto const dirname_len
-                    = readlink(procpath, path_accumulator,
-                               sizeof(path_accumulator) - sizeof('\0'));
-                close(fd);
-                if (dirname_len > 0) {
-                  path_accumulator[dirname_len] = '\0';
+              /* This is the important part:
+                 Send the events we recieve.
+                 Everything before here here
+                 is a layer of translation
+                 between us and the kernel. */
+              event_send(
+                  metadata->mask,
+                  lift_event_path(sr, metadata->mask,
+                                  ((fanotify_event_info_fid*)(metadata + 1)),
+                                  watch_base_path, callback),
+                  callback);
 
-                  /* [ The following is (mostly) quoting from the kernel ]
-                     Variable size struct for
-                     dir file handle + child file handle + name
-
-                     [ Omitting definition of `fanotify_info` here ]
-
-                     (struct fanotify_fh) dir_fh starts at
-                       buf[0]
-
-                     (optional) dir2_fh starts at
-                       buf[dir_fh_totlen]
-
-                     (optional) file_fh starts at
-                       buf[dir_fh_totlen + dir2_fh_totlen]
-
-                     name starts at
-                       buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
-                     ...
-
-                     [ end quote ] */
-
-                  char* name_info = (char*)(dfid_info + 1);
-                  struct file_handle* dfid_fh
-                      = (struct file_handle*)dfid_info->handle;
-                  /* The kernel guarentees that there is a null-terminated
-                     character string to the event's directory entry
-                     after the file handle to the directory.
-                     Confusing, right? */
-                  char* filename
-                      = (char*)(name_info + sizeof(struct file_handle)
-                                + sizeof(dfid_fh->f_handle)
-                                + sizeof(dfid_fh->handle_bytes)
-                                + sizeof(dfid_fh->handle_type));
-                  if (/* If a directory entry for this event exists */
-                      filename != nullptr
-                      /* And it's not the directory itself */
-                      && strcmp(filename, ".") != 0)
-                    /* Put it in the path accumulator */
-                    snprintf(path_accumulator + dirname_len,
-                             sizeof(path_accumulator) - dirname_len, "/%s",
-                             filename);
-
-                  if (metadata->mask & FAN_ONDIR) {
-                    if (metadata->mask & FAN_CREATE)
-                      callback({path_accumulator, event::what::create,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_MODIFY)
-                      callback({path_accumulator, event::what::modify,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_DELETE)
-                      callback({path_accumulator, event::what::destroy,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_MOVED_FROM)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_MOVED_TO)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_DELETE_SELF)
-                      callback({path_accumulator, event::what::destroy,
-                                event::kind::dir});
-                    else if (metadata->mask & FAN_MOVE_SELF)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::dir});
-                    else
-                      callback({path_accumulator, event::what::other,
-                                event::kind::dir});
-                  } else {
-                    if (metadata->mask & FAN_CREATE)
-                      callback({path_accumulator, event::what::create,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_MODIFY)
-                      callback({path_accumulator, event::what::modify,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_DELETE)
-                      callback({path_accumulator, event::what::destroy,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_MOVED_FROM)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_MOVED_TO)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_DELETE_SELF)
-                      callback({path_accumulator, event::what::destroy,
-                                event::kind::file});
-                    else if (metadata->mask & FAN_MOVE_SELF)
-                      callback({path_accumulator, event::what::rename,
-                                event::kind::file});
-                    else
-                      callback({path_accumulator, event::what::other,
-                                event::kind::file});
-                  }
-                } else {
-                  return do_error("e/sys/readlink", watch_base_path, callback);
-                }
-              } else {
-                return do_warning("w/sys/open", watch_base_path, callback);
-              }
-            } else {
-              return do_warning("w/self/wrong_event_info", watch_base_path,
-                                callback);
-            }
-          } else {
+            else
+              return do_warning("w/self/event_info", watch_base_path, callback);
+          else
             return do_error("e/sys/overflow", watch_base_path, callback);
-          }
-        } else {
+        else
           return do_error("e/sys/kernel_version", watch_base_path, callback);
-        }
-      } else {
+      else
         return do_error("e/sys/wrong_event_fd", watch_base_path, callback);
-      }
-    }
-  }
+
+  /* Eventless */
+  else
+    return true;
+
+  /* Value after looping */
   return true;
-}
+};
 
 } /* namespace */
 
@@ -491,20 +628,19 @@ inline bool watch(std::filesystem::path const& path,
       int event_count = epoll_wait(sr.event_fd, event_recv_list,
                                    event_wait_queue_max, delay_ms);
       if (event_count < 0)
-        return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
+        return do_sys_resource_destroy(sr, path, callback)
                && do_error("e/sys/epoll_wait", path, callback);
       else if (event_count > 0)
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd)
             if (is_living())
-              if (!do_event_recv(sr.watch_fd, path, callback))
-                return do_resource_release(sr.watch_fd, sr.event_fd, path,
-                                           callback)
+              if (!do_event_recv(sr, path, callback))
+                return do_sys_resource_destroy(sr, path, callback)
                        && do_error("e/self/event_recv", path, callback);
     }
-    return do_resource_release(sr.watch_fd, sr.event_fd, path, callback);
+    return do_sys_resource_destroy(sr, path, callback);
   } else {
-    return do_resource_release(sr.watch_fd, sr.event_fd, path, callback)
+    return do_sys_resource_destroy(sr, path, callback)
            && do_error("e/self/sys_resource", path, callback);
   }
 }
