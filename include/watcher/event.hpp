@@ -189,14 +189,14 @@ struct event
 };
 
 /* @brief wtr/watcher/event/<<
-   Streams out the event's `what` field. */
+   Streams out a `what` value. */
 inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
 {
   return os << "\"" << what_repr(w) << "\"";
 }
 
 /* @brief wtr/watcher/event/<<
-   Streams out the event's `kind` field. */
+   Streams out a `kind` value. */
 inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
 {
   return os << "\"" << kind_repr(k) << "\"";
