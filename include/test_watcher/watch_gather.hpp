@@ -49,20 +49,26 @@ namespace test_watcher {
 
    @todo
      Make printing an option */
-auto watch_gather(auto const& title = "test", /* Title */
-                  auto const& store_path      /* Store Path */
+auto watch_gather(auto const& /* Title */
+                      title
+                  = "test",
+                  auto const& /* Store Path */
+                      store_path
                   = wtr::test_watcher::test_store_path / "tmp_store",
-                  int const path_count = 10, /* Path Event Count */
-                  int const concurrency_level
-                  = 1,                            /* Concurrent Watcher Count */
-                  std::chrono::milliseconds const /* Simulated Lifetime */
+                  int const /* Path Event Count */
+                      path_count
+                  = 10,
+                  int const /* Concurrent Watcher Count */
+                      concurrency_level
+                  = 1,
+                  std::chrono::milliseconds const& /* Simulated Lifetime */
                       alive_for_ms_target
                   = std::chrono::milliseconds(1000))
 {
   auto event_recv_list = std::vector<wtr::watcher::event::event>{};
   auto event_recv_list_mtx = std::mutex{};
 
-  auto event_list = std::vector<wtr::watcher::event::event>{};
+  auto event_sent_list = std::vector<wtr::watcher::event::event>{};
   auto watch_path_list = std::vector<std::filesystem::path>{};
 
   auto futures = std::vector<std::future<bool>>{};
@@ -75,12 +81,16 @@ auto watch_gather(auto const& title = "test", /* Title */
     assert(alive_for_ms_target.count() > 0);
 
     for (auto i = 0; i < concurrency_level; i++)
-      watch_path_list.push_back(store_path / std::to_string(i));
+      watch_path_list.emplace_back(store_path / std::to_string(i));
 
     auto wps = std::string{};
     for (auto const& p : watch_path_list) wps += "\"" + p.string() + "\",\n  ";
 
-    wtr::test_watcher::show_conf(title, store_path, wps);
+
+    if (std::string(title).find("[ verbose ]") != std::string::npos)
+      wtr::test_watcher::show_conf(title, store_path, wps);
+    else
+      std::cout << title << std::endl;
 
     std::filesystem::create_directory(wtr::test_watcher::test_store_path);
     assert(std::filesystem::exists(wtr::test_watcher::test_store_path));
@@ -105,7 +115,7 @@ auto watch_gather(auto const& title = "test", /* Title */
     for (auto const& p : watch_path_list) {
       assert(std::filesystem::exists(p));
 
-      futures.push_back(std::async(std::launch::async, [&]() {
+      futures.emplace_back(std::async(std::launch::async, [&]() {
         auto const watch_ok = (wtr::watcher::watch(
             p, [&](wtr::watcher::event::event const& ev) {
               auto _ = std::scoped_lock{event_recv_list_mtx};
@@ -113,7 +123,7 @@ auto watch_gather(auto const& title = "test", /* Title */
               auto ok_add = true;
               for (auto const& p : watch_path_list)
                 if (ev.where == p) ok_add = false;
-              if (ok_add) event_recv_list.push_back(ev);
+              if (ok_add) event_recv_list.emplace_back(ev);
             }));
         return watch_ok;
       }));
@@ -127,14 +137,19 @@ auto watch_gather(auto const& title = "test", /* Title */
 
   /* Create Filesystem Events */
   {
-    auto _ = std::scoped_lock{event_recv_list_mtx};
-    for (auto const& p : watch_path_list) {
-      wtr::test_watcher::mk_events(
-          p, path_count, event_list,
-          wtr::test_watcher::mk_events_options
-              | wtr::test_watcher::mk_events_die_after);
-      assert(std::filesystem::exists(p));
-    }
+    for (auto const& p : watch_path_list)
+      event_sent_list.emplace_back(
+          watcher::event::event{std::string("s/self/live@").append(p),
+                                wtr::watcher::event::what::create,
+                                wtr::watcher::event::kind::watcher});
+    for (auto const& p : watch_path_list)
+      wtr::test_watcher::mk_events(p, path_count, &event_sent_list);
+    for (auto const& p : watch_path_list) assert(std::filesystem::exists(p));
+    for (auto const& p : watch_path_list)
+      event_sent_list.emplace_back(
+          watcher::event::event{std::string("s/self/die@").append(p),
+                                wtr::watcher::event::what::destroy,
+                                wtr::watcher::event::kind::watcher});
   }
 
   /* Wait */
@@ -151,7 +166,7 @@ auto watch_gather(auto const& title = "test", /* Title */
           = wtr::watcher::die(p, [&event_recv_list, &event_recv_list_mtx](
                                      wtr::watcher::event::event const& ev) {
               auto _ = std::scoped_lock{event_recv_list_mtx};
-              event_recv_list.push_back(ev);
+              event_recv_list.emplace_back(ev);
             });
       assert(dead);
     }
@@ -196,7 +211,7 @@ auto watch_gather(auto const& title = "test", /* Title */
 
   /* The assertions would have already failed us
      if we were not ok */
-  return std::make_pair(std::move(event_list), std::move(event_recv_list));
+  return std::make_pair(std::move(event_sent_list), std::move(event_recv_list));
 };
 
 } /* namespace test_watcher */

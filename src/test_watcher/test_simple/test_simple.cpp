@@ -39,7 +39,6 @@ TEST_CASE("Simple", "[simple]")
 
   static auto event_recv_list = std::vector<event::event>{};
   static auto event_recv_list_mtx = std::mutex{};
-  static auto cout_mtx = std::mutex{};
 
   static auto event_sent_list = std::vector<event::event>{};
 
@@ -48,22 +47,21 @@ TEST_CASE("Simple", "[simple]")
   auto const base_store_path = wtr::test_watcher::test_store_path;
   static auto const store_path = base_store_path / "simple_store";
 
+  static constexpr auto title = "Simple";
+
+  std::cout << title << std::endl;
+
   std::filesystem::create_directories(store_path);
   REQUIRE(std::filesystem::exists(base_store_path)
           && std::filesystem::exists(store_path));
 
-  event_sent_list.push_back({"s/self/live@" + store_path.string(),
+  event_sent_list.push_back({std::string("s/self/live@").append(store_path),
                              event::what::create, event::kind::watcher});
 
   auto watch_handle = std::async(std::launch::async, []() {
     auto const watch_ok
         = wtr::watcher::watch(store_path, [](event::event const& ev) {
-            auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
-
-            if (ev.kind == event::kind::watcher)
-              std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
-                        << ev << "\n\n";
-
+            auto _ = std::scoped_lock{event_recv_list_mtx};
             event_recv_list.push_back(ev);
           });
     return watch_ok;
@@ -92,17 +90,12 @@ TEST_CASE("Simple", "[simple]")
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  event_sent_list.push_back({"s/self/live@" + store_path.string(),
-                             event::what::create, event::kind::watcher});
+  event_sent_list.push_back({std::string("s/self/die@").append(store_path),
+                             event::what::destroy, event::kind::watcher});
 
   auto const die_ok
       = wtr::watcher::die(store_path, [&](event::event const& ev) {
-          auto _ = std::scoped_lock{cout_mtx, event_recv_list_mtx};
-
-          if (ev.kind == event::kind::watcher)
-            std::cout << "test @ '" << store_path << "' @ live -> recv\n => "
-                      << ev << "\n\n";
-
+          auto _ = std::scoped_lock{event_recv_list_mtx};
           event_recv_list.push_back(ev);
         });
 
@@ -111,16 +104,28 @@ TEST_CASE("Simple", "[simple]")
   REQUIRE(die_ok);
   REQUIRE(watch_ok);
 
-  std::cout << "events sent =>\n";
-  for (auto const& ev : event_sent_list) {
-    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
-  }
-
-  std::cout << "events recv =>\n";
-  for (auto const& ev : event_recv_list) {
-    std::cout << " {" << ev.where << "," << ev.what << "," << ev.kind << "},\n";
-  }
-
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));
+
+  for (size_t i = 0;
+       i < std::min(event_sent_list.size(), event_recv_list.size()); ++i)
+  {
+    if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
+      if (event_sent_list[i].where != event_recv_list[i].where)
+        std::cout << "[ where ] [ " << i << " ] sent "
+                  << event_sent_list[i].where << ", but received "
+                  << event_recv_list[i].where << "\n";
+      if (event_sent_list[i].what != event_recv_list[i].what)
+        std::cout << "[ what ] [ " << i << " ] sent " << event_sent_list[i].what
+                  << ", but received " << event_recv_list[i].what << "\n";
+      if (event_sent_list[i].kind != event_recv_list[i].kind)
+        std::cout << "[ kind ] [ " << i << " ] sent " << event_sent_list[i].kind
+                  << ", but received " << event_recv_list[i].kind << "\n";
+      REQUIRE(event_sent_list[i].where == event_recv_list[i].where);
+      REQUIRE(event_sent_list[i].what == event_recv_list[i].what);
+      REQUIRE(event_sent_list[i].kind == event_recv_list[i].kind);
+    }
+  }
+
+  REQUIRE(event_sent_list.size() == event_recv_list.size());
 };
