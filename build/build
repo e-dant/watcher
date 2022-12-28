@@ -8,6 +8,7 @@ then
       [--no-build-release]
       [--no-build-debug]
       [--no-build-test]
+      [--no-build]
       [--no-run-test]
       [--install]
     ]
@@ -19,6 +20,7 @@ then
     --no-build-release:   Skip builds with optimizations
     --no-build-debug:     Skip builds with sanitizers and debug symbols
     --no-build-test:      Skip builds with sanitizers, benchmarks and unit tests
+    --no-build:           Skip building everything
     --no-run-test:        Skip running the benchmarks and unit tests
     --install:            Install the release build
 
@@ -267,7 +269,7 @@ build::check::sanitizer_allowed_for::this() {
 
 build::build() {
   local ok=0
-  if ! echo "$*" | grep -q -- --no-build-release
+  if ! echo "$*" | grep -qE -- '--no-build|--no-build-release'
   then
     echo "$SEPERATOR"
 
@@ -299,7 +301,7 @@ build::build() {
     ok=$((ok + $?))
   fi
 
-  if ! echo "$*" | grep -q -- --no-build-debug
+  if ! echo "$*" | grep -qE -- '--no-build|--no-build-debug'
   then
     for S in "${SANITIZERS[@]}"
     do
@@ -341,7 +343,7 @@ build::build() {
     done
   fi
 
-  if ! echo "$*" | grep -q -- --no-build-test
+  if ! echo "$*" | grep -qE -- '--no-build|--no-build-test'
   then
     for S in "${SANITIZERS[@]}"
     do
@@ -392,7 +394,7 @@ build::build() {
 }
 
 build::run::test() {
-  if ! echo "$*" | grep -q -- --no-run-test
+  if ! echo "$*" | grep -qE -- '--no-build|--no-run-test'
   then
     for TEST in "${TESTS[@]}"
     do
