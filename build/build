@@ -11,6 +11,7 @@ then
       [--no-build]
       [--no-run-test]
       [--install]
+      [--clean]
     ]
 
   Arguments
@@ -23,6 +24,7 @@ then
     --no-build:           Skip building everything
     --no-run-test:        Skip running the benchmarks and unit tests
     --install:            Install the release build
+    --clean:              Removes the build/out directory
 
   Summary
     Build the Watcher.
@@ -440,7 +442,13 @@ build::write::current_artifacts() {
   for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
 
-  ln -sf "$current_artifact_file" "$latest_artifact_file"
+  test -f "$latest_artifact_file" \
+    && ln -sf "$current_artifact_file" "$latest_artifact_file"
+}
+
+build::clean() {
+  if echo "$*" | grep -q -- --clean
+  then rm -rf "$OUT_DIR"; fi
 }
 
 build::install() {
@@ -458,7 +466,8 @@ build::install() {
 
 # Other than initializing some variables,
 # nothing is done until right here.
-build::build "$@" \
+build::clean "$@" \
+  && build::build "$@" \
   && build::run::test "$@" \
   && build::write::current_artifacts \
   && build::install "$@"
