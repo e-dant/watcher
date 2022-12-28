@@ -429,13 +429,16 @@ build::show::artifacts() {
 # produced in this build invocation only,
 # to the file 'build/out/artifacts.txt'.
 build::write::current_artifacts() {
-  current_artifact_file="$OUT_DIR/artifacts.txt"
+  latest_artifact_file="$OUT_DIR/artifacts.txt"
+  current_artifact_file="$OUT_DIR/artifacts-$(date +"%Y.%m.%d-t%H.%M.%S").txt"
 
   test -e "$current_artifact_file" \
     && rm -rf "$current_artifact_file"
 
   for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
+
+  ln -sf "$current_artifact_file" "$latest_artifact_file"
 }
 
 build::install() {
@@ -455,7 +458,6 @@ build::install() {
 # nothing is done until right here.
 build::build "$@" \
   && build::run::test "$@" \
-  && build::show::artifacts \
   && build::write::current_artifacts \
   && build::install "$@"
 
