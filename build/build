@@ -408,7 +408,7 @@ build::run::test() {
     do
       while read -r TEST_PATH
       do
-        test_title="[ ${TEST_PATH##*test/} ]"
+        test_title="$(echo "[ ${TEST_PATH##*test/} ]" | sed 's/wtr.test_watcher.test_//g')"
         chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
 
         for character in $(seq 1 $chars_on_left_side)
