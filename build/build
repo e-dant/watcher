@@ -50,12 +50,12 @@ fi
 # @note build/build/build_seperator
 # This is meant to look like the seperators that Catch uses.
 BUILD_SEPERATOR='
-===============================[ watcher/build ]==============================='
+================================[ watcher/build ]=============================='
 
 # @note build/build/test_seperator
 # Alternative for seperating test runs.
 TEST_SEPERATOR='
-===============================[ watcher/test ]================================'
+================================[ watcher/test ]==============================='
 
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.
