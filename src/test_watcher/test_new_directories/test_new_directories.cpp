@@ -106,24 +106,24 @@ TEST_CASE("New Directories", "[new_directories]")
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-  event_sent_list.push_back({std::string("s/self/die@").append(base_store_path.string()),
-                             wtr::watcher::event::what::destroy,
-                             wtr::watcher::event::kind::watcher});
+  event_sent_list.push_back(
+      {std::string("s/self/die@").append(base_store_path.string()),
+       wtr::watcher::event::what::destroy, wtr::watcher::event::kind::watcher});
 
-  wtr::watcher::die(base_store_path,
-                    [&](wtr::watcher::event::event const& ev) {
-                      auto _ = std::scoped_lock{event_recv_list_mtx};
-                      event_recv_list.push_back(ev);
-                    });
+  wtr::watcher::die(base_store_path, [&](wtr::watcher::event::event const& ev) {
+    auto _ = std::scoped_lock{event_recv_list_mtx};
+    event_recv_list.push_back(ev);
+  });
 
   REQUIRE(watcher_future.get());
 
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));
 
-  auto const max_i = event_sent_list.size() > event_recv_list.size() ? event_recv_list.size() : event_sent_list.size();
-  for (size_t i = 0; i < max_i; ++i)
-  {
+  auto const max_i = event_sent_list.size() > event_recv_list.size()
+                         ? event_recv_list.size()
+                         : event_sent_list.size();
+  for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)
         std::cout << "[ where ] [ " << i << " ] sent "

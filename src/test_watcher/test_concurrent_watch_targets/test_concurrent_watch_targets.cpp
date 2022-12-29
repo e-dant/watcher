@@ -31,9 +31,10 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
       "Concurrent Event Targets", store_path, path_count, concurrency_level,
       alive_for_ms);
 
-  auto const max_i = event_sent_list.size() > event_recv_list.size() ? event_recv_list.size() : event_sent_list.size();
-  for (size_t i = 0; i < max_i; ++i)
-  {
+  auto const max_i = event_sent_list.size() > event_recv_list.size()
+                         ? event_recv_list.size()
+                         : event_sent_list.size();
+  for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)
         std::cout << "[ where ] [ " << i << " ] sent "
