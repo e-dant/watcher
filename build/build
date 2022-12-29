@@ -271,7 +271,7 @@ build::check::sanitizer_allowed_for::this() {
 
 build::build() {
   local ok=0
-  if ! echo "$*" | grep -qE -- '--no-build|--no-build-release'
+  if ! echo "$*" | grep -qE -- '--no-build |--no-build-release'
   then
     echo "$SEPERATOR"
 
@@ -303,7 +303,7 @@ build::build() {
     ok=$((ok + $?))
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build|--no-build-debug'
+  if ! echo "$*" | grep -qE -- '--no-build |--no-build-debug'
   then
     for S in "${SANITIZERS[@]}"
     do
@@ -345,7 +345,7 @@ build::build() {
     done
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build|--no-build-test'
+  if ! echo "$*" | grep -qE -- '--no-build |--no-build-test'
   then
     for S in "${SANITIZERS[@]}"
     do
@@ -396,7 +396,7 @@ build::build() {
 }
 
 build::run::test() {
-  if ! echo "$*" | grep -qE -- '--no-build|--no-run-test'
+  if ! echo "$*" | grep -qE -- '--no-build |--no-run-test'
   then
     for TEST in "${TESTS[@]}"
     do
@@ -429,9 +429,9 @@ build::show::artifacts() {
 }
 
 # @note build/write/current_artifacts
-# Writes, by overwriting, the artifacts,
-# produced in this build invocation only,
-# to the file 'build/out/artifacts.txt'.
+# Writes, by date and time, the artifacts,
+# produced in this build invocation only.
+# Links that file to 'build/out/artifacts.txt'.
 build::write::current_artifacts() {
   latest_artifact_file="$OUT_DIR/artifacts.txt"
   current_artifact_file="$OUT_DIR/artifacts-$(date +"%Y.%m.%d-t%H.%M.%S").txt"
@@ -442,7 +442,7 @@ build::write::current_artifacts() {
   for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
 
-  test -f "$latest_artifact_file" \
+  ! echo "$*" | grep -q -- --clean \
     && ln -sf "$current_artifact_file" "$latest_artifact_file"
 }
 
@@ -469,7 +469,7 @@ build::install() {
 build::clean "$@" \
   && build::build "$@" \
   && build::run::test "$@" \
-  && build::write::current_artifacts \
+  && build::write::current_artifacts "$@" \
   && build::install "$@"
 
 EC=$?
