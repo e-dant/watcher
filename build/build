@@ -410,8 +410,7 @@ build::run::test() {
       do
         test_title="[ ${TEST_PATH##*test/} ]"
         chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
-        # echo $test_name
-        # echo $chars_on_left_side
+
         for character in $(seq 1 $chars_on_left_side)
         do
           test_title="-$test_title"
