@@ -19,8 +19,6 @@
 /* ms_now,
    ms_duration */
 #include <test_watcher/chrono.hpp>
-/* show_conf */
-#include <test_watcher/conf.hpp>
 /* mk_events */
 #include <test_watcher/event.hpp>
 /* vector */
@@ -86,11 +84,7 @@ auto watch_gather(auto const& /* Title */
     auto wps = std::string{};
     for (auto const& p : watch_path_list) wps += "\"" + p.string() + "\",\n  ";
 
-
-    if (std::string(title).find("[ verbose ]") != std::string::npos)
-      wtr::test_watcher::show_conf(title, store_path, wps);
-    else
-      std::cout << title << std::endl;
+    std::cout << title << std::endl;
 
     std::filesystem::create_directory(wtr::test_watcher::test_store_path);
     assert(std::filesystem::exists(wtr::test_watcher::test_store_path));
@@ -139,7 +133,7 @@ auto watch_gather(auto const& /* Title */
   {
     for (auto const& p : watch_path_list)
       event_sent_list.emplace_back(
-          watcher::event::event{std::string("s/self/live@").append(p),
+          watcher::event::event{std::string("s/self/live@").append(p.string()),
                                 wtr::watcher::event::what::create,
                                 wtr::watcher::event::kind::watcher});
     for (auto const& p : watch_path_list)
@@ -147,7 +141,7 @@ auto watch_gather(auto const& /* Title */
     for (auto const& p : watch_path_list) assert(std::filesystem::exists(p));
     for (auto const& p : watch_path_list)
       event_sent_list.emplace_back(
-          watcher::event::event{std::string("s/self/die@").append(p),
+          watcher::event::event{std::string("s/self/die@").append(p.string()),
                                 wtr::watcher::event::what::destroy,
                                 wtr::watcher::event::kind::watcher});
   }

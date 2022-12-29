@@ -60,7 +60,7 @@ TEST_CASE("New Directories", "[new_directories]")
   std::filesystem::create_directory(base_store_path);
 
   event_sent_list.push_back(
-      {std::string("s/self/live@").append(base_store_path),
+      {std::string("s/self/live@").append(base_store_path.string()),
        wtr::watcher::event::what::create, wtr::watcher::event::kind::watcher});
 
   auto watcher_future = (std::async(std::launch::async, [&base_store_path]() {
@@ -106,7 +106,7 @@ TEST_CASE("New Directories", "[new_directories]")
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-  event_sent_list.push_back({std::string("s/self/die@").append(base_store_path),
+  event_sent_list.push_back({std::string("s/self/die@").append(base_store_path.string()),
                              wtr::watcher::event::what::destroy,
                              wtr::watcher::event::kind::watcher});
 
@@ -121,8 +121,8 @@ TEST_CASE("New Directories", "[new_directories]")
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));
 
-  for (size_t i = 0;
-       i < std::min(event_sent_list.size(), event_recv_list.size()); ++i)
+  auto const max_i = event_sent_list.size() > event_recv_list.size() ? event_recv_list.size() : event_sent_list.size();
+  for (size_t i = 0; i < max_i; ++i)
   {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

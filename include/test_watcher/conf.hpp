@@ -1,8 +1,5 @@
 #pragma once
 
-/* cout,
-   endl */
-#include <iostream>
 /* round */
 #include <cmath>
 /* move */
@@ -21,17 +18,6 @@ auto seperator(auto const& test_name, char const symbol = '-')
   auto side_bar = string(gap_len, symbol);
   auto&& full = side_bar + title + side_bar;
   return std::move(full);
-}
-
-auto show_conf(auto const& test_name, auto const& test_store_path,
-               auto const&... watch_paths)
-{
-  using std::cout, std::string;
-
-  cout << seperator(test_name) << "\n"
-       << test_name << " ->"
-       << "\n\n @ test store path =>\n  " << test_store_path
-       << "\n\n @ watch paths =>\n  " << string{watch_paths...} << "\n";
 }
 
 } /* namespace test_watcher */

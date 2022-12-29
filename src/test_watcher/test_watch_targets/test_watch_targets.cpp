@@ -29,8 +29,8 @@ TEST_CASE("Event Targets", "[event_targets]")
   auto [event_sent_list, event_recv_list] = wtr::test_watcher::watch_gather(
       "Event Targets", store_path, path_count);
 
-  for (size_t i = 0;
-       i < std::min(event_sent_list.size(), event_recv_list.size()); ++i)
+  auto const max_i = event_sent_list.size() > event_recv_list.size() ? event_recv_list.size() : event_sent_list.size();
+  for (size_t i = 0; i < max_i; ++i)
   {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

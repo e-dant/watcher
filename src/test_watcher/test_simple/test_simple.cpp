@@ -55,7 +55,7 @@ TEST_CASE("Simple", "[simple]")
   REQUIRE(std::filesystem::exists(base_store_path)
           && std::filesystem::exists(store_path));
 
-  event_sent_list.push_back({std::string("s/self/live@").append(store_path),
+  event_sent_list.push_back({std::string("s/self/live@").append(store_path.string()),
                              event::what::create, event::kind::watcher});
 
   auto watch_handle = std::async(std::launch::async, []() {
@@ -90,7 +90,7 @@ TEST_CASE("Simple", "[simple]")
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  event_sent_list.push_back({std::string("s/self/die@").append(store_path),
+  event_sent_list.push_back({std::string("s/self/die@").append(store_path.string()),
                              event::what::destroy, event::kind::watcher});
 
   auto const die_ok
@@ -107,8 +107,9 @@ TEST_CASE("Simple", "[simple]")
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));
 
+  auto const max_i = event_sent_list.size() > event_recv_list.size() ? event_recv_list.size() : event_sent_list.size();
   for (size_t i = 0;
-       i < std::min(event_sent_list.size(), event_recv_list.size()); ++i)
+       i < max_i; ++i)
   {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)
