@@ -431,7 +431,7 @@ build::run::test() {
           # run test, show & save results
 
           "$TEST_PATH" \
-            | tee "$TEST_PATH.result_$(date +"%Y.%m.%d_t%H.%M.%S").txt"
+            | tee "$TEST_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
 
         fi
       done <<< "$(find . -type f -name "wtr.test_watcher.$TEST" -or -name "wtr.test_watcher.$TEST.exe")"
@@ -459,7 +459,7 @@ build::show::artifacts() {
 # Links that file to 'build/out/artifacts.txt'.
 build::write::current_artifacts() {
   latest_artifact_file="$OUT_DIR/artifacts.txt"
-  current_artifact_file="$OUT_DIR/artifacts_$(date +"%Y.%m.%d_t%H.%M.%S").txt"
+  current_artifact_file="$OUT_DIR/artifacts_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
 
   test -e "$current_artifact_file" \
     && rm -rf "$current_artifact_file"
