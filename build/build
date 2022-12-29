@@ -47,9 +47,15 @@ else
   PLATFORM="$1"
 fi
 
-# @note build/build/seperator
+# @note build/build/build_seperator
 # This is meant to look like the seperators that Catch uses.
-SEPERATOR='===============================[ watcher/build ]==============================='
+BUILD_SEPERATOR='
+===============================[ watcher/build ]==============================='
+
+# @note build/build/test_seperator
+# Alternative for seperating test runs.
+TEST_SEPERATOR='
+===============================[ watcher/test ]================================'
 
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.
@@ -271,9 +277,9 @@ build::check::sanitizer_allowed_for::this() {
 
 build::build() {
   local ok=0
-  if ! echo "$*" | grep -qE -- '--no-build |--no-build-release'
+  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-release'
   then
-    echo "$SEPERATOR"
+    echo "$BUILD_SEPERATOR"
 
     this_out_dir="$OUT_PLATFORM_DIR/release"
     this_artifact="$OUT_PLATFORM_DIR/release/wtr.watcher"
@@ -303,13 +309,13 @@ build::build() {
     ok=$((ok + $?))
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build |--no-build-debug'
+  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-debug'
   then
     for S in "${SANITIZERS[@]}"
     do
       if build::check::sanitizer_allowed_for::$PLATFORM "$S"
       then
-        echo "$SEPERATOR"
+        echo "$BUILD_SEPERATOR"
 
         this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
         this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
@@ -345,13 +351,13 @@ build::build() {
     done
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build |--no-build-test'
+  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-test'
   then
     for S in "${SANITIZERS[@]}"
     do
       if build::check::sanitizer_allowed_for::$PLATFORM "$S"
       then
-        echo "$SEPERATOR"
+        echo "$BUILD_SEPERATOR"
 
         this_out_dir="$OUT_PLATFORM_DIR/test/$S"
 
@@ -396,14 +402,29 @@ build::build() {
 }
 
 build::run::test() {
-  if ! echo "$*" | grep -qE -- '--no-build |--no-run-test'
+  if ! echo "$*" | grep -q -- --no-run-test
   then
     for TEST in "${TESTS[@]}"
     do
       while read -r TEST_PATH
       do
-        echo "$SEPERATOR"
-        echo "test: ${TEST_PATH##*test/}"
+        test_title="[ ${TEST_PATH##*test/} ]"
+        chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
+        # echo $test_name
+        # echo $chars_on_left_side
+        for character in $(seq 1 $chars_on_left_side)
+        do
+          test_title="-$test_title"
+        done
+        
+        for character in $(seq 1 $chars_on_left_side)
+        do
+          test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
+            && test_title="$test_title-"
+        done
+
+        echo "$TEST_SEPERATOR"
+        echo "$test_title"
 
         test -d tmp_test_watcher && \
           rm -rf tmp_test_watcher
@@ -420,7 +441,7 @@ build::run::test() {
 build::show::artifacts() {
   if test -n "${ARTIFACTS[*]}"
   then
-    echo "$SEPERATOR"
+    echo "$BUILD_SEPERATOR"
     echo 'artifacts:'
 
     for a in "${ARTIFACTS[@]}"; do
