@@ -408,27 +408,32 @@ build::run::test() {
     do
       while read -r TEST_PATH
       do
-        test_title="$(echo "[ ${TEST_PATH##*test/} ]" | sed 's/wtr.test_watcher.test_//g')"
-        chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
+        if test -x "$TEST_PATH"
+        then
 
-        for character in $(seq 1 $chars_on_left_side)
-        do
-          test_title="-$test_title"
-        done
-        
-        for character in $(seq 1 $chars_on_left_side)
-        do
-          test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
-            && test_title="$test_title-"
-        done
+          # setup test title
 
-        echo "$TEST_SEPERATOR"
-        echo "$test_title"
+          test_name="${TEST_PATH##*test/}"
+          test_title="$(echo "[ $test_name ]" | sed 's/wtr.test_watcher.test_//g')"
+          chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
+          for character in $(seq 1 $chars_on_left_side)
+          do test_title="-$test_title"; done
+          for character in $(seq 1 $chars_on_left_side)
+          do test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
+              && test_title="$test_title-"
+          done
 
-        test -d tmp_test_watcher && \
-          rm -rf tmp_test_watcher
-        test -x "$TEST_PATH" && \
-          "$TEST_PATH"
+          # show seperators
+
+          echo "$TEST_SEPERATOR"
+          echo "$test_title"
+
+          # run test, show & save results
+
+          "$TEST_PATH" \
+            | tee "$TEST_PATH.result_$(date +"%Y.%m.%d_t%H.%M.%S").txt"
+
+        fi
       done <<< "$(find . -type f -name "wtr.test_watcher.$TEST" -or -name "wtr.test_watcher.$TEST.exe")"
     done
   fi
@@ -454,7 +459,7 @@ build::show::artifacts() {
 # Links that file to 'build/out/artifacts.txt'.
 build::write::current_artifacts() {
   latest_artifact_file="$OUT_DIR/artifacts.txt"
-  current_artifact_file="$OUT_DIR/artifacts-$(date +"%Y.%m.%d-t%H.%M.%S").txt"
+  current_artifact_file="$OUT_DIR/artifacts_$(date +"%Y.%m.%d_t%H.%M.%S").txt"
 
   test -e "$current_artifact_file" \
     && rm -rf "$current_artifact_file"
@@ -462,8 +467,11 @@ build::write::current_artifacts() {
   for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
 
-  ! echo "$*" | grep -q -- --clean \
-    && ln -sf "$current_artifact_file" "$latest_artifact_file"
+  if ! echo "$*" | grep -q -- --clean \
+    && ! echo "$*" | grep -q -- --no-build
+  then
+    ln -sf "$current_artifact_file" "$latest_artifact_file"
+  fi
 }
 
 build::clean() {
