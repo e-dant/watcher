@@ -111,7 +111,7 @@ TEST_CASE("New Directories", "[new_directories]")
                              wtr::watcher::event::kind::watcher});
 
   wtr::watcher::die(base_store_path,
-                    [&base_store_path](wtr::watcher::event::event const& ev) {
+                    [&](wtr::watcher::event::event const& ev) {
                       auto _ = std::scoped_lock{event_recv_list_mtx};
                       event_recv_list.push_back(ev);
                     });
