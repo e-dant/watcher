@@ -32,8 +32,7 @@ inline bool watch_ctl(std::filesystem::path const& path,
     return std::hash<decltype(path_str)>{}(path_str);
   };
 
-  static auto watcher_container
-      = std::unordered_map<size_t, size_t>{};
+  static auto watcher_container = std::unordered_map<size_t, size_t>{};
   static auto watcher_mtx = std::mutex{};
 
   auto const& live = [&path_id](std::filesystem::path const& path,
