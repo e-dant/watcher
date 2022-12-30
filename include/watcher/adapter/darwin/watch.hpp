@@ -29,21 +29,37 @@ namespace detail {
 namespace adapter {
 namespace {
 
-using flag_pair = std::pair<FSEventStreamEventFlags, event::what>;
+using flag_what_pair_type = std::pair<FSEventStreamEventFlags, event::what>;
+using flag_kind_pair_type = std::pair<FSEventStreamEventFlags, event::kind>;
 
 inline constexpr auto delay_ms = 16;
-inline constexpr auto flag_pair_count = 4;
-inline constexpr std::array<flag_pair, flag_pair_count> flag_pair_container{
-    /* basic information about what happened to some path.
-       this group is the important one.
-       See note [Extra Event Flags] */
-    /* clang-format off */
-    flag_pair(kFSEventStreamEventFlagItemCreated,        event::what::create),
-    flag_pair(kFSEventStreamEventFlagItemModified,       event::what::modify),
-    flag_pair(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
-    flag_pair(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
-    /* clang-format on */
-};
+inline constexpr auto flag_what_pair_count = 4;
+inline constexpr auto flag_kind_pair_count = 5;
+
+/* basic information about what happened to some path.
+   this group is the important one.
+   See note [Extra Event Flags] */
+
+/* clang-format off */
+inline constexpr std::array<flag_what_pair_type, flag_what_pair_count>
+    flag_what_pair{
+      flag_what_pair_type(kFSEventStreamEventFlagItemCreated,        event::what::create),
+      flag_what_pair_type(kFSEventStreamEventFlagItemModified,       event::what::modify),
+      flag_what_pair_type(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
+      flag_what_pair_type(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+    };
+/* clang-format on */
+
+/* clang-format off */
+inline constexpr std::array<flag_kind_pair_type, flag_kind_pair_count>
+    flag_kind_pair{
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsDir,          event::kind::dir),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsFile,         event::kind::file),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsSymlink,      event::kind::sym_link),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsHardlink,     event::kind::hard_link),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsLastHardlink, event::kind::hard_link),
+    };
+/* clang-format on */
 
 auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 {
@@ -62,16 +78,17 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
       );
 
   /* the time point from which we want to monitor events (which is now), */
-  auto const time_flag = kFSEventStreamEventIdSinceNow;
+  static constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
 
   /* the delay, in seconds */
   static constexpr auto delay_s = delay_ms > 0 ? delay_ms / 1000.0 : 0.0;
 
   /* and the event stream flags */
-  auto const event_stream_flags = kFSEventStreamCreateFlagFileEvents
-                                  | kFSEventStreamCreateFlagUseExtendedData
-                                  | kFSEventStreamCreateFlagUseCFTypes
-                                  | kFSEventStreamCreateFlagNoDefer;
+  static constexpr auto event_stream_flags
+      = kFSEventStreamCreateFlagFileEvents
+        | kFSEventStreamCreateFlagUseExtendedData
+        | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer;
+
   /* to the OS, requesting a file event stream which uses our callback. */
   return FSEventStreamCreate(
       nullptr,           /* Allocator */
@@ -89,57 +106,102 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  namespace fs = std::filesystem;
-  namespace tm = std::chrono;
-
   static auto callback_hook = callback;
 
-  auto const callback_adapter
-      = [](ConstFSEventStreamRef const,   /* stream_ref */
-           auto*,                         /* callback_info */
-           size_t const event_recv_count, /* event count */
-           auto* event_recv_paths,        /* paths with events */
-           FSEventStreamEventFlags const* event_recv_what, /* event flags */
-           FSEventStreamEventId const*                     /* event stream id */
-        ) {
-          auto decode_flags = [](FSEventStreamEventFlags const& flag_recv) {
-            std::vector<event::what> translation;
-            /* @todo this is a slow, dumb search. fix it. */
-            for (flag_pair const& it : flag_pair_container)
-              if (flag_recv & it.first) translation.push_back(it.second);
-            return translation;
-          };
+  auto const callback_adapter =
+      [](ConstFSEventStreamRef const,   /* stream_ref */
+         auto*,                         /* callback_info */
+         size_t const event_recv_count, /* event count */
+         auto* event_recv_paths,        /* paths with events */
+         FSEventStreamEventFlags const* event_recv_flags, /* event flags */
+         FSEventStreamEventId const*                      /* event stream id */
+      ) {
+        /* @todo
+           What happens if there are several flags?
+           Should we send more events?
+           --> Yes. */
+        auto lift_what_kind_pairs = [](FSEventStreamEventFlags const& flag_recv)
+            -> std::vector<std::pair<event::what, event::kind>> {
+          // (kFSEventStreamEventFlagItemCreated,
+          // event::what::create),
+          // (kFSEventStreamEventFlagItemModified,
+          // event::what::modify),
+          // (kFSEventStreamEventFlagItemRemoved,
+          // event::what::destroy),
+          // (kFSEventStreamEventFlagItemRenamed,
+          // event::what::rename),
+          // (kFSEventStreamEventFlagItemIsDir,
+          // event::kind::dir),
+          // (kFSEventStreamEventFlagItemIsFile,
+          // event::kind::file),
+          // (kFSEventStreamEventFlagItemIsSymlink,
+          // event::kind::sym_link),
+          // (kFSEventStreamEventFlagItemIsHardlink,
+          // event::kind::hard_link),
+          // (kFSEventStreamEventFlagItemIsLastHardlink,
+          // event::kind::hard_link),
+          std::vector<std::pair<event::what, event::kind>> wks{};
+          wks.reserve(flag_what_pair_count + flag_kind_pair_count);
 
-          for (size_t i = 0; i < event_recv_count; i++) {
-            char const* event_path = [&]() {
-              auto const&& event_path_from_cfdict = [&]() {
-                auto const&& event_path_from_cfarray
-                    = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
-                        static_cast<CFArrayRef>(event_recv_paths),
-                        static_cast<CFIndex>(i)));
-                return static_cast<CFStringRef>(CFDictionaryGetValue(
-                    event_path_from_cfarray,
-                    kFSEventStreamEventExtendedDataPathKey));
-              }();
-              return CFStringGetCStringPtr(event_path_from_cfdict,
-                                           kCFStringEncodingUTF8);
-            }();
-            /* see note [inode and time]
-               for some extra stuff that can be done here. */
-            auto const lift_event_kind = [](auto const& path) {
-              return fs::exists(path)
-                         ? fs::is_regular_file(path) ? event::kind::file
-                           : fs::is_directory(path)  ? event::kind::dir
-                           : fs::is_symlink(path)    ? event::kind::sym_link
-                                                     : event::kind::other
-                         : event::kind::other;
-            };
-            for (auto const& what_it : decode_flags(event_recv_what[i]))
-              if (event_path != nullptr)
-                callback_hook(wtr::watcher::event::event{
-                    event_path, what_it, lift_event_kind(event_path)});
+          for (flag_what_pair_type const& what_it : flag_what_pair) {
+            if (flag_recv & what_it.first) {
+              for (flag_kind_pair_type const& kind_it : flag_kind_pair) {
+                if (flag_recv & kind_it.first) {
+                  wks.emplace_back(what_it.second, kind_it.second);
+                }
+              }
+            }
           }
+          // for (auto const& w : ws) {
+          //   for (auto const& k : ks) {
+          //     wks.emplace_back(w, k);
+          //   }
+          // }
+          return wks;
         };
+
+        for (size_t i = 0; i < event_recv_count; i++) {
+          char const* event_path = [&]() {
+            auto const&& event_path_from_cfdict = [&]() {
+              auto const&& event_path_from_cfarray
+                  = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
+                      static_cast<CFArrayRef>(event_recv_paths),
+                      static_cast<CFIndex>(i)));
+              return static_cast<CFStringRef>(
+                  CFDictionaryGetValue(event_path_from_cfarray,
+                                       kFSEventStreamEventExtendedDataPathKey));
+            }();
+            return CFStringGetCStringPtr(event_path_from_cfdict,
+                                         kCFStringEncodingUTF8);
+          }();
+
+          if (event_path != nullptr) {
+            auto wks = lift_what_kind_pairs(event_recv_flags[i]);
+            for (auto& wk : wks) {
+              callback_hook(
+                  wtr::watcher::event::event{event_path, wk.first, wk.second});
+            }
+          }
+        }
+        // clang-format off
+            // /* see note [inode and time]
+            //    for some extra stuff that can be done here. */
+            // auto const lift_event_kind = [](auto const& path) {
+            //   return fs::exists(path)
+            //              ? fs::is_regular_file(path) ? event::kind::file
+            //                : fs::is_directory(path)  ? event::kind::dir
+            //                : fs::is_symlink(path)    ? event::kind::sym_link
+            //                                          : event::kind::other
+            //              : event::kind::other;
+            // };
+            
+            // for (auto const& what_it : decode_flags(event_recv_what[i]))
+            //   if (event_path != nullptr)
+            //     callback_hook(wtr::watcher::event::event{
+            //         event_path, what_it, lift_event_kind(event_path)});
+        // clang-format on
+        // }
+      };
 
   auto const do_make_event_queue = [](char const* event_queue_name) {
     /* Request a high priority queue */
@@ -173,7 +235,6 @@ inline bool watch(auto const& path, event::callback const& callback,
              /dispatch/1496328-dispatch_release */
         };
 
-  /* @todo This should be the mersenne twister */
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<size_t> dis(0,
@@ -189,7 +250,7 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   while (is_living())
     if constexpr (delay_ms > 0)
-      std::this_thread::sleep_for(tm::milliseconds(delay_ms));
+      std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);
 
