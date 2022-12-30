@@ -54,6 +54,7 @@ TEST_CASE("Simple", "[simple]")
   std::filesystem::create_directories(store_path);
   REQUIRE(std::filesystem::exists(base_store_path)
           && std::filesystem::exists(store_path));
+
   /* @todo
      This sleep is hiding a bug on darwin which picks
      up events slightly before we start watching. I'm

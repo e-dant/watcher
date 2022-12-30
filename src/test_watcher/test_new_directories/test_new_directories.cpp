@@ -59,6 +59,12 @@ TEST_CASE("New Directories", "[new_directories]")
 
   std::filesystem::create_directory(base_store_path);
 
+  /* @todo
+     This sleep is hiding a bug on darwin which picks
+     up events slightly before we start watching. I'm
+     ok with that bit of wiggle-room. */
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
   event_sent_list.push_back(
       {std::string("s/self/live@").append(base_store_path.string()),
        wtr::watcher::event::what::create, wtr::watcher::event::kind::watcher});
