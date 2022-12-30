@@ -16,6 +16,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <random>
 #include <string>
@@ -176,8 +177,13 @@ inline bool watch(auto const& path, event::callback const& callback,
         };
 
   /* @todo This should be the mersenne twister */
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<size_t> dis(0,
+                                            std::numeric_limits<size_t>::max());
+
   auto const event_queue_name
-      = ("wtr.watcher.event_queue." + to_string(std::rand()));
+      = ("wtr.watcher.event_queue." + to_string(dis(gen)));
 
   auto const event_stream = do_make_event_stream(path, callback_adapter);
   auto const event_queue = do_make_event_queue(event_queue_name.c_str());
