@@ -15,7 +15,6 @@
 #include <chrono>
 #include <cstring>
 #include <filesystem>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <random>
@@ -91,10 +90,8 @@ auto do_make_event_stream(auto const& path, auto const& callback) noexcept
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  using std::chrono::seconds, std::chrono::milliseconds, std::to_string,
-      std::string, std::this_thread::sleep_for,
-      std::filesystem::is_regular_file, std::filesystem::is_directory,
-      std::filesystem::is_symlink, std::filesystem::exists;
+  namespace fs = std::filesystem;
+  namespace tm = std::chrono;
 
   static auto callback_hook = callback;
 
@@ -131,11 +128,12 @@ inline bool watch(auto const& path, event::callback const& callback,
             /* see note [inode and time]
                for some extra stuff that can be done here. */
             auto const lift_event_kind = [](auto const& path) {
-              return exists(path) ? is_regular_file(path) ? event::kind::file
-                                    : is_directory(path)  ? event::kind::dir
-                                    : is_symlink(path) ? event::kind::sym_link
-                                                       : event::kind::other
-                                  : event::kind::other;
+              return fs::exists(path)
+                         ? fs::is_regular_file(path) ? event::kind::file
+                           : fs::is_directory(path)  ? event::kind::dir
+                           : fs::is_symlink(path)    ? event::kind::sym_link
+                                                     : event::kind::other
+                         : event::kind::other;
             };
             for (auto const& what_it : decode_flags(event_recv_what[i]))
               if (event_path != nullptr)
@@ -183,7 +181,7 @@ inline bool watch(auto const& path, event::callback const& callback,
                                             std::numeric_limits<size_t>::max());
 
   auto const event_queue_name
-      = ("wtr.watcher.event_queue." + to_string(dis(gen)));
+      = ("wtr.watcher.event_queue." + std::to_string(dis(gen)));
 
   auto const event_stream = do_make_event_stream(path, callback_adapter);
   auto const event_queue = do_make_event_queue(event_queue_name.c_str());
@@ -191,7 +189,8 @@ inline bool watch(auto const& path, event::callback const& callback,
   if (!do_make_event_handler_alive(event_stream, event_queue)) return false;
 
   while (is_living())
-    if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+    if constexpr (delay_ms > 0)
+      std::this_thread::sleep_for(tm::milliseconds(delay_ms));
 
   do_make_event_handler_dead(event_stream, event_queue);
 
