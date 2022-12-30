@@ -13,7 +13,6 @@
 #include <CoreServices/CoreServices.h>
 #include <array>
 #include <chrono>
-#include <cstring>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -205,6 +204,7 @@ inline bool watch(char const* path, event::callback const& callback,
   return watch(std::string(path), callback, is_living);
 }
 
+/* clang-format off */
 /*
 # Notes
 
@@ -250,10 +250,9 @@ from `fswatch`, could be used:
 
     // flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
     // flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
-    // flag_pair(kFSEventStreamEventFlagItemIsSymlink, event::what::sym_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsHardlink, event::what::hard_link),
-    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink,
-event::what::hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
+    // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
 
     // path attribute events, such as the owner and some xattr data.
     // will be worthwhile soon to implement these.
@@ -277,8 +276,8 @@ event::what::hard_link),
     // flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
     // flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
 ```
-
 */
+/* clang-format on */
 
 } /* namespace adapter */
 } /* namespace detail */
