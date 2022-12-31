@@ -82,7 +82,50 @@ inline constexpr std::array<flag_kind_pair_type, flag_kind_pair_count>
     };
 /* clang-format on */
 
-FSEventStreamRef do_event_resource_stream_create(
+inline std::string event_queue_name()
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<size_t> dis(0,
+                                            std::numeric_limits<size_t>::max());
+  return ("wtr.watcher.event_queue." + std::to_string(dis(gen)));
+}
+
+inline dispatch_queue_t do_event_resource_queue_create(
+    char const* event_queue_name)
+{
+  /* Request a high priority queue */
+  dispatch_queue_t event_queue = dispatch_queue_create(
+      event_queue_name,
+      dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
+                                              QOS_CLASS_USER_INITIATED, -10));
+  return event_queue;
+}
+
+inline bool do_event_stream_attach_queue(FSEventStreamRef const& event_stream,
+                                         dispatch_queue_t const& event_queue)
+{
+  if (!event_stream || !event_queue) return false;
+  FSEventStreamSetDispatchQueue(event_stream, event_queue);
+  FSEventStreamStart(event_stream);
+  return event_queue ? true : false;
+}
+
+inline void do_event_resource_close(FSEventStreamRef& event_stream,
+                                    dispatch_queue_t& event_queue)
+{
+  FSEventStreamStop(event_stream);
+  FSEventStreamInvalidate(event_stream);
+  FSEventStreamRelease(event_stream);
+  dispatch_release(event_queue);
+  /* Assuming macOS > 10.8 or iOS > 6.0,
+     we don't need to check for null on the
+     dispatch queue (our `event_queue`).
+     https://developer.apple.com/documentation
+     /dispatch/1496328-dispatch_release */
+}
+
+inline FSEventStreamRef do_event_resource_stream_create(
     auto const& path, auto const& event_stream_callback_adapter) noexcept
 {
   /* The contortions here are to please darwin. The variable
@@ -240,50 +283,11 @@ inline FSEventStreamCallback callback_adapter_create(
 inline bool watch(auto const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
-  auto event_queue_name = []() -> std::string {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<size_t> dis(
-        0, std::numeric_limits<size_t>::max());
-    return ("wtr.watcher.event_queue." + std::to_string(dis(gen)));
-  }();
+  auto const& eqn = event_queue_name();
 
-  auto do_event_resource_queue_create
-      = [](char const* event_queue_name) -> dispatch_queue_t {
-    /* Request a high priority queue */
-    dispatch_queue_t event_queue = dispatch_queue_create(
-        event_queue_name,
-        dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
-                                                QOS_CLASS_USER_INITIATED, -10));
-    return event_queue;
-  };
-
-  auto do_event_stream_attach_queue
-      = [](FSEventStreamRef const& event_stream,
-           dispatch_queue_t const& event_queue) -> bool {
-    if (!event_stream || !event_queue) return false;
-    FSEventStreamSetDispatchQueue(event_stream, event_queue);
-    FSEventStreamStart(event_stream);
-    return event_queue ? true : false;
-  };
-
-  auto do_event_resource_close = [](FSEventStreamRef& event_stream,
-                                    dispatch_queue_t& event_queue) -> void {
-    FSEventStreamStop(event_stream);
-    FSEventStreamInvalidate(event_stream);
-    FSEventStreamRelease(event_stream);
-    dispatch_release(event_queue);
-    /* Assuming macOS > 10.8 or iOS > 6.0,
-       we don't need to check for null on the
-       dispatch queue (our `event_queue`).
-       https://developer.apple.com/documentation
-       /dispatch/1496328-dispatch_release */
-  };
-
-  FSEventStreamCallback callback_adapter = callback_adapter_create(callback);
-
+  auto callback_adapter = callback_adapter_create(callback);
   auto event_stream = do_event_resource_stream_create(path, callback_adapter);
-  auto event_queue = do_event_resource_queue_create(event_queue_name.c_str());
+  auto event_queue = do_event_resource_queue_create(eqn.c_str());
 
   if (!do_event_stream_attach_queue(event_stream, event_queue)) return false;
 
