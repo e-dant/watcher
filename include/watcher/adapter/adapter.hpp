@@ -32,9 +32,9 @@ inline bool watch_ctl(std::filesystem::path const& path,
   auto const path_id
       = [&path]() { return std::hash<std::string>{}(path.string()); };
 
-  static auto watcher_container = std::unordered_map<size_t, size_t>{};
+  static auto watcher_container{std::unordered_map<size_t, size_t>{}};
 
-  static auto watcher_mtx = std::mutex{};
+  static auto watcher_mtx{std::mutex{}};
 
   auto const& live = [&path_id](std::filesystem::path const& path,
                                 event::callback const& callback) -> bool {
@@ -77,7 +77,7 @@ inline bool watch_ctl(std::filesystem::path const& path,
 
     callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
               event::what::destroy, event::kind::watcher});
-    
+
     return dead;
   };
 
