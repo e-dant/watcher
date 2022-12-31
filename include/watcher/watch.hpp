@@ -46,7 +46,7 @@ inline bool watch(std::filesystem::path const& path,
    then dies. */
 inline bool die(
     std::filesystem::path const& path,
-    event::callback const& callback = [](auto) -> void {}) noexcept
+    event::callback const& callback = [](event::event) -> void {}) noexcept
 {
   return detail::adapter::watch_ctl(path, callback, false);
 }
