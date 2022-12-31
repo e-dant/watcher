@@ -29,12 +29,12 @@ namespace adapter {
 inline bool watch_ctl(std::filesystem::path const& path,
                       event::callback const& callback, bool const msg) noexcept
 {
-  auto const path_id
-      = [&path]() { return std::hash<std::string>{}(path.string()); };
-
   static auto watcher_container{std::unordered_map<size_t, size_t>{}};
 
   static auto watcher_mtx{std::mutex{}};
+
+  auto const path_id
+      = [&path]() { return std::hash<std::string>{}(path.string()); };
 
   auto const& live = [&path_id](std::filesystem::path const& path,
                                 event::callback const& callback) -> bool {
