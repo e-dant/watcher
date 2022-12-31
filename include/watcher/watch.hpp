@@ -41,9 +41,9 @@ inline bool watch(std::filesystem::path const& path,
 
 /* @brief watcher/die
 
-   Stops the `watch`.
-   Calls `callback`,
-   then dies. */
+   Stops a watcher at `path`.
+   Calls `callback` with status messages.
+   True if newly dead. */
 inline bool die(
     std::filesystem::path const& path,
     event::callback const& callback = [](event::event) -> void {}) noexcept
