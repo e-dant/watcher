@@ -11,7 +11,11 @@ if(MSVC)
 # Also, MSVC doesn't support some of these arguments, so it's not possible.
 set(COMPILE_OPTIONS)
 else()
-set(COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror")
+set(COMPILE_OPTIONS
+  "-Wall"
+  "-Wextra"
+  "-Werror"
+  "-Wno-unneeded-internal-declaration")
 endif()
 set(LINK_OPTIONS)
 
