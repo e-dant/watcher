@@ -33,16 +33,14 @@ inline bool watch_ctl(std::filesystem::path const& path,
 
   static auto watcher_mtx{std::mutex{}};
 
-  auto const path_id
+  auto const& path_id
       = [&path]() { return std::hash<std::string>{}(path.string()); };
 
   auto const& live = [&path_id](std::filesystem::path const& path,
                                 event::callback const& callback) -> bool {
     auto _ = std::scoped_lock{watcher_mtx};
 
-    auto const id = path_id();
-
-    bool alive = true;
+    auto const& id = path_id();
 
     if (watcher_container.contains(id))
       watcher_container.at(id) += 1;
@@ -50,29 +48,32 @@ inline bool watch_ctl(std::filesystem::path const& path,
     else
       watcher_container[id] = 1;
 
-    callback({(alive ? "s/self/live@" : "e/self/live@") + path.string(),
-              event::what::create, event::kind::watcher});
+    callback({"s/self/live@" + path.string(), event::what::create,
+              event::kind::watcher});
 
-    return alive;
+    return true;
   };
 
   auto const& die = [&path_id](std::filesystem::path const& path,
                                event::callback const& callback) -> bool {
     auto _ = std::scoped_lock{watcher_mtx};
 
-    auto const id = path_id();
-
     bool dead = true;
 
-    if (watcher_container.contains(id))
+    auto const& id = path_id();
 
-      if (watcher_container.at(id) > 1)
-        watcher_container.at(id) -= 1;
+    auto const& has = watcher_container.contains(id);
+
+    if (has) {
+      auto& at = watcher_container.at(id);
+
+      if (at > 1)
+        at -= 1;
 
       else
         watcher_container.erase(id);
 
-    else
+    } else
       dead = false;
 
     callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
