@@ -113,7 +113,7 @@ auto watch_gather(auto const& /* Title */
         auto const watch_ok = (wtr::watcher::watch(
             p, [&](wtr::watcher::event::event const& ev) {
               auto _ = std::scoped_lock{event_recv_list_mtx};
-
+              std::cout << ev << std::endl;
               auto ok_add = true;
               for (auto const& p : watch_path_list)
                 if (ev.where == p) ok_add = false;

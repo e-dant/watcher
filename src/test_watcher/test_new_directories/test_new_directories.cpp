@@ -52,6 +52,8 @@ TEST_CASE("New Directories", "[new_directories]")
       = base_store_path / "new_directories_second_store";
   auto const store_path_list = std::vector<std::filesystem::path>{
       base_store_path, store_path_first, store_path_second};
+  auto const new_store_path_list
+      = std::vector<std::filesystem::path>{store_path_first, store_path_second};
 
   static constexpr auto title = "New Directories";
 
@@ -73,12 +75,17 @@ TEST_CASE("New Directories", "[new_directories]")
     auto const watch_ok = wtr::watcher::watch(
         base_store_path, [&](wtr::watcher::event::event const& ev) {
           auto _ = std::scoped_lock{event_recv_list_mtx};
+          std::cout << ev << std::endl;
           event_recv_list.push_back(ev);
         });
     return watch_ok;
   }));
 
-  for (auto const& p : store_path_list) std::filesystem::create_directory(p);
+  for (auto const& p : new_store_path_list) {
+    std::filesystem::create_directory(p);
+    event_sent_list.push_back(wtr::watcher::event::event{
+        p, wtr::watcher::event::what::create, wtr::watcher::event::kind::dir});
+  }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

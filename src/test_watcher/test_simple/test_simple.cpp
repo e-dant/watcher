@@ -69,6 +69,7 @@ TEST_CASE("Simple", "[simple]")
     auto const watch_ok
         = wtr::watcher::watch(store_path, [](event::event const& ev) {
             auto _ = std::scoped_lock{event_recv_list_mtx};
+            std::cout << ev << std::endl;
             event_recv_list.push_back(ev);
           });
     return watch_ok;
