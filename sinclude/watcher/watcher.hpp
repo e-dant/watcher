@@ -309,73 +309,97 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 
-inline bool watch_ctl(std::filesystem::path const& path,
-                      event::callback const& callback, bool const msg) noexcept
+inline bool adapter(std::filesystem::path const& path,
+                    event::callback const& callback, bool const& msg) noexcept
 {
-  static auto watcher_container{std::unordered_map<size_t, size_t>{}};
+  /* @brief
+     This container is used to count the number of watchers on some path.
+     The key is a hash of a path.
+     The value is the count of living watchers on a path. */
+  static auto living_container{std::unordered_map<std::string, size_t>{}};
 
-  static auto watcher_mtx{std::mutex{}};
+  /* @brief
+     A primitive thread synchrony tool, a mutex, for the watcher container. */
+  static auto living_container_mtx{std::mutex{}};
 
-  auto const& path_id
-      = [&path]() { return std::hash<std::string>{}(path.string()); };
+  /* @brief
+     Some path as a string. We need the path as a string to store it as the
+     key in a map because `std::filesystem::path` doesn't know how to hash,
+     but `std::string` does. */
+  auto const& path_str = path.string();
 
-  auto const& live = [&path_id](std::filesystem::path const& path,
-                                event::callback const& callback) -> bool {
-    auto _ = std::scoped_lock{watcher_mtx};
+  /* @brief
+     A predicate given to the watchers.
+     True if living, false if dead.
 
-    auto const& id = path_id();
+     The watchers are expected to die promptly,
+     but safely, when this returns false. */
+  auto const& is_living = [&path_str]() -> bool {
+    auto _ = std::scoped_lock{living_container_mtx};
 
-    if (watcher_container.contains(id))
-      watcher_container.at(id) += 1;
+    return living_container.contains(path_str);
+  };
 
-    else
-      watcher_container[id] = 1;
+  /* @brief
+     Increment the watch count on a unique path.
+     If the count is 0, insert the path into the set
+     of living watchers.
 
-    callback({"s/self/live@" + path.string(), event::what::create,
-              event::kind::watcher});
+     Always returns true. */
+  auto const& live = [&path_str, &callback]() -> bool {
+    auto _ = std::scoped_lock{living_container_mtx};
+
+    living_container[path_str] = living_container.contains(path_str)
+                                     ? living_container.at(path_str) + 1
+                                     : 1;
+
+    callback(
+        {"s/self/live@" + path_str, event::what::create, event::kind::watcher});
 
     return true;
   };
 
-  auto const& die = [&path_id](std::filesystem::path const& path,
-                               event::callback const& callback) -> bool {
-    auto _ = std::scoped_lock{watcher_mtx};
+  /* @brief
+     Decrement the watch count on a unique path.
+     If the count is 0, erase the path from the set
+     of living watchers.
+
+     When a path's count is 0, the watchers on that path die.
+
+     Returns false if the `path` is not being watched. */
+  auto const& die = [&path_str, &callback]() -> bool {
+    auto _ = std::scoped_lock{living_container_mtx};
 
     bool dead = true;
 
-    auto const& id = path_id();
-
-    auto const& has = watcher_container.contains(id);
-
-    if (has) {
-      auto& at = watcher_container.at(id);
+    if (living_container.contains(path_str)) {
+      auto& at = living_container.at(path_str);
 
       if (at > 1)
         at -= 1;
 
       else
-        watcher_container.erase(id);
+        living_container.erase(path_str);
 
     } else
       dead = false;
 
-    callback({(dead ? "s/self/die@" : "e/self/die@") + path.string(),
+    callback({(dead ? "s/self/die@" : "e/self/die@") + path_str,
               event::what::destroy, event::kind::watcher});
 
     return dead;
   };
 
-  auto const& is_living = [&path_id]() -> bool {
-    auto _ = std::scoped_lock{watcher_mtx};
-
-    return watcher_container.contains(path_id());
-  };
-
+  /* @brief
+     We know two messages:
+       - Tell a watcher to live
+       - Tell a watcher to die
+     There may be more messages in the future. */
   if (msg)
-    return live(path, callback) ? watch(path, callback, is_living) : false;
+    return live() && watch(path, callback, is_living);
 
   else
-    return die(path, callback);
+    return die();
 }
 
 } /* namespace adapter */
@@ -825,7 +849,7 @@ inline void do_event_resources_close(FSEventStreamRef& event_stream,
 }
 
 inline FSEventStreamRef do_event_stream_create(
-    auto const& path, FSEventStreamContext* callback_context,
+    std::filesystem::path const& path, FSEventStreamContext* callback_context,
     auto const& event_stream_callback_adapter) noexcept
 {
   /* The contortions here are to please darwin. The variable
@@ -976,7 +1000,8 @@ inline void callback_adapter(
 
 } /* namespace */
 
-inline bool watch(auto const& path, event::callback const& callback,
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
                   auto const& is_living) noexcept
 {
   auto seen_created_paths = seen_created_paths_type{};
@@ -1003,12 +1028,6 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   } else
     return false;
-}
-
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::filesystem::path(path), callback, is_living);
 }
 
 } /* namespace adapter */
@@ -1383,7 +1402,7 @@ namespace watcher {
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback) noexcept
 {
-  return detail::adapter::watch_ctl(path, callback, true);
+  return detail::adapter::adapter(path, callback, true);
 }
 
 /* @brief watcher/die
@@ -1395,7 +1414,7 @@ inline bool die(
     std::filesystem::path const& path,
     event::callback const& callback = [](event::event) -> void {}) noexcept
 {
-  return detail::adapter::watch_ctl(path, callback, false);
+  return detail::adapter::adapter(path, callback, false);
 }
 
 } /* namespace watcher */
