@@ -263,7 +263,8 @@ inline void callback_adapter(
 
 } /* namespace */
 
-inline bool watch(std::filesystem::path const& path, event::callback const& callback,
+inline bool watch(std::filesystem::path const& path,
+                  event::callback const& callback,
                   auto const& is_living) noexcept
 {
   auto seen_created_paths = seen_created_paths_type{};
