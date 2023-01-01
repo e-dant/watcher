@@ -15,6 +15,7 @@ set(COMPILE_OPTIONS
   "-Wall"
   "-Wextra"
   "-Werror"
+  "-Wno-unused-function"
   "-Wno-unneeded-internal-declaration")
 endif()
 set(LINK_OPTIONS)
