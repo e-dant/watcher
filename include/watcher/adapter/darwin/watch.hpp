@@ -279,7 +279,6 @@ inline bool watch(auto const& path, event::callback const& callback,
   auto event_queue = do_event_queue_create();
 
   if (do_event_queue_stream(event_queue, event_stream)) {
-    
     while (is_living())
       if constexpr (has_delay) std::this_thread::sleep_for(delay_ms);
 
