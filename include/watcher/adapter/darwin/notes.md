@@ -34,6 +34,33 @@ from `fswatch`, could be used:
             << std::endl;
   ```
 
+## Parsing Flags as Pairs
+
+```cpp
+/* @brief
+   Basic information about what happened to some path.
+   this group is the important one.
+   See note [Extra Event Flags] */
+
+/* clang-format off */
+inline constexpr std::array<flag_what_pair_type, flag_what_pair_count>
+    flag_what_pair{
+      flag_what_pair_type(kFSEventStreamEventFlagItemCreated,        event::what::create),
+      flag_what_pair_type(kFSEventStreamEventFlagItemModified,       event::what::modify),
+      flag_what_pair_type(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
+      flag_what_pair_type(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+    };
+inline constexpr std::array<flag_kind_pair_type, flag_kind_pair_count>
+    flag_kind_pair{
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsDir,          event::kind::dir),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsFile,         event::kind::file),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsSymlink,      event::kind::sym_link),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsHardlink,     event::kind::hard_link),
+      flag_kind_pair_type(kFSEventStreamEventFlagItemIsLastHardlink, event::kind::hard_link),
+    };
+/* clang-format on */
+```
+
 ## Extra Event Flags
 
 ```cpp
