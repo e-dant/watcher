@@ -26,7 +26,7 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 
-inline bool watch_ctl(std::filesystem::path const& path,
+inline bool adapter(std::filesystem::path const& path,
                       event::callback const& callback, bool const msg) noexcept
 {
   static auto watcher_container{std::unordered_map<size_t, size_t>{}};
