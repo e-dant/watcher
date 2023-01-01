@@ -10,8 +10,14 @@ The Darwin `FSEvents` adapter has independent resources per each (user) invocati
 
 Documentation for `watcher::die` is more clear.
 
-The (internal) `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adapter::adapter`.
+### Internal
+
+The `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adapter::adapter`.
 (This is the only function in `watcher/adapter/adapter.hpp`.)
+
+`watcher/adapter/adapter.hpp` is documented.
+
+`watcher::detail::adapter::adapter::path_id` is a (constant) variable, not a function.
 
 ## 0.5.2
 
