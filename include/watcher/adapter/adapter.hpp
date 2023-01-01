@@ -27,26 +27,40 @@ namespace detail {
 namespace adapter {
 
 inline bool adapter(std::filesystem::path const& path,
-                      event::callback const& callback, bool const msg) noexcept
+                    event::callback const& callback, bool const& msg) noexcept
 {
+  /* @brief
+     This container is used to count the number of watchers on some path.
+     The key is a hash of a path.
+     The value is the count of living watchers on a path. */
   static auto watcher_container{std::unordered_map<size_t, size_t>{}};
 
+  /* @brief
+     A primitive thread synchrony tool, a mutex, for the watcher container. */
   static auto watcher_mtx{std::mutex{}};
 
+  /* @brief
+     Some path's hash. We need this to interpret the `path`, which is a
+     `std::filesystem::path`, as a `std::string`. `std::filesystem::path`
+     doesn't know how to hash, but `std::string` does. */
   auto const& path_id
-      = [&path]() { return std::hash<std::string>{}(path.string()); };
+      = [&path]() { return std::hash<std::string>{}(path.string()); }();
 
+  /* @brief
+     Increment the watch count on a unique path.
+     If the count is 0, insert the path into the set
+     of living watchers.
+
+     Always returns true. */
   auto const& live = [&path_id](std::filesystem::path const& path,
                                 event::callback const& callback) -> bool {
     auto _ = std::scoped_lock{watcher_mtx};
 
-    auto const& id = path_id();
-
-    if (watcher_container.contains(id))
-      watcher_container.at(id) += 1;
+    if (watcher_container.contains(path_id))
+      watcher_container.at(path_id) += 1;
 
     else
-      watcher_container[id] = 1;
+      watcher_container[path_id] = 1;
 
     callback({"s/self/live@" + path.string(), event::what::create,
               event::kind::watcher});
@@ -54,24 +68,28 @@ inline bool adapter(std::filesystem::path const& path,
     return true;
   };
 
+  /* @brief
+     Decrement the watch count on a unique path.
+     If the count is 0, erase the path from the set
+     of living watchers.
+
+     When a path's count is 0, the watchers on that path die.
+
+     Returns false if the `path` is not being watched. */
   auto const& die = [&path_id](std::filesystem::path const& path,
                                event::callback const& callback) -> bool {
     auto _ = std::scoped_lock{watcher_mtx};
 
     bool dead = true;
 
-    auto const& id = path_id();
-
-    auto const& has = watcher_container.contains(id);
-
-    if (has) {
-      auto& at = watcher_container.at(id);
+    if (watcher_container.contains(path_id)) {
+      auto& at = watcher_container.at(path_id);
 
       if (at > 1)
         at -= 1;
 
       else
-        watcher_container.erase(id);
+        watcher_container.erase(path_id);
 
     } else
       dead = false;
@@ -82,14 +100,25 @@ inline bool adapter(std::filesystem::path const& path,
     return dead;
   };
 
+  /* @brief
+     A predicate given to the watchers.
+     True if living, false if dead.
+
+     The watchers are expected to die promptly,
+     but safely, when this returns false. */
   auto const& is_living = [&path_id]() -> bool {
     auto _ = std::scoped_lock{watcher_mtx};
 
-    return watcher_container.contains(path_id());
+    return watcher_container.contains(path_id);
   };
 
+  /* @brief
+     We know two messages:
+       - Tell a watcher to live
+       - Tell a watcher to die
+     There may be more messages in the future. */
   if (msg)
-    return live(path, callback) ? watch(path, callback, is_living) : false;
+    return live(path, callback) && watch(path, callback, is_living);
 
   else
     return die(path, callback);

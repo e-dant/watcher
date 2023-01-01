@@ -112,7 +112,7 @@ inline void do_event_resources_close(FSEventStreamRef& event_stream,
 }
 
 inline FSEventStreamRef do_event_stream_create(
-    auto const& path, FSEventStreamContext* callback_context,
+    std::filesystem::path const& path, FSEventStreamContext* callback_context,
     auto const& event_stream_callback_adapter) noexcept
 {
   /* The contortions here are to please darwin. The variable
@@ -263,7 +263,7 @@ inline void callback_adapter(
 
 } /* namespace */
 
-inline bool watch(auto const& path, event::callback const& callback,
+inline bool watch(std::filesystem::path const& path, event::callback const& callback,
                   auto const& is_living) noexcept
 {
   auto seen_created_paths = seen_created_paths_type{};
@@ -290,12 +290,6 @@ inline bool watch(auto const& path, event::callback const& callback,
 
   } else
     return false;
-}
-
-inline bool watch(char const* path, event::callback const& callback,
-                  auto const& is_living) noexcept
-{
-  return watch(std::filesystem::path(path), callback, is_living);
 }
 
 } /* namespace adapter */
