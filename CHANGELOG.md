@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.3
+
+The Linux `fanotify` adapter for linux is implemented.
+It is selected if the user is (effectively) root and not on Android.
+The `inotify` adapter is used in those cases.
+
+The Darwin `FSEvents` adapter has independent resources per each (user) invocation of `watcher::watch`.
+
+Documentation for `watcher::die` is more clear.
+
+The (internal) `watcher::detail::adapter::watch_ctl` is easier to read.
+
 ## 0.5.2
 
 The changelog for `0.5.0` is updated. Again.
