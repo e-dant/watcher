@@ -65,7 +65,7 @@ TEST_CASE("New Directories", "[new_directories]")
      This sleep is hiding a bug on darwin which picks
      up events slightly before we start watching. I'm
      ok with that bit of wiggle-room. */
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   event_sent_list.push_back(
       {std::string("s/self/live@").append(base_store_path.string()),
@@ -80,6 +80,11 @@ TEST_CASE("New Directories", "[new_directories]")
         });
     return watch_ok;
   }));
+
+  /* @todo
+     This sleep is hiding a bug on Linux which begins
+     watching very slightly after we ask it to. */
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   for (auto const& p : new_store_path_list) {
     std::filesystem::create_directory(p);
