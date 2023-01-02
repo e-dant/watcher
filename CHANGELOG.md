@@ -24,6 +24,8 @@ The `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adap
 
 `watcher::detail::adapter::adapter::living_container` uses `std::string` as the key type, not an integral type.
 
+The Windows adapter is given some much needed love.
+
 ## 0.5.2
 
 The changelog for `0.5.0` is updated. Again.
