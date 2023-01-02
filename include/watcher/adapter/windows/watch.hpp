@@ -143,15 +143,9 @@ class watch_event_accumulator
     delete event_thread_handle;
   }
 
-  bool is_valid() const noexcept
-  {
-    return valid && event_buf != nullptr;
-  }
+  bool is_valid() const noexcept { return valid && event_buf != nullptr; }
 
-  bool has_unsent() const noexcept
-  {
-    return event_buf_len_ready != 0;
-  }
+  bool has_unsent() const noexcept { return event_buf_len_ready != 0; }
 };
 
 inline FILE_NOTIFY_INFORMATION* do_event_recv(
