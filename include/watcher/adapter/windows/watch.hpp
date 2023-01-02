@@ -11,8 +11,14 @@
 
 #include <stdio.h>
 #include <windows.h>
+/* pair
+   make_pair */
+#include <tuple>
 /* milliseconds */
 #include <chrono>
+/* mutex
+   scoped_lock */
+#include <mutex>
 /* string */
 #include <string>
 /* path */
@@ -28,15 +34,18 @@ namespace detail {
 namespace adapter {
 namespace {
 
+using event_thread_param_type
+    = std::pair<class watch_event_proxy*, std::function<bool()> const&>;
+
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
 
 /* I think the default page size in Windows is 64kb,
-   so 65536 might also work well.
-*/
+   so 65536 might also work well. */
 inline constexpr auto event_buf_len_max = 8192;
 
 namespace util {
 
+/*
 inline std::string wstring_to_string(std::wstring const& in) noexcept
 {
   size_t in_len
@@ -56,7 +65,6 @@ inline std::string wstring_to_string(std::wstring const& in) noexcept
   }
 }
 
-/*
 inline std::wstring string_to_wstring(std::string const& in) noexcept
 {
   size_t in_len = MultiByteToWideChar(CP_UTF8, 0, in.data(),
@@ -87,17 +95,16 @@ inline std::wstring cstring_to_wstring(char const* in) noexcept
 } /* namespace util */
 
 /* Hold resources necessary to recieve and send filesystem events. */
-class watch_event_accumulator
+class watch_event_proxy
 {
- private:
+ public:
   bool valid{false};
 
- public:
   wtr::watcher::event::callback const& callback;
 
   HANDLE event_completion_token{nullptr};
 
-  HANDLE event_thread_handle{new HANDLE{}};
+  HANDLE event_thread_handle{nullptr};
 
   HANDLE event_token{CreateEventW(nullptr, true, false, nullptr)};
 
@@ -105,16 +112,16 @@ class watch_event_accumulator
 
   FILE_NOTIFY_INFORMATION event_buf[event_buf_len_max];
 
-  unsigned event_buf_len_ready{0};
-
-  bool working{false};
+  DWORD event_buf_len_ready{0};
 
   wchar_t path_name[256]{L""};
 
   HANDLE path_handle{nullptr};
 
-  watch_event_accumulator(std::filesystem::path const& path,
-                          event::callback const& callback) noexcept
+  std::mutex mtx{};
+
+  watch_event_proxy(std::filesystem::path const& path,
+                    event::callback const& callback) noexcept
       : callback{callback}
   {
     memcpy(path_name, path.c_str(), path.string().size());
@@ -137,47 +144,43 @@ class watch_event_accumulator
     }
   }
 
-  ~watch_event_accumulator() noexcept
+  ~watch_event_proxy() noexcept
   {
-    CloseHandle(event_token);
-    CloseHandle(event_completion_token);
-    CloseHandle(event_thread_handle);
-    // delete event_thread_handle;
+    if (event_token) CloseHandle(event_token);
+    if (event_completion_token) CloseHandle(event_completion_token);
+    if (event_thread_handle) CloseHandle(event_thread_handle);
   }
 
   bool is_valid() const noexcept { return valid && event_buf != nullptr; }
 
-  bool has_unsent() const noexcept { return event_buf_len_ready != 0; }
+  bool has_event() const noexcept { return event_buf_len_ready != 0; }
 };
 
-inline FILE_NOTIFY_INFORMATION* do_event_recv(
-    watch_event_accumulator* w) noexcept
+inline void do_event_recv(watch_event_proxy* w) noexcept
 {
   using namespace wtr::watcher;
 
-  FILE_NOTIFY_INFORMATION* buf = w->event_buf;
+  auto _ = std::scoped_lock<std::mutex>{w->mtx};
 
   w->event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
-  OVERLAPPED* po;
   memset(&w->event_overlap, 0, sizeof(OVERLAPPED));
-  po = &w->event_overlap;
 
   if (ReadDirectoryChangesW(
-          w->path_handle, buf, event_buf_len_max, true,
+          w->path_handle, w->event_buf, event_buf_len_max, true,
           FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
               | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_LAST_WRITE
               | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
               | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
-          &bytes_returned, po, nullptr))
+          &bytes_returned, &w->event_overlap, nullptr))
   {
     w->event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
-    buf = bytes_returned > 0 ? buf : nullptr;
+    if (w->event_buf == nullptr) w->valid = false;
   } else {
     switch (GetLastError()) {
       case ERROR_IO_PENDING:
         w->event_buf_len_ready = 0;
-        buf = nullptr;
+        w->valid = false;
         w->callback(event::event{"e/watcher/rdc/io_pending", event::what::other,
                                  event::kind::watcher});
         break;
@@ -187,18 +190,36 @@ inline FILE_NOTIFY_INFORMATION* do_event_recv(
         break;
     }
   }
-
-  return buf;
 }
 
-inline void do_event_send(watch_event_accumulator* w) noexcept
+inline void do_event_send(watch_event_proxy* w) noexcept
 {
+  auto&& wstring_to_string = [](std::wstring const& in) -> std::string {
+    size_t in_len = WideCharToMultiByte(CP_UTF8, 0, in.data(),
+                                        static_cast<int>(in.size()), nullptr, 0,
+                                        nullptr, nullptr);
+    if (in_len < 1)
+      return std::string{};
+    else {
+      std::unique_ptr<char> out(new char[in_len]);
+      size_t out_len = WideCharToMultiByte(
+          CP_UTF8, 0, in.data(), static_cast<int>(in.size()), out.get(),
+          static_cast<int>(in_len), nullptr, nullptr);
+      if (out_len < 1)
+        return std::string{};
+      else
+        return std::string{out.get(), in_len};
+    }
+  };
+
+  auto _ = std::scoped_lock<std::mutex>{w->mtx};
+
   FILE_NOTIFY_INFORMATION* buf = w->event_buf;
 
   while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w->event_buf_len_ready)
   {
     if (buf->FileNameLength % 2 == 0) {
-      auto path = util::wstring_to_string(
+      auto path = wstring_to_string(
           std::wstring{w->path_name, wcslen(w->path_name)} + std::wstring{L"\\"}
           + std::wstring{buf->FileName, buf->FileNameLength / 2});
 
@@ -229,55 +250,60 @@ inline void do_event_send(watch_event_accumulator* w) noexcept
   }
 }
 
-inline bool do_scan_work_async(watch_event_accumulator* w) noexcept
+inline bool do_scan_work_async(watch_event_proxy* w,
+                               std::function<bool()> const& is_living) noexcept
 {
   if (w->is_valid()) {
-    w->working = true;
-
     do_event_recv(w);
 
-    while (w->is_valid() && w->has_unsent()) {
+    while (w->is_valid() && w->has_event()) {
       do_event_send(w);
     }
 
     ResetEvent(w->event_token);
     w->event_thread_handle = CreateThread(
-        nullptr, 0,
-        [](void* event_thread_parameter) -> DWORD {
-          class watch_event_accumulator* w
-              = (class watch_event_accumulator*)event_thread_parameter;
+        /* Child processes do not inherit this thread */
+        nullptr,
+        /* Give us the default stack size */
+        0,
+        /* A closure for work */
+        [](void* event_thread_param) -> DWORD {
+          auto [w, is_living] = *(event_thread_param_type*)event_thread_param;
 
           SetEvent(w->event_token);
 
           SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
 
-          while (w->working) {
+          while (is_living()) {
             ULONG_PTR completion_key{};
-            DWORD byte_ready_count{};
-            OVERLAPPED* po{};
+            LPOVERLAPPED overlap{};
 
             GetQueuedCompletionStatus(w->event_completion_token,
-                                      &byte_ready_count, &completion_key, &po,
-                                      INFINITE);
-            if (po) {
-              if (byte_ready_count) {
-                w->event_buf_len_ready = byte_ready_count;
-
-                while (w->has_unsent()) {
-                  do_event_send(w);
-                  do_event_recv(w);
-                }
+                                      &w->event_buf_len_ready, &completion_key,
+                                      &overlap, INFINITE);
+            if (overlap) {
+              while (w->is_valid() && w->has_event()) {
+                do_event_send(w);
+                do_event_recv(w);
               }
             }
           }
 
           return 0;
         },
-        (void*)w, 0, nullptr);
-    if (w->event_thread_handle) WaitForSingleObject(w->event_token, INFINITE);
-  }
+        /* Pass `w` and `is_living` to the thread */
+        (void*)new event_thread_param_type{w, is_living},
+        /* Start running after creation */
+        0,
+        /* We don't need the thread id */
+        nullptr);
 
-  return 0;
+    if (w->event_thread_handle) WaitForSingleObject(w->event_token, INFINITE);
+
+    return true;
+  } else {
+    return false;
+  }
 }
 
 } /* namespace */
@@ -289,11 +315,11 @@ inline bool do_scan_work_async(watch_event_accumulator* w) noexcept
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
-  do_scan_work_async(new watch_event_accumulator{path, callback});
+  do_scan_work_async(new watch_event_proxy{path, callback}, is_living);
 
   while (is_living())
     if constexpr (delay_ms > milliseconds(0)) sleep_for(delay_ms);
