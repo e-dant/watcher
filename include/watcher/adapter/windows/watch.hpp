@@ -140,7 +140,9 @@ class watch_event_accumulator
   ~watch_event_accumulator() noexcept
   {
     CloseHandle(event_token);
-    delete event_thread_handle;
+    CloseHandle(event_completion_token);
+    CloseHandle(event_thread_handle);
+    // delete event_thread_handle;
   }
 
   bool is_valid() const noexcept { return valid && event_buf != nullptr; }
@@ -227,8 +229,7 @@ inline void do_event_send(watch_event_accumulator* w) noexcept
   }
 }
 
-inline bool do_scan_work_async(watch_event_accumulator* w,
-                               std::filesystem::path const& path) noexcept
+inline bool do_scan_work_async(watch_event_accumulator* w) noexcept
 {
   if (w->is_valid()) {
     w->working = true;
@@ -292,7 +293,7 @@ inline bool watch(std::filesystem::path const& path,
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
-  do_scan_work_async(new watch_event_accumulator{path, callback}, path);
+  do_scan_work_async(new watch_event_accumulator{path, callback});
 
   while (is_living())
     if constexpr (delay_ms > milliseconds(0)) sleep_for(delay_ms);
