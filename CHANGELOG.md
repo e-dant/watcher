@@ -11,7 +11,7 @@ The Darwin `FSEvents` adapter has independent resources per each (user) invocati
 Documentation for `watcher::die` is more clear.
 
 Updated the significant lines of code and documentation.
-About half (53%) of the codebase (3444 lines) is documentation (37%) and unit tests (16%).
+About half (53%) of the codebase (3419 lines) is documentation (37%) and unit tests (16%).
 
 ### Internal
 
