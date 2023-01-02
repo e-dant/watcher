@@ -9,7 +9,6 @@
 #include <watcher/platform.hpp>
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
-// #include <stdio.h>
 /* ReadDirectoryChangesW
    CreateIoCompletionPort
    CreateFileW
@@ -95,11 +94,17 @@ class watch_event_proxy
     if (event_token) CloseHandle(event_token);
     if (event_completion_token) CloseHandle(event_completion_token);
   }
-
-  bool is_valid() const noexcept { return valid && event_buf != nullptr; }
-
-  bool has_event() const noexcept { return event_buf_len_ready != 0; }
 };
+
+inline bool is_valid(watch_event_proxy& w) noexcept
+{
+  return w.valid && w.event_buf != nullptr;
+}
+
+inline bool has_event(watch_event_proxy& w) noexcept
+{
+  return w.event_buf_len_ready != 0;
+}
 
 inline void do_event_recv(watch_event_proxy& w) noexcept
 {
@@ -203,10 +208,10 @@ inline bool watch(std::filesystem::path const& path,
 {
   auto w = watch_event_proxy{path, callback};
 
-  if (w.is_valid()) {
+  if (is_valid(w)) {
     do_event_recv(w);
 
-    while (w.is_valid() && w.has_event()) {
+    while (is_valid(w) && has_event(w)) {
       do_event_send(w);
     }
 
@@ -223,7 +228,7 @@ inline bool watch(std::filesystem::path const& path,
           &overlap, delay_ms_dw);
 
       if (complete && overlap) {
-        while (w.is_valid() && w.has_event()) {
+        while (is_valid(w) && has_event(w)) {
           do_event_send(w);
           do_event_recv(w);
         }
