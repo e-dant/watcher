@@ -2,6 +2,31 @@
 
 ## Character String Conversions
 
+### C++23 `resive_and_overwrite`
+
+> https://cpplang.slack.com/archives/C21PKDHSL/p1672705999558719
+
+```cpp
+#include <cstddef>
+#include <string>
+#include <Windows.h>
+
+std::string wstring_to_string(std::wstring const& in) {
+  int out_len = WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), nullptr,
+                                    0, nullptr, nullptr);
+  std::string out;
+  if (out_len != 0) {
+    out.resize_and_overwrite(out_len, [&in](char* out, std::size_t out_len) {
+      return WideCharToMultiByte(CP_UTF8, 0, in.data(), in.size(), out, out_len,
+                                 nullptr, nullptr);
+    });
+  }
+  return out;
+}
+```
+
+### Full set of (expensive) conversions
+
 ```cpp
 inline std::string wstring_to_string(std::wstring const& in) noexcept
 {
