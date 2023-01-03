@@ -10,7 +10,7 @@
 ## Quick Start
 
 ```cpp
-/* tiny_main.cpp */
+/* tiny_watcher/main.cpp */
 #include <iostream>
 #include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
 
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 # Sigh
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
-eval c++ -std=c++2a -O3 src/watcher/tiny_main.cpp -o watcher $PLATFORM_EXTRAS
+eval c++ -std=c++2a -O3 src/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 # Run
 ./watcher
 ```

@@ -56,7 +56,7 @@ endif()
 
 # [options: meaning: source]
 if(WTR_WATCHER_USE_TINY_MAIN)
-  set(SOURCES                 "../../src/watcher/tiny_main.cpp")
+  set(SOURCES                 "../../src/tiny_watcher/main.cpp")
 endif()
 
 # [options: meaning: sanitizer]
