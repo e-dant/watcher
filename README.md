@@ -51,7 +51,7 @@ lines, of which almost half is documentation, were written to be
 [read](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp)
 as easily as the API is used:
 ```cpp
-watch(path, [](auto ev){cout << ev;});
+watch(path, [](auto const& ev){cout << ev;});
 ```
 ```sh
 wtr.watcher ~
