@@ -131,11 +131,11 @@ inline void do_event_recv(watch_event_proxy& w) noexcept
       case ERROR_IO_PENDING:
         w.event_buf_len_ready = 0;
         w.valid = false;
-        w.callback(event::event{"e/watcher/rdc/io_pending", event::what::other,
+        w.callback(event::event{"e/self/read/pending", event::what::other,
                                 event::kind::watcher});
         break;
       default:
-        w.callback(event::event{"e/watcher/rdc", event::what::other,
+        w.callback(event::event{"e/self/read", event::what::other,
                                 event::kind::watcher});
         break;
     }
