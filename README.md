@@ -75,10 +75,7 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 
 4. Safe
 > We run this project through unit tests against all available
-sanitiziers. The exception to this is Windows, which has one
-unreliable sanitizer and almost no safety instrumentation beyond
-compiler errors. **A user should be skeptical of the Windows
-implementation and confident in all others.**
+sanitiziers. The code is simple and clean.
 
 5. Dependency free
 > *Watcher* depends on the C++ Standard Library. For efficiency,
