@@ -48,6 +48,12 @@ class watch_event_proxy
  public:
   bool valid{true};
 
+  std::filesystem::path path;
+
+  wchar_t path_name[256]{L""};
+
+  HANDLE path_handle{nullptr};
+
   wtr::watcher::event::callback const& callback;
 
   HANDLE event_completion_token{nullptr};
@@ -60,13 +66,9 @@ class watch_event_proxy
 
   DWORD event_buf_len_ready{0};
 
-  wchar_t path_name[256]{L""};
-
-  HANDLE path_handle{nullptr};
-
   watch_event_proxy(std::filesystem::path const& path,
                     event::callback const& callback) noexcept
-      : callback{callback}
+      : path{path}, callback{callback}
   {
     memcpy(path_name, path.c_str(), path.string().size());
 
@@ -142,31 +144,11 @@ inline void do_event_recv(watch_event_proxy& w) noexcept
 
 inline void do_event_send(watch_event_proxy& w) noexcept
 {
-  auto&& wstring_to_string = [](std::wstring const& in) -> std::string {
-    size_t in_len = WideCharToMultiByte(CP_UTF8, 0, in.data(),
-                                        static_cast<int>(in.size()), nullptr, 0,
-                                        nullptr, nullptr);
-    if (in_len < 1)
-      return std::string{};
-    else {
-      std::unique_ptr<char> out(new char[in_len]);
-      size_t out_len = WideCharToMultiByte(
-          CP_UTF8, 0, in.data(), static_cast<int>(in.size()), out.get(),
-          static_cast<int>(in_len), nullptr, nullptr);
-      if (out_len < 1)
-        return std::string{};
-      else
-        return std::string{out.get(), in_len};
-    }
-  };
-
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w.event_buf_len_ready) {
     if (buf->FileNameLength % 2 == 0) {
-      auto path = wstring_to_string(
-          std::wstring{w.path_name, wcslen(w.path_name)} + std::wstring{L"\\"}
-          + std::wstring{buf->FileName, buf->FileNameLength / 2});
+      auto&& path = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
       switch (buf->Action) {
         case FILE_ACTION_MODIFIED:
