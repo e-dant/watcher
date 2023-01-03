@@ -21,6 +21,8 @@
 #include <climits>
 #include <cstdio>
 #include <cstring>
+/* function */
+#include <functional>
 #include <filesystem>
 #include <optional>
 #include <unordered_map>
@@ -609,7 +611,7 @@ inline auto do_event_recv(sys_resource_type& sr,
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   /* Gather these resources:
        - system resources

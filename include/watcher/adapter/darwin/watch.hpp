@@ -265,7 +265,7 @@ inline void callback_adapter(
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   auto seen_created_paths = seen_created_paths_type{};
 

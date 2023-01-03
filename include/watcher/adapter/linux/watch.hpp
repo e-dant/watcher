@@ -12,6 +12,8 @@
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if !defined(WATER_WATCHER_USE_WARTHOG)
 
+/* function */
+#include <functional>
 /* geteuid */
 #include <unistd.h>
 /* event
@@ -49,7 +51,7 @@ namespace adapter {
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   return
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)

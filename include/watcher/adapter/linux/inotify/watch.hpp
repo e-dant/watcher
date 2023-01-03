@@ -16,6 +16,8 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <chrono>
+/* function */
+#include <functional>
 #include <filesystem>
 #include <iostream>
 #include <optional>
@@ -339,7 +341,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   auto const do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});

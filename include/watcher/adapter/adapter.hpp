@@ -1,19 +1,21 @@
 #pragma once
 
-/* obj: path */
+/* path */
 #include <filesystem>
-/* obj: mutex */
+/* mutex */
 #include <mutex>
-/* obj: string */
+/* string */
 #include <string>
-/* obj: unordered_map */
+/* unordered_map */
 #include <unordered_map>
-/* fn: watch
-   fn: die */
-#include <watcher/event.hpp>
 
+/* watch
+   die
+   event
+   callback */
 /* clang-format off */
 #include <watcher/platform.hpp>
+#include <watcher/event.hpp>
 #include <watcher/adapter/windows/watch.hpp>
 #include <watcher/adapter/darwin/watch.hpp>
 #include <watcher/adapter/linux/watch.hpp>
@@ -113,7 +115,7 @@ inline bool adapter(std::filesystem::path const& path,
        - Tell a watcher to die
      There may be more messages in the future. */
   if (msg)
-    return live() && watch(path, callback, is_living);
+    return live() && wtr::watcher::detail::adapter::watch(path, callback, is_living);
 
   else
     return die();
