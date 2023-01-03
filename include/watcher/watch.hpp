@@ -2,11 +2,10 @@
 
 /* path */
 #include <filesystem>
-/* callback
-   event */
-#include <watcher/event.hpp>
-/* adapter */
-#include <watcher/adapter/adapter.hpp>
+/* event
+   callback
+   adapter */
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

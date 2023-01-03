@@ -8,20 +8,11 @@
 #include <string>
 /* unordered_map */
 #include <unordered_map>
-
 /* watch
    die
    event
    callback */
-/* clang-format off */
-#include <watcher/platform.hpp>
-#include <watcher/event.hpp>
-#include <watcher/adapter/windows/watch.hpp>
-#include <watcher/adapter/darwin/watch.hpp>
-#include <watcher/adapter/linux/watch.hpp>
-#include <watcher/adapter/android/watch.hpp>
-#include <watcher/adapter/warthog/watch.hpp>
-/* clang-format on */
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
@@ -116,7 +107,7 @@ inline bool adapter(std::filesystem::path const& path,
      There may be more messages in the future. */
   if (msg)
     return live()
-           && wtr::watcher::detail::adapter::watch(path, callback, is_living);
+           && watch(path, callback, is_living);
 
   else
     return die();

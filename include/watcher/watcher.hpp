@@ -12,6 +12,8 @@
 #include <watcher/event.hpp>
 #include <watcher/adapter/windows/watch.hpp>
 #include <watcher/adapter/darwin/watch.hpp>
+#include <watcher/adapter/linux/fanotify/watch.hpp>
+#include <watcher/adapter/linux/inotify/watch.hpp>
 #include <watcher/adapter/linux/watch.hpp>
 #include <watcher/adapter/android/watch.hpp>
 #include <watcher/adapter/warthog/watch.hpp>

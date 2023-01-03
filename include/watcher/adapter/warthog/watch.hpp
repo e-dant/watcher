@@ -1,6 +1,7 @@
 #pragma once
 
 #include <watcher/platform.hpp>
+
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
     || defined(WATER_WATCHER_USE_WARTHOG)
 
@@ -33,7 +34,7 @@
 #include <unordered_map>
 /* callback
    event */
-#include <watcher/event.hpp>
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

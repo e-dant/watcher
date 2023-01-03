@@ -17,12 +17,10 @@
 /* geteuid */
 #include <unistd.h>
 /* event
-   callback */
-#include <watcher/event.hpp>
-/* fanotify::watch */
-#include <watcher/adapter/linux/fanotify/watch.hpp>
-/* inotify::watch */
-#include <watcher/adapter/linux/inotify/watch.hpp>
+   callback
+   fanotify::watch
+   inotify::watch */
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

@@ -43,10 +43,9 @@
 #include <vector>
 /* unordered_set */
 #include <unordered_set>
-/* watch */
-#include <watcher/adapter/adapter.hpp>
-/* event::* */
-#include <watcher/event.hpp>
+/* event
+   callback */
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

@@ -7,6 +7,7 @@
 */
 
 #include <watcher/platform.hpp>
+
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
 /* ReadDirectoryChangesW
@@ -29,7 +30,7 @@
 #include <thread>
 /* event
    callback */
-#include <watcher/event.hpp>
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

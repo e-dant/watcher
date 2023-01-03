@@ -27,7 +27,6 @@
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
-#include <watcher/adapter/adapter.hpp>
 /* event
    callback */
 #include <watcher/event.hpp>
