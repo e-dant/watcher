@@ -8,7 +8,7 @@ set_property(TARGET "${PROJECT_NAME}" PROPERTY
 
 # [compile options, esp. sanitizers]
 target_compile_options("${PROJECT_NAME}" PRIVATE
-  "-O3" "${COMPILE_OPTIONS}")
+  "${RELEASE_COMPILE_OPTIONS}")
 
 # [link options, esp. sanitizers]
 target_link_options("${PROJECT_NAME}" PRIVATE

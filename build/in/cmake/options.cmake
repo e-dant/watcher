@@ -18,6 +18,13 @@ set(COMPILE_OPTIONS
   "-Wno-unused-function"
   "-Wno-unneeded-internal-declaration")
 endif()
+
+if(MSVC)
+set(RELEASE_COMPILE_OPTIONS "-O2" "${COMPILE_OPTIONS}")
+else()
+set(RELEASE_COMPILE_OPTIONS "-O3" "${COMPILE_OPTIONS}")
+endif()
+
 set(LINK_OPTIONS)
 
 # Android's stdlib ("bionic") comes with threads.h and pthread.h
