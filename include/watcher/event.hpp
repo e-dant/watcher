@@ -35,20 +35,20 @@
 
    Happy hacking. */
 
-/* - std::ostream */
+/* std::ostream */
 #include <ostream>
 
-/* - std::chrono::system_clock::now,
-   - std::chrono::duration_cast,
-   - std::chrono::system_clock,
-   - std::chrono::nanoseconds,
-   - std::chrono::time_point */
+/* std::chrono::system_clock::now
+   std::chrono::duration_cast
+   std::chrono::system_clock
+   std::chrono::nanoseconds
+   std::chrono::time_point */
 #include <chrono>
 
-/* - std::filesystem::path */
+/* std::filesystem::path */
 #include <filesystem>
 
-/* - std::function */
+/* std::function */
 #include <functional>
 
 namespace wtr {

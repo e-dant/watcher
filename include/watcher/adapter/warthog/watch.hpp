@@ -17,20 +17,20 @@
     - Only support the C++ standard library
 */
 
-/* type: milliseconds */
+/* milliseconds */
 #include <chrono>
-/* obj: string */
+/* string */
 #include <string>
 /* lots of stuff */
 #include <filesystem>
-/* obj: error_code */
+/* error_code */
 #include <system_error>
-/* fn: this_thread::sleep_for */
+/* this_thread::sleep_for */
 #include <thread>
-/* obj: unordered_map */
+/* unordered_map */
 #include <unordered_map>
-/* type: event::callback
-   obj: event::event */
+/* callback
+   event */
 #include <watcher/event.hpp>
 
 namespace wtr {

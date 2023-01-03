@@ -27,6 +27,9 @@
 #include <string>
 /* this_thread::sleep_for */
 #include <thread>
+/* event
+   callback */
+#include <watcher/event.hpp>
 
 namespace wtr {
 namespace watcher {

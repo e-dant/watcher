@@ -1,11 +1,12 @@
 #pragma once
 
-/* type: path */
+/* path */
 #include <filesystem>
-/* fn: watch_ctl */
-#include <watcher/adapter/adapter.hpp>
-/* type: callback */
+/* callback
+   event */
 #include <watcher/event.hpp>
+/* adapter */
+#include <watcher/adapter/adapter.hpp>
 
 namespace wtr {
 namespace watcher {

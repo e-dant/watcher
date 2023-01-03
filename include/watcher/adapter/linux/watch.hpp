@@ -12,8 +12,14 @@
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if !defined(WATER_WATCHER_USE_WARTHOG)
 
+/* geteuid */
 #include <unistd.h>
+/* event
+   callback */
+#include <watcher/event.hpp>
+/* fanotify::watch */
 #include <watcher/adapter/linux/fanotify/watch.hpp>
+/* inotify::watch */
 #include <watcher/adapter/linux/inotify/watch.hpp>
 
 namespace wtr {
