@@ -11,22 +11,22 @@
    given to `watch`.
 
    The `event` object will contain the:
-     - Path -- Which is always relative.
-     - Type -- one of:
+     - Path, which is always absolute.
+     - Type, one of:
        - dir
        - file
        - hard_link
        - sym_link
        - watcher
        - other
-     - Event type -- one of:
+     - Event type, one of:
        - rename
        - modify
        - create
        - destroy
        - owner
        - other
-     - Event time -- In nanoseconds since epoch
+     - Event time in nanoseconds since epoch
 
    The `watcher` type is special.
    Events with this type will include messages from

@@ -110,6 +110,10 @@ into your project. Include as:
 #include <watcher/watcher.hpp>
 ```
 
+The [event](https://github.com/e-dant/watcher/blob/release/include/watcher/event.hpp)
+and [watch](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp) headers
+are short and approachable. (You only ever need to include `watcher/watcher.hpp`.)
+
 After that, there are two things the user needs:
   - The `watch` function
   - The `die` function
@@ -133,32 +137,30 @@ filesystem events to the (user-supplied) callback
 given to `watch`.
 
 The `event` object will contain the:
- - Path
- - Path type:
-   - Directory
-   - File
-   - Hard Link
-   - Symbolic Link
-   - Watcher
-   - Other
- - Event type:
-   - Rename
-   - Modify
-   - Create
-   - Destroy
-   - Owner
-   - Other
- - Event time as nanoseconds since epoch
+  - Path, which is always absolute.
+  - Type, one of:
+    - dir
+    - file
+    - hard_link
+    - sym_link
+    - watcher
+    - other
+  - Event type, one of:
+    - rename
+    - modify
+    - create
+    - destroy
+    - owner
+    - other
+  - Event time in nanoseconds since epoch
 
 The `watcher` type is special.
 
-Events with this type will include important
-messages from the watcher. You may recieve
-notifications about the watcher stopping,
-unwrapping a bad optional, and OS-level errors.
+Events with this type will include messages from
+the watcher. You may recieve error messages or
+important status updates.
 
-[The event header](https://github.com/e-dant/watcher/blob/release/include/watcher/event.hpp)
-is short and approachable.
+Happy hacking.
 
 ### Your Project
 
