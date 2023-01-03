@@ -2,7 +2,7 @@
 
 watcher::hone() {
   local USAGE="
-  "$0" < option > { option }
+  $0 < option > { option }
 
   option:
     --header-content-amalgam
@@ -14,23 +14,23 @@ watcher::hone() {
 
   example:
     tool/hone --header-content-amalgam > sinclude/watcher/watcher.hpp"
-  local LAST_DIR="$PWD"
-  cd "$(dirname "$0")/../include"
+  LAST_DIR="$PWD"
+  cd "$(dirname "$0")/../include" || return 1
 
-  local HEADER_CONTENT_RAW="$(\
-    cd watcher
+  HEADER_CONTENT_RAW="$(\
+    cd watcher || return 1
     find . -type f -name '*.hpp' -exec cat {} \;
     cd ..
   )"
 
-  local HEADER_PATH_ALL="$(\
-    cd watcher
+  HEADER_PATH_ALL="$(\
+    cd watcher || return 1
     find . -type f -name '*.hpp' | sed 's/^\.\///'
     cd ..
   )"
 
-  local HEADER_PATH_USED="$(\
-    while read H; \
+  HEADER_PATH_USED="$(\
+    while read -r H; \
     do \
       test -f "$H" \
         && echo "$H"; \
@@ -45,13 +45,13 @@ watcher::hone() {
     )" \
   )"
 
-  local HEADER_CONTENT_USED="$(\
-    while read C; do cat "$C"; done <<< "$HEADER_PATH_USED"\
+  HEADER_CONTENT_USED="$(\
+    while read -r C; do cat "$C"; done <<< "$HEADER_PATH_USED" \
   )"
 
-  local PROJECT_ID='8973564ED9F278A21F3E12037288412FBAF175F889'
+  PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
 
-  local HEADER_CONTENT_AMALGAM="$(\
+  HEADER_CONTENT_AMALGAM="$(\
     echo "#ifndef $PROJECT_ID" \
       && echo "#define $PROJECT_ID" \
       && echo "$HEADER_CONTENT_USED" \
@@ -77,7 +77,7 @@ watcher::hone() {
     echo "$USAGE"
   fi
 
-  cd "$LAST_DIR"
+  cd "$LAST_DIR" || return 1
 }
 
 watcher::hone $@
