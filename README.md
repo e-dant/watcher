@@ -69,7 +69,7 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 ```
 
 3. Efficient
-> In [most cases](https://github.com/e-dant/watcher/tree/release#exceptions-to-efficient-scanning),
+> In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
 *Watcher* uses a near-zero amount of resources and makes
 [efficienct use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 
@@ -245,19 +245,19 @@ ready to send events to the callback. For a few thousand paths,
 this may take a few milliseconds. For a few million, consider
 waiting a second or so.
 
-### Exceptions to Efficient Scanning
+### Exception to Efficient Scanning
 
-There are two cases where *Watcher*'s efficiency takes a hit:
+Efficiency takes a hit when we bring out the `warthog`,
+our platform-independent adapter. This adapter is used
+on platforms that lack better alternatives, such as (not
+Darwin) BSD and Solaris (because `warthog` beats `kqueue`).
 
-1. When we bring out the `warthog`, our platform-independent
-adapter. This adapter is used on platforms that lack better
-alternatives, such as BSD and Solaris (`warthog` beats `kqueue`).
-2. On embedded systems (where resources matter regardless).
+*Watcher* is still relatively efficient when it has no
+alternative better than `warthog`. As a thumb-rule,
+scanning more than one-hundred-thousand paths with `warthog`
+might stutter.
 
-*Watcher* is still relatively efficient in these cases, but
-may use a non-negligible amount of CPU time. For a thumb-rule,
-scanning more than one-hundred-thousand paths might
-stutter on hardware from this, or the last, decade.
+I'll keep my eyes open for better kernel APIs on BSD.
 
 ### OS APIs Used
 
@@ -268,7 +268,7 @@ Linux
 
 Darwin
 - `FSEvents`
-- `dispatch_queue_attr_make_with_qos_class`
+- `dispatch_queue`
 
 Windows
 - `ReadDirectoryChangesW`
