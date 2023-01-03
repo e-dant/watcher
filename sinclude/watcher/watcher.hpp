@@ -78,6 +78,7 @@ inline constexpr platform_t platform
 
 } /* namespace detail */
 } /* namespace watcher */
+} /* namespace wtr   */
 
 /* @brief watcher/event
    There are only three things the user needs:
