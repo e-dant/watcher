@@ -14,6 +14,8 @@ Updated the significant lines of code and documentation.
 
 More than half (66%) of the codebase (3422 lines) is documentation (39%) and unit tests (27%).
 
+Renamed `tiny-main` to `tiny_main`. We might rename this to `tiny_watcher` in the future.
+
 ### Internal
 
 The `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adapter::adapter`.
