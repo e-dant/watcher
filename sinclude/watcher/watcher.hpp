@@ -90,22 +90,22 @@ inline constexpr platform_t platform
    given to `watch`.
 
    The `event` object will contain the:
-     - Path -- Which is always relative.
-     - Type -- one of:
+     - Path, which is always absolute.
+     - Type, one of:
        - dir
        - file
        - hard_link
        - sym_link
        - watcher
        - other
-     - Event type -- one of:
+     - Event type, one of:
        - rename
        - modify
        - create
        - destroy
        - owner
        - other
-     - Event time -- In nanoseconds since epoch
+     - Event time in nanoseconds since epoch
 
    The `watcher` type is special.
    Events with this type will include messages from
@@ -1272,7 +1272,7 @@ inline bool watch(std::filesystem::path const& path,
 namespace wtr {
 namespace watcher {
 
-/* @brief watcher/watch
+/* @brief wtr/watcher/watch
 
    @param path:
      The root path to watch for filesystem events.
@@ -1287,7 +1287,7 @@ namespace watcher {
    Every adapter monitors `path` for changes and invokes the
    `callback` with an `event` object when they occur.
 
-   There are two things the user needs:
+   There are three things the user needs:
      - The `die` function
      - The `watch` function
      - The `event` structure
@@ -1301,7 +1301,7 @@ inline bool watch(std::filesystem::path const& path,
   return detail::adapter::adapter(path, callback, true);
 }
 
-/* @brief watcher/die
+/* @brief wtr/watcher/die
 
    Stops a watcher at `path`.
    Calls `callback` with status messages.
