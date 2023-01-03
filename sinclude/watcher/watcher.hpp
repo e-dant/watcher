@@ -2362,4 +2362,4 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
           || defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
 #endif /* if !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif // W973564ED9F278A21F3E12037288412FBAF175F889
+#endif /* W973564ED9F278A21F3E12037288412FBAF175F889 */
