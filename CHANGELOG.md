@@ -10,7 +10,7 @@ The Darwin `FSEvents` adapter has independent resources per each (user) invocati
 
 Documentation for `watcher::die` is more clear.
 
-More than half (66%) of the codebase (3422 lines) is documentation (39%) and unit tests (27%).
+More than half (66%) of the codebase (3429 lines) is documentation (39%) and unit tests (27%).
 The significant lines of code and documentation are current in the readme.
 
 `tiny-main` is now `tiny_main`. We may rename this to `tiny_watcher` in the future.
