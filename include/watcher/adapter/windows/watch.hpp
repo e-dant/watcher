@@ -143,17 +143,8 @@ inline bool do_event_send(watch_event_proxy& w,
     while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w.event_buf_len_ready)
     {
       if (buf->FileNameLength % 2 == 0) {
-        auto path
+        auto where
             = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
-
-        auto kind = [&path]() {
-          try {
-            return std::filesystem::is_directory(path) ? event::kind::dir
-                                                       : event::kind::file;
-          } catch (...) {
-            return event::kind::other;
-          }
-        }();
 
         auto what = [&buf]() {
           switch (buf->Action) {
@@ -166,7 +157,16 @@ inline bool do_event_send(watch_event_proxy& w,
           }
         }();
 
-        callback({path, what, kind});
+        auto kind = [&where]() {
+          try {
+            return std::filesystem::is_directory(where) ? event::kind::dir
+                                                        : event::kind::file;
+          } catch (...) {
+            return event::kind::other;
+          }
+        }();
+
+        callback({where, what, kind});
 
         if (buf->NextEntryOffset == 0)
           break;
@@ -213,8 +213,6 @@ inline bool watch(std::filesystem::path const& path,
         while (is_valid(w) && has_event(w)) {
           do_event_send(w, callback);
           do_event_recv(w, callback);
-          // do_event_recv(w, callback);
-          // do_event_send(w, callback);
         }
       }
     }
