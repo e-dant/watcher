@@ -10,11 +10,12 @@ The Darwin `FSEvents` adapter has independent resources per each (user) invocati
 
 Documentation for `watcher::die` is more clear.
 
-Updated the significant lines of code and documentation.
-
 More than half (66%) of the codebase (3422 lines) is documentation (39%) and unit tests (27%).
+The significant lines of code and documentation are current in the readme.
 
-Renamed `tiny-main` to `tiny_main`. We might rename this to `tiny_watcher` in the future.
+`tiny-main` is now `tiny_main`. We may rename this to `tiny_watcher` in the future.
+
+The `tool/hone` amalgamation uses a valid identifier for an `ifdef` guard.
 
 ### Internal
 
