@@ -420,7 +420,7 @@ inline bool adapter(std::filesystem::path const& path,
    CreateFileW
    CreateEventW
    GetQueuedCompletionStatus
-   SetEvent
+   ResetEvent
    GetLastError
    WideCharToMultiByte */
 #include <windows.h>
@@ -452,9 +452,13 @@ inline constexpr auto event_buf_len_max = 8192;
 class watch_event_proxy
 {
  public:
-  bool valid{true};
+  bool is_valid{true};
 
-  wtr::watcher::event::callback const& callback;
+  std::filesystem::path path;
+
+  wchar_t path_name[256]{L""};
+
+  HANDLE path_handle{nullptr};
 
   HANDLE event_completion_token{nullptr};
 
@@ -466,13 +470,7 @@ class watch_event_proxy
 
   DWORD event_buf_len_ready{0};
 
-  wchar_t path_name[256]{L""};
-
-  HANDLE path_handle{nullptr};
-
-  watch_event_proxy(std::filesystem::path const& path,
-                    event::callback const& callback) noexcept
-      : callback{callback}
+  watch_event_proxy(std::filesystem::path const& path) noexcept : path{path}
   {
     memcpy(path_name, path.c_str(), path.string().size());
 
@@ -485,14 +483,11 @@ class watch_event_proxy
     if (path_handle)
       event_completion_token
           = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-    else
-      valid = false;
 
     if (event_completion_token)
-      CreateIoCompletionPort(path_handle, event_completion_token,
-                             (ULONG_PTR)path_handle, 1);
-    else
-      valid = false;
+      is_valid = CreateIoCompletionPort(path_handle, event_completion_token,
+                                        (ULONG_PTR)path_handle, 1)
+                 && ResetEvent(event_token);
   }
 
   ~watch_event_proxy() noexcept
@@ -504,7 +499,7 @@ class watch_event_proxy
 
 inline bool is_valid(watch_event_proxy& w) noexcept
 {
-  return w.valid && w.event_buf != nullptr;
+  return w.is_valid && w.event_buf != nullptr;
 }
 
 inline bool has_event(watch_event_proxy& w) noexcept
@@ -512,92 +507,83 @@ inline bool has_event(watch_event_proxy& w) noexcept
   return w.event_buf_len_ready != 0;
 }
 
-inline void do_event_recv(watch_event_proxy& w) noexcept
+inline bool do_event_recv(watch_event_proxy& w,
+                          event::callback const& callback) noexcept
 {
-  using namespace wtr::watcher;
+  using namespace wtr::watcher::event;
 
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
   memset(&w.event_overlap, 0, sizeof(OVERLAPPED));
 
-  if (ReadDirectoryChangesW(
-          w.path_handle, w.event_buf, event_buf_len_max, true,
-          FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
-              | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_LAST_WRITE
-              | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
-              | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
-          &bytes_returned, &w.event_overlap, nullptr))
-  {
+  auto read_ok = ReadDirectoryChangesW(
+      w.path_handle, w.event_buf, event_buf_len_max, true,
+      FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
+          | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_LAST_WRITE
+          | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
+          | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
+      &bytes_returned, &w.event_overlap, nullptr);
+
+  if (w.event_buf && read_ok) {
     w.event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
-    if (w.event_buf == nullptr) w.valid = false;
+    return true;
   } else {
     switch (GetLastError()) {
       case ERROR_IO_PENDING:
         w.event_buf_len_ready = 0;
-        w.valid = false;
-        w.callback(event::event{"e/watcher/rdc/io_pending", event::what::other,
-                                event::kind::watcher});
+        w.is_valid = false;
+        callback({"e/sys/read/pending", what::other, kind::watcher});
         break;
-      default:
-        w.callback(event::event{"e/watcher/rdc", event::what::other,
-                                event::kind::watcher});
-        break;
+      default: callback({"e/sys/read", what::other, kind::watcher}); break;
     }
+    return false;
   }
 }
 
-inline void do_event_send(watch_event_proxy& w) noexcept
+inline bool do_event_send(watch_event_proxy& w,
+                          event::callback const& callback) noexcept
 {
-  auto&& wstring_to_string = [](std::wstring const& in) -> std::string {
-    size_t in_len = WideCharToMultiByte(CP_UTF8, 0, in.data(),
-                                        static_cast<int>(in.size()), nullptr, 0,
-                                        nullptr, nullptr);
-    if (in_len < 1)
-      return std::string{};
-    else {
-      std::unique_ptr<char> out(new char[in_len]);
-      size_t out_len = WideCharToMultiByte(
-          CP_UTF8, 0, in.data(), static_cast<int>(in.size()), out.get(),
-          static_cast<int>(in_len), nullptr, nullptr);
-      if (out_len < 1)
-        return std::string{};
-      else
-        return std::string{out.get(), in_len};
-    }
-  };
-
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
-  while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w.event_buf_len_ready) {
-    if (buf->FileNameLength % 2 == 0) {
-      auto path = wstring_to_string(
-          std::wstring{w.path_name, wcslen(w.path_name)} + std::wstring{L"\\"}
-          + std::wstring{buf->FileName, buf->FileNameLength / 2});
+  if (is_valid(w)) {
+    while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w.event_buf_len_ready)
+    {
+      if (buf->FileNameLength % 2 == 0) {
+        auto where
+            = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-      switch (buf->Action) {
-        case FILE_ACTION_MODIFIED:
-          w.callback({path, event::what::modify, event::kind::file});
+        auto what = [&buf]() {
+          switch (buf->Action) {
+            case FILE_ACTION_MODIFIED: return event::what::modify;
+            case FILE_ACTION_ADDED: return event::what::create;
+            case FILE_ACTION_REMOVED: return event::what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME: return event::what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME: return event::what::rename;
+            default: return event::what::other;
+          }
+        }();
+
+        auto kind = [&where]() {
+          try {
+            return std::filesystem::is_directory(where) ? event::kind::dir
+                                                        : event::kind::file;
+          } catch (...) {
+            return event::kind::other;
+          }
+        }();
+
+        callback({where, what, kind});
+
+        if (buf->NextEntryOffset == 0)
           break;
-        case FILE_ACTION_ADDED:
-          w.callback({path, event::what::create, event::kind::file});
-          break;
-        case FILE_ACTION_REMOVED:
-          w.callback({path, event::what::destroy, event::kind::file});
-          break;
-        case FILE_ACTION_RENAMED_OLD_NAME:
-          w.callback({path, event::what::rename, event::kind::file});
-          break;
-        case FILE_ACTION_RENAMED_NEW_NAME:
-          w.callback({path, event::what::rename, event::kind::file});
-          break;
-        default: break;
+        else
+          buf = (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf
+                                           + buf->NextEntryOffset);
       }
-
-      if (buf->NextEntryOffset == 0)
-        break;
-      else
-        buf = (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
     }
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -612,22 +598,18 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto w = watch_event_proxy{path, callback};
+  auto w = watch_event_proxy{path};
 
   if (is_valid(w)) {
-    do_event_recv(w);
+    do_event_recv(w, callback);
 
     while (is_valid(w) && has_event(w)) {
-      do_event_send(w);
+      do_event_send(w, callback);
     }
 
-    SetEvent(w.event_token);
-
     while (is_living()) {
-      if constexpr (has_delay) std::this_thread::sleep_for(delay_ms);
-
-      ULONG_PTR completion_key{};
-      LPOVERLAPPED overlap{};
+      ULONG_PTR completion_key{0};
+      LPOVERLAPPED overlap{nullptr};
 
       bool complete = GetQueuedCompletionStatus(
           w.event_completion_token, &w.event_buf_len_ready, &completion_key,
@@ -635,8 +617,8 @@ inline bool watch(std::filesystem::path const& path,
 
       if (complete && overlap) {
         while (is_valid(w) && has_event(w)) {
-          do_event_send(w);
-          do_event_recv(w);
+          do_event_send(w, callback);
+          do_event_recv(w, callback);
         }
       }
     }
