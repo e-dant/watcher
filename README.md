@@ -322,13 +322,19 @@ watcher
 │     └── adapter
 │        ├── adapter.hpp
 │        ├── windows
-│        │  └── watch.hpp
+│        │  ├── watch.hpp
+│        │  └── notes.md
 │        ├── warthog
 │        │  └── watch.hpp
 │        ├── linux
-│        │  └── watch.hpp
+│        │  ├── watch.hpp
+│        │  ├── inotify
+│        │  │  └── watch.hpp
+│        │  └── fanotify
+│        │     └── watch.hpp
 │        ├── darwin
-│        │  └── watch.hpp
+│        │  ├── watch.hpp
+│        │  └── notes.md
 │        └── android
 │           └── watch.hpp
 └── build
