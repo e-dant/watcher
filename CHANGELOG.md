@@ -30,6 +30,8 @@ The `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adap
 
 The Windows adapter is given some much needed love.
 
+Heavier reliance on using `watcher/watcher.hpp` internally.
+
 ## 0.5.2
 
 The changelog for `0.5.0` is updated. Again.
