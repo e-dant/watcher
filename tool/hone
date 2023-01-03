@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 
+# @todo This function doesn't work if the file doesn't end in a newline.
 watcher::hone() {
   local USAGE="
   $0 < option > { option }
