@@ -8,4 +8,4 @@ Implementation of a *Watcher* CLI.
 ## Content
 
 - `main.cpp`: A useful CLI program.
-- `tiny-main.cpp`: Demonstration purposes.
+- `tiny_main.cpp`: Demonstration purposes.

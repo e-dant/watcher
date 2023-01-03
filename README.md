@@ -10,13 +10,13 @@
 ## Quick Start
 
 ```cpp
-/* tiny-main.cpp */
+/* tiny_main.cpp */
 #include <iostream>
 #include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
 
 int main(int argc, char** argv) {
   using namespace wtr::watcher;
-  return watch(argc > 1 ? argv[1] : ".", [](const event::event& this_event) {
+  return watch(argc > 1 ? argv[1] : ".", [](event::event const& this_event) {
     std::cout << this_event << ',' << std::endl;
   });
 }
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 # Platform specifics. What can you do.
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
-eval c++ -std=c++2a -O3 src/watcher/tiny-main.cpp -o watcher $PLATFORM_EXTRAS
+eval c++ -std=c++2a -O3 src/watcher/tiny_main.cpp -o watcher $PLATFORM_EXTRAS
 # Run
 ./watcher
 ```
@@ -308,7 +308,7 @@ LL miss rate:          0.0% (        0.0%     +         0.0%  )
 watcher
 ├── src
 │  └── watcher
-│     ├── tiny-main.cpp
+│     ├── tiny_main.cpp
 │     └── main.cpp
 ├── sinclude
 │  └── watcher
