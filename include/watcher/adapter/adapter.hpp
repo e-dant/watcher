@@ -106,8 +106,7 @@ inline bool adapter(std::filesystem::path const& path,
        - Tell a watcher to die
      There may be more messages in the future. */
   if (msg)
-    return live()
-           && watch(path, callback, is_living);
+    return live() && watch(path, callback, is_living);
 
   else
     return die();
