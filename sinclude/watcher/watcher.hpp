@@ -115,20 +115,20 @@ inline constexpr platform_t platform
 
    Happy hacking. */
 
-/* - std::ostream */
+/* std::ostream */
 #include <ostream>
 
-/* - std::chrono::system_clock::now,
-   - std::chrono::duration_cast,
-   - std::chrono::system_clock,
-   - std::chrono::nanoseconds,
-   - std::chrono::time_point */
+/* std::chrono::system_clock::now
+   std::chrono::duration_cast
+   std::chrono::system_clock
+   std::chrono::nanoseconds
+   std::chrono::time_point */
 #include <chrono>
 
-/* - std::filesystem::path */
+/* std::filesystem::path */
 #include <filesystem>
 
-/* - std::function */
+/* std::function */
 #include <functional>
 
 namespace wtr {
@@ -317,6 +317,8 @@ using callback = function<void(event const&)>;
 #include <string>
 /* this_thread::sleep_for */
 #include <thread>
+/* event
+   callback */
 
 namespace wtr {
 namespace watcher {
@@ -782,7 +784,7 @@ inline void callback_adapter(
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   auto seen_created_paths = seen_created_paths_type{};
 
@@ -828,7 +830,14 @@ inline bool watch(std::filesystem::path const& path,
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if !defined(WATER_WATCHER_USE_WARTHOG)
 
+/* function */
+#include <functional>
+/* geteuid */
 #include <unistd.h>
+/* event
+   callback */
+/* fanotify::watch */
+/* inotify::watch */
 
 namespace wtr {
 namespace watcher {
@@ -857,7 +866,7 @@ namespace adapter {
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   return
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -902,20 +911,20 @@ inline bool watch(std::filesystem::path const& path,
     - Only support the C++ standard library
 */
 
-/* type: milliseconds */
+/* milliseconds */
 #include <chrono>
-/* obj: string */
+/* string */
 #include <string>
 /* lots of stuff */
 #include <filesystem>
-/* obj: error_code */
+/* error_code */
 #include <system_error>
-/* fn: this_thread::sleep_for */
+/* this_thread::sleep_for */
 #include <thread>
-/* obj: unordered_map */
+/* unordered_map */
 #include <unordered_map>
-/* type: event::callback
-   obj: event::event */
+/* callback
+   event */
 
 namespace wtr {
 namespace watcher {
@@ -1148,17 +1157,19 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_UNKNOWN) */
 
-/* obj: path */
+/* path */
 #include <filesystem>
-/* obj: mutex */
+/* mutex */
 #include <mutex>
-/* obj: string */
+/* string */
 #include <string>
-/* obj: unordered_map */
+/* unordered_map */
 #include <unordered_map>
-/* fn: watch
-   fn: die */
 
+/* watch
+   die
+   event
+   callback */
 /* clang-format off */
 /* clang-format on */
 
@@ -1254,7 +1265,8 @@ inline bool adapter(std::filesystem::path const& path,
        - Tell a watcher to die
      There may be more messages in the future. */
   if (msg)
-    return live() && watch(path, callback, is_living);
+    return live()
+           && wtr::watcher::detail::adapter::watch(path, callback, is_living);
 
   else
     return die();
@@ -1265,10 +1277,11 @@ inline bool adapter(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-/* type: path */
+/* path */
 #include <filesystem>
-/* fn: watch_ctl */
-/* type: callback */
+/* callback
+   event */
+/* adapter */
 
 namespace wtr {
 namespace watcher {
@@ -1337,10 +1350,14 @@ inline bool die(
 #include <climits>
 #include <cstdio>
 #include <cstring>
+/* function */
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
+/* event
+   callback */
 
 namespace wtr {
 namespace watcher {
@@ -1921,7 +1938,7 @@ inline auto do_event_recv(sys_resource_type& sr,
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   /* Gather these resources:
        - system resources
@@ -1984,12 +2001,16 @@ inline bool watch(std::filesystem::path const& path,
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <chrono>
+/* function */
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <thread>
 #include <tuple>
 #include <unordered_map>
+/* event
+   callback */
 
 namespace wtr {
 namespace watcher {
@@ -2303,7 +2324,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   auto const do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
