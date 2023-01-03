@@ -56,7 +56,7 @@ watcher::hone() {
       && echo "#define $PROJECT_ID" \
       && echo "$HEADER_CONTENT_USED" \
         | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
-      && echo "#endif // $PROJECT_ID" \
+      && echo "#endif /* $PROJECT_ID */" \
   )"
 
   if test -n "$*"
