@@ -917,6 +917,8 @@ inline bool watch(std::filesystem::path const& path,
 #include <string>
 /* lots of stuff */
 #include <filesystem>
+/* function */
+#include <functional>
 /* error_code */
 #include <system_error>
 /* this_thread::sleep_for */
@@ -1124,7 +1126,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  auto const& is_living) noexcept
+                  std::function<bool()> const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
