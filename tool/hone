@@ -30,7 +30,7 @@ watcher::hone() {
   )"
 
   HEADER_PATH_USED="$(\
-    while read H; \
+    while read -r H; \
     do \
       test -f "$H" \
         && echo "$H"; \
@@ -46,7 +46,7 @@ watcher::hone() {
   )"
 
   HEADER_CONTENT_USED="$(\
-    while read C; do cat "$C"; done <<< "$HEADER_PATH_USED" \
+    while read -r C; do cat "$C"; done <<< "$HEADER_PATH_USED" \
   )"
 
   PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
