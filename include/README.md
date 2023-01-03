@@ -10,7 +10,3 @@ To use:
 ```cpp
 #include <watcher/watcher.hpp>
 ```
-
-## Content
-
-`watcher.hpp`
