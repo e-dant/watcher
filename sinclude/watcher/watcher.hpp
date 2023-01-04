@@ -545,7 +545,7 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif
+#endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
@@ -1502,7 +1502,6 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
           && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
-
 /*
   @brief wtr/watcher/<d>/adapter/linux/inotify
 
@@ -1904,7 +1903,6 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
-
 /*
   @brief wtr/watcher/detail/adapter/linux
 
@@ -1998,7 +1996,6 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-
 
 /*
   @brief watcher/adapter/android
@@ -2275,7 +2272,6 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
           || defined(WATER_WATCHER_USE_WARTHOG) */
-
 
 /* path */
 #include <filesystem>
