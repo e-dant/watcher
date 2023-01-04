@@ -298,4 +298,3 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr   */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
-

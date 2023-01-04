@@ -267,4 +267,3 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
           || defined(WATER_WATCHER_USE_WARTHOG) */
-

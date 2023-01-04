@@ -102,4 +102,3 @@ inline constexpr platform_type platform
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
-
