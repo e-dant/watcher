@@ -4,10 +4,10 @@ namespace wtr {
 namespace watcher {
 namespace detail {
 
-/* @todo add platform versions */
-enum class platform_t {
+enum class platform_type {
   /* Linux */
-  linux_unknown,
+  linux_kernel,
+  linux_kernel_unknown,
 
   /* Android */
   android,
@@ -27,49 +27,73 @@ enum class platform_t {
 
 /* clang-format off */
 
-inline constexpr platform_t platform
+inline constexpr platform_type platform
 
 /* linux */
 # if defined(__linux__) && !defined(__ANDROID_API__)
-    = platform_t::linux_unknown;
-#  define WATER_WATCHER_PLATFORM_LINUX_ANY TRUE
-#  define WATER_WATCHER_PLATFORM_LINUX_UNKNOWN TRUE
+#  define WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY TRUE
+
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#  include <linux/version.h>
+
+/* linux >= 5.9.0 */
+#  if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0
+#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN FALSE
+#  endif
+/* linux >= 2.7.0 */
+#  if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)
+    = platform_type::linux_kernel;
+#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0
+#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN FALSE
+/* linux unknown */
+#  else
+    = platform_type::linux_kernel_unknown;
+#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN TRUE
+#  endif
 
 /* android */
 # elif defined(__ANDROID_API__)
-    = platform_t::android;
+    = platform_type::android;
 #  define WATER_WATCHER_PLATFORM_ANDROID_ANY TRUE
 #  define WATER_WATCHER_PLATFORM_ANDROID_UNKNOWN TRUE
 
 /* apple */
 # elif defined(__APPLE__)
 #  define WATER_WATCHER_PLATFORM_MAC_ANY TRUE
+
+/* TARGET_OS_* */
 #  include <TargetConditionals.h>
-/* apple target */
+
+/* apple mac catalyst */
 #  if defined(TARGET_OS_MACCATALYST)
-    = platform_t::mac_catalyst;
+    = platform_type::mac_catalyst;
 #  define WATER_WATCHER_PLATFORM_MAC_CATALYST TRUE
+/* apple macos, osx */
 #  elif defined(TARGET_OS_MAC)
-    = platform_t::mac_os;
+    = platform_type::mac_os;
 #  define WATER_WATCHER_PLATFORM_MAC_OS TRUE
+/* apple ios */
 #  elif defined(TARGET_OS_IOS)
-    = platform_t::mac_ios;
+    = platform_type::mac_ios;
 #  define WATER_WATCHER_PLATFORM_MAC_IOS TRUE
+/* apple unknown */
 #  else
-    = platform_t::mac_unknown;
+    = platform_type::mac_unknown;
 #  define WATER_WATCHER_PLATFORM_MAC_UNKNOWN TRUE
 #  endif /* apple target */
 
 /* windows */
 # elif defined(WIN32) || defined(_WIN32)
-    = platform_t::windows;
+    = platform_type::windows;
 #  define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
 #  define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 # else
 # warning "host platform is unknown"
-    = platform_t::unknown;
+    = platform_type::unknown;
 #  define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
 # endif
 
@@ -78,3 +102,4 @@ inline constexpr platform_t platform
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
+

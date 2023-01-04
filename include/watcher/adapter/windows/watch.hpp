@@ -232,4 +232,5 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif
+#endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
+

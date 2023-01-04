@@ -8,9 +8,11 @@
 
 #include <watcher/platform.hpp>
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
+#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if !defined(WATER_WATCHER_USE_WARTHOG)
+
+#define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
 #include <sys/epoll.h>
 #include <sys/inotify.h>
@@ -179,7 +181,7 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
   int watch_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
       = inotify_init();
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
       = inotify_init1(in_init_opt);
 #endif
 
@@ -192,7 +194,7 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
     int event_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
         = epoll_create(event_wait_queue_max);
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_ANY)
+#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
         = epoll_create1(EPOLL_CLOEXEC);
 #endif
 
@@ -397,6 +399,7 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif /* if defined(WATER_WATCHER_PLATFORM_LINUX_ANY) \
-          || defined(WATER_WATCHER_PLATFORM_LINUX_ANY) */
-#endif /* if !defined(WATER_WATCHER_USE_WARTHOG) */
+#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
+#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
+          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+
