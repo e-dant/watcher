@@ -94,13 +94,13 @@ int main(int argc, char** argv)
      Append a comma until the last event: Watcher dying.
      Flush stdout, via `endl`, for piping.
      For manual parsing, see the file watcher/event.hpp. */
-  auto const stream_json = [](auto const& this_event) {
-    using event::kind::watcher, event::what::destroy;
+  auto const stream_json = [](auto const& ev) {
+    using event::kind, event::what;
 
     auto const maybe_comma
-        = this_event.kind == watcher && this_event.what == destroy ? "" : ",";
+        = ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
 
-    std::cout << this_event << maybe_comma << std::endl;
+    std::cout << ev << maybe_comma << std::endl;
   };
 
   auto const watch_expire = [](auto const& path, auto const& callback,
