@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4
+
+The Linux adapter checks the kernel version (at compile-time) to select an API that actually exists.
+
 ## 0.5.3
 
 The Linux `fanotify` adapter for linux is implemented.
