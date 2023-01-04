@@ -325,8 +325,7 @@ watcher
 │     └── adapter
 │        ├── adapter.hpp
 │        ├── windows
-│        │  ├── watch.hpp
-│        │  └── notes.md
+│        │  └── watch.hpp
 │        ├── warthog
 │        │  └── watch.hpp
 │        ├── linux
@@ -336,13 +335,11 @@ watcher
 │        │  └── fanotify
 │        │     └── watch.hpp
 │        ├── darwin
-│        │  ├── watch.hpp
-│        │  └── notes.md
+│        │  └── watch.hpp
 │        └── android
 │           └── watch.hpp
 └── build
    ├── build
    ├── out
    └── in
-
 ```
