@@ -94,8 +94,6 @@ ARTIFACTS=()
 
 test -n "$PLATFORM" \
   || PLATFORM='this'
-test -n "$SOURCE_VARIANT" \
-  || SOURCE_VARIANT='full'
 
 OUT_DIR="$PWD/out"
 OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
@@ -134,8 +132,7 @@ build::init::cc() {
 
 build::compdb() {
   compdb_path="$OUT_PLATFORM_DIR/release/compile_commands.json"
-  if test "$SOURCE_VARIANT" != 'tiny' \
-    && test -f "$compdb_path"
+  if test -f "$compdb_path"
   then
     local FROM="$compdb_path"
     local TO='../compile_commands.json'
