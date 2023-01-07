@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317
+# SC2317 We use eval. These functions aren't unused.
 
 if echo "$*" | grep -q -- '--help'
 then
@@ -115,7 +117,7 @@ build::init::cc() {
     then
       if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
       then
-        "$WTR_LLVM_DIR/tool/version/set" $WTR_LLVM_VERSION
+        "$WTR_LLVM_DIR/tool/version/set" "$WTR_LLVM_VERSION"
         "$WTR_LLVM_DIR/build/build"
         EC=$?
       fi
@@ -126,7 +128,7 @@ build::init::cc() {
     export CC
     export CXX
 
-    return $EC
+    return "$EC"
   fi
 }
 
@@ -291,9 +293,9 @@ build::build() {
       cmake \
         -S '$PWD/in' \
         -B '$this_out_dir' \
-        $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-        $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-        $(build::get_cmake_extra_for_platform $PLATFORM) \
+        $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
+        $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
+        $(build::get_cmake_extra_for_platform "$PLATFORM") \
         -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
@@ -314,7 +316,7 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      if build::check::sanitizer_allowed_for::$PLATFORM "$S"
+      if build::check::sanitizer_allowed_for::"$PLATFORM" "$S"
       then
         echo "$BUILD_SEPERATOR"
 
@@ -331,9 +333,9 @@ build::build() {
           cmake \
             -S '$PWD/in' \
             -B '$this_out_dir' \
-            $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-            $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-            $(build::get_cmake_extra_for_platform $PLATFORM) \
+            $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
+            $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
+            $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON")
@@ -357,7 +359,7 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      if build::check::sanitizer_allowed_for::$PLATFORM "$S"
+      if build::check::sanitizer_allowed_for::"$PLATFORM" "$S"
       then
         echo "$BUILD_SEPERATOR"
 
@@ -373,9 +375,9 @@ build::build() {
           cmake \
             -S '$PWD/in' \
             -B '$this_out_dir' \
-            $(build::get_cmake_generator_opt_for_platform $PLATFORM) \
-            $(build::get_cmake_system_name_opt_for_platform $PLATFORM) \
-            $(build::get_cmake_extra_for_platform $PLATFORM) \
+            $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
+            $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
+            $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON \
             -DWTR_WATCHER_USE_TEST=ON")
@@ -420,6 +422,7 @@ build::run::test() {
           chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
           for character in $(seq 1 $chars_on_left_side)
           do test_title="-$test_title"; done
+          # shellcheck disable=SC2034
           for character in $(seq 1 $chars_on_left_side)
           do test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
               && test_title="$test_title-"
