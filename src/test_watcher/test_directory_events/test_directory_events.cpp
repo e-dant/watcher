@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 
 TEST_CASE("Directory Events", "[directory_events]"){
 

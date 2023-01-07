@@ -5,6 +5,6 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 
 TEST_CASE("Regular File Events", "[regular_file_events]"){};

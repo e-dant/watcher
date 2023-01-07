@@ -59,7 +59,7 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
   for (auto& i : path_indices) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{10});
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
       auto ev = event::event{path, event::what::create, event::kind::file};

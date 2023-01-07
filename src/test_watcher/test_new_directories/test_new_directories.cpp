@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 /* event */
 #include <watcher/watcher.hpp>
 /* watch_gather */
@@ -84,7 +84,7 @@ TEST_CASE("New Directories", "[new_directories]")
   /* @todo
      This sleep is hiding a bug on Linux which begins
      watching very slightly after we ask it to. */
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   for (auto const& p : new_store_path_list) {
     std::filesystem::create_directory(p);
@@ -92,7 +92,7 @@ TEST_CASE("New Directories", "[new_directories]")
         p, wtr::watcher::event::what::create, wtr::watcher::event::kind::dir});
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   for (int i = 0; i < path_count; i++) {
     for (auto const& p : store_path_list) {
@@ -122,7 +122,7 @@ TEST_CASE("New Directories", "[new_directories]")
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   event_sent_list.push_back(
       {std::string("s/self/die@").append(base_store_path.string()),

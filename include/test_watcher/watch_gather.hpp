@@ -63,6 +63,9 @@ auto watch_gather(auto const& /* Title */
                       alive_for_ms_target
                   = std::chrono::milliseconds(1000))
 {
+  static constexpr auto pre_create_event_delay = std::chrono::milliseconds(10);
+  static constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(10);
+
   auto event_recv_list = std::vector<wtr::watcher::event::event>{};
   auto event_recv_list_mtx = std::mutex{};
 
@@ -70,9 +73,6 @@ auto watch_gather(auto const& /* Title */
   auto watch_path_list = std::vector<std::filesystem::path>{};
 
   auto futures = std::vector<std::future<bool>>{};
-
-  constexpr auto pre_create_event_delay = std::chrono::milliseconds(500);
-  constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(500);
 
   /* Setup */
   {

@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 /* event */
 #include <watcher/watcher.hpp>
 /* watch_gather */
@@ -59,7 +59,7 @@ TEST_CASE("Simple", "[simple]")
      This sleep is hiding a bug on darwin which picks
      up events slightly before we start watching. I'm
      ok with that bit of wiggle-room. */
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   event_sent_list.push_back(
       {std::string("s/self/live@").append(store_path.string()),
@@ -75,7 +75,7 @@ TEST_CASE("Simple", "[simple]")
     return watch_ok;
   });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   for (int i = 0; i < path_count; ++i) {
     auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
@@ -95,7 +95,7 @@ TEST_CASE("Simple", "[simple]")
     event_sent_list.push_back(
         {new_file_path, event::what::create, event::kind::file});
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   event_sent_list.push_back(

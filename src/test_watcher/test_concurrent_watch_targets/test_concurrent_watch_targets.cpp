@@ -5,7 +5,7 @@
 
 /* REQUIRE,
    TEST_CASE */
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 /* event */
 #include <watcher/watcher.hpp>
 /* watch_gather */
