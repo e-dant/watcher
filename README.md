@@ -81,7 +81,7 @@ sanitiziers. The code is simple and clean.
 > *Watcher* depends on the C++ Standard Library. For efficiency,
 we use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
-debugging, we use [Snatch](https://github.com/cschreib/snatch) and
+debugging, we use [Snitch](https://github.com/cschreib/snitch) and
 [Sanitizers](https://clang.llvm.org/docs/index.html).
 
 6. Runnable anywhere

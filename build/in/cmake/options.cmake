@@ -67,6 +67,10 @@ if(WTR_WATCHER_USE_TINY_MAIN)
 endif()
 
 # [options: meaning: sanitizer]
+if(WTR_WATCHER_USE_NOSAN)
+  set(COMPILE_OPTIONS         "${RELEASE_COMPILE_OPTIONS}")
+  set(LINK_OPTIONS            "${RELEASE_LINK_OPTIONS}")
+endif()
 if(WTR_WATCHER_USE_ASAN)
   list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=address")
   list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=address")
@@ -99,3 +103,4 @@ if(WTR_WATCHER_USE_KCFISAN)
   list(APPEND COMPILE_OPTIONS "-fno-omit-frame-pointer" "-fsanitize=kcfi")
   list(APPEND LINK_OPTIONS    "-fno-omit-frame-pointer" "-fsanitize=kcfi")
 endif()
+
