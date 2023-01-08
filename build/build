@@ -276,7 +276,7 @@ build::check::sanitizer_allowed_for::this() {
 
 build::build() {
   local ok=0
-  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-release'
+  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-release'
   then
     echo "$BUILD_SEPERATOR"
 
@@ -309,7 +309,7 @@ build::build() {
     ok=$((ok + $?))
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-debug'
+  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-debug'
   then
     for S in "${SANITIZERS[@]}"
     do
@@ -352,7 +352,7 @@ build::build() {
     done
   fi
 
-  if ! echo "$*" | grep -qE -- '--no-build[^-]?|--no-build-test'
+  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-test'
   then
     for S in "${SANITIZERS[@]}"
     do
