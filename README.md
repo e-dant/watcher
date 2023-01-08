@@ -319,25 +319,26 @@ watcher
 ├── include
 │  └── watcher
 │     ├── watcher.hpp
-│     ├── watch.hpp
-│     ├── platform.hpp
-│     ├── event.hpp
-│     └── adapter
-│        ├── adapter.hpp
-│        ├── windows
-│        │  └── watch.hpp
-│        ├── warthog
-│        │  └── watch.hpp
-│        ├── linux
-│        │  ├── watch.hpp
-│        │  ├── inotify
-│        │  │  └── watch.hpp
-│        │  └── fanotify
-│        │     └── watch.hpp
-│        ├── darwin
-│        │  └── watch.hpp
-│        └── android
-│           └── watch.hpp
+│     └── detail
+│        ├── watch.hpp
+│        ├── platform.hpp
+│        ├── event.hpp
+│        └── adapter
+│           ├── adapter.hpp
+│           ├── windows
+│           │  └── watch.hpp
+│           ├── warthog
+│           │  └── watch.hpp
+│           ├── linux
+│           │  ├── watch.hpp
+│           │  ├── inotify
+│           │  │  └── watch.hpp
+│           │  └── fanotify
+│           │     └── watch.hpp
+│           ├── darwin
+│           │  └── watch.hpp
+│           └── android
+│              └── watch.hpp
 └── build
    ├── build
    ├── out
