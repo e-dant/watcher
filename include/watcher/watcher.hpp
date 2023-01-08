@@ -8,15 +8,15 @@
 */
 
 /* clang-format off */
-#include <watcher/platform.hpp>
-#include <watcher/event.hpp>
-#include <watcher/adapter/windows/watch.hpp>
-#include <watcher/adapter/darwin/watch.hpp>
-#include <watcher/adapter/linux/fanotify/watch.hpp>
-#include <watcher/adapter/linux/inotify/watch.hpp>
-#include <watcher/adapter/linux/watch.hpp>
-#include <watcher/adapter/android/watch.hpp>
-#include <watcher/adapter/warthog/watch.hpp>
-#include <watcher/adapter/adapter.hpp>
-#include <watcher/watch.hpp>
+#include <watcher/detail/platform.hpp>
+#include <watcher/detail/event.hpp>
+#include <watcher/detail/adapter/windows/watch.hpp>
+#include <watcher/detail/adapter/darwin/watch.hpp>
+#include <watcher/detail/adapter/linux/fanotify/watch.hpp>
+#include <watcher/detail/adapter/linux/inotify/watch.hpp>
+#include <watcher/detail/adapter/linux/watch.hpp>
+#include <watcher/detail/adapter/android/watch.hpp>
+#include <watcher/detail/adapter/warthog/watch.hpp>
+#include <watcher/detail/adapter/adapter.hpp>
+#include <watcher/detail/watch.hpp>
 /* clang-format on */

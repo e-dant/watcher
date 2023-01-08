@@ -6,7 +6,7 @@
   The Linux `inotify` adapter.
 */
 
-#include <watcher/platform.hpp>
+#include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -28,7 +28,7 @@
 #include <unordered_map>
 /* event
    callback */
-#include <watcher/event.hpp>
+#include <watcher/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

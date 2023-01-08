@@ -1,6 +1,6 @@
 #pragma once
 
-#include <watcher/platform.hpp>
+#include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 

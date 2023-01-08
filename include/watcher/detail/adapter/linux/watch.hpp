@@ -6,7 +6,7 @@
   The Linux adapters.
 */
 
-#include <watcher/platform.hpp>
+#include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
