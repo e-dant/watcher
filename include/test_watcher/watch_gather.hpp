@@ -76,7 +76,8 @@ auto watch_gather(auto const& /* Title */
 
   /* Setup */
   {
-    assert(alive_for_ms_target.count() > 0);
+    if (alive_for_ms_target.count() <= 0)
+      assert(alive_for_ms_target.count() > 0);
 
     for (auto i = 0; i < concurrency_level; i++)
       watch_path_list.emplace_back(store_path / std::to_string(i));
@@ -102,7 +103,8 @@ auto watch_gather(auto const& /* Title */
   auto const ms_begin = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch());
 
-  assert(ms_begin.count() > 0);
+  if (ms_begin.count() <= 0)
+    assert(ms_begin.count() > 0);
 
   /* Watch Paths */
   {
@@ -138,7 +140,8 @@ auto watch_gather(auto const& /* Title */
                                 wtr::watcher::event::kind::watcher});
     for (auto const& p : watch_path_list)
       wtr::test_watcher::mk_events(p, path_count, &event_sent_list);
-    for (auto const& p : watch_path_list) assert(std::filesystem::exists(p));
+    for (auto const& p : watch_path_list)
+      if (!std::filesystem::exists(p)) assert(std::filesystem::exists(p));
     for (auto const& p : watch_path_list)
       event_sent_list.emplace_back(
           watcher::event::event{std::string("s/self/die@").append(p.string()),
@@ -162,9 +165,11 @@ auto watch_gather(auto const& /* Title */
               auto _ = std::scoped_lock{event_recv_list_mtx};
               event_recv_list.emplace_back(ev);
             });
-      assert(dead);
+      if (!dead)
+        assert(dead);
     }
-    for (auto& f : futures) assert(f.get());
+    for (auto& f : futures)
+      if (!f.get()) assert(f.get());
   }
 
   /* Show Results */
@@ -176,7 +181,7 @@ auto watch_gather(auto const& /* Title */
         = std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch())
           - delayed_for;
-    assert(alive_for_ms_actual_value.count() > 0);
+    if (alive_for_ms_actual_value.count() <= 0) assert(alive_for_ms_actual_value.count() > 0);
 
     /* for (auto const& p : watch_path_list) */
     /*   wtr::test_watcher::show_event_stream_postamble( */
