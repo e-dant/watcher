@@ -68,8 +68,7 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
       auto has = false;
       for (auto& i : *event_list)
         if (i == ev) has = true;
-      if (!has)
-        assert(has);
+      if (!has) assert(has);
       assert(std::filesystem::exists(path));
     } else {
       auto ev = event::event{path, event::what::destroy, event::kind::file};
@@ -78,8 +77,7 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
       auto has = false;
       for (auto& i : *event_list)
         if (i == ev) has = true;
-      if (!has)
-        assert(has);
+      if (!has) assert(has);
       assert(!std::filesystem::exists(path));
     }
   }
@@ -92,8 +90,7 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
     auto has = false;
     for (auto& i : *event_list)
       if (i == ev) has = true;
-    if (!has)
-      assert(has);
+    if (!has) assert(has);
   }
 }
 

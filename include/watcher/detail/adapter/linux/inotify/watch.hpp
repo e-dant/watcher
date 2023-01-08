@@ -281,8 +281,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
           /* @todo
              Consider using std::filesystem here. */
           auto const& path_kind = this_event->mask & IN_ISDIR
-                                     ? event::kind::dir
-                                     : event::kind::file;
+                                      ? event::kind::dir
+                                      : event::kind::file;
           int path_wd = this_event->wd;
           auto event_dir_path = path_map.find(path_wd)->second;
           auto event_base_name = std::filesystem::path(this_event->name);

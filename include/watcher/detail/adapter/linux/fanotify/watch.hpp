@@ -197,7 +197,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
     -> sys_resource_type
 {
   auto const& do_error = [&callback](auto const& error, auto const& path,
-                                    int watch_fd, int event_fd = -1) {
+                                     int watch_fd, int event_fd = -1) {
     auto msg = std::string(error)
                    .append("(")
                    .append(strerror(errno))
@@ -395,7 +395,7 @@ inline auto lift_event_path(sys_resource_type& sr,
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
-                                     auto const& dir_fh) -> void {
+                                      auto const& dir_fh) -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)

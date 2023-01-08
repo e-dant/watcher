@@ -103,8 +103,7 @@ auto watch_gather(auto const& /* Title */
   auto const ms_begin = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch());
 
-  if (ms_begin.count() <= 0)
-    assert(ms_begin.count() > 0);
+  if (ms_begin.count() <= 0) assert(ms_begin.count() > 0);
 
   /* Watch Paths */
   {
@@ -165,8 +164,7 @@ auto watch_gather(auto const& /* Title */
               auto _ = std::scoped_lock{event_recv_list_mtx};
               event_recv_list.emplace_back(ev);
             });
-      if (!dead)
-        assert(dead);
+      if (!dead) assert(dead);
     }
     for (auto& f : futures)
       if (!f.get()) assert(f.get());
@@ -181,7 +179,8 @@ auto watch_gather(auto const& /* Title */
         = std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch())
           - delayed_for;
-    if (alive_for_ms_actual_value.count() <= 0) assert(alive_for_ms_actual_value.count() > 0);
+    if (alive_for_ms_actual_value.count() <= 0)
+      assert(alive_for_ms_actual_value.count() > 0);
 
     /* for (auto const& p : watch_path_list) */
     /*   wtr::test_watcher::show_event_stream_postamble( */
