@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.5
+
+The delay between setting up test directories, used in the unit tests, is lower (10ms).
+
+We need that delay because the kernel APIs, other than `inotify` and `fanotify`, don't tell us
+when they're *acutally* ready to watch. And, when they are ready to watch, sometimes they (because
+of batching) pick up filesystem events slightly before we *asked* it to watch them to.
+
+(That's perfectly fine when the user is in control, but the unit tests currently expect events to
+flow in a predetermined order.)
+
+The `wtr::watcher::detail` namespace mirrors a real path: `include/watcher/detail`.
+
+The regular expressions checking whether to build no targets or some targets actually work.
+
+Shellcheck warnings were cleaned up on `build/build`.
+
 ## 0.5.4
 
 The Linux adapter checks the kernel version (at compile-time) to select an API that actually exists.
