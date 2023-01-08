@@ -11,7 +11,7 @@ project(
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # [options and configuration, esp. tests and sanitizers]
-include(options)
+include(wtr.cmake_options_watcher)
 
 # [build type selection]
 if(WTR_WATCHER_USE_TEST)
