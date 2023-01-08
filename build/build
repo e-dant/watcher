@@ -247,7 +247,15 @@ build::check::sanitizer_allowed_for::linux() {
 }
 
 build::check::sanitizer_allowed_for::android() {
-  return 0
+  denylist=(
+    'tsan'
+    'msan'
+  )
+
+  if [[ "${denylist[*]}" =~ $1 ]]
+  then return 1
+  else return 0
+  fi
 }
 
 build::check::sanitizer_allowed_for::ios() {
