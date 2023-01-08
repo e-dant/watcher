@@ -157,7 +157,7 @@ inline void callback_adapter(
     void* callback_context,               /* Context */
     unsigned long event_recv_count,       /* Event count */
     void* event_recv_paths,               /* Paths with events */
-    const unsigned int* event_recv_flags, /* Event flags */
+    unsigned int const* event_recv_flags, /* Event flags */
     FSEventStreamEventId const* /* event stream id */)
 {
   /* @note

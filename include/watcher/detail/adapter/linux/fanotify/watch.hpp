@@ -161,7 +161,7 @@ inline auto do_path_mark_remove(std::filesystem::path const& full_path,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
                              | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
                          AT_FDCWD, full_path.c_str());
-  auto const at = pmc.find(wd);
+  auto const& at = pmc.find(wd);
   if (wd >= 0 && at != pmc.end())
     pmc.erase(at);
   else
@@ -196,7 +196,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const do_error = [&callback](auto const& error, auto const& path,
+  auto const& do_error = [&callback](auto const& error, auto const& path,
                                     int watch_fd, int event_fd = -1) {
     auto msg = std::string(error)
                    .append("(")
@@ -213,7 +213,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
         .dir_name_container = {},
     };
   };
-  auto const do_path_map_container_create
+  auto const& do_path_map_container_create
       = [](int const watch_fd, std::filesystem::path const& watch_base_path,
            event::callback const& callback) -> path_mark_container_type {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
@@ -311,8 +311,8 @@ inline auto do_sys_resource_destroy(
     sys_resource_type& sr, std::filesystem::path const& watch_base_path,
     event::callback const& callback) noexcept -> bool
 {
-  auto const watch_fd_close_ok = close(sr.watch_fd) == 0;
-  auto const event_fd_close_ok = close(sr.event_fd) == 0;
+  auto const& watch_fd_close_ok = close(sr.watch_fd) == 0;
+  auto const& event_fd_close_ok = close(sr.event_fd) == 0;
   if (!watch_fd_close_ok)
     do_error("e/sys/close/watch_fd", watch_base_path, callback);
   if (!event_fd_close_ok)
@@ -381,7 +381,7 @@ inline auto lift_event_path(sys_resource_type& sr,
        Confusing, right?
     */
 
-    auto const path_accum_append
+    auto const& path_accum_append
         = [](auto& path_accum, auto const& dfid_info, auto const& dir_fh,
              auto const& dirname_len) -> void {
       char* name_info = (char*)(dfid_info + 1);
@@ -394,7 +394,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                  "/%s", filename);
     };
 
-    auto const path_accum_front = [](auto& path_accum, auto const& dfid_info,
+    auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
                                      auto const& dir_fh) -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
@@ -405,14 +405,14 @@ inline auto lift_event_path(sys_resource_type& sr,
         snprintf(path_accum, sizeof(path_accum), "/%s", filename);
     };
 
-    auto const dir_fh = (struct file_handle*)dfid_info->handle;
+    auto const& dir_fh = (struct file_handle*)dfid_info->handle;
 
     unsigned long dir_id{(unsigned long)(std::abs(dir_fh->handle_type))};
 
     for (unsigned i = 0; i < dir_fh->handle_bytes; i++)
       dir_id += dir_fh->f_handle[i];
 
-    auto const dit = sr.dir_name_container.find(dir_id);
+    auto const& dit = sr.dir_name_container.find(dir_id);
 
     if (dit != sr.dir_name_container.end()) {
       /* We already have a path name, use it */
@@ -432,7 +432,7 @@ inline auto lift_event_path(sys_resource_type& sr,
       if (fd > 0) {
         char procpath[128];
         snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-        auto const dirname_len
+        auto const& dirname_len
             = readlink(procpath, path_accum, sizeof(path_accum) - sizeof('\0'));
         close(fd);
 

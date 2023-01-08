@@ -133,10 +133,10 @@ struct event
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const std::filesystem::path where;
-  const enum what what;
-  const enum kind kind;
-  const long long when{
+  std::filesystem::path const where;
+  enum what const what;
+  enum kind const kind;
+  long long const when{
       duration_cast<nanoseconds>(
           time_point<system_clock>{system_clock::now()}.time_since_epoch())
           .count()};

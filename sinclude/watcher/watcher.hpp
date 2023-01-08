@@ -237,10 +237,10 @@ struct event
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  const std::filesystem::path where;
-  const enum what what;
-  const enum kind kind;
-  const long long when{
+  std::filesystem::path const where;
+  enum what const what;
+  enum kind const kind;
+  long long const when{
       duration_cast<nanoseconds>(
           time_point<system_clock>{system_clock::now()}.time_since_epoch())
           .count()};
@@ -702,7 +702,7 @@ inline void callback_adapter(
     void* callback_context,               /* Context */
     unsigned long event_recv_count,       /* Event count */
     void* event_recv_paths,               /* Paths with events */
-    const unsigned int* event_recv_flags, /* Event flags */
+    unsigned int const* event_recv_flags, /* Event flags */
     FSEventStreamEventId const* /* event stream id */)
 {
   /* @note
@@ -1003,7 +1003,7 @@ inline auto do_path_mark_remove(std::filesystem::path const& full_path,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
                              | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
                          AT_FDCWD, full_path.c_str());
-  auto const at = pmc.find(wd);
+  auto const& at = pmc.find(wd);
   if (wd >= 0 && at != pmc.end())
     pmc.erase(at);
   else
@@ -1038,7 +1038,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const do_error = [&callback](auto const& error, auto const& path,
+  auto const& do_error = [&callback](auto const& error, auto const& path,
                                     int watch_fd, int event_fd = -1) {
     auto msg = std::string(error)
                    .append("(")
@@ -1055,7 +1055,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
         .dir_name_container = {},
     };
   };
-  auto const do_path_map_container_create
+  auto const& do_path_map_container_create
       = [](int const watch_fd, std::filesystem::path const& watch_base_path,
            event::callback const& callback) -> path_mark_container_type {
     using rdir_iterator = std::filesystem::recursive_directory_iterator;
@@ -1153,8 +1153,8 @@ inline auto do_sys_resource_destroy(
     sys_resource_type& sr, std::filesystem::path const& watch_base_path,
     event::callback const& callback) noexcept -> bool
 {
-  auto const watch_fd_close_ok = close(sr.watch_fd) == 0;
-  auto const event_fd_close_ok = close(sr.event_fd) == 0;
+  auto const& watch_fd_close_ok = close(sr.watch_fd) == 0;
+  auto const& event_fd_close_ok = close(sr.event_fd) == 0;
   if (!watch_fd_close_ok)
     do_error("e/sys/close/watch_fd", watch_base_path, callback);
   if (!event_fd_close_ok)
@@ -1223,7 +1223,7 @@ inline auto lift_event_path(sys_resource_type& sr,
        Confusing, right?
     */
 
-    auto const path_accum_append
+    auto const& path_accum_append
         = [](auto& path_accum, auto const& dfid_info, auto const& dir_fh,
              auto const& dirname_len) -> void {
       char* name_info = (char*)(dfid_info + 1);
@@ -1236,7 +1236,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                  "/%s", filename);
     };
 
-    auto const path_accum_front = [](auto& path_accum, auto const& dfid_info,
+    auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
                                      auto const& dir_fh) -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
@@ -1247,14 +1247,14 @@ inline auto lift_event_path(sys_resource_type& sr,
         snprintf(path_accum, sizeof(path_accum), "/%s", filename);
     };
 
-    auto const dir_fh = (struct file_handle*)dfid_info->handle;
+    auto const& dir_fh = (struct file_handle*)dfid_info->handle;
 
     unsigned long dir_id{(unsigned long)(std::abs(dir_fh->handle_type))};
 
     for (unsigned i = 0; i < dir_fh->handle_bytes; i++)
       dir_id += dir_fh->f_handle[i];
 
-    auto const dit = sr.dir_name_container.find(dir_id);
+    auto const& dit = sr.dir_name_container.find(dir_id);
 
     if (dit != sr.dir_name_container.end()) {
       /* We already have a path name, use it */
@@ -1274,7 +1274,7 @@ inline auto lift_event_path(sys_resource_type& sr,
       if (fd > 0) {
         char procpath[128];
         snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-        auto const dirname_len
+        auto const& dirname_len
             = readlink(procpath, path_accum, sizeof(path_accum) - sizeof('\0'));
         close(fd);
 
@@ -1668,7 +1668,7 @@ inline auto do_path_map_create(int const watch_fd,
 inline auto do_sys_resource_create(event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const do_error
+  auto const& do_error
       = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
           callback({msg, event::what::other, event::kind::watcher});
           return sys_resource_type{
@@ -1721,8 +1721,8 @@ inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool
 {
-  auto const watch_fd_close_ok = close(watch_fd) == 0;
-  auto const event_fd_close_ok = close(event_fd) == 0;
+  auto const& watch_fd_close_ok = close(watch_fd) == 0;
+  auto const& event_fd_close_ok = close(event_fd) == 0;
   if (!watch_fd_close_ok)
     callback({"e/sys/close/watch_fd@" / watch_base_path, event::what::other,
               event::kind::watcher});
@@ -1750,7 +1750,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const lift_this_event = [](int fd, char* buf) {
+  auto const& lift_this_event = [](int fd, char* buf) {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
@@ -1772,15 +1772,15 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
     switch (status) {
       case event_recv_state::eventful:
         /* Loop over all events in the buffer. */
-        const struct inotify_event* this_event;
+        struct inotify_event const* this_event;
         for (char* ptr = buf; ptr < buf + len;
              ptr += sizeof(struct inotify_event) + this_event->len)
         {
-          this_event = (const struct inotify_event*)ptr;
+          this_event = (struct inotify_event const*)ptr;
 
           /* @todo
              Consider using std::filesystem here. */
-          auto const path_kind = this_event->mask & IN_ISDIR
+          auto const& path_kind = this_event->mask & IN_ISDIR
                                      ? event::kind::dir
                                      : event::kind::file;
           int path_wd = this_event->wd;
@@ -1844,7 +1844,7 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto const do_error = [&callback](auto const& msg) -> bool {
+  auto const& do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
     return false;
   };
@@ -2071,14 +2071,14 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file
+  auto const& scan_file
       = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /* grabbing the file's last write time */
-      auto const timestamp = last_write_time(file, ec);
+      auto const& timestamp = last_write_time(file, ec);
       if (ec) {
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
@@ -2114,7 +2114,7 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const scan_directory
+  auto const& scan_directory
       = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
@@ -2148,7 +2148,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
-  auto const populate = [&](std::filesystem::path const& path) -> bool {
+  auto const& populate = [&](std::filesystem::path const& path) -> bool {
     using std::filesystem::exists, std::filesystem::is_directory,
         std::filesystem::recursive_directory_iterator,
         std::filesystem::last_write_time;
@@ -2163,7 +2163,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
              recursive_directory_iterator(path, scan_dir_options, dir_it_ec))
         {
           if (!dir_it_ec) {
-            auto const lwt = last_write_time(file, lwt_ec);
+            auto const& lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
               bucket[file.path()] = lwt;
             else
@@ -2186,7 +2186,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const prune
+  auto const& prune
       = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::is_directory, std::filesystem::is_symlink;

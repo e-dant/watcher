@@ -168,7 +168,7 @@ inline auto do_path_map_create(int const watch_fd,
 inline auto do_sys_resource_create(event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const do_error
+  auto const& do_error
       = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
           callback({msg, event::what::other, event::kind::watcher});
           return sys_resource_type{
@@ -221,8 +221,8 @@ inline auto do_resource_release(int watch_fd, int event_fd,
                                 event::callback const& callback) noexcept
     -> bool
 {
-  auto const watch_fd_close_ok = close(watch_fd) == 0;
-  auto const event_fd_close_ok = close(event_fd) == 0;
+  auto const& watch_fd_close_ok = close(watch_fd) == 0;
+  auto const& event_fd_close_ok = close(event_fd) == 0;
   if (!watch_fd_close_ok)
     callback({"e/sys/close/watch_fd@" / watch_base_path, event::what::other,
               event::kind::watcher});
@@ -250,7 +250,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const lift_this_event = [](int fd, char* buf) {
+  auto const& lift_this_event = [](int fd, char* buf) {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
@@ -272,15 +272,15 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
     switch (status) {
       case event_recv_state::eventful:
         /* Loop over all events in the buffer. */
-        const struct inotify_event* this_event;
+        struct inotify_event const* this_event;
         for (char* ptr = buf; ptr < buf + len;
              ptr += sizeof(struct inotify_event) + this_event->len)
         {
-          this_event = (const struct inotify_event*)ptr;
+          this_event = (struct inotify_event const*)ptr;
 
           /* @todo
              Consider using std::filesystem here. */
-          auto const path_kind = this_event->mask & IN_ISDIR
+          auto const& path_kind = this_event->mask & IN_ISDIR
                                      ? event::kind::dir
                                      : event::kind::file;
           int path_wd = this_event->wd;
@@ -344,7 +344,7 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto const do_error = [&callback](auto const& msg) -> bool {
+  auto const& do_error = [&callback](auto const& msg) -> bool {
     callback({msg, event::what::other, event::kind::watcher});
     return false;
   };

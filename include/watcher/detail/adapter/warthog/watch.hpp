@@ -66,14 +66,14 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const scan_file
+  auto const& scan_file
       = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /* grabbing the file's last write time */
-      auto const timestamp = last_write_time(file, ec);
+      auto const& timestamp = last_write_time(file, ec);
       if (ec) {
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
@@ -109,7 +109,7 @@ inline bool scan(std::filesystem::path const& path, auto const& send_event,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const scan_directory
+  auto const& scan_directory
       = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
         std::filesystem::is_directory;
@@ -143,7 +143,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
-  auto const populate = [&](std::filesystem::path const& path) -> bool {
+  auto const& populate = [&](std::filesystem::path const& path) -> bool {
     using std::filesystem::exists, std::filesystem::is_directory,
         std::filesystem::recursive_directory_iterator,
         std::filesystem::last_write_time;
@@ -158,7 +158,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
              recursive_directory_iterator(path, scan_dir_options, dir_it_ec))
         {
           if (!dir_it_ec) {
-            auto const lwt = last_write_time(file, lwt_ec);
+            auto const& lwt = last_write_time(file, lwt_ec);
             if (!lwt_ec)
               bucket[file.path()] = lwt;
             else
@@ -181,7 +181,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const prune
+  auto const& prune
       = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
         std::filesystem::is_directory, std::filesystem::is_symlink;
