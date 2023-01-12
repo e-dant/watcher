@@ -31,8 +31,7 @@ then
   Summary
     Build the Watcher.
     This file is a collection of shorthands for CMake invocations.
-    It also does some housekeeping, such as linking the generated 
-    compilation database to the root of this project.
+    It also keeps the artifacts organized.
 "
   exit 0
 fi
