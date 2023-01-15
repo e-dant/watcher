@@ -9,6 +9,8 @@ they are closed in the order they are created.
 
 ### Housekeeping
 
+A few spare exceptionless functions were marked noexcept.
+
 The delay between setting up test directories, used in the unit tests, is lower (10ms).
 
 We need that delay because the kernel APIs, other than `inotify` and `fanotify`, don't tell us
