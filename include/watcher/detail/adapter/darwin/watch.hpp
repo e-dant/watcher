@@ -1,5 +1,6 @@
 #pragma once
 
+/* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
@@ -10,13 +11,11 @@
   The Darwin `FSEvent` adapter.
 */
 
-/* CF*
-   kFS*
+/* kFS*
    FS*
+   CF*
    dispatch_queue* */
 #include <CoreServices/CoreServices.h>
-/* array */
-#include <array>
 /* milliseconds */
 #include <chrono>
 /* function */
@@ -25,10 +24,8 @@
 #include <filesystem>
 /* numeric_limits */
 #include <limits>
-/* unique_ptr */
-#include <memory>
-/* random_device
-   mt19937
+/* mt19937
+   random_device
    uniform_int_distribution */
 #include <random>
 /* string

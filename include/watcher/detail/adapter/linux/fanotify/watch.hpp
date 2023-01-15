@@ -6,6 +6,7 @@
   The Linux `fanotify` adapter.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
@@ -14,21 +15,47 @@
 
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
 
+/* O_* */
 #include <fcntl.h>
+/* EPOLL*
+   epoll_ctl
+   epoll_wait
+   epoll_event
+   epoll_create1 */
 #include <sys/epoll.h>
+/* FAN_*
+   fanotify_mark
+   fanotify_init
+   fanotify_event_metadata */
 #include <sys/fanotify.h>
+/* open
+   close
+   readlink */
 #include <unistd.h>
+/* errno */
 #include <cerrno>
-#include <chrono>
+/* PATH_MAX */
 #include <climits>
+/* snprintf */
 #include <cstdio>
+/* strerror */
 #include <cstring>
-/* function */
+/* path
+   is_directory
+   directory_options
+   recursive_directory_iterator */
 #include <filesystem>
+/* function */
 #include <functional>
+/* optional */
 #include <optional>
+/* unordered_map */
 #include <unordered_map>
+/* unordered_set */
 #include <unordered_set>
+/* tuple
+   make_tuple */
+#include <tuple>
 /* event
    callback */
 #include <watcher/watcher.hpp>
@@ -175,7 +202,7 @@ inline auto do_error(auto const& error, auto const& path,
   /* Gross */
   auto msg = std::string(error)
                  .append("(")
-                 .append(strerror(errno))
+                 .append(std::strerror(errno))
                  .append(")@")
                  .append(path);
   callback({msg, event::what::other, event::kind::watcher});
@@ -202,7 +229,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                     int event_fd = -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                    .append("(")
-                   .append(strerror(errno))
+                   .append(std::strerror(errno))
                    .append(")@")
                    .append(path);
     callback({msg, event::what::other, event::kind::watcher});
@@ -345,7 +372,7 @@ inline auto lift_event_path(sys_resource_type& sr,
 {
   auto const& nip = [&]() noexcept
       -> std::optional<
-          std::pair<std::filesystem::path const, unsigned long const>> {
+          std::tuple<std::filesystem::path const, unsigned long const>> {
     /* The shenanigans we do here depend on this event being
        `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
        some info about the directory and the directory entry
@@ -394,7 +421,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
+        std::snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
                  "/%s", filename);
     };
 
@@ -406,7 +433,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        snprintf(path_accum, sizeof(path_accum), "/%s", filename);
+        std::snprintf(path_accum, sizeof(path_accum), "/%s", filename);
     };
 
     auto const& dir_fh = (struct file_handle*)dfid_info->handle;
@@ -423,10 +450,10 @@ inline auto lift_event_path(sys_resource_type& sr,
       char path_accum[PATH_MAX];
       auto dirname = dit->second.c_str();
       auto dirname_len = dit->second.string().length();
-      snprintf(path_accum, sizeof(path_accum), "%s", dirname);
+      std::snprintf(path_accum, sizeof(path_accum), "%s", dirname);
       path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
 
-      return std::make_pair(std::filesystem::path(path_accum), dir_id);
+      return std::make_tuple(std::filesystem::path(path_accum), dir_id);
 
     } else {
       /* We can get a path name, so get that and use it */
@@ -435,7 +462,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                                  O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
       if (fd > 0) {
         char procpath[128];
-        snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
+        std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
         auto const& dirname_len
             = readlink(procpath, path_accum, sizeof(path_accum) - sizeof('\0'));
         close(fd);
@@ -448,7 +475,7 @@ inline auto lift_event_path(sys_resource_type& sr,
              Put it in the path accumulator. */
           path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
 
-          return std::make_pair(std::filesystem::path(path_accum), dir_id);
+          return std::make_tuple(std::filesystem::path(path_accum), dir_id);
         }
 
         do_warning("w/sys/readlink", watch_base_path, callback);
@@ -456,7 +483,7 @@ inline auto lift_event_path(sys_resource_type& sr,
       } else {
         path_accum_front(path_accum, dfid_info, dir_fh);
 
-        return std::make_pair(std::filesystem::path(path_accum), dir_id);
+        return std::make_tuple(std::filesystem::path(path_accum), dir_id);
       }
     }
   }();

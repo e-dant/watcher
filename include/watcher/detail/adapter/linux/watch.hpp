@@ -6,6 +6,7 @@
   The Linux adapters.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
@@ -14,15 +15,12 @@
 
 /* function */
 #include <functional>
-/* LINUX_VERSION_CODE
-   KERNEL_VERSION */
-#include <linux/version.h>
 /* geteuid */
 #include <unistd.h>
 /* event
    callback
-   fanotify::watch
-   inotify::watch */
+   inotify::watch
+   fanotify::watch */
 #include <watcher/watcher.hpp>
 
 namespace wtr {

@@ -1,5 +1,6 @@
 #pragma once
 
+/* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
@@ -22,7 +23,7 @@
 #include <chrono>
 /* string */
 #include <string>
-/* lots of stuff */
+/* filesystem::* */
 #include <filesystem>
 /* function */
 #include <functional>
@@ -32,8 +33,8 @@
 #include <thread>
 /* unordered_map */
 #include <unordered_map>
-/* callback
-   event */
+/* event
+   callback */
 #include <watcher/watcher.hpp>
 
 namespace wtr {

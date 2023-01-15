@@ -6,6 +6,7 @@
   The Linux `inotify` adapter.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
@@ -14,17 +15,34 @@
 
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
+/* EPOLL*
+   epoll_ctl
+   epoll_wait
+   epoll_event
+   epoll_create
+   epoll_create1 */
 #include <sys/epoll.h>
+/* IN_*
+   inotify_init
+   inotify_init1
+   inotify_event
+   inotify_add_watch */
 #include <sys/inotify.h>
+/* open
+   read
+   close */
 #include <unistd.h>
-#include <chrono>
-/* function */
+/* path
+   is_directory
+   directory_options
+   recursive_directory_iterator */
 #include <filesystem>
+/* function */
 #include <functional>
-#include <iostream>
-#include <optional>
-#include <thread>
+/* tuple
+   make_tuple */
 #include <tuple>
+/* unordered_map */
 #include <unordered_map>
 /* event
    callback */
@@ -252,18 +270,18 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
   enum class event_recv_state { eventful, eventless, error };
 
   auto const& lift_this_event
-      = [](int fd, char* buf) noexcept -> std::pair<event_recv_state, ssize_t> {
+      = [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
     /* EAGAIN means no events were found.
        We return `eventless` in that case. */
     if (len < 0 && errno != EAGAIN)
-      return std::make_pair(event_recv_state::error, len);
+      return std::make_tuple(event_recv_state::error, len);
     else if (len <= 0)
-      return std::make_pair(event_recv_state::eventless, len);
+      return std::make_tuple(event_recv_state::eventless, len);
     else
-      return std::make_pair(event_recv_state::eventful, len);
+      return std::make_tuple(event_recv_state::eventful, len);
   };
 
   /* Loop while events can be read from the inotify file descriptor. */
