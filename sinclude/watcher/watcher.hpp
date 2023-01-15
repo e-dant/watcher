@@ -1261,8 +1261,8 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        std::snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
-                 "/%s", filename);
+        std::snprintf(path_accum + dirname_len,
+                      sizeof(path_accum) - dirname_len, "/%s", filename);
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
@@ -1798,8 +1798,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const& lift_this_event
-      = [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
+  auto const& lift_this_event =
+      [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
