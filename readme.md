@@ -191,8 +191,6 @@ commit, right before writing this paragraph.
 
 Which is pretty cool.
 
-I loaded it up with a little help from `sed 's/},}/}}/g' | jq`.
-
 A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/watcher/main.cpp).
 
 ## Consume
