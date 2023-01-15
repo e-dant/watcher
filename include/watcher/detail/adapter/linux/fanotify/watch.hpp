@@ -172,6 +172,7 @@ inline auto do_path_mark_remove(std::filesystem::path const& full_path,
 inline auto do_error(auto const& error, auto const& path,
                      event::callback const& callback) noexcept -> bool
 {
+  /* Gross */
   auto msg = std::string(error)
                  .append("(")
                  .append(strerror(errno))
@@ -196,8 +197,9 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const& do_error = [&callback](auto const& error, auto const& path,
-                                     int watch_fd, int event_fd = -1) {
+  auto const& do_error
+      = [&callback](auto const& error, auto const& path, int watch_fd,
+                    int event_fd = -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                    .append("(")
                    .append(strerror(errno))
@@ -233,6 +235,8 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
       return pmc;
 
     else if (std::filesystem::is_directory(watch_base_path))
+      /* The filesystem library throws here even if we use the error code
+         overloads. (Exceptions seem to be the only way to handle errors.) */
       try {
         for (auto const& dir : rdir_iterator(watch_base_path, dir_opt))
           if (std::filesystem::is_directory(dir))
@@ -339,9 +343,9 @@ inline auto lift_event_path(sys_resource_type& sr,
                             event::callback const& callback) noexcept
     -> std::optional<std::filesystem::path>
 {
-  auto const& nip
-      = [&]() -> std::optional<
-                  std::pair<std::filesystem::path const, unsigned long const>> {
+  auto const& nip = [&]() noexcept
+      -> std::optional<
+          std::pair<std::filesystem::path const, unsigned long const>> {
     /* The shenanigans we do here depend on this event being
        `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
        some info about the directory and the directory entry
@@ -383,7 +387,7 @@ inline auto lift_event_path(sys_resource_type& sr,
 
     auto const& path_accum_append
         = [](auto& path_accum, auto const& dfid_info, auto const& dir_fh,
-             auto const& dirname_len) -> void {
+             auto const& dirname_len) noexcept -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)
@@ -395,7 +399,7 @@ inline auto lift_event_path(sys_resource_type& sr,
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
-                                      auto const& dir_fh) -> void {
+                                      auto const& dir_fh) noexcept -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)

@@ -142,7 +142,7 @@ inline auto do_path_map_create(int const watch_fd,
   path_map_type path_map;
   path_map.reserve(path_map_reserve_count);
 
-  auto do_mark = [&](auto& dir) {
+  auto do_mark = [&](auto& dir) noexcept -> bool {
     int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
     return wd > 0 ? path_map.emplace(wd, dir).first != path_map.end() : false;
   };
@@ -169,7 +169,7 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
     -> sys_resource_type
 {
   auto const& do_error
-      = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
+      = [&callback](auto const& msg, int watch_fd, int event_fd = -1) noexcept -> sys_resource_type {
           callback({msg, event::what::other, event::kind::watcher});
           return sys_resource_type{
               .valid = false,
@@ -250,7 +250,7 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const& lift_this_event = [](int fd, char* buf) {
+  auto const& lift_this_event = [](int fd, char* buf) noexcept -> std::pair<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 

@@ -68,7 +68,7 @@ inline constexpr auto has_delay{delay_ms.count() > 0};
 inline constexpr auto flag_what_pair_count{4};
 inline constexpr auto flag_kind_pair_count{5};
 
-inline std::string event_queue_name()
+inline std::string event_queue_name() noexcept
 {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -78,7 +78,7 @@ inline std::string event_queue_name()
 }
 
 inline dispatch_queue_t do_event_queue_create(std::string const& eqn
-                                              = event_queue_name())
+                                              = event_queue_name()) noexcept
 {
   /* Request a high priority queue */
   dispatch_queue_t event_queue = dispatch_queue_create(
@@ -88,7 +88,7 @@ inline dispatch_queue_t do_event_queue_create(std::string const& eqn
 }
 
 inline bool do_event_queue_stream(dispatch_queue_t const& event_queue,
-                                  FSEventStreamRef const& event_stream)
+                                  FSEventStreamRef const& event_stream) noexcept
 {
   if (!event_stream || !event_queue) return false;
   FSEventStreamSetDispatchQueue(event_stream, event_queue);
@@ -97,7 +97,7 @@ inline bool do_event_queue_stream(dispatch_queue_t const& event_queue,
 }
 
 inline void do_event_resources_close(FSEventStreamRef& event_stream,
-                                     dispatch_queue_t& event_queue)
+                                     dispatch_queue_t& event_queue) noexcept
 {
   FSEventStreamStop(event_stream);
   FSEventStreamInvalidate(event_stream);
@@ -158,7 +158,8 @@ inline void callback_adapter(
     unsigned long event_recv_count,       /* Event count */
     void* event_recv_paths,               /* Paths with events */
     unsigned int const* event_recv_flags, /* Event flags */
-    FSEventStreamEventId const* /* event stream id */)
+    FSEventStreamEventId const*           /* event stream id */
+    ) noexcept
 {
   /* @note
      Sometimes events are batched together and re-sent
@@ -178,7 +179,7 @@ inline void callback_adapter(
   auto const& lift_what_kind_pairs
       = [&](std::string const& this_path,
             FSEventStreamEventFlags const& flag_recv,
-            seen_created_paths_type* seen_created_paths)
+            seen_created_paths_type* seen_created_paths) noexcept
       -> std::vector<std::pair<event::what, event::kind>> {
     std::vector<std::pair<event::what, event::kind>> wks{};
     wks.reserve(flag_what_pair_count + flag_kind_pair_count);
@@ -229,7 +230,7 @@ inline void callback_adapter(
     return wks;
   };
 
-  cbcp_type* cbcp = (cbcp_type*)callback_context;
+  auto* cbcp = static_cast<cbcp_type*>(callback_context);
 
   event::callback const& callback = cbcp->callback;
 
