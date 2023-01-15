@@ -22,7 +22,8 @@ namespace detail {
 namespace adapter {
 
 namespace {
-inline constexpr size_t size_t_max = std::numeric_limits<size_t>::max() - 1;
+inline constexpr size_t watch_count_max
+    = std::numeric_limits<size_t>::max() - 1;
 } /* namespace */
 
 /* @brief wtr/watcher/detail/adapter/message
@@ -100,7 +101,7 @@ inline bool adapter(std::filesystem::path const& path,
     size_t const position
         = maybe_node != lifetimes.end() ? maybe_node->second + 1 : 1;
 
-    if (position < size_t_max) [[likely]] {
+    if (position < watch_count_max) [[likely]] {
       lifetimes.insert_or_assign(path_str, position);
 
       callback({"s/self/live@" + path_str, evw::create, evk::watcher});
