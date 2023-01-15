@@ -60,12 +60,12 @@ wtr.watcher ~
 2. Modular
 > *Watcher* may be used as **a library, a program, or both**.
 If you aren't looking to create something with the library, no worries.
-Just build ours and run and you've got yourself a filesystem watcher
-which prints filesystem events as JSON. Neat. Here's how:
+Just use ours and you've got yourself a filesystem watcher which prints
+filesystem events as JSON. Neat. Here's how:
 ```bash
 git clone https://github.com/e-dant/watcher.git && cd watcher
-build/build this --no-build-debug --no-build-test --no-run-test
-build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
+build/build this --no-build-debug --no-build-test --no-run-test # Build the release version for the host platform
+build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is a .exe on Windows.)
 ```
 
 3. Efficient
