@@ -74,8 +74,10 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use i
 [efficienct use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 
 4. Safe
-> We run this project through unit tests against all available
-sanitiziers. The code is safe, simple and clean. (This includes thread safety.)
+> We run this project through
+[unit tests against all available sanitiziers](https://github.com/e-dant/watcher/actions).
+The code is safe (with reasonably high certainty),
+simple and clean. (This includes thread safety.)
 
 5. Dependency free
 > *Watcher* depends on the C++ Standard Library. For efficiency,
