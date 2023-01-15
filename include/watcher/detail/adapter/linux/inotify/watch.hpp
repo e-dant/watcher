@@ -269,8 +269,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const& lift_this_event
-      = [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
+  auto const& lift_this_event =
+      [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 

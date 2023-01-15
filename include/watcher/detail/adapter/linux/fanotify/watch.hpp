@@ -421,8 +421,8 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        std::snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
-                 "/%s", filename);
+        std::snprintf(path_accum + dirname_len,
+                      sizeof(path_accum) - dirname_len, "/%s", filename);
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
