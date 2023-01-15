@@ -547,6 +547,7 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -556,13 +557,11 @@ inline bool watch(std::filesystem::path const& path,
   The Darwin `FSEvent` adapter.
 */
 
-/* CF*
-   kFS*
+/* kFS*
    FS*
+   CF*
    dispatch_queue* */
 #include <CoreServices/CoreServices.h>
-/* array */
-#include <array>
 /* milliseconds */
 #include <chrono>
 /* function */
@@ -571,10 +570,8 @@ inline bool watch(std::filesystem::path const& path,
 #include <filesystem>
 /* numeric_limits */
 #include <limits>
-/* unique_ptr */
-#include <memory>
-/* random_device
-   mt19937
+/* mt19937
+   random_device
    uniform_int_distribution */
 #include <random>
 /* string
@@ -851,6 +848,7 @@ inline bool watch(std::filesystem::path const& path,
   The Linux `fanotify` adapter.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
     && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -858,21 +856,47 @@ inline bool watch(std::filesystem::path const& path,
 
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
 
+/* O_* */
 #include <fcntl.h>
+/* EPOLL*
+   epoll_ctl
+   epoll_wait
+   epoll_event
+   epoll_create1 */
 #include <sys/epoll.h>
+/* FAN_*
+   fanotify_mark
+   fanotify_init
+   fanotify_event_metadata */
 #include <sys/fanotify.h>
+/* open
+   close
+   readlink */
 #include <unistd.h>
+/* errno */
 #include <cerrno>
-#include <chrono>
+/* PATH_MAX */
 #include <climits>
+/* snprintf */
 #include <cstdio>
+/* strerror */
 #include <cstring>
-/* function */
+/* path
+   is_directory
+   directory_options
+   recursive_directory_iterator */
 #include <filesystem>
+/* function */
 #include <functional>
+/* optional */
 #include <optional>
+/* unordered_map */
 #include <unordered_map>
+/* unordered_set */
 #include <unordered_set>
+/* tuple
+   make_tuple */
+#include <tuple>
 /* event
    callback */
 
@@ -1018,7 +1042,7 @@ inline auto do_error(auto const& error, auto const& path,
   /* Gross */
   auto msg = std::string(error)
                  .append("(")
-                 .append(strerror(errno))
+                 .append(std::strerror(errno))
                  .append(")@")
                  .append(path);
   callback({msg, event::what::other, event::kind::watcher});
@@ -1045,7 +1069,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                     int event_fd = -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                    .append("(")
-                   .append(strerror(errno))
+                   .append(std::strerror(errno))
                    .append(")@")
                    .append(path);
     callback({msg, event::what::other, event::kind::watcher});
@@ -1188,7 +1212,7 @@ inline auto lift_event_path(sys_resource_type& sr,
 {
   auto const& nip = [&]() noexcept
       -> std::optional<
-          std::pair<std::filesystem::path const, unsigned long const>> {
+          std::tuple<std::filesystem::path const, unsigned long const>> {
     /* The shenanigans we do here depend on this event being
        `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
        some info about the directory and the directory entry
@@ -1237,7 +1261,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
+        std::snprintf(path_accum + dirname_len, sizeof(path_accum) - dirname_len,
                  "/%s", filename);
     };
 
@@ -1249,7 +1273,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                     + sizeof(dir_fh->f_handle) + sizeof(dir_fh->handle_bytes)
                     + sizeof(dir_fh->handle_type));
       if (filename != nullptr && strcmp(filename, ".") != 0)
-        snprintf(path_accum, sizeof(path_accum), "/%s", filename);
+        std::snprintf(path_accum, sizeof(path_accum), "/%s", filename);
     };
 
     auto const& dir_fh = (struct file_handle*)dfid_info->handle;
@@ -1266,10 +1290,10 @@ inline auto lift_event_path(sys_resource_type& sr,
       char path_accum[PATH_MAX];
       auto dirname = dit->second.c_str();
       auto dirname_len = dit->second.string().length();
-      snprintf(path_accum, sizeof(path_accum), "%s", dirname);
+      std::snprintf(path_accum, sizeof(path_accum), "%s", dirname);
       path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
 
-      return std::make_pair(std::filesystem::path(path_accum), dir_id);
+      return std::make_tuple(std::filesystem::path(path_accum), dir_id);
 
     } else {
       /* We can get a path name, so get that and use it */
@@ -1278,7 +1302,7 @@ inline auto lift_event_path(sys_resource_type& sr,
                                  O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
       if (fd > 0) {
         char procpath[128];
-        snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
+        std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
         auto const& dirname_len
             = readlink(procpath, path_accum, sizeof(path_accum) - sizeof('\0'));
         close(fd);
@@ -1291,7 +1315,7 @@ inline auto lift_event_path(sys_resource_type& sr,
              Put it in the path accumulator. */
           path_accum_append(path_accum, dfid_info, dir_fh, dirname_len);
 
-          return std::make_pair(std::filesystem::path(path_accum), dir_id);
+          return std::make_tuple(std::filesystem::path(path_accum), dir_id);
         }
 
         do_warning("w/sys/readlink", watch_base_path, callback);
@@ -1299,7 +1323,7 @@ inline auto lift_event_path(sys_resource_type& sr,
       } else {
         path_accum_front(path_accum, dfid_info, dir_fh);
 
-        return std::make_pair(std::filesystem::path(path_accum), dir_id);
+        return std::make_tuple(std::filesystem::path(path_accum), dir_id);
       }
     }
   }();
@@ -1513,6 +1537,7 @@ inline bool watch(std::filesystem::path const& path,
   The Linux `inotify` adapter.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1520,17 +1545,34 @@ inline bool watch(std::filesystem::path const& path,
 
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
+/* EPOLL*
+   epoll_ctl
+   epoll_wait
+   epoll_event
+   epoll_create
+   epoll_create1 */
 #include <sys/epoll.h>
+/* IN_*
+   inotify_init
+   inotify_init1
+   inotify_event
+   inotify_add_watch */
 #include <sys/inotify.h>
+/* open
+   read
+   close */
 #include <unistd.h>
-#include <chrono>
-/* function */
+/* path
+   is_directory
+   directory_options
+   recursive_directory_iterator */
 #include <filesystem>
+/* function */
 #include <functional>
-#include <iostream>
-#include <optional>
-#include <thread>
+/* tuple
+   make_tuple */
 #include <tuple>
+/* unordered_map */
 #include <unordered_map>
 /* event
    callback */
@@ -1757,18 +1799,18 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
   enum class event_recv_state { eventful, eventless, error };
 
   auto const& lift_this_event
-      = [](int fd, char* buf) noexcept -> std::pair<event_recv_state, ssize_t> {
+      = [](int fd, char* buf) noexcept -> std::tuple<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
     /* EAGAIN means no events were found.
        We return `eventless` in that case. */
     if (len < 0 && errno != EAGAIN)
-      return std::make_pair(event_recv_state::error, len);
+      return std::make_tuple(event_recv_state::error, len);
     else if (len <= 0)
-      return std::make_pair(event_recv_state::eventless, len);
+      return std::make_tuple(event_recv_state::eventless, len);
     else
-      return std::make_pair(event_recv_state::eventful, len);
+      return std::make_tuple(event_recv_state::eventful, len);
   };
 
   /* Loop while events can be read from the inotify file descriptor. */
@@ -1916,6 +1958,7 @@ inline bool watch(std::filesystem::path const& path,
   The Linux adapters.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
     || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1923,15 +1966,12 @@ inline bool watch(std::filesystem::path const& path,
 
 /* function */
 #include <functional>
-/* LINUX_VERSION_CODE
-   KERNEL_VERSION */
-#include <linux/version.h>
 /* geteuid */
 #include <unistd.h>
 /* event
    callback
-   fanotify::watch
-   inotify::watch */
+   inotify::watch
+   fanotify::watch */
 
 namespace wtr {
 namespace watcher {
@@ -2010,10 +2050,12 @@ inline bool watch(std::filesystem::path const& path,
   The Android (Linux) `inotify` adapter.
 */
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #endif
 
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
     || defined(WATER_WATCHER_USE_WARTHOG)
@@ -2035,7 +2077,7 @@ inline bool watch(std::filesystem::path const& path,
 #include <chrono>
 /* string */
 #include <string>
-/* lots of stuff */
+/* filesystem::* */
 #include <filesystem>
 /* function */
 #include <functional>
@@ -2045,8 +2087,8 @@ inline bool watch(std::filesystem::path const& path,
 #include <thread>
 /* unordered_map */
 #include <unordered_map>
-/* callback
-   event */
+/* event
+   callback */
 
 namespace wtr {
 namespace watcher {
