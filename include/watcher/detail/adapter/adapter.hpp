@@ -182,6 +182,8 @@ inline bool adapter(std::filesystem::path const& path,
     case message::live: return watch(path, callback, live());
 
     case message::die: return die();
+
+    default: return false;
   }
 }
 
