@@ -36,7 +36,9 @@ namespace watcher {
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback) noexcept
 {
-  return detail::adapter::adapter(path, callback, true);
+  using namespace detail::adapter;
+
+  return adapter(path, callback, message::live);
 }
 
 /* @brief wtr/watcher/die
@@ -46,9 +48,12 @@ inline bool watch(std::filesystem::path const& path,
    True if newly dead. */
 inline bool die(
     std::filesystem::path const& path,
-    event::callback const& callback = [](event::event) -> void {}) noexcept
+    event::callback const& callback
+    = [](event::event) noexcept -> void {}) noexcept
 {
-  return detail::adapter::adapter(path, callback, false);
+  using namespace detail::adapter;
+
+  return adapter(path, callback, message::die);
 }
 
 } /* namespace watcher */

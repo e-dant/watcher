@@ -1039,7 +1039,7 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
     -> sys_resource_type
 {
   auto const& do_error = [&callback](auto const& error, auto const& path,
-                                    int watch_fd, int event_fd = -1) {
+                                     int watch_fd, int event_fd = -1) {
     auto msg = std::string(error)
                    .append("(")
                    .append(strerror(errno))
@@ -1237,7 +1237,7 @@ inline auto lift_event_path(sys_resource_type& sr,
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
-                                     auto const& dir_fh) -> void {
+                                      auto const& dir_fh) -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)
@@ -1781,8 +1781,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
           /* @todo
              Consider using std::filesystem here. */
           auto const& path_kind = this_event->mask & IN_ISDIR
-                                     ? event::kind::dir
-                                     : event::kind::file;
+                                      ? event::kind::dir
+                                      : event::kind::file;
           int path_wd = this_event->wd;
           auto event_dir_path = path_map.find(path_wd)->second;
           auto event_base_name = std::filesystem::path(this_event->name);
@@ -2275,14 +2275,16 @@ inline bool watch(std::filesystem::path const& path,
 
 /* path */
 #include <filesystem>
-/* mutex */
+/* numeric_limits */
+#include <limits>
+/* mutex
+   scoped_lock */
 #include <mutex>
 /* string */
 #include <string>
 /* unordered_map */
 #include <unordered_map>
 /* watch
-   die
    event
    callback */
 
@@ -2291,97 +2293,169 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 
+namespace {
+inline constexpr size_t size_t_max = std::numeric_limits<size_t>::max() - 1;
+} /* namespace */
+
+/* @brief wtr/watcher/detail/adapter/message
+   We know two messages:
+     - Tell a watcher to live
+     - Tell a watcher to die */
+enum class message { live, die };
+
+/* @brief wtr/watcher/detail/adapter/adapter
+
+   @param path:
+     The root path to watch for filesystem events.
+
+   @param callback (optional):
+     Something (such as a closure) to be called when events
+     occur in the path being watched.
+
+   @param message:
+     The message, either `live` or `die`, makes this
+     function play a bit like member functions in a class.
+     We want to hold (static) state in this function,
+     so breaking `live` and `die` into two functions would
+     be a bit ugly. */
 inline bool adapter(std::filesystem::path const& path,
-                    event::callback const& callback, bool const& msg) noexcept
+                    event::callback const& callback, message const msg) noexcept
 {
-  /* @brief
-     This container is used to count the number of watchers on some path.
-     The key is a hash of a path.
-     The value is the count of living watchers on a path. */
-  static auto living_container{std::unordered_map<std::string, size_t>{}};
+  using evw = ::wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
 
   /* @brief
-     A primitive thread synchrony tool, a mutex, for the watcher container. */
-  static auto living_container_mtx{std::mutex{}};
+     This (hash) map is used to give the watchers unique
+     lifetimes on non-unique paths.
+
+     The keys are (unique) paths.
+
+     Paths are associated with the count of watchers alive
+     on that path.
+
+     The count is conceptually similar to a FIFO queue of
+     living watchers.
+
+     We can't have more than `numeric_limits<size_t>::max()`
+     watchers on the same path. That number is large.
+     18,446,744,073,709,551,615 on many platforms. */
+  static auto lifetimes{std::unordered_map<std::string, size_t>{}};
 
   /* @brief
-     Some path as a string. We need the path as a string to store it as the
-     key in a map because `std::filesystem::path` doesn't know how to hash,
-     but `std::string` does. */
+     A mutex to synchronize access to the container. */
+  static auto lifetimes_mtx{std::mutex{}};
+
+  /* @brief
+     Some path as a string. We need the path as a string to
+     store it as the key in a map because `path` doesn't
+     know how to hash, but `string` does. */
   auto const& path_str = path.string();
 
   /* @brief
-     A predicate given to the watchers.
-     True if living, false if dead.
+     If a path and a count exist for some path, then we
+     increment the count.
 
-     The watchers are expected to die promptly,
-     but safely, when this returns false. */
-  auto const& is_living = [&path_str]() -> bool {
-    auto _ = std::scoped_lock{living_container_mtx};
+     If a path and a count do not exist, we create them.
 
-    return living_container.contains(path_str);
+     A path cannot exist without a count, and all counts
+     must be positive. `die()` must guarantee that.
+
+     Returns a functor to check if we're still living.
+
+     The functor is unique to every watcher on `path`. */
+  auto const& live
+      = [&path_str, &callback]() noexcept -> std::function<bool()> {
+    auto _ = std::scoped_lock{lifetimes_mtx};
+
+    auto const maybe_node = lifetimes.find(path_str);
+
+    auto const has_node = maybe_node != lifetimes.end();
+
+    size_t const position = has_node ? maybe_node->second + 1 : 1;
+
+    if (position < size_t_max) [[likely]] {
+      lifetimes.insert_or_assign(path_str, position);
+
+      callback({"s/self/live@" + path_str, evw::create, evk::watcher});
+
+      /* @brief
+         Creates a predicate functor for a watcher to check
+         whether or not it's alive. The functor returned is
+         only valid for the most recently created watcher.
+
+         The returned function evaluates to true if the count
+         on a path is greater than or equal to our position
+         in the count. We keep track of a watcher's position
+         by copying the count into this function's state at
+         time it's created. (That's why this is only valid
+         for the most recently created watcher.)
+
+         This only works if a position in the count uniquely
+         represents a watcher's creation at a moment in time.
+         Which it does: the count acts like a FIFO queue with
+         no values, and the count is imbued in the predicate
+         functor we return.
+
+         The watchers should die safely and promptly the first
+         time they get call this functor and it's false. */
+      return [path_str, position]() noexcept -> bool {
+        auto _ = std::scoped_lock{lifetimes_mtx};
+
+        auto const maybe_node = lifetimes.find(path_str);
+
+        return maybe_node != lifetimes.end() ? maybe_node->second >= position
+                                             : false;
+      };
+
+    } else {
+      callback({"e/self/live/too_many@" + path_str, evw::create, evk::watcher});
+
+      return []() constexpr noexcept -> bool { return false; };
+    }
   };
 
   /* @brief
-     Increment the watch count on a unique path.
-     If the count is 0, insert the path into the set
-     of living watchers.
+     The watchers on a path are stopped in the same order
+     that they were created.
 
-     Always returns true. */
-  auto const& live = [&path_str, &callback]() -> bool {
-    auto _ = std::scoped_lock{living_container_mtx};
+     If a path has a watch count, we decrement it. The
+     watchers should observe this and die if the count is
+     less than what they were created with.
 
-    living_container[path_str] = living_container.contains(path_str)
-                                     ? living_container.at(path_str) + 1
-                                     : 1;
+     If the count would be zero if we decremented it, then
+     we remove the whole path. (`live()` expects there to
+     be a path and a positive count or nothing.)
 
-    callback(
-        {"s/self/live@" + path_str, event::what::create, event::kind::watcher});
+     Returns false if `path` is not being watched. */
+  auto const& die = [&path_str, &callback]() noexcept -> bool {
+    auto _ = std::scoped_lock{lifetimes_mtx};
 
-    return true;
-  };
+    auto const maybe_node = lifetimes.find(path_str);
 
-  /* @brief
-     Decrement the watch count on a unique path.
-     If the count is 0, erase the path from the set
-     of living watchers.
-
-     When a path's count is 0, the watchers on that path die.
-
-     Returns false if the `path` is not being watched. */
-  auto const& die = [&path_str, &callback]() -> bool {
-    auto _ = std::scoped_lock{living_container_mtx};
-
-    bool dead = true;
-
-    if (living_container.contains(path_str)) {
-      auto& at = living_container.at(path_str);
-
-      if (at > 1)
-        at -= 1;
+    if (maybe_node != lifetimes.end()) [[likely]] {
+      if (maybe_node->second > 1)
+        maybe_node->second -= 1;
 
       else
-        living_container.erase(path_str);
+        lifetimes.erase(maybe_node);
 
-    } else
-      dead = false;
+      callback({"s/self/die@" + path_str, evw::destroy, evk::watcher});
 
-    callback({(dead ? "s/self/die@" : "e/self/die@") + path_str,
-              event::what::destroy, event::kind::watcher});
+      return true;
 
-    return dead;
+    } else {
+      callback(
+          {"e/self/die/not_alive@" + path_str, evw::destroy, evk::watcher});
+
+      return false;
+    }
   };
 
-  /* @brief
-     We know two messages:
-       - Tell a watcher to live
-       - Tell a watcher to die
-     There may be more messages in the future. */
-  if (msg)
-    return live() && watch(path, callback, is_living);
+  switch (msg) {
+    case message::live: return watch(path, callback, live());
 
-  else
-    return die();
+    case message::die: return die();
+  }
 }
 
 } /* namespace adapter */
@@ -2424,7 +2498,9 @@ namespace watcher {
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback) noexcept
 {
-  return detail::adapter::adapter(path, callback, true);
+  using namespace detail::adapter;
+
+  return adapter(path, callback, message::live);
 }
 
 /* @brief wtr/watcher/die
@@ -2434,9 +2510,12 @@ inline bool watch(std::filesystem::path const& path,
    True if newly dead. */
 inline bool die(
     std::filesystem::path const& path,
-    event::callback const& callback = [](event::event) -> void {}) noexcept
+    event::callback const& callback
+    = [](event::event) noexcept -> void {}) noexcept
 {
-  return detail::adapter::adapter(path, callback, false);
+  using namespace detail::adapter;
+
+  return adapter(path, callback, message::die);
 }
 
 } /* namespace watcher */
