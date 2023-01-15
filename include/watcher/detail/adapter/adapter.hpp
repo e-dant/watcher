@@ -97,9 +97,8 @@ inline bool adapter(std::filesystem::path const& path,
 
     auto const maybe_node = lifetimes.find(path_str);
 
-    auto const has_node = maybe_node != lifetimes.end();
-
-    size_t const position = has_node ? maybe_node->second + 1 : 1;
+    size_t const position
+        = maybe_node != lifetimes.end() ? maybe_node->second + 1 : 1;
 
     if (position < size_t_max) [[likely]] {
       lifetimes.insert_or_assign(path_str, position);
