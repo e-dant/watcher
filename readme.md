@@ -75,7 +75,7 @@ build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"'
 
 4. Safe
 > We run this project through unit tests against all available
-sanitiziers. The code is simple and clean.
+sanitiziers. The code is safe, simple and clean. (This includes thread safety.)
 
 5. Dependency free
 > *Watcher* depends on the C++ Standard Library. For efficiency,
