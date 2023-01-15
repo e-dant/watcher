@@ -1,13 +1,21 @@
 # Changelog
 
+## 0.5.6
+
+### 0.5.6 Housekeeping
+
+Everything we use from every file we include is documented.
+
+The header slugs in (this) changelog don't conflict.
+
 ## 0.5.5
 
-### Behavior
+### 0.5.5 Behavior
 
 When two or more watches are created on the same path,
 they are closed in the order they are created.
 
-### Housekeeping
+### 0.5.5 Housekeeping
 
 A few spare exceptionless functions were marked noexcept.
 
@@ -15,7 +23,7 @@ The delay between setting up test directories, used in the unit tests, is lower 
 
 We need that delay because the kernel APIs, other than `inotify` and `fanotify`, don't tell us
 when they're *acutally* ready to watch. And, when they are ready to watch, sometimes they (because
-of batching) pick up filesystem events slightly before we *asked* it to watch them to.
+of batching) pick up filesystem events slightly before we *asked* them to watch.
 
 (That's perfectly fine when the user is in control, but the unit tests currently expect events to
 flow in a predetermined order.)
@@ -47,7 +55,7 @@ The significant lines of code and documentation are current in the readme.
 
 The `tool/hone` amalgamation uses a valid identifier for an `ifdef` guard.
 
-### Internal
+### 0.5.3 Internal
 
 The `watcher::detail::adapter::watch_ctl` function is now `watcher::detail::adapter::adapter`.
 (This is the only function in `watcher/adapter/adapter.hpp`.)
