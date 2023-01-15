@@ -463,7 +463,7 @@ inline bool do_event_send(watch_event_proxy& w,
         auto where
             = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() {
+        auto what = [&buf]() noexcept -> event::what {
           switch (buf->Action) {
             case FILE_ACTION_MODIFIED: return event::what::modify;
             case FILE_ACTION_ADDED: return event::what::create;
@@ -613,7 +613,7 @@ inline constexpr auto has_delay{delay_ms.count() > 0};
 inline constexpr auto flag_what_pair_count{4};
 inline constexpr auto flag_kind_pair_count{5};
 
-inline std::string event_queue_name()
+inline std::string event_queue_name() noexcept
 {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -623,7 +623,7 @@ inline std::string event_queue_name()
 }
 
 inline dispatch_queue_t do_event_queue_create(std::string const& eqn
-                                              = event_queue_name())
+                                              = event_queue_name()) noexcept
 {
   /* Request a high priority queue */
   dispatch_queue_t event_queue = dispatch_queue_create(
@@ -633,7 +633,7 @@ inline dispatch_queue_t do_event_queue_create(std::string const& eqn
 }
 
 inline bool do_event_queue_stream(dispatch_queue_t const& event_queue,
-                                  FSEventStreamRef const& event_stream)
+                                  FSEventStreamRef const& event_stream) noexcept
 {
   if (!event_stream || !event_queue) return false;
   FSEventStreamSetDispatchQueue(event_stream, event_queue);
@@ -642,7 +642,7 @@ inline bool do_event_queue_stream(dispatch_queue_t const& event_queue,
 }
 
 inline void do_event_resources_close(FSEventStreamRef& event_stream,
-                                     dispatch_queue_t& event_queue)
+                                     dispatch_queue_t& event_queue) noexcept
 {
   FSEventStreamStop(event_stream);
   FSEventStreamInvalidate(event_stream);
@@ -703,7 +703,8 @@ inline void callback_adapter(
     unsigned long event_recv_count,       /* Event count */
     void* event_recv_paths,               /* Paths with events */
     unsigned int const* event_recv_flags, /* Event flags */
-    FSEventStreamEventId const* /* event stream id */)
+    FSEventStreamEventId const*           /* event stream id */
+    ) noexcept
 {
   /* @note
      Sometimes events are batched together and re-sent
@@ -723,7 +724,7 @@ inline void callback_adapter(
   auto const& lift_what_kind_pairs
       = [&](std::string const& this_path,
             FSEventStreamEventFlags const& flag_recv,
-            seen_created_paths_type* seen_created_paths)
+            seen_created_paths_type* seen_created_paths) noexcept
       -> std::vector<std::pair<event::what, event::kind>> {
     std::vector<std::pair<event::what, event::kind>> wks{};
     wks.reserve(flag_what_pair_count + flag_kind_pair_count);
@@ -774,7 +775,7 @@ inline void callback_adapter(
     return wks;
   };
 
-  cbcp_type* cbcp = (cbcp_type*)callback_context;
+  auto* cbcp = static_cast<cbcp_type*>(callback_context);
 
   event::callback const& callback = cbcp->callback;
 
@@ -1014,6 +1015,7 @@ inline auto do_path_mark_remove(std::filesystem::path const& full_path,
 inline auto do_error(auto const& error, auto const& path,
                      event::callback const& callback) noexcept -> bool
 {
+  /* Gross */
   auto msg = std::string(error)
                  .append("(")
                  .append(strerror(errno))
@@ -1038,8 +1040,9 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
                                    event::callback const& callback) noexcept
     -> sys_resource_type
 {
-  auto const& do_error = [&callback](auto const& error, auto const& path,
-                                     int watch_fd, int event_fd = -1) {
+  auto const& do_error
+      = [&callback](auto const& error, auto const& path, int watch_fd,
+                    int event_fd = -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                    .append("(")
                    .append(strerror(errno))
@@ -1075,6 +1078,8 @@ inline auto do_sys_resource_create(std::filesystem::path const& path,
       return pmc;
 
     else if (std::filesystem::is_directory(watch_base_path))
+      /* The filesystem library throws here even if we use the error code
+         overloads. (Exceptions seem to be the only way to handle errors.) */
       try {
         for (auto const& dir : rdir_iterator(watch_base_path, dir_opt))
           if (std::filesystem::is_directory(dir))
@@ -1181,9 +1186,9 @@ inline auto lift_event_path(sys_resource_type& sr,
                             event::callback const& callback) noexcept
     -> std::optional<std::filesystem::path>
 {
-  auto const& nip
-      = [&]() -> std::optional<
-                  std::pair<std::filesystem::path const, unsigned long const>> {
+  auto const& nip = [&]() noexcept
+      -> std::optional<
+          std::pair<std::filesystem::path const, unsigned long const>> {
     /* The shenanigans we do here depend on this event being
        `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
        some info about the directory and the directory entry
@@ -1225,7 +1230,7 @@ inline auto lift_event_path(sys_resource_type& sr,
 
     auto const& path_accum_append
         = [](auto& path_accum, auto const& dfid_info, auto const& dir_fh,
-             auto const& dirname_len) -> void {
+             auto const& dirname_len) noexcept -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)
@@ -1237,7 +1242,7 @@ inline auto lift_event_path(sys_resource_type& sr,
     };
 
     auto const& path_accum_front = [](auto& path_accum, auto const& dfid_info,
-                                      auto const& dir_fh) -> void {
+                                      auto const& dir_fh) noexcept -> void {
       char* name_info = (char*)(dfid_info + 1);
       char* filename
           = (char*)(name_info + sizeof(struct file_handle)
@@ -1642,7 +1647,7 @@ inline auto do_path_map_create(int const watch_fd,
   path_map_type path_map;
   path_map.reserve(path_map_reserve_count);
 
-  auto do_mark = [&](auto& dir) {
+  auto do_mark = [&](auto& dir) noexcept -> bool {
     int wd = inotify_add_watch(watch_fd, dir.c_str(), in_watch_opt);
     return wd > 0 ? path_map.emplace(wd, dir).first != path_map.end() : false;
   };
@@ -1669,14 +1674,15 @@ inline auto do_sys_resource_create(event::callback const& callback) noexcept
     -> sys_resource_type
 {
   auto const& do_error
-      = [&callback](auto const& msg, int watch_fd, int event_fd = -1) {
-          callback({msg, event::what::other, event::kind::watcher});
-          return sys_resource_type{
-              .valid = false,
-              .watch_fd = watch_fd,
-              .event_fd = event_fd,
-              .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
-        };
+      = [&callback](auto const& msg, int watch_fd,
+                    int event_fd = -1) noexcept -> sys_resource_type {
+    callback({msg, event::what::other, event::kind::watcher});
+    return sys_resource_type{
+        .valid = false,
+        .watch_fd = watch_fd,
+        .event_fd = event_fd,
+        .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
+  };
 
   int watch_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1750,7 +1756,8 @@ inline auto do_event_recv(int watch_fd, path_map_type& path_map,
 
   enum class event_recv_state { eventful, eventless, error };
 
-  auto const& lift_this_event = [](int fd, char* buf) {
+  auto const& lift_this_event
+      = [](int fd, char* buf) noexcept -> std::pair<event_recv_state, ssize_t> {
     /* Read some events. */
     ssize_t len = read(fd, buf, event_buf_len);
 
@@ -2369,9 +2376,8 @@ inline bool adapter(std::filesystem::path const& path,
 
     auto const maybe_node = lifetimes.find(path_str);
 
-    auto const has_node = maybe_node != lifetimes.end();
-
-    size_t const position = has_node ? maybe_node->second + 1 : 1;
+    size_t const position
+        = maybe_node != lifetimes.end() ? maybe_node->second + 1 : 1;
 
     if (position < size_t_max) [[likely]] {
       lifetimes.insert_or_assign(path_str, position);
