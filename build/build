@@ -495,7 +495,7 @@ build::clean() {
 build::install() {
   if echo "$*" | grep -q -- --install
   then
-    release_artifact_dir="$(dirname "$(grep 'release/wtr.watcher' "$OUT_DIR/artifacts.txt")")"
+    release_artifact_dir="$OUT_DIR/this/release"
     maybe_sudo="$(test "$(id -u)" = 0 || echo sudo)"
 
     test -d "$release_artifact_dir" \
