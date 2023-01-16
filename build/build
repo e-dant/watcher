@@ -481,8 +481,7 @@ build::write::current_artifacts() {
   for a in "${ARTIFACTS[@]}"; do
   echo "$a" >> "$current_artifact_file"; done
 
-  if ! echo "$*" | grep -q -- --clean \
-    && ! echo "$*" | grep -q -- --no-build
+  if ! echo "$*" | grep -q -- --no-build
   then
     ln -sf "$current_artifact_file" "$latest_artifact_file"
   fi
