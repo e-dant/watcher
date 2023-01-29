@@ -46,12 +46,12 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> These [3576](https://github.com/e-dant/watcher/blob/release/tool/sl)
-lines, of which about half is documentation and tests, were written to be
+> These [3418](https://github.com/e-dant/watcher/blob/release/tool/sl)
+lines, two-thirds of which is documentation and tests, were written to be
 [read](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp)
 as easily as the API is used:
 ```cpp
-watch(path, [](auto const& ev){cout << ev;});
+watch(path, [](event ev) { cout << ev; });
 ```
 ```sh
 wtr.watcher ~
