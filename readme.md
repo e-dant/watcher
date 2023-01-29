@@ -345,3 +345,164 @@ watcher
    └── in
 
 ```
+
+### Comparison with Similar Projects
+
+```yml
+https://github.com/notify-rs/notify:
+  lines of code: 2799
+  lines of tests: 475
+  lines of docs: 1071
+  implementation languages: rust
+  interface languages: rust
+  supported platforms: linux
+  kernel apis: inotify
+  non-blocking: yes
+  dependencies: none
+  tests: yes (many)
+  static analysis: yes (borrow checked)
+
+https://github.com/e-dant/watcher:
+  lines of code: 1391
+  lines of tests: 567
+  lines of docs: 1275
+  implementation languages: cpp
+  interface languages: cpp, shells
+  supported platforms: linux, darwin, windows, bsd
+  kernel apis: inotify, fanotify, fsevents, readdirectorychanges
+  non-blocking: yes
+  dependencies: none
+  tests: yes (many)
+  static analysis: yes (all available)
+
+https://github.com/facebook/watchman.git:
+  lines of code: 37435
+  lines of tests: unknown
+  lines of docs: unknown
+  implementation languages: cpp, c
+  interface languages: cpp, js, java, python, ruby, rust, shells
+  supported platforms: linux, darwin, windows, maybe bsd
+  kernel apis: inotify, fsevents, readdirectorychanges
+  non-blocking: yes
+  dependencies: none
+  tests: yes (many)
+  static analysis: yes (all available)
+
+https://github.com/p-ranav/fswatch:
+  lines of code: 245
+  lines of tests: 19
+  lines of docs: 114
+  implementation languages: cpp
+  interface languages: cpp, shells
+  supported platforms: linux, darwin, windows, bsd
+  kernel apis: inotify
+  non-blocking: maybe
+  dependencies: none
+  tests: some
+  static analysis: none
+
+https://github.com/tywkeene/go-fsevents:
+  lines of code: 413
+  lines of tests: 401
+  lines of docs: 384
+  implementation languages: go
+  interface languages: go
+  supported platforms: linux
+  kernel apis: inotify
+  non-blocking: yes
+  dependencies: yes
+  tests: yes
+  static analysis: none (gc language)
+
+https://github.com/radovskyb/watcher:
+  lines of code: 552
+  lines of tests: 767
+  lines of docs: 399
+  implementation languages: go
+  interface languages: go
+  supported platforms: linux, darwin, windows
+  kernel apis: none
+  non-blocking: no
+  dependencies: none
+  tests: yes
+  static analysis: none
+
+https://github.com/parcel-bundler/watcher:
+  lines of code: 2862
+  lines of tests: 474
+  lines of docs: 791
+  implementation languages: cpp
+  interface languages: js
+  supported platforms: linux, darwin, windows, maybe bsd
+  kernel apis: fsevents, inotify, readdirectorychanges
+  non-blocking: yes
+  dependencies: none
+  tests: some (js bindings)
+  static analysis: none (interpreted language)
+
+https://github.com/atom/watcher:
+  lines of code: 7789
+  lines of tests: 1864
+  lines of docs: 1334
+  implementation languages: cpp
+  interface languages: js
+  supported platforms: linux, darwin, windows, maybe bsd
+  kernel apis: inotify, fsevents, readdirectorychanges
+  non-blocking: yes
+  dependencies: none
+  tests: some (js bindings)
+  static analysis: none
+
+https://github.com/paulmillr/chokidar:
+  lines of code: 1544
+  lines of tests: 1823
+  lines of docs: 1377
+  implementation languages: js
+  interface languages: js
+  supported platforms: linux, darwin, windows, bsd
+  kernel apis: fsevents
+  non-blocking: maybe
+  dependencies: yes
+  tests: yes (many)
+  static analysis: none (interpreted language)
+
+https://github.com/Axosoft/nsfw:
+  lines of code: 2536
+  lines of tests: 1085
+  lines of docs: 148
+  implementation languages: cpp
+  interface languages: js
+  supported platforms: linux, darwin, windows, maybe bsd
+  kernel apis: fsevents
+  non-blocking: maybe
+  dependencies: yes (many)
+  tests: yes (js bindings)
+  static analysis: none
+
+https://github.com/canton7/SyncTrayzor:
+  lines of code: 17102
+  lines of tests: 0
+  lines of docs: 2303
+  implementation languages: c#
+  interface languages: c#
+  supported platforms: windows
+  kernel apis: unknown
+  non-blocking: yes
+  dependencies: unknown
+  tests: none
+  static analysis: none (managed language)
+
+https://github.com/g0t4/Rx-FileSystemWatcher:
+  lines of code: 360
+  lines of tests: 0
+  lines of docs: 46
+  implementation languages: c#
+  interface languages: c#
+  supported platforms: windows
+  kernel apis: unknown
+  non-blocking: yes
+  dependencies: unknown
+  tests: yes
+  static analysis: none (managed language)
+
+```
