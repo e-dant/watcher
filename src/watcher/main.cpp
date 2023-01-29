@@ -63,10 +63,10 @@ int main(int argc, char** argv)
              : argis("-seconds") || argis("-s")        ? seconds(f())
              : argis("-minutes") || argis("-m")        ? minutes(f())
              : argis("-hours") || argis("-h")          ? hours(f())
-             : argis("-days") || argis("-d")           ? days(f())
-             : argis("-weeks") || argis("-w")          ? weeks(f())
-             : argis("-months") || argis("-mts")       ? months(f())
-             : argis("-years") || argis("-y")          ? years(f())
+             : argis("-days") || argis("-d")           ? 24 * hours(f())
+             : argis("-weeks") || argis("-w")          ? 168 * hours(f())
+             : argis("-months") || argis("-mts")       ? 730 * hours(f())
+             : argis("-years") || argis("-y")          ? 8760 * hours(f())
                                                        : milliseconds(f());
     };
 
