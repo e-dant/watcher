@@ -4,8 +4,8 @@ LAST_DIR="$PWD"
 EC=0
 cd "$(dirname "$0")/.." \
   || exit 1
-if which -s cloc \
-  && which -s jq
+if which cloc &> /dev/null \
+  && which jq &> /dev/null
 then
   cloc src/test_watcher include/test_watcher --json \
     | jq '."Markdown"."code" + ."C/C++ Header"."comment" + ."C++"."comment"'

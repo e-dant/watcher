@@ -4,8 +4,8 @@ LAST_DIR="$PWD"
 EC=1
 cd "$(dirname "$0")/.." \
   || exit 1
-if which -s cloc \
-  && which -s jq
+if which cloc &> /dev/null \
+  && which jq &> /dev/null
 then
   cloc README.md src/watcher include/watcher --json \
     | jq '."C/C++ Header"."code" + ."C++"."code"'
