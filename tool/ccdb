@@ -13,14 +13,23 @@ COMPILER_CXX="$( \
   || command -v cl \
   || command -v cl.exe)"
 
+echo "$*" | grep -q -- '--cxx clang++' && COMPILER_CXX='clang++'
+echo "$*" | grep -q -- '--cxx g++' && COMPILER_CXX='g++'
+echo "$*" | grep -q -- '--cxx circle' && COMPILER_CXX='circle'
+echo "$*" | grep -q -- '--cxx cl' && COMPILER_CXX='cl'
+
 if $COMPILER_CXX -v 2>&1 | grep -q 'clang'
 then
   if test -d '/usr/local/include/c++/v1'
   then
-    SYS_INCLUDE_DIR='/usr/local/include/c++/v1'
+    SYS_INCLUDE_FLAGS='-I/usr/local/include/c++/v1'
+    if test -d '/usr/include/c++/v1'
+    then
+      SYS_INCLUDE_FLAGS="$SYS_INCLUDE_FLAGS -I/usr/include/c++/v1"
+    fi
   elif test -d '/usr/include/c++/v1'
   then
-    SYS_INCLUDE_DIR='/usr/include/c++/v1'
+    SYS_INCLUDE_FLAGS='-I/usr/include/c++/v1'
   else
     echo 'Cannot find system include directory.'
     echo "Tried: '/usr/local/include/c++/v1', '/usr/include/c++/v1'"
@@ -31,10 +40,14 @@ elif $COMPILER_CXX -v 2>&1 | grep -q 'gcc version'
 then
   if test -d '/usr/local/include/c++/11'
   then
-    SYS_INCLUDE_DIR='/usr/local/include/c++/11'
+    SYS_INCLUDE_FLAGS='-I/usr/local/include/c++/11'
+    if test -d '/usr/include/c++/11'
+    then
+      SYS_INCLUDE_FLAGS="$SYS_INCLUDE_FLAGS -I/usr/include/c++/11"
+    fi
   elif test -d '/usr/include/c++/11'
   then
-    SYS_INCLUDE_DIR='/usr/include/c++/11'
+    SYS_INCLUDE_FLAGS='-I/usr/include/c++/11'
   else
     echo 'Cannot find system include directory.'
     echo "Tried: '/usr/local/include/c++/11', '/usr/include/c++/11'"
@@ -50,7 +63,7 @@ then
       | tail -n 1)"
   if test -d "$CANDIDATE"
   then
-    SYS_INCLUDE_DIR="$CANDIDATE"
+    SYS_INCLUDE_FLAGS="-I$CANDIDATE"
   else
     echo 'Cannot find system include directory.'
     echo "Tried: $CANDIDATE"
@@ -66,32 +79,32 @@ fi
 echo "[
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_watch_targets.dir${PWD}/src/test_watcher/test_watch_targets/main.cpp.o -c ${PWD}/src/test_watcher/test_watch_targets/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_watch_targets.dir${PWD}/src/test_watcher/test_watch_targets/main.cpp.o -c ${PWD}/src/test_watcher/test_watch_targets/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_watch_targets/main.cpp\"
 },
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_concurrent_watch_targets.dir${PWD}/src/test_watcher/test_concurrent_watch_targets/main.cpp.o -c ${PWD}/src/test_watcher/test_concurrent_watch_targets/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_concurrent_watch_targets.dir${PWD}/src/test_watcher/test_concurrent_watch_targets/main.cpp.o -c ${PWD}/src/test_watcher/test_concurrent_watch_targets/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_concurrent_watch_targets/main.cpp\"
 },
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_new_directories.dir${PWD}/src/test_watcher/test_new_directories/main.cpp.o -c ${PWD}/src/test_watcher/test_new_directories/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_new_directories.dir${PWD}/src/test_watcher/test_new_directories/main.cpp.o -c ${PWD}/src/test_watcher/test_new_directories/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_new_directories/main.cpp\"
 },
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_simple.dir${PWD}/src/test_watcher/test_simple/main.cpp.o -c ${PWD}/src/test_watcher/test_simple/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_simple.dir${PWD}/src/test_watcher/test_simple/main.cpp.o -c ${PWD}/src/test_watcher/test_simple/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_simple/main.cpp\"
 },
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_directory_events.dir${PWD}/src/test_watcher/test_directory_events/main.cpp.o -c ${PWD}/src/test_watcher/test_directory_events/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_directory_events.dir${PWD}/src/test_watcher/test_directory_events/main.cpp.o -c ${PWD}/src/test_watcher/test_directory_events/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_directory_events/main.cpp\"
 },
 {
   \"directory\": \"${PWD}/build/out/this/test/nosan\",
-  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include -I${SYS_INCLUDE_DIR} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_regular_file_events.dir${PWD}/src/test_watcher/test_regular_file_events/main.cpp.o -c ${PWD}/src/test_watcher/test_regular_file_events/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -DSNITCH_DEFAULT_WITH_COLOR=1 -DSNITCH_DEFINE_MAIN=1 -DSNITCH_MAX_COMMAND_LINE_ARGS=1024 -DSNITCH_MAX_EXPR_LENGTH=1024 -DSNITCH_MAX_MESSAGE_LENGTH=1024 -DSNITCH_MAX_NESTED_SECTIONS=8 -DSNITCH_MAX_TEST_CASES=5000 -DSNITCH_MAX_TEST_NAME_LENGTH=1024 -DSNITCH_MAX_UNIQUE_TAGS=1024 -DSNITCH_WITH_EXCEPTIONS=1 -DSNITCH_WITH_SHORTHAND_MACROS=1 -DSNITCH_WITH_TIMINGS=1 -I${PWD}/include ${SYS_INCLUDE_FLAGS} -I${PWD}/build/out/this/test/nosan/_deps/snitch-src/include -I${PWD}/build/out/this/test/nosan/_deps/snitch-build -Wall -Wextra -Werror -std=${STD_FLAG} -o CMakeFiles/wtr.test_watcher.test_regular_file_events.dir${PWD}/src/test_watcher/test_regular_file_events/main.cpp.o -c ${PWD}/src/test_watcher/test_regular_file_events/main.cpp\",
   \"file\": \"${PWD}/src/test_watcher/test_regular_file_events/main.cpp\"
 },
 {
@@ -101,7 +114,7 @@ echo "[
 },
 {
   \"directory\": \"${PWD}/build/out/this/release\",
-  \"command\": \"${COMPILER_CXX} -O3 -Wall -Wextra -Werror -std=${STD_FLAG} -I${PWD}/include -I${SYS_INCLUDE_DIR} -o CMakeFiles/wtr.watcher.dir${PWD}/src/watcher/main.cpp.o -c ${PWD}/src/watcher/main.cpp\",
+  \"command\": \"${COMPILER_CXX} -O3 -Wall -Wextra -Werror -std=${STD_FLAG} -I${PWD}/include ${SYS_INCLUDE_FLAGS} -o CMakeFiles/wtr.watcher.dir${PWD}/src/watcher/main.cpp.o -c ${PWD}/src/watcher/main.cpp\",
   \"file\": \"${PWD}/src/watcher/main.cpp\"
 }
 ]"
