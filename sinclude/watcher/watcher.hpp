@@ -2437,13 +2437,15 @@ inline auto watch(std::filesystem::path const& path,
 
   return
 
+      /* Begin our lifetime in an asynchronous context */
       [ =,
-        /* Begin our lifetime in an asynchronous context */
         lifetime = std::async(std::launch::async, [=]() noexcept -> bool
                       { return adapter(path, callback, message::live); }).share()
       
-      ]() noexcept -> bool {
-        /* Return a function that will stop us when called */
+      ]
+
+      /* Return a function that will stop us when called */
+      () noexcept -> bool {
         return adapter(path, callback, message::die)
             && lifetime.get();
       };

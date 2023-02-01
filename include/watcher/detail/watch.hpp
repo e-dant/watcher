@@ -59,17 +59,19 @@ inline auto watch(std::filesystem::path const& path,
   using namespace ::wtr::watcher::detail::adapter;
 
   return
-
+      /* Begin our lifetime in an asynchronous context */
       [ =,
-        /* Begin our lifetime in an asynchronous context */
-        lifetime = std::async(std::launch::async, [=]() noexcept -> bool
+        lifetime{ std::async(
+                    std::launch::async, [=]
+                    () noexcept -> bool
                       { return adapter(path, callback, message::live); }).share()
-      
-      ]() noexcept -> bool {
-        /* Return a function that will stop us when called */
-        return adapter(path, callback, message::die)
-            && lifetime.get();
-      };
+                }
+
+      ]
+
+      /* Return a function that will stop us when called */
+      () noexcept -> bool
+        { return adapter(path, callback, message::die) && lifetime.get(); };
 }
 
 /* clang-format on */
