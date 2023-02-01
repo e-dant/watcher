@@ -2378,60 +2378,78 @@ inline bool adapter(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-/* path */
+/*  path */
 #include <filesystem>
-/* event
-   callback
-   adapter */
+/*  async */
+#include <future>
+/*  function */
+#include <functional>
+/*  event
+    callback
+    adapter */
 
 namespace wtr {
 namespace watcher {
 
-/* @brief wtr/watcher/watch
+/* clang-format off */
 
-   @param path:
-     The root path to watch for filesystem events.
+/*  @brief wtr/watcher/watch
 
-   @param living_cb (optional):
-     Something (such as a closure) to be called when events
-     occur in the path being watched.
+    @param path:
+      The root path to watch for filesystem events.
 
-   This is an adaptor "switch" that chooses the ideal adaptor
-   for the host platform.
+    @param living_cb (optional):
+      Something (such as a closure) to be called when events
+      occur in the path being watched.
 
-   Every adapter monitors `path` for changes and invokes the
-   `callback` with an `event` object when they occur.
+    This is an adaptor "switch" that chooses the ideal adaptor
+    for the host platform.
 
-   There are three things the user needs:
-     - The `die` function
-     - The `watch` function
-     - The `event` structure
+    Every adapter monitors `path` for changes and invokes the
+    `callback` with an `event` object when they occur.
 
-   That's it.
+    There are two things the user needs:
+      - The `watch` function
+      - The `event` object
 
-   Happy hacking. */
-inline bool watch(std::filesystem::path const& path,
+    The watch function returns a function to stop its watcher.
+
+    Typical use looks like this:
+      auto lifetime = watch(".", [](event& e) {
+        std::cout
+          << "where: " << e.where << "\n"
+          << "kind: "  << e.kind  << "\n"
+          << "what: "  << e.what  << "\n"
+          << "when: "  << e.when  << "\n"
+          << std::endl;
+      };
+
+      auto dead = lifetime();
+
+    That's it.
+
+    Happy hacking. */
+inline auto watch(std::filesystem::path const& path,
                   event::callback const& callback) noexcept
+    -> std::function<bool()>
 {
-  using namespace detail::adapter;
+  using namespace ::wtr::watcher::detail::adapter;
 
-  return adapter(path, callback, message::live);
+  return
+
+      [ =,
+        /* Begin our lifetime in an asynchronous context */
+        lifetime = std::async(std::launch::async, [=]() noexcept -> bool
+                      { return adapter(path, callback, message::live); }).share()
+      
+      ]() noexcept -> bool {
+        /* Return a function that will stop us when called */
+        return adapter(path, callback, message::die)
+            && lifetime.get();
+      };
 }
 
-/* @brief wtr/watcher/die
-
-   Stops a watcher at `path`.
-   Calls `callback` with status messages.
-   True if newly dead. */
-inline bool die(
-    std::filesystem::path const& path,
-    event::callback const& callback
-    = [](event::event) noexcept -> void {}) noexcept
-{
-  using namespace detail::adapter;
-
-  return adapter(path, callback, message::die);
-}
+/* clang-format on */
 
 } /* namespace watcher */
 } /* namespace wtr   */

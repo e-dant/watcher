@@ -65,15 +65,11 @@ TEST_CASE("Simple", "[simple]")
       {std::string("s/self/live@").append(store_path.string()),
        event::what::create, event::kind::watcher});
 
-  auto watch_handle = std::async(std::launch::async, []() {
-    auto const watch_ok
-        = wtr::watcher::watch(store_path, [](event::event const& ev) {
+  auto lifetime = wtr::watcher::watch(store_path, [](event::event const& ev) {
             auto _ = std::scoped_lock{event_recv_list_mtx};
             std::cout << ev << std::endl;
             event_recv_list.push_back(ev);
           });
-    return watch_ok;
-  });
 
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -102,16 +98,9 @@ TEST_CASE("Simple", "[simple]")
       {std::string("s/self/die@").append(store_path.string()),
        event::what::destroy, event::kind::watcher});
 
-  auto const die_ok
-      = wtr::watcher::die(store_path, [&](event::event const& ev) {
-          auto _ = std::scoped_lock{event_recv_list_mtx};
-          event_recv_list.push_back(ev);
-        });
+  auto dead = lifetime();
 
-  auto const watch_ok = watch_handle.get();
-
-  REQUIRE(die_ok);
-  REQUIRE(watch_ok);
+  REQUIRE(dead);
 
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));

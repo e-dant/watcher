@@ -10,15 +10,17 @@
 ## Quick Start
 
 ```cpp
-/* tiny_watcher/main.cpp */
 #include <iostream>
 #include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
 
 int main(int argc, char** argv) {
   using namespace wtr::watcher;
-  return watch(argc > 1 ? argv[1] : ".", [](event::event const& this_event) {
-    std::cout << this_event << ',' << std::endl;
-  });
+  return watch(argc > 1 ? argv[1] : ".", [](event::event const& ev) {
+    std::cout << "event at path: " << ev.where << "\n"
+              << "kind of path: " << ev.kind << "\n"
+              << "event type: " << ev.what << "\n"
+              << "nanoseconds since epoch: " << ev.when << std::endl;
+  })();
 }
 ```
 
@@ -116,51 +118,72 @@ The [event](https://github.com/e-dant/watcher/blob/release/include/watcher/event
 and [watch](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp) headers
 are short and approachable. (You only ever need to include `watcher/watcher.hpp`.)
 
-After that, there are two things the user needs:
+There are two things the user needs:
   - The `watch` function
-  - The `die` function
   - The `event` object
 
 `watch` takes a path, which is a string-like thing, and a
 callback, with is a function-like thing. Passing `watch`
 a character array and a lambda would work well.
 
-`watch` will happily continue watching until it is
-asked to stop or it hits an unrecoverable error.
+Important: `watch` returns a function. Calling that
+function stops the associated watch.
+
+Typical use looks like this:
+
+```cpp
+auto life = watch(".", [](event const& e) {
+  std::cout
+    << "where: " << e.where << "\n"
+    << "kind: "  << e.kind  << "\n"
+    << "what: "  << e.what  << "\n"
+    << "when: "  << e.when  << "\n"
+    << std::endl;
+};
+auto dead = life();
+```
+
+`watch` will happily continue watching until you stop
+it or it hits an unrecoverable error.
 
 `event` is an object used to pass information about
 filesystem events to `watch`.
-
-`die` kills the `watch`. If a `callback` is given,
-`die` will invoke it immediately before death.
 
 The `event` object is used to pass information about
 filesystem events to the (user-supplied) callback
 given to `watch`.
 
 The `event` object will contain the:
-  - Path, which is always absolute.
-  - Type, one of:
-    - dir
-    - file
-    - hard_link
-    - sym_link
-    - watcher
-    - other
-  - Event type, one of:
-    - rename
-    - modify
-    - create
-    - destroy
-    - owner
-    - other
-  - Event time in nanoseconds since epoch
+  - `where`, which is an absolute path to the event.
+  - `kind`, the kind of path. One of:
+    - `dir`
+    - `file`
+    - `hard_link`
+    - `sym_link`
+    - `watcher`
+    - `other`
+  - `what`, the type of event. One of:
+    - `rename`
+    - `modify`
+    - `create`
+    - `destroy`
+    - `owner`
+    - `other`
+  - `when`, the time of the event in nanoseconds since epoch.
 
 The `watcher` type is special.
 
 Events with this type will include messages from
 the watcher. You may recieve error messages or
-important status updates.
+important status updates, such as when it first
+becomes alive and when it dies.
+
+The last event will always be a `destroy` event from the watcher.
+You can parse it like this:
+```cpp
+  auto is_last = ev.kind == kind::watcher
+              && ev.what == what::destroy;
+```
 
 Happy hacking.
 

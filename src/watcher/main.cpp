@@ -111,23 +111,21 @@ int main(int argc, char** argv)
 
     /* This is the heart of the function.
        Watching, concurrently. */
-    auto life
-        = std::async(std::launch::async, [&] { return watch(path, callback); });
+    auto lifetime = watch(path, callback);
 
     /* Until our time is up. */
-    life.wait_for(alive_for);
+    std::this_thread::sleep_for(alive_for);
 
     /* Then dying. */
-    auto const died = die(path, callback);
-    auto const lived = life.get();
+    auto const dead = lifetime();
 
     std::cout << "}"
               << "\n,\"milliseconds\":"
               << duration_cast<milliseconds>(system_clock::now() - then).count()
-              << "\n,\"dead\":" << (died && lived ? "true" : "false") << "\n}}}"
+              << "\n,\"dead\":" << (dead ? "true" : "false") << "\n}}}"
               << std::endl;
 
-    return died && lived;
+    return dead;
   };
 
   auto const [path, alive_for, help] = lift_options(argc, argv);
@@ -143,5 +141,5 @@ int main(int argc, char** argv)
 
                    ? !watch_expire(path, stream_json, alive_for)
 
-                   : !watch(path, stream_json);
+                   : !watch(path, stream_json)();
 }

@@ -71,15 +71,12 @@ TEST_CASE("New Directories", "[new_directories]")
       {std::string("s/self/live@").append(base_store_path.string()),
        wtr::watcher::event::what::create, wtr::watcher::event::kind::watcher});
 
-  auto watcher_future = (std::async(std::launch::async, [&base_store_path]() {
-    auto const watch_ok = wtr::watcher::watch(
-        base_store_path, [&](wtr::watcher::event::event const& ev) {
-          auto _ = std::scoped_lock{event_recv_list_mtx};
-          std::cout << ev << std::endl;
-          event_recv_list.push_back(ev);
-        });
-    return watch_ok;
-  }));
+  auto lifetime = wtr::watcher::watch(
+      base_store_path, [&](wtr::watcher::event::event const& ev) {
+        auto _ = std::scoped_lock{event_recv_list_mtx};
+        std::cout << ev << std::endl;
+        event_recv_list.push_back(ev);
+      });
 
   /* @todo
      This sleep is hiding a bug on Linux which begins
@@ -128,12 +125,9 @@ TEST_CASE("New Directories", "[new_directories]")
       {std::string("s/self/die@").append(base_store_path.string()),
        wtr::watcher::event::what::destroy, wtr::watcher::event::kind::watcher});
 
-  wtr::watcher::die(base_store_path, [&](wtr::watcher::event::event const& ev) {
-    auto _ = std::scoped_lock{event_recv_list_mtx};
-    event_recv_list.push_back(ev);
-  });
+  auto dead = lifetime();
 
-  REQUIRE(watcher_future.get());
+  REQUIRE(dead);
 
   std::filesystem::remove_all(base_store_path);
   REQUIRE(!std::filesystem::exists(base_store_path));
