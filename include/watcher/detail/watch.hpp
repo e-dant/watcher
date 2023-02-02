@@ -6,6 +6,8 @@
 #include <future>
 /*  function */
 #include <functional>
+/*  shared_ptr */
+#include <memory>
 /*  event
     callback
     adapter */
@@ -13,8 +15,6 @@
 
 namespace wtr {
 namespace watcher {
-
-/* clang-format off */
 
 /*  @brief wtr/watcher/watch
 
@@ -58,23 +58,16 @@ inline auto watch(std::filesystem::path const& path,
 {
   using namespace ::wtr::watcher::detail::adapter;
 
-  return
-      /* Begin our lifetime in an asynchronous context */
-      [ =,
-        lifetime{ std::async(
-                    std::launch::async, [=]
-                    () noexcept -> bool
-                      { return adapter(path, callback, message::live); }).share()
-                }
+  auto msg = std::shared_ptr<message>{new message{}};
 
-      ]
+  auto lifetime = std::async(std::launch::async, [=]() noexcept -> bool {
+                    return adapter(path, callback, msg);
+                  }).share();
 
-      /* Return a function that will stop us when called */
-      () noexcept -> bool
-        { return adapter(path, callback, message::die) && lifetime.get(); };
+  return [=]() noexcept -> bool {
+    return adapter(path, callback, msg) && lifetime.get();
+  };
 }
-
-/* clang-format on */
 
 } /* namespace watcher */
 } /* namespace wtr   */
