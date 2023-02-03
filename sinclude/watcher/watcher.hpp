@@ -534,8 +534,12 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
     return true;
   } else {
+
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return false;
   }
 }
@@ -807,15 +811,26 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
+
   auto seen_created_paths = std::unordered_set<std::string>{};
   auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
 
-  return event_stream_close(
+  auto ok = event_stream_close(
       event_stream_open(path, event_recv, event_recv_argptr, [&is_living]() {
         while (is_living())
           if constexpr (has_delay) sleep_for(delay_ms);
       }));
+
+  if (ok)
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  else
+    callback({"e/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  return ok;
 }
 
 } /* namespace adapter */
@@ -1382,9 +1397,14 @@ inline bool watch(std::filesystem::path const& path,
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
-    if (!do_sys_resource_close(sr))
-      callback({"e/sys/close@" / path, evw::other, evk::watcher});
     callback({msg / path, evw::other, evk::watcher});
+
+    if (do_sys_resource_close(sr))
+      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+    else
+      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+
     return false;
   };
 
@@ -1416,6 +1436,8 @@ inline bool watch(std::filesystem::path const& path,
               if (!do_event_recv(sr, path, callback)) [[unlikely]]
                 return do_error(sr, "e/self/event_recv");
     }
+
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return do_sys_resource_close(sr);
 
   } else
@@ -1757,9 +1779,14 @@ inline bool watch(std::filesystem::path const& path,
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
-    if (!do_sys_resource_close(sr))
-      callback({"e/sys/close@" / path, evw::other, evk::watcher});
     callback({msg / path, evw::other, evk::watcher});
+
+    if (do_sys_resource_close(sr))
+      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+    else
+      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+
     return false;
   };
 
@@ -1797,6 +1824,7 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(sr, "e/self/event_recv@");
       }
 
+      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
       return do_sys_resource_close(sr);
 
     } else
@@ -2168,14 +2196,20 @@ inline bool watch(std::filesystem::path const& path,
 
   static constexpr auto delay_ms = 16;
 
-  if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+  while (is_living()) {
+    if (!tend_bucket(path, callback, bucket) || !scan(path, callback, bucket)) {
+      callback(
+          {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
 
-  return is_living() ? tend_bucket(path, callback, bucket)
-                           ? scan(path, callback, bucket)
-                                 ? watch(path, callback, is_living)
-                                 : false
-                           : false
-                     : true;
+      return false;
+    } else {
+      if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+    }
+  }
+
+  callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  return true;
 }
 
 } /* namespace adapter */
@@ -2216,12 +2250,14 @@ struct message
   size_t id{0};
 };
 
-inline message carry(std::shared_ptr<message> m, std::mutex& mtx) noexcept
+inline message carry(std::shared_ptr<message> m) noexcept
 {
   auto random_id = []() noexcept -> size_t {
     auto rng{std::mt19937{std::random_device{}()}};
     return std::uniform_int_distribution<size_t>{}(rng);
   };
+
+  static auto mtx{std::mutex{}};
 
   auto _ = std::scoped_lock<std::mutex>{mtx};
 
@@ -2247,13 +2283,12 @@ inline size_t adapter(std::filesystem::path const& path,
   /*  A mutex to synchronize access to the container. */
   static auto lifetimes_mtx{std::mutex{}};
 
-  auto const msg = carry(previous, lifetimes_mtx);
+  auto const msg = carry(previous);
 
   /*  Returns a functor to check if we're still living.
-
       The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool {
-    auto const& is_living
+    auto const& create_lifetime
         = [id, &path, &callback]() noexcept -> std::function<bool()> {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
@@ -2281,10 +2316,10 @@ inline size_t adapter(std::filesystem::path const& path,
       }
     };
 
-    return watch(path, callback, is_living()) ? id : 0;
+    return watch(path, callback, create_lifetime()) ? id : 0;
   };
 
-  auto const& die = [id = msg.id, &path, &callback]() noexcept -> size_t {
+  auto const& die = [id = msg.id]() noexcept -> size_t {
     auto _ = std::scoped_lock{lifetimes_mtx};
 
     auto const maybe_node = lifetimes.find(id);
@@ -2294,16 +2329,10 @@ inline size_t adapter(std::filesystem::path const& path,
 
       lifetimes.erase(maybe_node);
 
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-
       return id;
 
-    } else {
-      callback({"e/self/die/not_alive@" + path.string(), evw::destroy,
-                evk::watcher});
-
+    } else
       return 0;
-    }
   };
 
   switch (msg.word) {
@@ -2371,9 +2400,11 @@ namespace watcher {
     That's it.
 
     Happy hacking. */
-inline auto watch(std::filesystem::path const& path,
-                  event::callback const& callback) noexcept
-    -> std::function<bool()>
+[[nodiscard("Returns a function used to stop this watcher")]]
+
+inline auto
+watch(std::filesystem::path const& path,
+      event::callback const& callback) noexcept -> std::function<bool()>
 {
   using namespace ::wtr::watcher::detail::adapter;
 
