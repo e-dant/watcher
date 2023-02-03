@@ -52,6 +52,7 @@ namespace watcher {
     That's it.
 
     Happy hacking. */
+
 [[nodiscard("Returns a function used to stop this watcher")]]
 
 inline auto
