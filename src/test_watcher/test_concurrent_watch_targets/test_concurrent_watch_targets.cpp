@@ -21,7 +21,7 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
   using namespace wtr::watcher;
 
   static constexpr auto path_count = 10;
-  static constexpr auto concurrency_level = 8;
+  static constexpr auto concurrency_level = 32;
   static constexpr auto alive_for_ms = std::chrono::milliseconds(500);
 
   auto const store_path
