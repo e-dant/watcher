@@ -538,7 +538,6 @@ inline bool watch(std::filesystem::path const& path,
 
     return true;
   } else {
-
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return false;
   }
@@ -2309,10 +2308,7 @@ inline size_t adapter(std::filesystem::path const& path,
         callback({"e/self/already_alive@" + path.string(), evw::create,
                   evk::watcher});
 
-        return []() constexpr noexcept->bool
-        {
-          return false;
-        };
+        return []() constexpr noexcept -> bool { return false; };
       }
     };
 
