@@ -90,10 +90,7 @@ inline size_t adapter(std::filesystem::path const& path,
         callback({"e/self/already_alive@" + path.string(), evw::create,
                   evk::watcher});
 
-        return []() constexpr noexcept->bool
-        {
-          return false;
-        };
+        return []() constexpr noexcept -> bool { return false; };
       }
     };
 
