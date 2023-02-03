@@ -221,8 +221,12 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
     return true;
   } else {
+
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return false;
   }
 }

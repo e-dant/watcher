@@ -559,9 +559,14 @@ inline bool watch(std::filesystem::path const& path,
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
-    if (!do_sys_resource_close(sr))
-      callback({"e/sys/close@" / path, evw::other, evk::watcher});
     callback({msg / path, evw::other, evk::watcher});
+
+    if (do_sys_resource_close(sr))
+      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+    else
+      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+
     return false;
   };
 
@@ -593,6 +598,8 @@ inline bool watch(std::filesystem::path const& path,
               if (!do_event_recv(sr, path, callback)) [[unlikely]]
                 return do_error(sr, "e/self/event_recv");
     }
+
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return do_sys_resource_close(sr);
 
   } else

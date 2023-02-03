@@ -100,7 +100,7 @@ inline size_t adapter(std::filesystem::path const& path,
     return watch(path, callback, create_lifetime()) ? id : 0;
   };
 
-  auto const& die = [id = msg.id, &path, &callback]() noexcept -> size_t {
+  auto const& die = [id = msg.id]() noexcept -> size_t {
     auto _ = std::scoped_lock{lifetimes_mtx};
 
     auto const maybe_node = lifetimes.find(id);
@@ -110,16 +110,10 @@ inline size_t adapter(std::filesystem::path const& path,
 
       lifetimes.erase(maybe_node);
 
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-
       return id;
 
-    } else {
-      callback({"e/self/die/not_alive@" + path.string(), evw::destroy,
-                evk::watcher});
-
+    } else
       return 0;
-    }
   };
 
   switch (msg.word) {

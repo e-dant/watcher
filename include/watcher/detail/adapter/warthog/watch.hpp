@@ -251,14 +251,20 @@ inline bool watch(std::filesystem::path const& path,
 
   static constexpr auto delay_ms = 16;
 
-  if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+  while (is_living()) {
+    if (!tend_bucket(path, callback, bucket) || !scan(path, callback, bucket)) {
+      callback(
+          {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
 
-  return is_living() ? tend_bucket(path, callback, bucket)
-                           ? scan(path, callback, bucket)
-                                 ? watch(path, callback, is_living)
-                                 : false
-                           : false
-                     : true;
+      return false;
+    } else {
+      if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
+    }
+  }
+
+  callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  return true;
 }
 
 } /* namespace adapter */

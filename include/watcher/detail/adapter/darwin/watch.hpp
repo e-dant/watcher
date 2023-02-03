@@ -262,15 +262,26 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
+
   auto seen_created_paths = std::unordered_set<std::string>{};
   auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
 
-  return event_stream_close(
+  auto ok = event_stream_close(
       event_stream_open(path, event_recv, event_recv_argptr, [&is_living]() {
         while (is_living())
           if constexpr (has_delay) sleep_for(delay_ms);
       }));
+
+  if (ok)
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  else
+    callback({"e/self/die@" + path.string(), evw::destroy, evk::watcher});
+
+  return ok;
 }
 
 } /* namespace adapter */
