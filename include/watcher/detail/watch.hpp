@@ -52,9 +52,11 @@ namespace watcher {
     That's it.
 
     Happy hacking. */
-inline auto watch(std::filesystem::path const& path,
-                  event::callback const& callback) noexcept
-    -> std::function<bool()>
+[[nodiscard("Returns a function used to stop this watcher")]]
+
+inline auto
+watch(std::filesystem::path const& path,
+      event::callback const& callback) noexcept -> std::function<bool()>
 {
   using namespace ::wtr::watcher::detail::adapter;
 
