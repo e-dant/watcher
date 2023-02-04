@@ -31,6 +31,15 @@ struct message
   size_t id{0};
 };
 
+/*
+    carry message { live, 0 } =
+      id = random
+      message { die, id }
+      { live, id }
+
+    carry message { die, id } =
+      { die, id }
+ */
 inline message carry(std::shared_ptr<message> m) noexcept
 {
   auto random_id = []() noexcept -> size_t {
@@ -90,7 +99,10 @@ inline size_t adapter(std::filesystem::path const& path,
         callback({"e/self/already_alive@" + path.string(), evw::create,
                   evk::watcher});
 
-        return []() constexpr noexcept -> bool { return false; };
+        return []() constexpr noexcept->bool
+        {
+          return false;
+        };
       }
     };
 
