@@ -1,12 +1,7 @@
-# Watcher
- Include
+# Single Header Include
 
-## Summary
+Include this standalone `watcher.hpp` to use elsewhere.
 
-Public header interface for *Watcher*.
+Zero-configuration needed.
 
-To use:
-
-```cpp
-#include <watcher/watcher.hpp>
-```
+Happy hacking.

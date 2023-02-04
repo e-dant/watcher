@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.." \
 if which cloc &> /dev/null \
   && which jq &> /dev/null
 then
-  cloc README.md src/watcher include/watcher --json \
+  cloc README.md src/watcher devel/include/watcher --json \
     | jq '."C/C++ Header"."code" + ."C++"."code"'
 else
   echo please install cloc and jq

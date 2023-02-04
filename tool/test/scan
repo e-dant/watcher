@@ -1,12 +1,12 @@
 #! /usr/bin/env sh
 
 LAST_DIR="$PWD"
-cd "$(dirname "$0")/../.."
-(build/out/wtr.watcher . -s 3) &
+cd "$(dirname "$0")/../.." || exit 1
+(build/out/this/release/wtr.watcher . -s 3) &
 (tool/test/file) &
 sleep 5
-if $(pgrep wtr.watcher); then
+if pgrep wtr.watcher; then
 killall wtr.watcher; fi
 kill $(pgrep bash)
-ls -al build/out/wtr.watcher
-cd "$LAST_DIR"
+ls -al build/out/this/release/wtr.watcher
+cd "$LAST_DIR" || exit 1

@@ -1,8 +1,0 @@
-- given name
-echo watcher
- include
-- given build
-echo ../build/build
-- given run
-echo ../build/out/wtr.watcher
-

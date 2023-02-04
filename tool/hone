@@ -14,9 +14,9 @@ watcher::hone() {
     --help
 
   example:
-    tool/hone --header-content-amalgam > sinclude/watcher/watcher.hpp"
+    tool/hone --header-content-amalgam > include/watcher/watcher.hpp"
   LAST_DIR="$PWD"
-  cd "$(dirname "$0")/../include" || return 1
+  cd "$(dirname "$0")/../devel/include" || return 1
 
   HEADER_CONTENT_RAW="$(\
     cd watcher || return 1

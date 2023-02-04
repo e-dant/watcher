@@ -56,9 +56,9 @@ option(WTR_WATCHER_USE_KCFISAN        "Build with the kernel cfi sanitizer"     
 
 # [options: meaning: include]
 if(WTR_WATCHER_USE_SINGLE_INCLUDE)
-  list(APPEND INCLUDE_PATH    "../../sinclude")
-else()
   list(APPEND INCLUDE_PATH    "../../include")
+else()
+  list(APPEND INCLUDE_PATH    "../../devel/include")
 endif()
 
 # [options: meaning: source]

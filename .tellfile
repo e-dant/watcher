@@ -9,9 +9,9 @@ echo eval `tell build`' && eval '`tell run`
 - given dbuild
 echo build/build
 - given drun
-echo lldb build/out/wtr.watcher
+echo lldb build/out/this/debug/ubsan/wtr.watcher
 - given dbun
-echo eval `tell dbuild`' && lldb build/out/wtr.watcher'
+echo eval `tell dbuild`' && lldb build/out/this/debug/ubsan/wtr.watcher'
 - given clean
 echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_*'
 

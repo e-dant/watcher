@@ -1,4 +1,4 @@
-#include "../../sinclude/watcher/watcher.hpp" /* Point this to wherever yours is */
+#include "../../include/watcher/watcher.hpp" /* Point this to wherever yours is */
 #include <iostream>
 
 int main(int argc, char** argv) {

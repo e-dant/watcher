@@ -1,5 +1,5 @@
 - given name
-echo watcher program source
+echo watcher include directory
 - given build
 echo ../../build/build
 - given run
