@@ -9,9 +9,9 @@
 /* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-    && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if !defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0)                     \
+&& ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if ! defined(WATER_WATCHER_USE_WARTHOG)
 
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
 
@@ -113,8 +113,8 @@ inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = PATH_MAX;
 inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
-                                       | FAN_UNLIMITED_QUEUE
-                                       | FAN_UNLIMITED_MARKS;
+                                     | FAN_UNLIMITED_QUEUE
+                                     | FAN_UNLIMITED_MARKS;
 inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
@@ -129,8 +129,7 @@ inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 using mark_set_type = std::unordered_set<int>;
 using dir_map_type = std::unordered_map<unsigned long, std::filesystem::path>;
 
-struct sys_resource_type
-{
+struct sys_resource_type {
   bool valid;
   int watch_fd;
   int event_fd;
@@ -139,13 +138,15 @@ struct sys_resource_type
   dir_map_type dir_map;
 };
 
-inline auto mark(std::filesystem::path const& full_path, int watch_fd,
-                 mark_set_type& pmc) noexcept -> bool
-{
-  int wd = fanotify_mark(watch_fd, FAN_MARK_ADD,
+inline auto mark(std::filesystem::path const& full_path,
+                 int watch_fd,
+                 mark_set_type& pmc) noexcept -> bool {
+  int wd = fanotify_mark(watch_fd,
+                         FAN_MARK_ADD,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
-                             | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
-                         AT_FDCWD, full_path.c_str());
+                         | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                         AT_FDCWD,
+                         full_path.c_str());
   if (wd >= 0) {
     pmc.insert(wd);
     return true;
@@ -154,24 +155,26 @@ inline auto mark(std::filesystem::path const& full_path, int watch_fd,
     return false;
 };
 
-inline auto mark(std::filesystem::path const& full_path, sys_resource_type& sr,
-                 unsigned long dir_hash) noexcept -> bool
-{
+inline auto mark(std::filesystem::path const& full_path,
+                 sys_resource_type& sr,
+                 unsigned long dir_hash) noexcept -> bool {
   if (sr.dir_map.find(dir_hash) == sr.dir_map.end())
     return mark(full_path, sr.watch_fd, sr.mark_set)
-           && sr.dir_map.emplace(dir_hash, full_path.parent_path()).second;
+        && sr.dir_map.emplace(dir_hash, full_path.parent_path()).second;
 
   else
     return mark(full_path, sr.watch_fd, sr.mark_set);
 }
 
-inline auto unmark(std::filesystem::path const& full_path, int watch_fd,
-                   mark_set_type& mark_set) noexcept -> bool
-{
-  int wd = fanotify_mark(watch_fd, FAN_MARK_REMOVE,
+inline auto unmark(std::filesystem::path const& full_path,
+                   int watch_fd,
+                   mark_set_type& mark_set) noexcept -> bool {
+  int wd = fanotify_mark(watch_fd,
+                         FAN_MARK_REMOVE,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
-                             | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
-                         AT_FDCWD, full_path.c_str());
+                         | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                         AT_FDCWD,
+                         full_path.c_str());
   auto const& at = mark_set.find(wd);
 
   if (wd >= 0 && at != mark_set.end()) {
@@ -183,9 +186,8 @@ inline auto unmark(std::filesystem::path const& full_path, int watch_fd,
 };
 
 inline auto unmark(std::filesystem::path const& full_path,
-                   sys_resource_type& sr, unsigned long dir_hash) noexcept
-    -> bool
-{
+                   sys_resource_type& sr,
+                   unsigned long dir_hash) noexcept -> bool {
   auto const& at = sr.dir_map.find(dir_hash);
 
   if (at != sr.dir_map.end()) sr.dir_map.erase(at);
@@ -198,39 +200,41 @@ inline auto unmark(std::filesystem::path const& full_path,
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto do_sys_resource_open(std::filesystem::path const& path,
                                  event::callback const& callback) noexcept
-    -> sys_resource_type
-{
+-> sys_resource_type {
   namespace fs = ::std::filesystem;
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
 
   auto const& do_error
-      = [&callback](auto const& error, auto const& path, int watch_fd,
-                    int event_fd = -1) noexcept -> sys_resource_type {
+  = [&callback](auto const& error,
+                auto const& path,
+                int watch_fd,
+                int event_fd = -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
-                   .append("(")
-                   .append(std::strerror(errno))
-                   .append(")@")
-                   .append(path);
+               .append("(")
+               .append(std::strerror(errno))
+               .append(")@")
+               .append(path);
     callback({msg, evw::other, evk::watcher});
     return sys_resource_type{
-        .valid = false,
-        .watch_fd = watch_fd,
-        .event_fd = event_fd,
-        .event_conf = {.events = 0, .data = {.fd = watch_fd}},
-        .mark_set = {},
-        .dir_map = {},
+    .valid = false,
+    .watch_fd = watch_fd,
+    .event_fd = event_fd,
+    .event_conf = {.events = 0, .data = {.fd = watch_fd}},
+    .mark_set = {},
+    .dir_map = {},
     };
   };
   auto do_path_map_container_create
-      = [](int const watch_fd, fs::path const& base_path,
-           event::callback const& callback) -> mark_set_type {
+  = [](int const watch_fd,
+       fs::path const& base_path,
+       event::callback const& callback) -> mark_set_type {
     using diter = fs::recursive_directory_iterator;
 
     /* Follow symlinks, ignore paths which we don't have permissions for. */
     static constexpr auto dopt
-        = fs::directory_options::skip_permission_denied
-          & fs::directory_options::follow_directory_symlink;
+    = fs::directory_options::skip_permission_denied
+    & fs::directory_options::follow_directory_symlink;
 
     static constexpr auto rsrv_count = 1024;
 
@@ -241,16 +245,16 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
        overloads. (Exceptions seem to be the only way to handle errors.) */
 
     if (mark(base_path, watch_fd, pmc))
-      if (fs::is_directory(base_path)) try
-        {
+      if (fs::is_directory(base_path)) try {
           for (auto& dir : diter(base_path, dopt))
             if (fs::is_directory(dir))
-              if (!mark(dir.path(), watch_fd, pmc))
+              if (! mark(dir.path(), watch_fd, pmc))
                 callback({"w/sys/not_watched@" / base_path / "@" / dir.path(),
-                          evw::other, evk::watcher});
+                          evw::other,
+                          evk::watcher});
         } catch (...) {
           callback(
-              {"w/sys/not_watched@" / base_path, evw::other, evk::watcher});
+          {"w/sys/not_watched@" / base_path, evw::other, evk::watcher});
         }
 
     return pmc;
@@ -259,7 +263,7 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
   int watch_fd = fanotify_init(fan_init_flags, fan_init_opt_flags);
   if (watch_fd >= 0) {
     auto pmc = do_path_map_container_create(watch_fd, path, callback);
-    if (!pmc.empty()) {
+    if (! pmc.empty()) {
       epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
 
       int event_fd = epoll_create1(EPOLL_CLOEXEC);
@@ -273,12 +277,12 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
       if (event_fd >= 0)
         if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
           return sys_resource_type{
-              .valid = true,
-              .watch_fd = watch_fd,
-              .event_fd = event_fd,
-              .event_conf = event_conf,
-              .mark_set = std::move(pmc),
-              .dir_map = {},
+          .valid = true,
+          .watch_fd = watch_fd,
+          .event_fd = event_fd,
+          .event_conf = event_conf,
+          .mark_set = std::move(pmc),
+          .dir_map = {},
           };
         else
           return do_error("e/sys/epoll_ctl", path, watch_fd, event_fd);
@@ -292,9 +296,8 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_close
    Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
-{
-  return !(close(sr.watch_fd) && close(sr.event_fd));
+inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool {
+  return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/lift_event
@@ -349,20 +352,22 @@ inline auto lift_event(sys_resource_type& sr,
                        fanotify_event_info_fid const* dir_fid_info,
                        std::filesystem::path const& base_path,
                        event::callback const& callback) noexcept
-    -> std::tuple<std::filesystem::path, unsigned long>
-{
+-> std::tuple<std::filesystem::path, unsigned long> {
   namespace fs = ::std::filesystem;
 
-  auto path_imbue
-      = [](char* path_accum, fanotify_event_info_fid const* dfid_info,
-           file_handle* dir_fh, ssize_t dir_name_len = 0) noexcept -> void {
+  auto path_imbue = [](char* path_accum,
+                       fanotify_event_info_fid const* dfid_info,
+                       file_handle* dir_fh,
+                       ssize_t dir_name_len = 0) noexcept -> void {
     char* name_info = (char*)(dfid_info + 1);
     char* file_name = static_cast<char*>(
-        name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
-        + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
+    name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
+    + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
 
     if (file_name && std::strcmp(file_name, ".") != 0)
-      std::snprintf(path_accum + dir_name_len, PATH_MAX - dir_name_len, "/%s",
+      std::snprintf(path_accum + dir_name_len,
+                    PATH_MAX - dir_name_len,
+                    "/%s",
                     file_name);
   };
 
@@ -391,13 +396,14 @@ inline auto lift_event(sys_resource_type& sr,
   } else {
     /* We can get a path name, so get that and use it */
     char path_buf[PATH_MAX];
-    int fd = open_by_handle_at(AT_FDCWD, dir_fh,
+    int fd = open_by_handle_at(AT_FDCWD,
+                               dir_fh,
                                O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
     if (fd > 0) {
       char procpath[128];
       std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
       ssize_t dirname_len
-          = readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
+      = readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
       close(fd);
 
       if (dirname_len > 0) {
@@ -409,7 +415,8 @@ inline auto lift_event(sys_resource_type& sr,
 
         return std::make_tuple(fs::path{std::move(path_buf)}, dir_hash);
       } else {
-        callback({"w/sys/readlink@" / base_path, event::what::other,
+        callback({"w/sys/readlink@" / base_path,
+                  event::what::other,
                   event::kind::watcher});
 
         return std::make_tuple(fs::path{}, 0);
@@ -428,21 +435,22 @@ inline auto do_event_send(std::filesystem::path const& base_path,
                           event::callback const& callback,
                           sys_resource_type& sr,
                           fanotify_event_metadata const* metadata) noexcept
-    -> bool
-{
+-> bool {
   using namespace ::wtr::watcher::event;
 
   auto [path, hash]
-      = lift_event(sr, ((fanotify_event_info_fid const*)(metadata + 1)),
-                   base_path, callback);
+  = lift_event(sr,
+               ((fanotify_event_info_fid const*)(metadata + 1)),
+               base_path,
+               callback);
 
   auto m = metadata->mask;
 
-  auto w = m & FAN_CREATE   ? what::create
-           : m & FAN_DELETE ? what::destroy
-           : m & FAN_MODIFY ? what::modify
-           : m & FAN_MOVE   ? what::rename
-                            : what::other;
+  auto w = m & FAN_CREATE ? what::create
+         : m & FAN_DELETE ? what::destroy
+         : m & FAN_MODIFY ? what::modify
+         : m & FAN_MOVE   ? what::rename
+                          : what::other;
 
   auto k = m & FAN_ONDIR ? kind::dir : kind::file;
 
@@ -450,11 +458,11 @@ inline auto do_event_send(std::filesystem::path const& base_path,
 
   return
 
-      hash ? k == kind::dir ? w == what::create    ? mark(path, sr, hash)
-                              : w == what::destroy ? unmark(path, sr, hash)
-                                                   : true
-                            : true
-           : false;
+  hash ? k == kind::dir ? w == what::create  ? mark(path, sr, hash)
+                        : w == what::destroy ? unmark(path, sr, hash)
+                                             : true
+                        : true
+       : false;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_recv
@@ -476,8 +484,7 @@ inline auto do_event_send(std::filesystem::path const& base_path,
    compiled with. */
 inline auto do_event_recv(sys_resource_type& sr,
                           std::filesystem::path const& base_path,
-                          event::callback const& callback) noexcept -> bool
-{
+                          event::callback const& callback) noexcept -> bool {
   enum class state { ok, none, err };
 
   auto do_error = [&base_path, &callback](char const* msg) noexcept -> bool {
@@ -489,19 +496,18 @@ inline auto do_event_recv(sys_resource_type& sr,
   alignas(fanotify_event_metadata) char event_buf[event_buf_len];
   auto event_read = read(sr.watch_fd, event_buf, sizeof(event_buf));
 
-  switch (event_read > 0    ? state::ok
-          : event_read == 0 ? state::none
-          : errno == EAGAIN ? state::none
-                            : state::err)
-  {
-    case state::ok: {
+  switch (event_read > 0      ? state::ok
+          : event_read == 0   ? state::none
+            : errno == EAGAIN ? state::none
+                              : state::err) {
+    case state::ok : {
       /* Loop over everything in the event buffer. */
       for (auto* metadata = (fanotify_event_metadata const*)event_buf;
            FAN_EVENT_OK(metadata, event_read);
            metadata = FAN_EVENT_NEXT(metadata, event_read))
         if (metadata->fd == FAN_NOFD)
           if (metadata->vers == FANOTIFY_METADATA_VERSION)
-            if (!(metadata->mask & FAN_Q_OVERFLOW))
+            if (! (metadata->mask & FAN_Q_OVERFLOW))
               if (((fanotify_event_info_fid*)(metadata + 1))->hdr.info_type
                   == FAN_EVENT_INFO_TYPE_DFID_NAME)
 
@@ -513,7 +519,7 @@ inline auto do_event_recv(sys_resource_type& sr,
                 return do_event_send(base_path, callback, sr, metadata);
 
               else
-                return !do_error("w/self/event_info");
+                return ! do_error("w/self/event_info");
             else
               return do_error("e/sys/overflow");
           else
@@ -522,9 +528,9 @@ inline auto do_event_recv(sys_resource_type& sr,
           return do_error("e/sys/wrong_event_fd");
     } break;
 
-    case state::none: return true; break;
+    case state::none : return true; break;
 
-    case state::err: return do_error("e/sys/read"); break;
+    case state::err : return do_error("e/sys/read"); break;
   }
 
   /* Unreachable */
@@ -552,10 +558,9 @@ inline auto do_event_recv(sys_resource_type& sr,
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
-{
+                  std::function<bool()> const& is_living) noexcept {
   auto do_error
-      = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
+  = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
@@ -586,8 +591,10 @@ inline bool watch(std::filesystem::path const& path,
         - Invoke `callback` on errors and events */
 
     while (is_living()) {
-      int event_count = epoll_wait(sr.event_fd, event_recv_list,
-                                   event_wait_queue_max, delay_ms);
+      int event_count = epoll_wait(sr.event_fd,
+                                   event_recv_list,
+                                   event_wait_queue_max,
+                                   delay_ms);
       if (event_count < 0)
         return do_error(sr, "e/sys/epoll_wait");
 
@@ -595,7 +602,7 @@ inline bool watch(std::filesystem::path const& path,
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
             if (is_living()) [[likely]]
-              if (!do_event_recv(sr, path, callback)) [[unlikely]]
+              if (! do_event_recv(sr, path, callback)) [[unlikely]]
                 return do_error(sr, "e/self/event_recv");
     }
 
@@ -613,5 +620,5 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
+#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0)               \
           && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */

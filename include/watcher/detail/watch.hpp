@@ -57,15 +57,15 @@ namespace watcher {
 
 inline auto
 watch(std::filesystem::path const& path,
-      event::callback const& callback) noexcept -> std::function<bool()>
-{
+      event::callback const& callback) noexcept -> std::function<bool()> {
   using namespace ::wtr::watcher::detail::adapter;
 
   auto msg = std::shared_ptr<message>{new message{}};
 
-  auto lifetime = std::async(std::launch::async, [=]() noexcept -> bool {
-                    return adapter(path, callback, msg);
-                  }).share();
+  auto lifetime
+  = std::async(std::launch::async,
+               [=]() noexcept -> bool { return adapter(path, callback, msg); })
+    .share();
 
   return [=]() noexcept -> bool {
     return adapter(path, callback, msg) && lifetime.get();

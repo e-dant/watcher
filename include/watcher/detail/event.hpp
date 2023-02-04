@@ -57,7 +57,7 @@ namespace event {
 
 namespace {
 using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
-    std::chrono::time_point, std::chrono::system_clock;
+std::chrono::time_point, std::chrono::system_clock;
 } /* namespace */
 
 /* @brief watcher/event/types
@@ -101,35 +101,32 @@ enum class kind {
 };
 
 namespace {
-inline auto what_repr(enum what const& w)
-{
+inline auto what_repr(enum what const& w) {
   switch (w) {
-    case what::rename: return "rename";
-    case what::modify: return "modify";
-    case what::create: return "create";
-    case what::destroy: return "destroy";
-    case what::owner: return "owner";
-    case what::other: return "other";
-    default: return "other";
+    case what::rename : return "rename";
+    case what::modify : return "modify";
+    case what::create : return "create";
+    case what::destroy : return "destroy";
+    case what::owner : return "owner";
+    case what::other : return "other";
+    default : return "other";
   }
 }
 
-inline auto kind_repr(enum kind const& k)
-{
+inline auto kind_repr(enum kind const& k) {
   switch (k) {
-    case kind::dir: return "dir";
-    case kind::file: return "file";
-    case kind::hard_link: return "hard_link";
-    case kind::sym_link: return "sym_link";
-    case kind::watcher: return "watcher";
-    case kind::other: return "other";
-    default: return "other";
+    case kind::dir : return "dir";
+    case kind::file : return "file";
+    case kind::hard_link : return "hard_link";
+    case kind::sym_link : return "sym_link";
+    case kind::watcher : return "watcher";
+    case kind::other : return "other";
+    default : return "other";
   }
 }
 } /* namespace */
 
-struct event
-{
+struct event {
   /* I like these names. Very human.
      'what happen'
      'event kind' */
@@ -137,46 +134,46 @@ struct event
   enum what const what;
   enum kind const kind;
   long long const when{
-      duration_cast<nanoseconds>(
-          time_point<system_clock>{system_clock::now()}.time_since_epoch())
-          .count()};
+  duration_cast<nanoseconds>(
+  time_point<system_clock>{system_clock::now()}.time_since_epoch())
+  .count()};
 
-  event(std::filesystem::path const where, enum what const what,
+  event(std::filesystem::path const where,
+        enum what const what,
         enum kind const kind) noexcept
-      : where{where}, what{what}, kind{kind} {};
+      : where{where},
+        what{what},
+        kind{kind} {};
 
   ~event() noexcept = default;
 
   /* @brief wtr/watcher/event/==
      Compares event objects for equivalent
      `where`, `what` and `kind` values. */
-  friend bool operator==(event const& lhs, event const& rhs) noexcept
-  {
+  friend bool operator==(event const& lhs, event const& rhs) noexcept {
     /* True if */
     return
-        /* The path */
-        lhs.where == rhs.where
-        /* And what happened */
-        && lhs.what == rhs.what
-        /* And the kind of path */
-        && lhs.kind == rhs.kind
-        /* And the time */
-        && lhs.when == rhs.when;
+    /* The path */
+    lhs.where == rhs.where
+    /* And what happened */
+    && lhs.what == rhs.what
+    /* And the kind of path */
+    && lhs.kind == rhs.kind
+    /* And the time */
+    && lhs.when == rhs.when;
     /* Are the same. */
   };
 
   /* @brief wtr/watcher/event/!=
      Not == */
-  friend bool operator!=(event const& lhs, event const& rhs) noexcept
-  {
-    return !(lhs == rhs);
+  friend bool operator!=(event const& lhs, event const& rhs) noexcept {
+    return ! (lhs == rhs);
   };
 
   /* @brief wtr/watcher/event/<<
      Streams out `where`, `what` and `kind`.
      Formats the stream as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
-  {
+  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept {
     /* clang-format off */
     return os << R"(")" << ev.when << R"(":)"
               << "{"
@@ -190,15 +187,13 @@ struct event
 
 /* @brief wtr/watcher/event/<<
    Streams out a `what` value. */
-inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
-{
+inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept {
   return os << "\"" << what_repr(w) << "\"";
 }
 
 /* @brief wtr/watcher/event/<<
    Streams out a `kind` value. */
-inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
-{
+inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept {
   return os << "\"" << kind_repr(k) << "\"";
 }
 

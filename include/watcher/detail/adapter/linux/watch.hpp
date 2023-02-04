@@ -9,9 +9,9 @@
 /* WATER_WATCHER_PLATFORM_* */
 #include <watcher/detail/platform.hpp>
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-    || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if !defined(WATER_WATCHER_USE_WARTHOG)
+#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0)                     \
+|| defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if ! defined(WATER_WATCHER_USE_WARTHOG)
 
 /* function */
 #include <functional>
@@ -60,23 +60,22 @@ namespace adapter {
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
-{
+                  std::function<bool()> const& is_living) noexcept {
   return
 
-#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY) \
-    && defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
+#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY)                              \
+&& defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
 
-      geteuid() == 0 ? fanotify::watch(path, callback, is_living)
-                     : inotify::watch(path, callback, is_living);
+  geteuid() == 0 ? fanotify::watch(path, callback, is_living)
+                 : inotify::watch(path, callback, is_living);
 
 #elif defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY)
 
-      fanotify::watch(path, callback, is_living);
+  fanotify::watch(path, callback, is_living);
 
 #elif defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
 
-      inotify::watch(path, callback, is_living);
+  inotify::watch(path, callback, is_living);
 
 #else
 
@@ -90,6 +89,6 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
+#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0)               \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */

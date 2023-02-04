@@ -25,8 +25,7 @@ namespace adapter {
 
 enum class word { live, die };
 
-struct message
-{
+struct message {
   word word{word::live};
   size_t id{0};
 };
@@ -40,8 +39,7 @@ struct message
     carry message { die, id } =
       { die, id }
  */
-inline message carry(std::shared_ptr<message> m) noexcept
-{
+inline message carry(std::shared_ptr<message> m) noexcept {
   auto random_id = []() noexcept -> size_t {
     auto rng{std::mt19937{std::random_device{}()}};
     return std::uniform_int_distribution<size_t>{}(rng);
@@ -62,8 +60,7 @@ inline message carry(std::shared_ptr<message> m) noexcept
 
 inline size_t adapter(std::filesystem::path const& path,
                       event::callback const& callback,
-                      std::shared_ptr<message> previous) noexcept
-{
+                      std::shared_ptr<message> previous) noexcept {
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -79,7 +76,7 @@ inline size_t adapter(std::filesystem::path const& path,
       The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool {
     auto const& create_lifetime
-        = [id, &path, &callback]() noexcept -> std::function<bool()> {
+    = [id, &path, &callback]() noexcept -> std::function<bool()> {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
       auto const maybe_node = lifetimes.find(id);
@@ -96,13 +93,10 @@ inline size_t adapter(std::filesystem::path const& path,
         };
 
       } else {
-        callback({"e/self/already_alive@" + path.string(), evw::create,
-                  evk::watcher});
+        callback(
+        {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
 
-        return []() constexpr noexcept->bool
-        {
-          return false;
-        };
+        return []() constexpr noexcept -> bool { return false; };
       }
     };
 
@@ -126,11 +120,11 @@ inline size_t adapter(std::filesystem::path const& path,
   };
 
   switch (msg.word) {
-    case word::live: return live();
+    case word::live : return live();
 
-    case word::die: return die();
+    case word::die : return die();
 
-    default: return false;
+    default : return false;
   }
 }
 

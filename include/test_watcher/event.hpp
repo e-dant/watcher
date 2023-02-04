@@ -30,8 +30,7 @@
 namespace wtr {
 namespace test_watcher {
 
-inline bool str_eq(char const* a, char const* b)
-{
+inline bool str_eq(char const* a, char const* b) {
   return std::strcmp(a, b) == 0;
 }
 
@@ -39,10 +38,10 @@ inline bool str_eq(char const* a, char const* b)
    Mirror what the Watcher should see
    Half are creation events
    Half are destruction */
-auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
+auto mk_events(std::filesystem::path const& base_path,
+               auto const& path_count,
                std::vector<wtr::watcher::event::event>* event_list,
-               unsigned long options = mk_events_options) -> void
-{
+               unsigned long options = mk_events_options) -> void {
   using namespace wtr::watcher;
   using std::iota, std::abs, std::filesystem::exists;
 
@@ -68,7 +67,7 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
       auto has = false;
       for (auto& i : *event_list)
         if (i == ev) has = true;
-      if (!has) assert(has);
+      if (! has) assert(has);
       assert(std::filesystem::exists(path));
     } else {
       auto ev = event::event{path, event::what::destroy, event::kind::file};
@@ -77,28 +76,31 @@ auto mk_events(std::filesystem::path const& base_path, auto const& path_count,
       auto has = false;
       for (auto& i : *event_list)
         if (i == ev) has = true;
-      if (!has) assert(has);
-      assert(!std::filesystem::exists(path));
+      if (! has) assert(has);
+      assert(! std::filesystem::exists(path));
     }
   }
 
   if (options & mk_events_die_after) {
     auto ev
-        = event::event{std::string("s/self/die@").append(base_path.string()),
-                       event::what::destroy, event::kind::watcher};
+    = event::event{std::string("s/self/die@").append(base_path.string()),
+                   event::what::destroy,
+                   event::kind::watcher};
     event_list->push_back(ev);
     auto has = false;
     for (auto& i : *event_list)
       if (i == ev) has = true;
-    if (!has) assert(has);
+    if (! has) assert(has);
   }
 }
 
-inline auto mk_revents(auto const& watch_path, auto const& path_count,
+inline auto mk_revents(auto const& watch_path,
+                       auto const& path_count,
                        auto const& event_list,
-                       unsigned long options = mk_events_options)
-{
-  return mk_events(watch_path, path_count, event_list,
+                       unsigned long options = mk_events_options) {
+  return mk_events(watch_path,
+                   path_count,
+                   event_list,
                    options |= mk_events_reverse);
 }
 

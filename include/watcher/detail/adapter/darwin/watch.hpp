@@ -53,15 +53,14 @@ namespace detail {
 namespace adapter {
 namespace {
 
-struct argptr_type
-{
+struct argptr_type {
   event::callback const& callback;
   std::unordered_set<std::string>* seen_created_paths;
 };
 
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
 inline constexpr auto delay_s
-    = std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
+= std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
 inline constexpr auto has_delay = delay_ms.count() > 0;
 
 inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
@@ -71,27 +70,29 @@ inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
    talking about saving a maximum latency of `delay_ms` after some period of
    inactivity -- very small. (Not sure what the inactivity period is.) */
 inline constexpr auto event_stream_flags
-    = kFSEventStreamCreateFlagFileEvents
-      | kFSEventStreamCreateFlagUseExtendedData
-      | kFSEventStreamCreateFlagUseCFTypes;
+= kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
+| kFSEventStreamCreateFlagUseCFTypes;
 
-inline std::tuple<FSEventStreamRef, dispatch_queue_t> event_stream_open(
-    std::filesystem::path const& path, FSEventStreamCallback funcptr,
-    argptr_type const& funcptr_args, std::function<void()> lifetime_fn) noexcept
-{
+inline std::tuple<FSEventStreamRef, dispatch_queue_t>
+event_stream_open(std::filesystem::path const& path,
+                  FSEventStreamCallback funcptr,
+                  argptr_type const& funcptr_args,
+                  std::function<void()> lifetime_fn) noexcept {
   static constexpr CFIndex path_array_size{1};
   static constexpr auto queue_priority = -10;
 
-  auto funcptr_context = FSEventStreamContext{0, (void*)&funcptr_args, nullptr,
-                                              nullptr, nullptr};
+  auto funcptr_context
+  = FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
   /* Creating this untyped array of strings is unavoidable.
      `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
      `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
      address of an array (of strings). There might be some UB around here. */
   void const* path_cfstring
-      = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
-  CFArrayRef path_array = CFArrayCreate(
-      nullptr, &path_cfstring, path_array_size, &kCFTypeArrayCallBacks);
+  = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
+  CFArrayRef path_array = CFArrayCreate(nullptr,
+                                        &path_cfstring,
+                                        path_array_size,
+                                        &kCFTypeArrayCallBacks);
 
   /* The event queue name doesn't seem to need to be unique.
      We try to make a unique name anyway, just in case.
@@ -101,27 +102,31 @@ inline std::tuple<FSEventStreamRef, dispatch_queue_t> event_stream_open(
        = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
   char queue_name[3 + 28 + 1]{};
   std::mt19937 gen(std::random_device{}());
-  std::snprintf(queue_name, sizeof(queue_name), "wtr%zu",
-                std::uniform_int_distribution<size_t>(
-                    0, std::numeric_limits<size_t>::max())(gen));
+  std::snprintf(
+  queue_name,
+  sizeof(queue_name),
+  "wtr%zu",
+  std::uniform_int_distribution<size_t>(0, std::numeric_limits<size_t>::max())(
+  gen));
 
   /* Request a file event stream for `path` from the kernel
      which invokes `funcptr` with `funcptr_context` on events. */
   FSEventStreamRef stream = FSEventStreamCreate(
-      nullptr,           /* Custom allocator, optional */
-      funcptr,           /* A callable to invoke on changes */
-      &funcptr_context,  /* The callable's arguments (context). */
-      path_array,        /* The path we were asked to watch */
-      time_flag,         /* The time "since when" we receive events */
-      delay_s.count(),   /* The time between scans after inactivity */
-      event_stream_flags /* The event stream flags */
+  nullptr,           /* Custom allocator, optional */
+  funcptr,           /* A callable to invoke on changes */
+  &funcptr_context,  /* The callable's arguments (context). */
+  path_array,        /* The path we were asked to watch */
+  time_flag,         /* The time "since when" we receive events */
+  delay_s.count(),   /* The time between scans after inactivity */
+  event_stream_flags /* The event stream flags */
   );
 
   /* Request a (very) high priority queue. */
   dispatch_queue_t queue = dispatch_queue_create(
-      queue_name,
-      dispatch_queue_attr_make_with_qos_class(
-          DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, queue_priority));
+  queue_name,
+  dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
+                                          QOS_CLASS_USER_INITIATED,
+                                          queue_priority));
 
   FSEventStreamSetDispatchQueue(stream, queue);
 
@@ -144,8 +149,7 @@ inline std::tuple<FSEventStreamRef, dispatch_queue_t> event_stream_open(
      https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
 */
 inline bool event_stream_close(
-    std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept
-{
+std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept {
   auto [stream, queue] = resources;
   if (stream) {
     FSEventStreamStop(stream);
@@ -160,8 +164,7 @@ inline bool event_stream_close(
 }
 
 inline std::filesystem::path path_from_event_at(void* event_recv_paths,
-                                                unsigned long i) noexcept
-{
+                                                unsigned long i) noexcept {
   /* We make a path from a C string...
      In an array, in a dictionary...
      Without type safety...
@@ -178,13 +181,13 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
 
      IOW we can't guarentee type safety through types,
      but this is how Darwin's API is intended to be used. */
-  return {CFStringGetCStringPtr(
-      static_cast<CFStringRef>(CFDictionaryGetValue(
-          static_cast<CFDictionaryRef>(
-              CFArrayGetValueAtIndex(static_cast<CFArrayRef>(event_recv_paths),
-                                     static_cast<CFIndex>(i))),
-          kFSEventStreamEventExtendedDataPathKey)),
-      kCFStringEncodingUTF8)};
+  return {
+  CFStringGetCStringPtr(static_cast<CFStringRef>(CFDictionaryGetValue(
+                        static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
+                        static_cast<CFArrayRef>(event_recv_paths),
+                        static_cast<CFIndex>(i))),
+                        kFSEventStreamEventExtendedDataPathKey)),
+                        kCFStringEncodingUTF8)};
 }
 
 /* @note
@@ -208,8 +211,7 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        void* recv_paths,         /* Paths with events */
                        unsigned int const* recv_flags, /* Event flags */
                        FSEventStreamEventId const*     /* event stream id */
-                       ) noexcept
-{
+                       ) noexcept {
   using evk = wtr::watcher::event::kind;
   using evw = wtr::watcher::event::what;
 
@@ -223,14 +225,14 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
     decltype(*recv_flags) flag = recv_flags[i];
 
     /* A single path won't have different "kinds". */
-    auto k = flag & kFSEventStreamEventFlagItemIsFile      ? evk::file
-             : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
-             : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
-             : flag
-                     & (kFSEventStreamEventFlagItemIsHardlink
-                        | kFSEventStreamEventFlagItemIsLastHardlink)
-                 ? evk::hard_link
-                 : evk::other;
+    auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
+           : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
+           : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
+           : flag
+             & (kFSEventStreamEventFlagItemIsHardlink
+                | kFSEventStreamEventFlagItemIsLastHardlink)
+           ? evk::hard_link
+           : evk::other;
 
     /* More than one thing might have happened to the same path.
        (Which is why we use non-exclusive `if`s.) */
@@ -260,8 +262,7 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
-{
+                  std::function<bool()> const& is_living) noexcept {
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
@@ -270,10 +271,10 @@ inline bool watch(std::filesystem::path const& path,
   auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
 
   auto ok = event_stream_close(
-      event_stream_open(path, event_recv, event_recv_argptr, [&is_living]() {
-        while (is_living())
-          if constexpr (has_delay) sleep_for(delay_ms);
-      }));
+  event_stream_open(path, event_recv, event_recv_argptr, [&is_living]() {
+    while (is_living())
+      if constexpr (has_delay) sleep_for(delay_ms);
+  }));
 
   if (ok)
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});

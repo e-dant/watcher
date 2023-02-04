@@ -27,8 +27,7 @@
 /* Watch a path for some time.
    Or watch a path forever.
    Show what happens. */
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   using namespace wtr::watcher;
   using namespace std::chrono_literals;
 
@@ -57,17 +56,17 @@ int main(int argc, char** argv)
       auto const argis = [&](char const* a) {
         return argc > 2 ? std::strcmp(a, argv[2]) == 0 : false;
       };
-      return argis("-nanoseconds") || argis("-ns")     ? nanoseconds(f())
-             : argis("-microseconds") || argis("-mcs") ? microseconds(f())
-             : argis("-milliseconds") || argis("-ms")  ? milliseconds(f())
-             : argis("-seconds") || argis("-s")        ? seconds(f())
-             : argis("-minutes") || argis("-m")        ? minutes(f())
-             : argis("-hours") || argis("-h")          ? hours(f())
-             : argis("-days") || argis("-d")           ? 24 * hours(f())
-             : argis("-weeks") || argis("-w")          ? 168 * hours(f())
-             : argis("-months") || argis("-mts")       ? 730 * hours(f())
-             : argis("-years") || argis("-y")          ? 8760 * hours(f())
-                                                       : milliseconds(f());
+      return argis("-nanoseconds") || argis("-ns")   ? nanoseconds(f())
+           : argis("-microseconds") || argis("-mcs") ? microseconds(f())
+           : argis("-milliseconds") || argis("-ms")  ? milliseconds(f())
+           : argis("-seconds") || argis("-s")        ? seconds(f())
+           : argis("-minutes") || argis("-m")        ? minutes(f())
+           : argis("-hours") || argis("-h")          ? hours(f())
+           : argis("-days") || argis("-d")           ? 24 * hours(f())
+           : argis("-weeks") || argis("-w")          ? 168 * hours(f())
+           : argis("-months") || argis("-mts")       ? 730 * hours(f())
+           : argis("-years") || argis("-y")          ? 8760 * hours(f())
+                                                     : milliseconds(f());
     };
 
     auto const help = [&]() -> std::function<bool()> {
@@ -98,13 +97,13 @@ int main(int argc, char** argv)
     using event::kind, event::what;
 
     auto const maybe_comma
-        = ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
+    = ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
 
     std::cout << ev << maybe_comma << std::endl;
   };
 
-  auto const watch_expire = [](auto const& path, auto const& callback,
-                               auto const& alive_for) -> bool {
+  auto const watch_expire
+  = [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
     using namespace std::chrono;
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
@@ -135,11 +134,11 @@ int main(int argc, char** argv)
      Or run forever. */
   return help()
 
-             ? 0
+       ? 0
 
-             : alive_for > 0ns
+       : alive_for > 0ns
 
-                   ? !watch_expire(path, stream_json, alive_for)
+         ? ! watch_expire(path, stream_json, alive_for)
 
-                   : !watch(path, stream_json)();
+         : ! watch(path, stream_json)();
 }

@@ -8,8 +8,7 @@
 namespace wtr {
 namespace test_watcher {
 
-auto seperator(auto const& test_name, char const symbol = '-')
-{
+auto seperator(auto const& test_name, char const symbol = '-') {
   using std::string, std::round;
 
   auto len = 79; /* same as catch2 */
