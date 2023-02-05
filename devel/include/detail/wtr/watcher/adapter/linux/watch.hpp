@@ -9,7 +9,7 @@
 /* WATER_WATCHER_PLATFORM_* */
 #include <detail/wtr/watcher/platform.hpp>
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0)                     \
+#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
 || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if ! defined(WATER_WATCHER_USE_WARTHOG)
 
@@ -64,7 +64,7 @@ inline bool watch(std::filesystem::path const& path,
                   std::function<bool()> const& is_living) noexcept {
   return
 
-#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY)                              \
+#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY) \
 && defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
 
   geteuid() == 0 ? fanotify::watch(path, callback, is_living)
@@ -91,6 +91,6 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0)               \
+#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */

@@ -9,7 +9,7 @@
 /* WATER_WATCHER_PLATFORM_* */
 #include <detail/wtr/watcher/platform.hpp>
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0)                     \
+#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
 && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if ! defined(WATER_WATCHER_USE_WARTHOG)
 
@@ -622,5 +622,5 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0)               \
+#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
           && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
