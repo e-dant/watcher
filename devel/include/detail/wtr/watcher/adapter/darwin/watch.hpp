@@ -76,7 +76,8 @@ inline std::tuple<FSEventStreamRef, dispatch_queue_t>
 event_stream_open(std::filesystem::path const& path,
                   FSEventStreamCallback funcptr,
                   argptr_type const& funcptr_args,
-                  std::function<void()> lifetime_fn) noexcept {
+                  std::function<void()> lifetime_fn) noexcept
+{
   static constexpr CFIndex path_array_size{1};
   static constexpr auto queue_priority = -10;
 
@@ -148,7 +149,8 @@ event_stream_open(std::filesystem::path const& path,
      https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
 */
 inline bool event_stream_close(
-  std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept {
+  std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept
+{
   auto [stream, queue] = resources;
   if (stream) {
     FSEventStreamStop(stream);
@@ -163,7 +165,8 @@ inline bool event_stream_close(
 }
 
 inline std::filesystem::path path_from_event_at(void* event_recv_paths,
-                                                unsigned long i) noexcept {
+                                                unsigned long i) noexcept
+{
   /* We make a path from a C string...
      In an array, in a dictionary...
      Without type safety...
@@ -210,7 +213,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        void* recv_paths,         /* Paths with events */
                        unsigned int const* recv_flags, /* Event flags */
                        FSEventStreamEventId const*     /* event stream id */
-                       ) noexcept {
+                       ) noexcept
+{
   using evk = wtr::watcher::event::kind;
   using evw = wtr::watcher::event::what;
 
@@ -263,7 +267,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept {
+                  std::function<bool()> const& is_living) noexcept
+{
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
@@ -271,11 +276,15 @@ inline bool watch(std::filesystem::path const& path,
   auto seen_created_paths = std::unordered_set<std::string>{};
   auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
 
-  auto ok = event_stream_close(
-    event_stream_open(path, event_recv, event_recv_argptr, [&is_living]() {
-      while (is_living())
-        if constexpr (has_delay) sleep_for(delay_ms);
-    }));
+  auto ok = event_stream_close(event_stream_open(path,
+                                                 event_recv,
+                                                 event_recv_argptr,
+                                                 [&is_living]()
+                                                 {
+                                                   while (is_living())
+                                                     if constexpr (has_delay)
+                                                       sleep_for(delay_ms);
+                                                 }));
 
   if (ok)
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});

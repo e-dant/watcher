@@ -61,7 +61,8 @@ namespace adapter {
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept {
+                  std::function<bool()> const& is_living) noexcept
+{
   return
 
 #if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY) \

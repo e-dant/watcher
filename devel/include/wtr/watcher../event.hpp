@@ -101,7 +101,8 @@ enum class kind {
 };
 
 namespace {
-inline auto what_repr(enum what const& w) {
+inline auto what_repr(enum what const& w)
+{
   switch (w) {
     case what::rename : return "rename";
     case what::modify : return "modify";
@@ -113,7 +114,8 @@ inline auto what_repr(enum what const& w) {
   }
 }
 
-inline auto kind_repr(enum kind const& k) {
+inline auto kind_repr(enum kind const& k)
+{
   switch (k) {
     case kind::dir : return "dir";
     case kind::file : return "file";
@@ -150,7 +152,8 @@ struct event {
   /* @brief wtr/watcher/event/==
      Compares event objects for equivalent
      `where`, `what` and `kind` values. */
-  friend bool operator==(event const& lhs, event const& rhs) noexcept {
+  friend bool operator==(event const& lhs, event const& rhs) noexcept
+  {
     /* True if */
     return
       /* The path */
@@ -166,14 +169,16 @@ struct event {
 
   /* @brief wtr/watcher/event/!=
      Not == */
-  friend bool operator!=(event const& lhs, event const& rhs) noexcept {
+  friend bool operator!=(event const& lhs, event const& rhs) noexcept
+  {
     return ! (lhs == rhs);
   };
 
   /* @brief wtr/watcher/event/<<
      Streams out `where`, `what` and `kind`.
      Formats the stream as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept {
+  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
+  {
     /* clang-format off */
     return os << R"(")" << ev.when << R"(":)"
               << "{"
@@ -187,13 +192,15 @@ struct event {
 
 /* @brief wtr/watcher/event/<<
    Streams out a `what` value. */
-inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept {
+inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
+{
   return os << "\"" << what_repr(w) << "\"";
 }
 
 /* @brief wtr/watcher/event/<<
    Streams out a `kind` value. */
-inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept {
+inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
+{
   return os << "\"" << kind_repr(k) << "\"";
 }
 

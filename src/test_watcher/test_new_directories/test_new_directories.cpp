@@ -34,7 +34,8 @@
 #include <filesystem>
 
 /* Test that files are scanned */
-TEST_CASE("New Directories", "[new_directories]") {
+TEST_CASE("New Directories", "[new_directories]")
+{
   using namespace wtr::watcher;
 
   static constexpr auto path_count = 10;
@@ -73,13 +74,14 @@ TEST_CASE("New Directories", "[new_directories]") {
      wtr::watcher::event::what::create,
      wtr::watcher::event::kind::watcher});
 
-  auto lifetime =
-    wtr::watcher::watch(base_store_path,
-                        [&](wtr::watcher::event::event const& ev) {
-                          auto _ = std::scoped_lock{event_recv_list_mtx};
-                          std::cout << ev << std::endl;
-                          event_recv_list.push_back(ev);
-                        });
+  auto lifetime = wtr::watcher::watch(base_store_path,
+                                      [&](wtr::watcher::event::event const& ev)
+                                      {
+                                        auto _ =
+                                          std::scoped_lock{event_recv_list_mtx};
+                                        std::cout << ev << std::endl;
+                                        event_recv_list.push_back(ev);
+                                      });
 
   /* @todo
      This sleep is hiding a bug on Linux which begins

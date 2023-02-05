@@ -27,7 +27,8 @@
 /* Watch a path for some time.
    Or watch a path forever.
    Show what happens. */
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   using namespace wtr::watcher;
   using namespace std::chrono_literals;
 
@@ -42,20 +43,22 @@ int main(int argc, char** argv) {
 
      If we aren't told when to die,
      we never do. */
-  auto const lift_options = [](auto const& argc, auto const& argv) {
+  auto const lift_options = [](auto const& argc, auto const& argv)
+  {
     using namespace std::chrono;
 
-    auto const path = [&] {
+    auto const path = [&]
+    {
       namespace fs = std::filesystem;
       auto const maybe_given_path = fs::path(argc > 1 ? argv[1] : ".");
       return fs::exists(maybe_given_path) ? fs::absolute(maybe_given_path)
                                           : fs::current_path();
     };
 
-    auto const unit = [&](auto const& f) {
-      auto const argis = [&](char const* a) {
-        return argc > 2 ? std::strcmp(a, argv[2]) == 0 : false;
-      };
+    auto const unit = [&](auto const& f)
+    {
+      auto const argis = [&](char const* a)
+      { return argc > 2 ? std::strcmp(a, argv[2]) == 0 : false; };
       return argis("-nanoseconds") || argis("-ns")   ? nanoseconds(f())
            : argis("-microseconds") || argis("-mcs") ? microseconds(f())
            : argis("-milliseconds") || argis("-ms")  ? milliseconds(f())
@@ -69,13 +72,14 @@ int main(int argc, char** argv) {
                                                      : milliseconds(f());
     };
 
-    auto const help = [&]() -> std::function<bool()> {
-      auto const argcmp = [&](auto const i, char const* a) {
-        return argc > i ? std::strcmp(a, argv[i]) == 0 : false;
-      };
+    auto const help = [&]() -> std::function<bool()>
+    {
+      auto const argcmp = [&](auto const i, char const* a)
+      { return argc > i ? std::strcmp(a, argv[i]) == 0 : false; };
       for (auto i = 0; i < argc; i++)
         if (argcmp(i, "-h") || argcmp(i, "--help"))
-          return [] {
+          return []
+          {
             std::cout << "wtr.watcher [ path = . [ time = 0 [ unit = ms ] ] ]"
                       << std::endl;
             return true;
@@ -93,7 +97,8 @@ int main(int argc, char** argv) {
      Append a comma until the last event: Watcher dying.
      Flush stdout, via `endl`, for piping.
      For manual parsing, see the file watcher/event.hpp. */
-  auto const stream_json = [](auto const& ev) {
+  auto const stream_json = [](auto const& ev)
+  {
     using event::kind, event::what;
 
     auto const maybe_comma =
@@ -103,7 +108,8 @@ int main(int argc, char** argv) {
   };
 
   auto const watch_expire =
-    [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
+    [](auto const& path, auto const& callback, auto const& alive_for) -> bool
+  {
     using namespace std::chrono;
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;

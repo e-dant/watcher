@@ -15,25 +15,30 @@
 namespace wtr {
 namespace test_watcher {
 
-inline auto create_regular_files(auto path, auto n) {
+inline auto create_regular_files(auto path, auto n)
+{
   for (int i = 0; i < n; i++)
     std::ofstream{path + std::to_string(i) + std::string(".txt")};
 }
 
-inline auto create_regular_files(std::filesystem::path path, auto n) {
+inline auto create_regular_files(std::filesystem::path path, auto n)
+{
   return create_regular_files(path.string(), n);
 }
 
 inline auto
-create_regular_files(std::vector<wtr::watcher::event::event>& events) {
+create_regular_files(std::vector<wtr::watcher::event::event>& events)
+{
   for (auto& ev : events) std::ofstream{ev.where};
 }
 
-inline auto create_regular_files(auto& paths) {
+inline auto create_regular_files(auto& paths)
+{
   for (auto& path : paths) std::ofstream{path};
 }
 
-inline auto create_directories(auto path, auto n) {
+inline auto create_directories(auto path, auto n)
+{
   for (int i = 0; i < n; i++)
     std::filesystem::create_directory(path / std::to_string(i));
 }

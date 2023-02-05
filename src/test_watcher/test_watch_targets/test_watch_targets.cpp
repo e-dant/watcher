@@ -17,7 +17,8 @@
 #include <iostream>
 
 /* Test that files are scanned */
-TEST_CASE("Event Targets", "[event_targets]") {
+TEST_CASE("Event Targets", "[event_targets]")
+{
   using namespace wtr::watcher;
 
   static constexpr auto path_count = 10;

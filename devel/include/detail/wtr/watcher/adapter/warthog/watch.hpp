@@ -62,14 +62,16 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Returns false if the file tree cannot be scanned. */
 inline bool scan(std::filesystem::path const& path,
                  auto const& send_event,
-                 bucket_type& bucket) noexcept {
+                 bucket_type& bucket) noexcept
+{
   /* @brief watcher/adapter/warthog/scan_file
      - Scans a (single) file for changes.
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
   auto const& scan_file = [&](std::filesystem::path const& file,
-                              auto const& send_event) -> bool {
+                              auto const& send_event) -> bool
+  {
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -110,7 +112,8 @@ inline bool scan(std::filesystem::path const& path,
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
   auto const& scan_directory = [&](std::filesystem::path const& dir,
-                                   auto const& send_event) -> bool {
+                                   auto const& send_event) -> bool
+  {
     using std::filesystem::recursive_directory_iterator,
       std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -125,7 +128,8 @@ inline bool scan(std::filesystem::path const& path,
         else
           scan_file(file.path(), send_event);
       return true;
-    } else
+    }
+    else
       return false;
   };
 
@@ -139,11 +143,13 @@ inline bool scan(std::filesystem::path const& path,
    otherwise, prune it. */
 inline bool tend_bucket(std::filesystem::path const& path,
                         auto const& send_event,
-                        bucket_type& bucket) noexcept {
+                        bucket_type& bucket) noexcept
+{
   /*  @brief watcher/adapter/warthog/populate
       @param path - path to monitor for
       Creates a file map, the "bucket", from `path`. */
-  auto const& populate = [&](std::filesystem::path const& path) -> bool {
+  auto const& populate = [&](std::filesystem::path const& path) -> bool
+  {
     using std::filesystem::exists, std::filesystem::is_directory,
       std::filesystem::recursive_directory_iterator,
       std::filesystem::last_write_time;
@@ -171,7 +177,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
       else {
         bucket[path] = last_write_time(path);
       }
-    } else {
+    }
+    else {
       return false;
     }
     return true;
@@ -180,7 +187,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
   auto const& prune = [&](std::filesystem::path const& path,
-                          auto const& send_event) -> bool {
+                          auto const& send_event) -> bool
+  {
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
@@ -192,16 +200,17 @@ inline bool tend_bucket(std::filesystem::path const& path,
         ? std::advance(bucket_it, 1)
         /* if not, call the closure, indicating destruction,
            and remove it from our bucket. */
-        : [&]() {
-            send_event(event::event{bucket_it->first,
-                                    event::what::destroy,
-                                    is_regular_file(path) ? event::kind::file
-                                    : is_directory(path)  ? event::kind::dir
-                                    : is_symlink(path) ? event::kind::sym_link
-                                                       : event::kind::other});
-            /* bucket, erase it! */
-            bucket_it = bucket.erase(bucket_it);
-          }();
+        : [&]()
+      {
+        send_event(event::event{bucket_it->first,
+                                event::what::destroy,
+                                is_regular_file(path) ? event::kind::file
+                                : is_directory(path)  ? event::kind::dir
+                                : is_symlink(path)    ? event::kind::sym_link
+                                                      : event::kind::other});
+        /* bucket, erase it! */
+        bucket_it = bucket.erase(bucket_it);
+      }();
     }
     return true;
   };
@@ -235,7 +244,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept {
+                  std::function<bool()> const& is_living) noexcept
+{
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
 
@@ -257,7 +267,8 @@ inline bool watch(std::filesystem::path const& path,
         {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
 
       return false;
-    } else {
+    }
+    else {
       if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
     }
   }

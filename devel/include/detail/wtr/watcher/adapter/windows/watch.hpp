@@ -68,7 +68,8 @@ public:
   DWORD event_buf_len_ready{0};
 
   watch_event_proxy(std::filesystem::path const& path) noexcept
-      : path{path} {
+      : path{path}
+  {
     memcpy(path_name, path.c_str(), path.string().size());
 
     path_handle =
@@ -92,22 +93,26 @@ public:
               && ResetEvent(event_token);
   }
 
-  ~watch_event_proxy() noexcept {
+  ~watch_event_proxy() noexcept
+  {
     if (event_token) CloseHandle(event_token);
     if (event_completion_token) CloseHandle(event_completion_token);
   }
 };
 
-inline bool is_valid(watch_event_proxy& w) noexcept {
+inline bool is_valid(watch_event_proxy& w) noexcept
+{
   return w.is_valid && w.event_buf != nullptr;
 }
 
-inline bool has_event(watch_event_proxy& w) noexcept {
+inline bool has_event(watch_event_proxy& w) noexcept
+{
   return w.event_buf_len_ready != 0;
 }
 
 inline bool do_event_recv(watch_event_proxy& w,
-                          event::callback const& callback) noexcept {
+                          event::callback const& callback) noexcept
+{
   using namespace wtr::watcher::event;
 
   w.event_buf_len_ready = 0;
@@ -130,7 +135,8 @@ inline bool do_event_recv(watch_event_proxy& w,
   if (w.event_buf && read_ok) {
     w.event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
     return true;
-  } else {
+  }
+  else {
     switch (GetLastError()) {
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
@@ -144,7 +150,8 @@ inline bool do_event_recv(watch_event_proxy& w,
 }
 
 inline bool do_event_send(watch_event_proxy& w,
-                          event::callback const& callback) noexcept {
+                          event::callback const& callback) noexcept
+{
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   if (is_valid(w)) {
@@ -154,7 +161,8 @@ inline bool do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept -> event::what {
+        auto what = [&buf]() noexcept -> event::what
+        {
           switch (buf->Action) {
             case FILE_ACTION_MODIFIED : return event::what::modify;
             case FILE_ACTION_ADDED : return event::what::create;
@@ -165,11 +173,14 @@ inline bool do_event_send(watch_event_proxy& w,
           }
         }();
 
-        auto kind = [&where]() {
+        auto kind = [&where]()
+        {
           try {
             return std::filesystem::is_directory(where) ? event::kind::dir
                                                         : event::kind::file;
-          } catch (...) { return event::kind::other; }
+          } catch (...) {
+            return event::kind::other;
+          }
         }();
 
         callback({where, what, kind});
@@ -182,7 +193,8 @@ inline bool do_event_send(watch_event_proxy& w,
       }
     }
     return true;
-  } else {
+  }
+  else {
     return false;
   }
 }
@@ -198,7 +210,8 @@ inline bool do_event_send(watch_event_proxy& w,
 
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept {
+                  std::function<bool()> const& is_living) noexcept
+{
   auto w = watch_event_proxy{path};
 
   if (is_valid(w)) {
@@ -227,7 +240,8 @@ inline bool watch(std::filesystem::path const& path,
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
 
     return true;
-  } else {
+  }
+  else {
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return false;
   }

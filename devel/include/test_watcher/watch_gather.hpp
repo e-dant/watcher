@@ -54,7 +54,8 @@ auto watch_gather(auto const& /* Title */
                   int const /* Concurrent Watcher Count */
                     concurrency_level = 1,
                   std::chrono::milliseconds const& /* Simulated Lifetime */
-                    alive_for_ms_target = std::chrono::milliseconds(1000)) {
+                    alive_for_ms_target = std::chrono::milliseconds(1000))
+{
   static constexpr auto pre_create_event_delay = std::chrono::milliseconds(10);
   static constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(10);
 
@@ -103,19 +104,23 @@ auto watch_gather(auto const& /* Title */
       assert(std::filesystem::exists(p));
 
       lifetimes.emplace_back(
-        wtr::watcher::watch(p, [&](wtr::watcher::event::event const& ev) {
-          auto _ = std::scoped_lock{event_recv_list_mtx};
-          std::cout << ev << std::endl;
-          auto ok_add = true;
-          for (auto const& p : watch_path_list)
-            if (ev.where == p) ok_add = false;
-          if (ok_add) event_recv_list.emplace_back(ev);
-        }));
+        wtr::watcher::watch(p,
+                            [&](wtr::watcher::event::event const& ev)
+                            {
+                              auto _ = std::scoped_lock{event_recv_list_mtx};
+                              std::cout << ev << std::endl;
+                              auto ok_add = true;
+                              for (auto const& p : watch_path_list)
+                                if (ev.where == p) ok_add = false;
+                              if (ok_add) event_recv_list.emplace_back(ev);
+                            }));
     }
   }
 
   /* Wait */
-  { std::this_thread::sleep_for(pre_create_event_delay); }
+  {
+    std::this_thread::sleep_for(pre_create_event_delay);
+  }
 
   /* Create Filesystem Events */
   {
@@ -136,7 +141,9 @@ auto watch_gather(auto const& /* Title */
   }
 
   /* Wait */
-  { std::this_thread::sleep_for(pre_stop_watch_delay); }
+  {
+    std::this_thread::sleep_for(pre_stop_watch_delay);
+  }
 
   /* Stop Watchers */
   {

@@ -40,8 +40,10 @@ struct message {
     carry message { die, id } =
       { die, id }
  */
-inline message carry(std::shared_ptr<message> m) noexcept {
-  auto random_id = []() noexcept -> size_t {
+inline message carry(std::shared_ptr<message> m) noexcept
+{
+  auto random_id = []() noexcept -> size_t
+  {
     auto rng{std::mt19937{std::random_device{}()}};
     return std::uniform_int_distribution<size_t>{}(rng);
   };
@@ -61,7 +63,8 @@ inline message carry(std::shared_ptr<message> m) noexcept {
 
 inline size_t adapter(std::filesystem::path const& path,
                       event::callback const& callback,
-                      std::shared_ptr<message> previous) noexcept {
+                      std::shared_ptr<message> previous) noexcept
+{
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -75,9 +78,11 @@ inline size_t adapter(std::filesystem::path const& path,
 
   /*  Returns a functor to check if we're still living.
       The functor is unique to every watcher. */
-  auto const& live = [id = msg.id, &path, &callback]() -> bool {
+  auto const& live = [id = msg.id, &path, &callback]() -> bool
+  {
     auto const& create_lifetime =
-      [id, &path, &callback]() noexcept -> std::function<bool()> {
+      [id, &path, &callback]() noexcept -> std::function<bool()>
+    {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
       auto const maybe_node = lifetimes.find(id);
@@ -87,13 +92,14 @@ inline size_t adapter(std::filesystem::path const& path,
 
         callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
-        return [id]() noexcept -> bool {
+        return [id]() noexcept -> bool
+        {
           auto _ = std::scoped_lock{lifetimes_mtx};
 
           return lifetimes.find(id) != lifetimes.end();
         };
-
-      } else {
+      }
+      else {
         callback(
           {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
 
@@ -104,7 +110,8 @@ inline size_t adapter(std::filesystem::path const& path,
     return watch(path, callback, create_lifetime()) ? id : 0;
   };
 
-  auto const& die = [id = msg.id]() noexcept -> size_t {
+  auto const& die = [id = msg.id]() noexcept -> size_t
+  {
     auto _ = std::scoped_lock{lifetimes_mtx};
 
     auto const maybe_node = lifetimes.find(id);
@@ -115,8 +122,8 @@ inline size_t adapter(std::filesystem::path const& path,
       lifetimes.erase(maybe_node);
 
       return id;
-
-    } else
+    }
+    else
       return 0;
   };
 

@@ -31,7 +31,8 @@
 #include <filesystem>
 
 /* Test that files are scanned */
-TEST_CASE("Simple", "[simple]") {
+TEST_CASE("Simple", "[simple]")
+{
   using namespace wtr::watcher;
 
   static constexpr auto path_count = 3;
@@ -65,11 +66,14 @@ TEST_CASE("Simple", "[simple]") {
      event::what::create,
      event::kind::watcher});
 
-  auto lifetime = wtr::watcher::watch(store_path, [](event::event const& ev) {
-    auto _ = std::scoped_lock{event_recv_list_mtx};
-    std::cout << ev << std::endl;
-    event_recv_list.push_back(ev);
-  });
+  auto lifetime = wtr::watcher::watch(store_path,
+                                      [](event::event const& ev)
+                                      {
+                                        auto _ =
+                                          std::scoped_lock{event_recv_list_mtx};
+                                        std::cout << ev << std::endl;
+                                        event_recv_list.push_back(ev);
+                                      });
 
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 

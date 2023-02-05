@@ -119,7 +119,8 @@ struct sys_resource_type {
 inline auto do_path_map_create(int const watch_fd,
                                std::filesystem::path const& base_path,
                                event::callback const& callback) noexcept
-  -> path_map_type {
+  -> path_map_type
+{
   namespace fs = ::std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
@@ -134,7 +135,8 @@ inline auto do_path_map_create(int const watch_fd,
   auto path_map = path_map_type{};
   path_map.reserve(path_map_reserve_count);
 
-  auto do_mark = [&](fs::path const& d) noexcept -> bool {
+  auto do_mark = [&](fs::path const& d) noexcept -> bool
+  {
     int wd = inotify_add_watch(watch_fd, d.c_str(), in_watch_opt);
     return wd > 0 ? path_map.emplace(wd, d).first != path_map.end() : false;
   };
@@ -157,10 +159,12 @@ inline auto do_path_map_create(int const watch_fd,
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto do_sys_resource_open(event::callback const& callback) noexcept
-  -> sys_resource_type {
+  -> sys_resource_type
+{
   auto do_error = [&callback](auto msg,
                               int watch_fd,
-                              int event_fd = -1) noexcept -> sys_resource_type {
+                              int event_fd = -1) noexcept -> sys_resource_type
+  {
     callback({msg, event::what::other, event::kind::watcher});
     return sys_resource_type{
       .valid = false,
@@ -197,13 +201,15 @@ inline auto do_sys_resource_open(event::callback const& callback) noexcept
         return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
     else
       return do_error("e/sys/epoll_create", watch_fd, event_fd);
-  } else
+  }
+  else
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_close
    Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool {
+inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
+{
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
@@ -220,7 +226,8 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool {
 inline auto do_event_recv(int watch_fd,
                           path_map_type& path_map,
                           std::filesystem::path const& base_path,
-                          event::callback const& callback) noexcept -> bool {
+                          event::callback const& callback) noexcept -> bool
+{
   namespace fs = ::std::filesystem;
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
@@ -279,8 +286,8 @@ recurse:
             inotify_rm_watch(watch_fd, this_event->wd);
             path_map.erase(this_event->wd);
           }
-
-        } else
+        }
+        else
           callback({"e/self/overflow@" / base_path, evw::other, evk::watcher});
       }
       /* Same as `return do_event_recv(..., buf)`.
@@ -319,9 +326,11 @@ recurse:
 */
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept {
+                  std::function<bool()> const& is_living) noexcept
+{
   auto do_error = [&path, &callback](sys_resource_type& sr,
-                                     char const* msg) -> bool {
+                                     char const* msg) -> bool
+  {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
@@ -374,11 +383,11 @@ inline bool watch(std::filesystem::path const& path,
 
       callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
       return do_sys_resource_close(sr);
-
-    } else
+    }
+    else
       return do_error(sr, "e/self/path_map@");
-
-  } else
+  }
+  else
     return do_error(sr, "e/self/sys_resource@");
 }
 
