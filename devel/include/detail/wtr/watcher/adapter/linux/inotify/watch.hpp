@@ -81,8 +81,8 @@ inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
-inline constexpr auto in_watch_opt
-    = IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
+inline constexpr auto in_watch_opt =
+  IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
     - path_map_type
@@ -92,8 +92,8 @@ inline constexpr auto in_watch_opt
         an epoll file descriptor, an epoll configuration,
         and whether or not the resources are valid */
 using path_map_type = std::unordered_map<int, std::filesystem::path>;
-struct sys_resource_type
-{
+
+struct sys_resource_type {
   bool valid;
   int watch_fd;
   int event_fd;
@@ -117,8 +117,8 @@ inline auto path_map(std::filesystem::path const& base_path,
   using dopt = fs::directory_options;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
-  static constexpr auto fs_dir_opt
-      = dopt::skip_permission_denied & dopt::follow_directory_symlink;
+  static constexpr auto fs_dir_opt =
+    dopt::skip_permission_denied & dopt::follow_directory_symlink;
 
   static constexpr auto path_map_reserve_count = 256;
 
@@ -126,7 +126,8 @@ inline auto path_map(std::filesystem::path const& base_path,
   auto pm = path_map_type{};
   pm.reserve(path_map_reserve_count);
 
-  auto do_mark = [&](fs::path const& d) noexcept -> bool {
+  auto do_mark = [&](fs::path const& d) noexcept -> bool
+  {
     int wd = inotify_add_watch(sr.watch_fd, d.c_str(), in_watch_opt);
     return wd > 0 ? pm.emplace(wd, d).first != pm.end() : false;
   };
@@ -135,12 +136,13 @@ inline auto path_map(std::filesystem::path const& base_path,
     if (do_mark(base_path))
       if (fs::is_directory(base_path, dir_ec))
         for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
-          if (!dir_ec)
+          if (! dir_ec)
             if (fs::is_directory(dir, dir_ec))
-              if (!dir_ec)
-                if (!do_mark(dir.path()))
+              if (! dir_ec)
+                if (! do_mark(dir.path()))
                   callback({"w/sys/path_unwatched@" / dir.path(),
-                            ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+                            ::wtr::watcher::event::what::other,
+                            ::wtr::watcher::event::kind::watcher});
 
   return pm;
 };
@@ -148,24 +150,30 @@ inline auto path_map(std::filesystem::path const& base_path,
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/system_unfold
     Produces a `sys_resource_type` with the file descriptors from
     `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto system_unfold(::wtr::watcher::event::callback const& callback) noexcept
-    -> sys_resource_type
+inline auto
+system_unfold(::wtr::watcher::event::callback const& callback) noexcept
+  -> sys_resource_type
 {
-  auto do_error = [&callback](auto msg, int watch_fd,
-                              int event_fd = -1) noexcept -> sys_resource_type {
-    callback({msg, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+  auto do_error = [&callback](auto msg,
+                              int watch_fd,
+                              int event_fd = -1) noexcept -> sys_resource_type
+  {
+    callback({msg,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
-        .valid = false,
-        .watch_fd = watch_fd,
-        .event_fd = event_fd,
-        .event_conf = {.events = 0, .data = {.fd = watch_fd}}};
+      .valid = false,
+      .watch_fd = watch_fd,
+      .event_fd = event_fd,
+      .event_conf = {.events = 0, .data = {.fd = watch_fd}}
+    };
   };
 
   int watch_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-      = inotify_init();
+    = inotify_init();
 #elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
-      = inotify_init1(in_init_opt);
+    = inotify_init1(in_init_opt);
 #endif
 
   if (watch_fd >= 0) {
@@ -173,9 +181,9 @@ inline auto system_unfold(::wtr::watcher::event::callback const& callback) noexc
 
     int event_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-        = epoll_create(event_wait_queue_max);
+      = epoll_create(event_wait_queue_max);
 #elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
-        = epoll_create1(EPOLL_CLOEXEC);
+      = epoll_create1(EPOLL_CLOEXEC);
 #endif
 
     if (event_fd >= 0)
@@ -188,7 +196,8 @@ inline auto system_unfold(::wtr::watcher::event::callback const& callback) noexc
         return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
     else
       return do_error("e/sys/epoll_create", watch_fd, event_fd);
-  } else
+  }
+  else
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
@@ -196,7 +205,7 @@ inline auto system_unfold(::wtr::watcher::event::callback const& callback) noexc
     Close the file descriptors `watch_fd` and `event_fd`. */
 inline auto system_fold(sys_resource_type& sr) noexcept -> bool
 {
-  return !(close(sr.watch_fd) && close(sr.event_fd));
+  return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_event_recv
@@ -209,9 +218,11 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
     Return new directories when they appear,
     Consider running and returning `find_dirs` from here.
     Remove destroyed watches. */
-inline auto do_event_recv(int watch_fd, path_map_type& pm,
-                          std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto
+do_event_recv(int watch_fd,
+              path_map_type& pm,
+              std::filesystem::path const& base_path,
+              ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = ::std::filesystem;
 
@@ -241,48 +252,56 @@ recurse:
   switch (read_len > 0      ? state::eventful
           : read_len == 0   ? state::eventless
           : errno == EAGAIN ? state::eventless
-                            : state::error)
-  {
-    case state::eventful:
+                            : state::error) {
+    case state::eventful :
       /* Loop over all events in the buffer. */
       for (auto this_event = (inotify_event*)buf;
            this_event < (inotify_event*)(buf + read_len);
-           this_event += this_event->len)
-      {
-        if (!(this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
-          auto path
-              = pm.find(this_event->wd)->second / fs::path(this_event->name);
+           this_event += this_event->len) {
+        if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
+          auto path =
+            pm.find(this_event->wd)->second / fs::path(this_event->name);
 
-          auto kind = this_event->mask & IN_ISDIR ? ::wtr::watcher::event::kind::dir : ::wtr::watcher::event::kind::file;
+          auto kind = this_event->mask & IN_ISDIR
+                      ? ::wtr::watcher::event::kind::dir
+                      : ::wtr::watcher::event::kind::file;
 
-          auto what = this_event->mask & IN_CREATE   ? ::wtr::watcher::event::what::create
-                      : this_event->mask & IN_DELETE ? ::wtr::watcher::event::what::destroy
-                      : this_event->mask & IN_MOVE   ? ::wtr::watcher::event::what::rename
-                      : this_event->mask & IN_MODIFY ? ::wtr::watcher::event::what::modify
-                                                     : ::wtr::watcher::event::what::other;
+          auto what =
+            this_event->mask & IN_CREATE ? ::wtr::watcher::event::what::create
+            : this_event->mask & IN_DELETE
+              ? ::wtr::watcher::event::what::destroy
+            : this_event->mask & IN_MOVE   ? ::wtr::watcher::event::what::rename
+            : this_event->mask & IN_MODIFY ? ::wtr::watcher::event::what::modify
+                                           : ::wtr::watcher::event::what::other;
 
           callback({path, what, kind});
 
-          if (kind == ::wtr::watcher::event::kind::dir && what == ::wtr::watcher::event::what::create)
+          if (kind == ::wtr::watcher::event::kind::dir
+              && what == ::wtr::watcher::event::what::create)
             pm[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] = path;
 
-          else if (kind == ::wtr::watcher::event::kind::dir && what == ::wtr::watcher::event::what::destroy) {
+          else if (kind == ::wtr::watcher::event::kind::dir
+                   && what == ::wtr::watcher::event::what::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
             pm.erase(this_event->wd);
           }
-
-        } else
-          callback({"e/self/overflow@" / base_path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+        }
+        else
+          callback({"e/self/overflow@" / base_path,
+                    ::wtr::watcher::event::what::other,
+                    ::wtr::watcher::event::kind::watcher});
       }
       /* Same as `return do_event_recv(..., buf)`.
          Our stopping condition is `eventless` or `error`. */
       goto recurse;
 
-    case state::error:
-      callback({"e/sys/read@" / base_path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    case state::error :
+      callback({"e/sys/read@" / base_path,
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
       return false;
 
-    case state::eventless: return true;
+    case state::eventless : return true;
   }
 
   /* Unreachable */
@@ -308,17 +327,24 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool {
+  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
+  {
     /* using evk = ::wtr::watcher::event::kind; */
     /* using evw = ::wtr::watcher::event::what; */
 
-    callback({msg / path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    callback({msg / path,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(), ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+      callback({"s/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+      callback({"e/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     return false;
   };
@@ -345,25 +371,28 @@ inline bool watch(std::filesystem::path const& path,
     if (pm.size() > 0) [[likely]] {
       while (is_living()) [[likely]]
 
-        {
-          int event_count = epoll_wait(sr.event_fd, event_recv_list,
-                                       event_wait_queue_max, delay_ms);
+      {
+        int event_count = epoll_wait(sr.event_fd,
+                                     event_recv_list,
+                                     event_wait_queue_max,
+                                     delay_ms);
 
-          if (event_count < 0)
-            return do_error(system_fold(sr), "e/sys/epoll_wait@");
+        if (event_count < 0)
+          return do_error(system_fold(sr), "e/sys/epoll_wait@");
 
-          else if (event_count > 0) [[likely]]
-            for (int n = 0; n < event_count; n++)
-              if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-                if (!do_event_recv(sr.watch_fd, pm, path, callback))
-                    [[unlikely]]
-                  return do_error(system_fold(sr), "e/self/event_recv@");
-        }
+        else if (event_count > 0) [[likely]]
+          for (int n = 0; n < event_count; n++)
+            if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
+              if (! do_event_recv(sr.watch_fd, pm, path, callback)) [[unlikely]]
+                return do_error(system_fold(sr), "e/self/event_recv@");
+      }
 
-      callback({"s/self/die@" + path.string(), ::wtr::watcher::event::what::destroy, ::wtr::watcher::event::kind::watcher});
+      callback({"s/self/die@" + path.string(),
+                ::wtr::watcher::event::what::destroy,
+                ::wtr::watcher::event::kind::watcher});
       return system_fold(sr);
-
-    } else
+    }
+    else
       return do_error(system_fold(sr), "e/self/path_map@");
 
   else
