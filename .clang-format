@@ -30,28 +30,31 @@ AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: false
 BitFieldColonSpacing: Both
+# [v16+]
+# BreakAfterAttributes: Always
+BreakBeforeBinaryOperators: NonAssignment # All
+# break before function scope (incl. lambdas) and else statements
+BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false
   AfterClass: false
-  # BraceWrappingAfterControlStatementStyle: Multiline
+  # [v16+]
+  # BraceWrappingAfterControlStatementStyle: MultiLine
   AfterEnum: false
-  AfterFunction: false
+  AfterFunction: true
   AfterNamespace: false
   AfterObjCDeclaration: false
   AfterStruct: false
   AfterUnion: false
-  AfterExternBlock: true
-  BeforeCatch: true
+  AfterExternBlock: false
+  BeforeCatch: false
   BeforeElse: true
-  BeforeLambdaBody: false
-  BeforeWhile: true
+  BeforeLambdaBody: true
+  BeforeWhile: false
   IndentBraces: false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
-# [v16+]
-# BreakAfterAttributes: Always
-BreakBeforeBinaryOperators: NonAssignment # All
 BreakBeforeConceptDeclarations: Always
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
