@@ -121,7 +121,7 @@ inline auto do_path_map_create(int const watch_fd,
                                event::callback const& callback) noexcept
   -> path_map_type
 {
-  namespace fs = ::std::filesystem;
+  namespace fs = std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
 
@@ -228,9 +228,9 @@ inline auto do_event_recv(int watch_fd,
                           std::filesystem::path const& base_path,
                           event::callback const& callback) noexcept -> bool
 {
-  namespace fs = ::std::filesystem;
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  namespace fs = std::filesystem;
+  using evk = wtr::watcher::event::kind;
+  using evw = wtr::watcher::event::what;
 
   alignas(inotify_event) char buf[event_buf_len];
 
@@ -331,8 +331,8 @@ inline bool watch(std::filesystem::path const& path,
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = ::wtr::watcher::event::kind;
-    using evw = ::wtr::watcher::event::what;
+    using evk = wtr::watcher::event::kind;
+    using evw = wtr::watcher::event::what;
 
     callback({msg / path, evw::other, evk::watcher});
 
