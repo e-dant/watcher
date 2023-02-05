@@ -202,8 +202,9 @@ inline auto unmark(std::filesystem::path const& full_path,
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(std::filesystem::path const& path,
-                                 ::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_sys_resource_open(std::filesystem::path const& path,
+                     ::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   namespace fs = std::filesystem;
@@ -497,15 +498,18 @@ inline auto do_event_send(std::filesystem::path const& base_path,
    The `metadata->vers` field may differ between kernel
    versions, so we check it against what we have been
    compiled with. */
-inline auto do_event_recv(sys_resource_type& sr,
-                          std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto
+do_event_recv(sys_resource_type& sr,
+              std::filesystem::path const& base_path,
+              ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   enum class state { ok, none, err };
 
   auto do_error = [&base_path, &callback](char const* msg) noexcept -> bool
   {
-    callback({msg / base_path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    callback({msg / base_path,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return false;
   };
 

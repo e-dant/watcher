@@ -110,8 +110,9 @@ inline bool has_event(watch_event_proxy& w) noexcept
   return w.event_buf_len_ready != 0;
 }
 
-inline bool do_event_recv(watch_event_proxy& w,
-                          ::wtr::watcher::event::callback const& callback) noexcept
+inline bool
+do_event_recv(watch_event_proxy& w,
+              ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace wtr::watcher::event;
 
@@ -149,8 +150,9 @@ inline bool do_event_recv(watch_event_proxy& w,
   }
 }
 
-inline bool do_event_send(watch_event_proxy& w,
-                          ::wtr::watcher::event::callback const& callback) noexcept
+inline bool
+do_event_send(watch_event_proxy& w,
+              ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace ::wtr::watcher;
 
@@ -202,7 +204,6 @@ inline bool do_event_send(watch_event_proxy& w,
 }
 
 } /* namespace */
-
 
 /* while living
    watch for events

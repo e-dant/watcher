@@ -115,9 +115,10 @@ struct sys_resource_type {
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_map_create(int const watch_fd,
-                               std::filesystem::path const& base_path,
-                               ::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_path_map_create(int const watch_fd,
+                   std::filesystem::path const& base_path,
+                   ::wtr::watcher::event::callback const& callback) noexcept
   -> path_map_type
 {
   namespace fs = std::filesystem;
@@ -157,14 +158,17 @@ inline auto do_path_map_create(int const watch_fd,
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](auto msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({msg, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    callback({msg,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -222,10 +226,11 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline auto do_event_recv(int watch_fd,
-                          path_map_type& path_map,
-                          std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto
+do_event_recv(int watch_fd,
+              path_map_type& path_map,
+              std::filesystem::path const& base_path,
+              ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = std::filesystem;
   using evk = ::wtr::watcher::event::kind;

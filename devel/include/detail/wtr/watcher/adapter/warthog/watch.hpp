@@ -227,7 +227,6 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
-
 /*
   @brief watcher/adapter/warthog/watch
 

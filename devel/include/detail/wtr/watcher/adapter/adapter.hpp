@@ -137,7 +137,6 @@ inline size_t adapter(std::filesystem::path const& path,
 }
 
 } /* namespace adapter */
-} /* namespace detail */
-} /* namespace watcher */
-} /* namespace wtr */
-
+}  // namespace watcher
+}  // namespace wtr
+}  // namespace detail

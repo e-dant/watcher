@@ -263,7 +263,6 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 } /* namespace */
 
-
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
