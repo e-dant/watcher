@@ -51,7 +51,7 @@ BraceWrapping:
   SplitEmptyNamespace: false
 # [v16+]
 # BreakAfterAttributes: Always
-BreakBeforeBinaryOperators: All
+BreakBeforeBinaryOperators: NonAssignment # All
 BreakBeforeConceptDeclarations: Always
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
