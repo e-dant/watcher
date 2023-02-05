@@ -1,8 +1,14 @@
 #! /usr/bin/env bash
 
+PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
+
+PROJECT_HONE_DIR="$(dirname "$0")/../devel"
+
+PROJECT_HEADER="include/wtr/watcher.hpp"
+
 # @todo This function doesn't work if the file doesn't end in a newline.
-watcher::hone() {
-  local USAGE="
+tool::hone() {
+  USAGE="
   $0 < option > { option }
 
   option:
@@ -14,49 +20,53 @@ watcher::hone() {
     --help
 
   example:
-    tool/hone --header-content-amalgam > include/watcher/watcher.hpp"
-  LAST_DIR="$PWD"
-  cd "$(dirname "$0")/../devel/include" || return 1
+    tool/hone --header-content-amalgam > include/wtr/watcher.hpp"
 
-  HEADER_CONTENT_RAW="$(\
-    cd watcher || return 1
-    find . -type f -name '*.hpp' -exec cat {} \;
-    cd ..
-  )"
+  LAST_DIR="$PWD"
+
+  cd "$(dirname "$0")/../devel" || return 1
+
+  # Sanity checks. Make sure that:
+  #   there's a "hone" dir and file
+  #   the header paths in the .hone file exist
+  # if ! test -f .hone
+  # then echo "File missing: '.hone'"; return 1; fi
+  while read -r H
+  do if ! test -f "include/$H"
+  then echo "Header file missing: 'include/$H'"; return 1; fi
+  done <<< "$(
+    cat "$PROJECT_HEADER" \
+      | grep -E '([ ]*)#([ ]*)include ' \
+      | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
 
   HEADER_PATH_ALL="$(\
-    cd watcher || return 1
-    find . -type f -name '*.hpp' | sed 's/^\.\///'
-    cd ..
+    while read -r H
+    do echo "$PWD/include/$H" || return 1
+    done <<< "$(
+      cat "$PROJECT_HEADER" \
+        | grep -E '([ ]*)#([ ]*)include' \
+        | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
   )"
 
-  HEADER_PATH_USED="$(\
-    while read -r H; \
-    do \
-      test -f "$H" \
-        && echo "$H"; \
-    done <<< "$(\
-      echo "$HEADER_CONTENT_RAW" \
-        | grep -E '^#([ ]*)include' \
-        | tr -d '"' \
-        | tr -d '<' \
-        | tr -d '>' \
-        | sed -E 's/.+include (.*)/\1/g' \
-        | awk '!seen[$0]++' \
-    )" \
+  HEADER_CONTENT_RAW="$(\
+    while read -r TOK
+    do
+      # cat the header, replace pragmas
+      cat "include/$TOK" \
+        | sed -E 's|(/\* )(@pragma/tool/hone/insert )(.+)( \*/)|\3 /\* @pragma/tool/hone/insert \*/|g'
+    done <<< "$(
+      cat "$PROJECT_HEADER" \
+        | grep -E '(([ ]*)#([ ]*)include)|(pragma/tool/hone)' \
+        | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
   )"
 
-  HEADER_CONTENT_USED="$(\
-    while read -r C; do cat "$C"; done <<< "$HEADER_PATH_USED" \
-  )"
-
-  PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
+  # echo "$HEADER_PATH_USED"
 
   HEADER_CONTENT_AMALGAM="$(\
     echo "#ifndef $PROJECT_ID" \
       && echo "#define $PROJECT_ID" \
-      && echo "$HEADER_CONTENT_USED" \
-        | sed -E '/(#([ ]*)include [<"]watcher.*)|(#pragma once)/d' \
+      && echo "$HEADER_CONTENT_RAW" \
+        | sed -E '/(#([ ]*)include [<"]wtr\/watcher.*)|(#([ ]*)include [<"]detail\/wtr.*)|(#pragma once)/d' \
       && echo "#endif /* $PROJECT_ID */" \
   )"
 
@@ -64,12 +74,12 @@ watcher::hone() {
   then
     if echo "$*" | grep -q -- --header-content-amalgam
     then echo "$HEADER_CONTENT_AMALGAM"; fi
-    if echo "$*" | grep -q -- --header-content-used
-    then echo "$HEADER_CONTENT_USED"; fi
+    # if echo "$*" | grep -q -- --header-content-used
+    # then echo "$HEADER_CONTENT_USED"; fi
     if echo "$*" | grep -q -- --header-content-raw
     then echo "$HEADER_CONTENT_RAW"; fi
-    if echo "$*" | grep -q -- --header-path-used
-    then echo "$HEADER_PATH_USED"; fi
+    # if echo "$*" | grep -q -- --header-path-used
+    # then echo "$HEADER_PATH_USED"; fi
     if echo "$*" | grep -q -- --header-path-all
     then echo "$HEADER_PATH_ALL"; fi
     if echo "$*" | grep -q -- --help
@@ -81,5 +91,5 @@ watcher::hone() {
   cd "$LAST_DIR" || return 1
 }
 
-watcher::hone $@
+tool::hone $@
 exit $?

@@ -6,7 +6,7 @@
   The Windows `ReadDirectoryChangesW` adapter.
 */
 
-#include <watcher/detail/platform.hpp>
+#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
@@ -30,7 +30,7 @@
 #include <thread>
 /* event
    callback */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
@@ -189,6 +189,8 @@ inline bool do_event_send(watch_event_proxy& w,
 
 } /* namespace */
 
+/* @pragma/tool/hone/insert namespace { */
+
 /* while living
    watch for events
    return when dead
@@ -231,6 +233,7 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */

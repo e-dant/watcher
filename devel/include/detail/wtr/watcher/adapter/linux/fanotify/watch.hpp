@@ -7,7 +7,7 @@
 */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <watcher/detail/platform.hpp>
+#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0)                     \
 && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -58,13 +58,14 @@
 #include <tuple>
 /* event
    callback */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
 namespace fanotify {
+/* @pragma/tool/hone/insert namespace { */
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>
    Anonymous namespace for "private" things. */
@@ -613,6 +614,7 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource");
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace fanotify */
 } /* namespace adapter */
 } /* namespace detail */

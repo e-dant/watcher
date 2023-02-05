@@ -11,7 +11,7 @@
 
 ```cpp
 #include <iostream>
-#include "../../include/watcher/watcher.hpp" /* Point this to wherever yours is */
+#include "../../include/wtr/watcher.hpp" /* Point this to wherever yours is */
 
 int main(int argc, char** argv) {
   using namespace wtr::watcher;
@@ -50,7 +50,7 @@ An arbitrary filesystem event watcher which is
 1. Simple
 > These [3418](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines, two-thirds of which is documentation and tests, were written to be
-[read](https://github.com/e-dant/watcher/blob/release/devel/include/watcher/watch.hpp)
+[read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../watch.hpp)
 as easily as the API is used:
 ```cpp
 watch(path, [](event ev) { cout << ev; });
@@ -100,8 +100,8 @@ is a filesystem.
 
 The important pieces are the (header-only) library and the (optional) CLI program.
 
-- Library: `include/watcher/watcher.hpp`. Include this to use *Watcher* in your project.
-- Program: `src/watcher/main.cpp`. Build this to use *Watcher* from the command line.
+- Library: `include/wtr/watcher.hpp`. Include this to use *Watcher* in your project.
+- Program: `src/wtr.watcher/main.cpp`. Build this to use *Watcher* from the command line.
 
 A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#directory-tree).
 
@@ -110,12 +110,12 @@ A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/
 Copy the `include` directory into your project. Include `watcher` like this:
 
 ```cpp
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 ```
 
-The [event](https://github.com/e-dant/watcher/blob/release/include/watcher/event.hpp)
-and [watch](https://github.com/e-dant/watcher/blob/release/include/watcher/watch.hpp) headers
-are short and approachable. (You only ever need to include `watcher/watcher.hpp`.)
+The [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../event.hpp)
+and [watch](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../watch.hpp) headers
+are short and approachable. (You only ever need to include `wtr/watcher.hpp`.)
 
 There are two things the user needs:
   - The `watch` function
@@ -215,7 +215,7 @@ commit, right before writing this paragraph.
 
 Which is pretty cool.
 
-A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/watcher/main.cpp).
+A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/wtr.watcher/main.cpp).
 
 ## Consume
 

@@ -1,8 +1,7 @@
 #pragma once
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <cstring>
-#include <watcher/detail/platform.hpp>
+#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -45,7 +44,7 @@
 #include <unordered_set>
 /* event
    callback */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
@@ -260,6 +259,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 } /* namespace */
 
+/* @pragma/tool/hone/insert namespace { */
+
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
@@ -285,6 +286,7 @@ inline bool watch(std::filesystem::path const& path,
   return ok;
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */

@@ -4,6 +4,7 @@
 namespace wtr {
 namespace watcher {
 namespace detail {
+namespace { /* @pragma/tool/hone/insert */
 
 enum class platform_type {
   /* Linux */
@@ -100,6 +101,7 @@ inline constexpr platform_type platform
 
 /* clang-format on */
 
+} /* @pragma/tool/hone/insert */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
@@ -497,6 +499,8 @@ inline bool do_event_send(watch_event_proxy& w,
 
 } /* namespace */
 
+namespace { /* @pragma/tool/hone/insert */
+
 /* while living
    watch for events
    return when dead
@@ -539,6 +543,7 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
@@ -547,7 +552,6 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <cstring>
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -804,6 +808,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 } /* namespace */
 
+namespace { /* @pragma/tool/hone/insert */
+
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
@@ -829,6 +835,7 @@ inline bool watch(std::filesystem::path const& path,
   return ok;
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
@@ -899,6 +906,7 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 namespace fanotify {
+namespace { /* @pragma/tool/hone/insert */
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>
    Anonymous namespace for "private" things. */
@@ -1447,6 +1455,7 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource");
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace fanotify */
 } /* namespace adapter */
 } /* namespace detail */
@@ -1510,6 +1519,7 @@ namespace watcher {
 namespace detail {
 namespace adapter {
 namespace inotify {
+namespace { /* @pragma/tool/hone/insert */
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>
    Anonymous namespace for "private" things. */
@@ -1836,6 +1846,7 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource@");
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace inotify */
 } /* namespace adapter */
 } /* namespace detail */
@@ -1847,7 +1858,7 @@ inline bool watch(std::filesystem::path const& path,
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
 /*
-  @brief wtr/watcher/detail/adapter/linux
+  @brief wtr/detail/wtr/watcher/adapter/linux
 
   The Linux adapters.
 */
@@ -1871,9 +1882,10 @@ namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
+namespace { /* @pragma/tool/hone/insert */
 
 /*
-  @brief watcher/detail/adapter/watch
+  @brief detail/wtr/watcher/adapter/watch
 
   Monitors `path` for changes.
   Invokes `callback` with an `event` when they happen.
@@ -1928,6 +1940,7 @@ inline bool watch(std::filesystem::path const& path,
 #endif
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
@@ -1987,7 +2000,8 @@ namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-namespace { /* anonymous namespace for "private" things */
+namespace {
+
 /* clang-format off */
 
 inline constexpr std::filesystem::directory_options
@@ -2159,6 +2173,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
+namespace { /* @pragma/tool/hone/insert */
+
 /*
   @brief watcher/adapter/warthog/watch
 
@@ -2210,6 +2226,7 @@ inline bool watch(std::filesystem::path const& path,
   return true;
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
@@ -2239,6 +2256,7 @@ namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
+namespace { /* @pragma/tool/hone/insert */
 
 enum class word { live, die };
 
@@ -2345,6 +2363,7 @@ inline size_t adapter(std::filesystem::path const& path,
   }
 }
 
+} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
@@ -2423,14 +2442,4 @@ watch(std::filesystem::path const& path,
 
 } /* namespace watcher */
 } /* namespace wtr   */
-
-/*
-  @brief watcher/watcher
-
-  This is the public interface.
-  Include and use this file.
-*/
-
-/* clang-format off */
-/* clang-format on */
 #endif /* W973564ED9F278A21F3E12037288412FBAF175F889 */

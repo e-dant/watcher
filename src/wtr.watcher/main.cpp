@@ -22,7 +22,7 @@
    wtr::watcher::event::kind
    wtr::watcher::watch
    wtr::watcher::die */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 /* Watch a path for some time.
    Or watch a path forever.

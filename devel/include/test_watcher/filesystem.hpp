@@ -10,7 +10,7 @@
    to_string */
 #include <string>
 /* event */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace test_watcher {

@@ -1,7 +1,7 @@
 #pragma once
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <watcher/detail/platform.hpp>
+#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN)                                    \
 || defined(WATER_WATCHER_USE_WARTHOG)
@@ -35,13 +35,14 @@
 #include <unordered_map>
 /* event
    callback */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
-namespace { /* anonymous namespace for "private" things */
+namespace {
+
 /* clang-format off */
 
 inline constexpr std::filesystem::directory_options
@@ -213,6 +214,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
+/* @pragma/tool/hone/insert namespace { */
+
 /*
   @brief watcher/adapter/warthog/watch
 
@@ -264,6 +267,7 @@ inline bool watch(std::filesystem::path const& path,
   return true;
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */

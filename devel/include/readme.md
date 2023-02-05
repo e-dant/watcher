@@ -1,12 +1,8 @@
-# Watcher
- Include
+# Watcher Development Include Directory
 
 ## Summary
 
-Public header interface for *Watcher*.
+Test headers and non-amalgamated development headers for *Watcher*.
 
-To use:
+You can use these, but the recommended (easiest) way to use *Watcher* is to include the single header in the base `include` directory.
 
-```cpp
-#include <watcher/watcher.hpp>
-```

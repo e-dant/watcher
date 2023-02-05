@@ -7,7 +7,7 @@
    TEST_CASE */
 #include <snitch/snitch.hpp>
 /* event */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 /* watch_gather */
 #include <test_watcher/test_watcher.hpp>
 /* get */

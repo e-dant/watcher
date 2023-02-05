@@ -25,7 +25,7 @@
 #include <test_watcher/constant.hpp>
 /* watch,
    event */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace test_watcher {

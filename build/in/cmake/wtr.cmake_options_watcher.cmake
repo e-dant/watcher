@@ -3,7 +3,7 @@ include(FetchContent)
 include(GNUInstallDirs)
 
 # [options: defaults: sources and prerequisites]
-set(SOURCES "../../src/watcher/main.cpp")
+set(SOURCES "../../src/wtr.watcher/main.cpp")
 set(INCLUDE_PATH)
 # [options: cc: error on everything]
 if(MSVC)

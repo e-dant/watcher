@@ -1,13 +1,13 @@
 #pragma once
 
 /*
-  @brief wtr/watcher/detail/adapter/linux
+  @brief wtr/detail/wtr/watcher/adapter/linux
 
   The Linux adapters.
 */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <watcher/detail/platform.hpp>
+#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0)                     \
 || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -21,15 +21,16 @@
    callback
    inotify::watch
    fanotify::watch */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
+/* @pragma/tool/hone/insert namespace { */
 
 /*
-  @brief watcher/detail/adapter/watch
+  @brief detail/wtr/watcher/adapter/watch
 
   Monitors `path` for changes.
   Invokes `callback` with an `event` when they happen.
@@ -84,6 +85,7 @@ inline bool watch(std::filesystem::path const& path,
 #endif
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */

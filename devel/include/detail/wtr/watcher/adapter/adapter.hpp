@@ -16,12 +16,13 @@
 /*  watch
     event
     callback */
-#include <watcher/watcher.hpp>
+#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {
 namespace detail {
 namespace adapter {
+/* @pragma/tool/hone/insert namespace { */
 
 enum class word { live, die };
 
@@ -128,6 +129,7 @@ inline size_t adapter(std::filesystem::path const& path,
   }
 }
 
+/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */

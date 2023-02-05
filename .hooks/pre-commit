@@ -4,11 +4,11 @@ LAST_DIR="$PWD"
 cd "$(dirname "$0")/.."
 
 if $(\
-  git diff-index HEAD --name-only -C include/watcher \
-    | grep -qo 'include/.*')
+  git diff-index HEAD --name-only -C devel/include \
+    | grep -qo 'watcher/.*')
 then
   tool/hone --header-content-amalgam \
-    > sinclude/watcher/watcher.hpp
+    > include/watcher/watcher.hpp
 fi
 
 while read CPP_FILE
