@@ -1,8 +1,9 @@
 #! /usr/bin/env bash
+# 2002: If we wanted to be performant, we wouldn't use bash. cat is fine.
+# 2068: We want to resplit argument in this case
+# shellcheck disable=SC2002,2068
 
 PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
-
-PROJECT_HONE_DIR="$(dirname "$0")/../devel"
 
 PROJECT_HEADER="include/wtr/watcher.hpp"
 
@@ -14,6 +15,8 @@ tool::hone() {
   option:
     --header-content-amalgam
     --header-content-raw
+    --header-content-sans-includes
+    --header-includes-unique
     --header-path-all
     --help
 
@@ -28,46 +31,66 @@ tool::hone() {
   while read -r H
   do if ! test -f "include/$H"
   then echo "Header file missing: 'include/$H'"; return 1; fi
-  done <<< "$(
+  done <<< "$(\
     cat "$PROJECT_HEADER" \
       | grep -E '([ ]*)#([ ]*)include ' \
       | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
 
+  HEADER_INCLUDES_UNIQUE="$(\
+    find include/detail include/wtr -name '*.hpp' -exec cat {} \; \
+      | sed -E 's/(([ ]+)?#([ ]+)?include [<"][0-9a-zA-Z\-_\.\:;~`!@#$%^&\*\(\)'\'']+[">])|(.*)/\1/g' \
+      | sort \
+      | awk '!seen[$0]++')"
+
   HEADER_PATH_ALL="$(\
     while read -r H
     do echo "$PWD/include/$H" || return 1
-    done <<< "$(
+    done <<< "$(\
       cat "$PROJECT_HEADER" \
-        | grep -E '([ ]*)#([ ]*)include' \
-        | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
+        | grep -E '([ ]+)?#([ ]+)?include' \
+        | sed -E 's/(([ ]+)?#([ ]+)?include )|(["<>])//g')"
   )"
 
+  # cat the headers, replace our pragmas
   HEADER_CONTENT_RAW="$(\
     while read -r TOK
     do
-      # cat the header, replace pragmas
-      cat "include/$TOK" \
+      cat "$TOK" \
         | sed -E 's|(/\* )(@pragma/tool/hone/insert )(.+)( \*/)|\3 /\* @pragma/tool/hone/insert \*/|g'
-    done <<< "$(
-      cat "$PROJECT_HEADER" \
-        | grep -E '(([ ]*)#([ ]*)include)|(pragma/tool/hone)' \
-        | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
+    done <<< "$HEADER_PATH_ALL"
   )"
 
+  # cat the headers, remove includes.
+  # @todo this function is slow.
+  HEADER_CONTENT_SANS_INCLUDES="$(\
+    while read -r H
+    do
+      echo "$H" \
+        | sed -E '/#pragma once/d' \
+        | sed -E '/([ ]+)?#([ ]+)?include/d'
+    done <<< "$HEADER_CONTENT_RAW"
+  )"
+
+  # give us the amalgamation:
+  #   unique(-enough) include guard
+  #   unique includes
+  #   header content (sans includes)
   HEADER_CONTENT_AMALGAM="$(\
     echo "#ifndef $PROJECT_ID" \
       && echo "#define $PROJECT_ID" \
-      && echo "$HEADER_CONTENT_RAW" \
-        | sed -E '/(#([ ]*)include [<"]wtr\/watcher.*)|(#([ ]*)include [<"]detail\/wtr.*)|(#pragma once)/d' \
-      && echo "#endif /* $PROJECT_ID */" \
+      && echo "$HEADER_INCLUDES_UNIQUE" \
+      && echo "$HEADER_CONTENT_SANS_INCLUDES" \
+      && echo "#endif /* $PROJECT_ID */"
   )"
 
   if test -n "$*"
   then
     if echo "$*" | grep -q -- --header-content-amalgam
-    then echo "$HEADER_CONTENT_AMALGAM"; fi
+    then echo "$HEADER_CONTENT_AMALGAM" | clang-format; fi
     if echo "$*" | grep -q -- --header-content-raw
     then echo "$HEADER_CONTENT_RAW"; fi
+    if echo "$*" | grep -q -- --header-content-sans-includes
+    then echo "$HEADER_CONTENT_SANS_INCLUDES"; fi
     if echo "$*" | grep -q -- --header-path-all
     then echo "$HEADER_PATH_ALL"; fi
     if echo "$*" | grep -q -- --help
