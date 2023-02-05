@@ -13,9 +13,7 @@ tool::hone() {
 
   option:
     --header-content-amalgam
-    --header-content-used
     --header-content-raw
-    --header-path-used
     --header-path-all
     --help
 
@@ -26,11 +24,7 @@ tool::hone() {
 
   cd "$(dirname "$0")/../devel" || return 1
 
-  # Sanity checks. Make sure that:
-  #   there's a "hone" dir and file
-  #   the header paths in the .hone file exist
-  # if ! test -f .hone
-  # then echo "File missing: '.hone'"; return 1; fi
+  # Sanity checks
   while read -r H
   do if ! test -f "include/$H"
   then echo "Header file missing: 'include/$H'"; return 1; fi
@@ -60,8 +54,6 @@ tool::hone() {
         | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
   )"
 
-  # echo "$HEADER_PATH_USED"
-
   HEADER_CONTENT_AMALGAM="$(\
     echo "#ifndef $PROJECT_ID" \
       && echo "#define $PROJECT_ID" \
@@ -74,12 +66,8 @@ tool::hone() {
   then
     if echo "$*" | grep -q -- --header-content-amalgam
     then echo "$HEADER_CONTENT_AMALGAM"; fi
-    # if echo "$*" | grep -q -- --header-content-used
-    # then echo "$HEADER_CONTENT_USED"; fi
     if echo "$*" | grep -q -- --header-content-raw
     then echo "$HEADER_CONTENT_RAW"; fi
-    # if echo "$*" | grep -q -- --header-path-used
-    # then echo "$HEADER_PATH_USED"; fi
     if echo "$*" | grep -q -- --header-path-all
     then echo "$HEADER_PATH_ALL"; fi
     if echo "$*" | grep -q -- --help
