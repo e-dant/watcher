@@ -96,14 +96,14 @@ int main(int argc, char** argv) {
   auto const stream_json = [](auto const& ev) {
     using event::kind, event::what;
 
-    auto const maybe_comma
-    = ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
+    auto const maybe_comma =
+    ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
 
     std::cout << ev << maybe_comma << std::endl;
   };
 
-  auto const watch_expire
-  = [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
+  auto const watch_expire =
+  [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
     using namespace std::chrono;
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;

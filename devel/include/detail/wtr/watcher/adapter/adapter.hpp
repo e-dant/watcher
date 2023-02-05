@@ -76,8 +76,8 @@ inline size_t adapter(std::filesystem::path const& path,
   /*  Returns a functor to check if we're still living.
       The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool {
-    auto const& create_lifetime
-    = [id, &path, &callback]() noexcept -> std::function<bool()> {
+    auto const& create_lifetime =
+    [id, &path, &callback]() noexcept -> std::function<bool()> {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
       auto const maybe_node = lifetimes.find(id);

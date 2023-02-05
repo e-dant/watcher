@@ -47,14 +47,14 @@ TEST_CASE("New Directories", "[new_directories]") {
 
   auto const base_store_path = wtr::test_watcher::test_store_path;
   auto const store_path_first = base_store_path / "new_directories_first_store";
-  auto const store_path_second
-  = base_store_path / "new_directories_second_store";
-  auto const store_path_list
-  = std::vector<std::filesystem::path>{base_store_path,
-                                       store_path_first,
-                                       store_path_second};
-  auto const new_store_path_list
-  = std::vector<std::filesystem::path>{store_path_first, store_path_second};
+  auto const store_path_second =
+  base_store_path / "new_directories_second_store";
+  auto const store_path_list =
+  std::vector<std::filesystem::path>{base_store_path,
+                                     store_path_first,
+                                     store_path_second};
+  auto const new_store_path_list =
+  std::vector<std::filesystem::path>{store_path_first, store_path_second};
 
   static constexpr auto title = "New Directories";
 
@@ -73,13 +73,13 @@ TEST_CASE("New Directories", "[new_directories]") {
    wtr::watcher::event::what::create,
    wtr::watcher::event::kind::watcher});
 
-  auto lifetime
-  = wtr::watcher::watch(base_store_path,
-                        [&](wtr::watcher::event::event const& ev) {
-                          auto _ = std::scoped_lock{event_recv_list_mtx};
-                          std::cout << ev << std::endl;
-                          event_recv_list.push_back(ev);
-                        });
+  auto lifetime =
+  wtr::watcher::watch(base_store_path,
+                      [&](wtr::watcher::event::event const& ev) {
+                        auto _ = std::scoped_lock{event_recv_list_mtx};
+                        std::cout << ev << std::endl;
+                        event_recv_list.push_back(ev);
+                      });
 
   /* @todo
      This sleep is hiding a bug on Linux which begins

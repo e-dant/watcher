@@ -82,8 +82,8 @@ TEST_CASE("Simple", "[simple]") {
     event_sent_list.push_back(
     {new_dir_path, event::what::create, event::kind::dir});
 
-    auto const new_file_path
-    = store_path / ("new_file" + std::to_string(i) + ".txt");
+    auto const new_file_path =
+    store_path / ("new_file" + std::to_string(i) + ".txt");
     std::ofstream(new_file_path).close();
 
     REQUIRE(std::filesystem::is_regular_file(new_file_path));

@@ -89,8 +89,8 @@ inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
-inline constexpr auto in_watch_opt
-= IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
+inline constexpr auto in_watch_opt =
+IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
    - path_map_type
@@ -125,8 +125,8 @@ inline auto do_path_map_create(int const watch_fd,
   using dopt = fs::directory_options;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
-  static constexpr auto fs_dir_opt
-  = dopt::skip_permission_denied & dopt::follow_directory_symlink;
+  static constexpr auto fs_dir_opt =
+  dopt::skip_permission_denied & dopt::follow_directory_symlink;
 
   static constexpr auto path_map_reserve_count = 256;
 
@@ -258,8 +258,8 @@ recurse:
            this_event < (inotify_event*)(buf + read_len);
            this_event += this_event->len) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
-          auto path
-          = path_map.find(this_event->wd)->second / fs::path(this_event->name);
+          auto path =
+          path_map.find(this_event->wd)->second / fs::path(this_event->name);
 
           auto kind = this_event->mask & IN_ISDIR ? evk::dir : evk::file;
 
@@ -272,8 +272,8 @@ recurse:
           callback({path, what, kind});
 
           if (kind == evk::dir && what == evw::create)
-            path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)]
-            = path;
+            path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] =
+            path;
 
           else if (kind == evk::dir && what == evw::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
@@ -320,8 +320,8 @@ recurse:
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
-  auto do_error
-  = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
+  auto do_error = [&path, &callback](sys_resource_type& sr,
+                                     char const* msg) -> bool {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 

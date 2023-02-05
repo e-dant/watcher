@@ -45,20 +45,15 @@ namespace test_watcher {
    @todo
      Make printing an option */
 auto watch_gather(auto const& /* Title */
-                  title
-                  = "test",
+                  title = "test",
                   auto const& /* Store Path */
-                  store_path
-                  = wtr::test_watcher::test_store_path / "tmp_store",
+                  store_path = wtr::test_watcher::test_store_path / "tmp_store",
                   int const /* Path Event Count */
-                  path_count
-                  = 10,
+                  path_count = 10,
                   int const /* Concurrent Watcher Count */
-                  concurrency_level
-                  = 1,
+                  concurrency_level = 1,
                   std::chrono::milliseconds const& /* Simulated Lifetime */
-                  alive_for_ms_target
-                  = std::chrono::milliseconds(1000)) {
+                  alive_for_ms_target = std::chrono::milliseconds(1000)) {
   static constexpr auto pre_create_event_delay = std::chrono::milliseconds(10);
   static constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(10);
 
@@ -153,9 +148,9 @@ auto watch_gather(auto const& /* Title */
     /* @todo return time alive */
     auto const delayed_for = (std::chrono::milliseconds(16) * concurrency_level)
                            + pre_create_event_delay + pre_stop_watch_delay;
-    auto const alive_for_ms_actual_value
-    = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch())
+    auto const alive_for_ms_actual_value =
+    std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch())
     - delayed_for;
     if (alive_for_ms_actual_value.count() <= 0)
       assert(alive_for_ms_actual_value.count() >= 0);

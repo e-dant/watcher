@@ -68,8 +68,8 @@ inline bool scan(std::filesystem::path const& path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const& scan_file
-  = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
+  auto const& scan_file = [&](std::filesystem::path const& file,
+                              auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
     std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -109,8 +109,8 @@ inline bool scan(std::filesystem::path const& path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const& scan_directory
-  = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
+  auto const& scan_directory = [&](std::filesystem::path const& dir,
+                                   auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
     std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -179,8 +179,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const& prune
-  = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
+  auto const& prune = [&](std::filesystem::path const& path,
+                          auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
     std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();

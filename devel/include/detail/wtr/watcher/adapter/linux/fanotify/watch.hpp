@@ -206,11 +206,11 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
 
-  auto const& do_error
-  = [&callback](auto const& error,
-                auto const& path,
-                int watch_fd,
-                int event_fd = -1) noexcept -> sys_resource_type {
+  auto const& do_error = [&callback](auto const& error,
+                                     auto const& path,
+                                     int watch_fd,
+                                     int event_fd =
+                                     -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                .append("(")
                .append(std::strerror(errno))
@@ -226,15 +226,15 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
     .dir_map = {},
     };
   };
-  auto do_path_map_container_create
-  = [](int const watch_fd,
-       fs::path const& base_path,
-       event::callback const& callback) -> mark_set_type {
+  auto do_path_map_container_create =
+  [](int const watch_fd,
+     fs::path const& base_path,
+     event::callback const& callback) -> mark_set_type {
     using diter = fs::recursive_directory_iterator;
 
     /* Follow symlinks, ignore paths which we don't have permissions for. */
-    static constexpr auto dopt
-    = fs::directory_options::skip_permission_denied
+    static constexpr auto dopt =
+    fs::directory_options::skip_permission_denied
     & fs::directory_options::follow_directory_symlink;
 
     static constexpr auto rsrv_count = 1024;
@@ -403,8 +403,8 @@ inline auto lift_event(sys_resource_type& sr,
     if (fd > 0) {
       char procpath[128];
       std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-      ssize_t dirname_len
-      = readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
+      ssize_t dirname_len =
+      readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
       close(fd);
 
       if (dirname_len > 0) {
@@ -439,11 +439,11 @@ inline auto do_event_send(std::filesystem::path const& base_path,
 -> bool {
   using namespace ::wtr::watcher::event;
 
-  auto [path, hash]
-  = lift_event(sr,
-               ((fanotify_event_info_fid const*)(metadata + 1)),
-               base_path,
-               callback);
+  auto [path, hash] =
+  lift_event(sr,
+             ((fanotify_event_info_fid const*)(metadata + 1)),
+             base_path,
+             callback);
 
   auto m = metadata->mask;
 
@@ -560,8 +560,8 @@ inline auto do_event_recv(sys_resource_type& sr,
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
-  auto do_error
-  = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
+  auto do_error = [&path, &callback](sys_resource_type& sr,
+                                     char const* msg) -> bool {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
@@ -592,10 +592,8 @@ inline bool watch(std::filesystem::path const& path,
         - Invoke `callback` on errors and events */
 
     while (is_living()) {
-      int event_count = epoll_wait(sr.event_fd,
-                                   event_recv_list,
-                                   event_wait_queue_max,
-                                   delay_ms);
+      int event_count =
+      epoll_wait(sr.event_fd, event_recv_list, event_wait_queue_max, delay_ms);
       if (event_count < 0)
         return do_error(sr, "e/sys/epoll_wait");
 

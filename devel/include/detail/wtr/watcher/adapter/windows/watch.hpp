@@ -71,18 +71,18 @@ public:
       : path{path} {
     memcpy(path_name, path.c_str(), path.string().size());
 
-    path_handle
-    = CreateFileW(path.c_str(),
-                  FILE_LIST_DIRECTORY,
-                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                  nullptr,
-                  OPEN_EXISTING,
-                  FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                  nullptr);
+    path_handle =
+    CreateFileW(path.c_str(),
+                FILE_LIST_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                nullptr);
 
     if (path_handle)
-      event_completion_token
-      = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
+      event_completion_token =
+      CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 
     if (event_completion_token)
       is_valid = CreateIoCompletionPort(path_handle,
@@ -151,8 +151,8 @@ inline bool do_event_send(watch_event_proxy& w,
     while (buf + sizeof(FILE_NOTIFY_INFORMATION)
            <= buf + w.event_buf_len_ready) {
       if (buf->FileNameLength % 2 == 0) {
-        auto where
-        = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
+        auto where =
+        w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
         auto what = [&buf]() noexcept -> event::what {
           switch (buf->Action) {
@@ -177,8 +177,8 @@ inline bool do_event_send(watch_event_proxy& w,
         if (buf->NextEntryOffset == 0)
           break;
         else
-          buf
-          = (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
+          buf =
+          (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
       }
     }
     return true;

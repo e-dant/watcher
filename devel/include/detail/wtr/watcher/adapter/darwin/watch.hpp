@@ -58,8 +58,8 @@ struct argptr_type {
 };
 
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
-inline constexpr auto delay_s
-= std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
+inline constexpr auto delay_s =
+std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
 inline constexpr auto has_delay = delay_ms.count() > 0;
 
 inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
@@ -68,8 +68,8 @@ inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
    want less "sleepy" time after a period of no filesystem events. But we're
    talking about saving a maximum latency of `delay_ms` after some period of
    inactivity -- very small. (Not sure what the inactivity period is.) */
-inline constexpr auto event_stream_flags
-= kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
+inline constexpr auto event_stream_flags =
+kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
 | kFSEventStreamCreateFlagUseCFTypes;
 
 inline std::tuple<FSEventStreamRef, dispatch_queue_t>
@@ -80,14 +80,14 @@ event_stream_open(std::filesystem::path const& path,
   static constexpr CFIndex path_array_size{1};
   static constexpr auto queue_priority = -10;
 
-  auto funcptr_context
-  = FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
+  auto funcptr_context =
+  FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
   /* Creating this untyped array of strings is unavoidable.
      `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
      `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
      address of an array (of strings). There might be some UB around here. */
-  void const* path_cfstring
-  = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
+  void const* path_cfstring =
+  CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
   CFArrayRef path_array = CFArrayCreate(nullptr,
                                         &path_cfstring,
                                         path_array_size,
