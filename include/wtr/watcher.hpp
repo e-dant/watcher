@@ -381,18 +381,18 @@ public:
       : path{path} {
     memcpy(path_name, path.c_str(), path.string().size());
 
-    path_handle
-    = CreateFileW(path.c_str(),
-                  FILE_LIST_DIRECTORY,
-                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                  nullptr,
-                  OPEN_EXISTING,
-                  FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                  nullptr);
+    path_handle =
+    CreateFileW(path.c_str(),
+                FILE_LIST_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                nullptr);
 
     if (path_handle)
-      event_completion_token
-      = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
+      event_completion_token =
+      CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 
     if (event_completion_token)
       is_valid = CreateIoCompletionPort(path_handle,
@@ -461,8 +461,8 @@ inline bool do_event_send(watch_event_proxy& w,
     while (buf + sizeof(FILE_NOTIFY_INFORMATION)
            <= buf + w.event_buf_len_ready) {
       if (buf->FileNameLength % 2 == 0) {
-        auto where
-        = w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
+        auto where =
+        w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
         auto what = [&buf]() noexcept -> event::what {
           switch (buf->Action) {
@@ -487,8 +487,8 @@ inline bool do_event_send(watch_event_proxy& w,
         if (buf->NextEntryOffset == 0)
           break;
         else
-          buf
-          = (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
+          buf =
+          (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
       }
     }
     return true;
@@ -607,8 +607,8 @@ struct argptr_type {
 };
 
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
-inline constexpr auto delay_s
-= std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
+inline constexpr auto delay_s =
+std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
 inline constexpr auto has_delay = delay_ms.count() > 0;
 
 inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
@@ -617,8 +617,8 @@ inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
    want less "sleepy" time after a period of no filesystem events. But we're
    talking about saving a maximum latency of `delay_ms` after some period of
    inactivity -- very small. (Not sure what the inactivity period is.) */
-inline constexpr auto event_stream_flags
-= kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
+inline constexpr auto event_stream_flags =
+kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
 | kFSEventStreamCreateFlagUseCFTypes;
 
 inline std::tuple<FSEventStreamRef, dispatch_queue_t>
@@ -629,14 +629,14 @@ event_stream_open(std::filesystem::path const& path,
   static constexpr CFIndex path_array_size{1};
   static constexpr auto queue_priority = -10;
 
-  auto funcptr_context
-  = FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
+  auto funcptr_context =
+  FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
   /* Creating this untyped array of strings is unavoidable.
      `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
      `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
      address of an array (of strings). There might be some UB around here. */
-  void const* path_cfstring
-  = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
+  void const* path_cfstring =
+  CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
   CFArrayRef path_array = CFArrayCreate(nullptr,
                                         &path_cfstring,
                                         path_array_size,
@@ -1047,11 +1047,11 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
 
-  auto const& do_error
-  = [&callback](auto const& error,
-                auto const& path,
-                int watch_fd,
-                int event_fd = -1) noexcept -> sys_resource_type {
+  auto const& do_error = [&callback](auto const& error,
+                                     auto const& path,
+                                     int watch_fd,
+                                     int event_fd =
+                                     -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
                .append("(")
                .append(std::strerror(errno))
@@ -1067,15 +1067,15 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
     .dir_map = {},
     };
   };
-  auto do_path_map_container_create
-  = [](int const watch_fd,
-       fs::path const& base_path,
-       event::callback const& callback) -> mark_set_type {
+  auto do_path_map_container_create =
+  [](int const watch_fd,
+     fs::path const& base_path,
+     event::callback const& callback) -> mark_set_type {
     using diter = fs::recursive_directory_iterator;
 
     /* Follow symlinks, ignore paths which we don't have permissions for. */
-    static constexpr auto dopt
-    = fs::directory_options::skip_permission_denied
+    static constexpr auto dopt =
+    fs::directory_options::skip_permission_denied
     & fs::directory_options::follow_directory_symlink;
 
     static constexpr auto rsrv_count = 1024;
@@ -1244,8 +1244,8 @@ inline auto lift_event(sys_resource_type& sr,
     if (fd > 0) {
       char procpath[128];
       std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
-      ssize_t dirname_len
-      = readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
+      ssize_t dirname_len =
+      readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
       close(fd);
 
       if (dirname_len > 0) {
@@ -1280,11 +1280,11 @@ inline auto do_event_send(std::filesystem::path const& base_path,
 -> bool {
   using namespace ::wtr::watcher::event;
 
-  auto [path, hash]
-  = lift_event(sr,
-               ((fanotify_event_info_fid const*)(metadata + 1)),
-               base_path,
-               callback);
+  auto [path, hash] =
+  lift_event(sr,
+             ((fanotify_event_info_fid const*)(metadata + 1)),
+             base_path,
+             callback);
 
   auto m = metadata->mask;
 
@@ -1401,8 +1401,8 @@ inline auto do_event_recv(sys_resource_type& sr,
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
-  auto do_error
-  = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
+  auto do_error = [&path, &callback](sys_resource_type& sr,
+                                     char const* msg) -> bool {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
@@ -1433,10 +1433,8 @@ inline bool watch(std::filesystem::path const& path,
         - Invoke `callback` on errors and events */
 
     while (is_living()) {
-      int event_count = epoll_wait(sr.event_fd,
-                                   event_recv_list,
-                                   event_wait_queue_max,
-                                   delay_ms);
+      int event_count =
+      epoll_wait(sr.event_fd, event_recv_list, event_wait_queue_max, delay_ms);
       if (event_count < 0)
         return do_error(sr, "e/sys/epoll_wait");
 
@@ -1553,8 +1551,8 @@ inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
-inline constexpr auto in_watch_opt
-= IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
+inline constexpr auto in_watch_opt =
+IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
    - path_map_type
@@ -1589,8 +1587,8 @@ inline auto do_path_map_create(int const watch_fd,
   using dopt = fs::directory_options;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
-  static constexpr auto fs_dir_opt
-  = dopt::skip_permission_denied & dopt::follow_directory_symlink;
+  static constexpr auto fs_dir_opt =
+  dopt::skip_permission_denied & dopt::follow_directory_symlink;
 
   static constexpr auto path_map_reserve_count = 256;
 
@@ -1722,8 +1720,8 @@ recurse:
            this_event < (inotify_event*)(buf + read_len);
            this_event += this_event->len) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
-          auto path
-          = path_map.find(this_event->wd)->second / fs::path(this_event->name);
+          auto path =
+          path_map.find(this_event->wd)->second / fs::path(this_event->name);
 
           auto kind = this_event->mask & IN_ISDIR ? evk::dir : evk::file;
 
@@ -1736,8 +1734,8 @@ recurse:
           callback({path, what, kind});
 
           if (kind == evk::dir && what == evw::create)
-            path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)]
-            = path;
+            path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] =
+            path;
 
           else if (kind == evk::dir && what == evw::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
@@ -1784,8 +1782,8 @@ recurse:
 inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept {
-  auto do_error
-  = [&path, &callback](sys_resource_type& sr, char const* msg) -> bool {
+  auto do_error = [&path, &callback](sys_resource_type& sr,
+                                     char const* msg) -> bool {
     using evk = ::wtr::watcher::event::kind;
     using evw = ::wtr::watcher::event::what;
 
@@ -2027,8 +2025,8 @@ inline bool scan(std::filesystem::path const& path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the file cannot be scanned. */
-  auto const& scan_file
-  = [&](std::filesystem::path const& file, auto const& send_event) -> bool {
+  auto const& scan_file = [&](std::filesystem::path const& file,
+                              auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
     std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
@@ -2068,8 +2066,8 @@ inline bool scan(std::filesystem::path const& path,
      - Updates our bucket to match the changes.
      - Calls `send_event` when changes happen.
      - Returns false if the directory cannot be scanned. */
-  auto const& scan_directory
-  = [&](std::filesystem::path const& dir, auto const& send_event) -> bool {
+  auto const& scan_directory = [&](std::filesystem::path const& dir,
+                                   auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
     std::filesystem::is_directory;
     /* if this thing is a directory */
@@ -2138,8 +2136,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
   /*  @brief watcher/adapter/warthog/prune
       Removes files which no longer exist from our bucket. */
-  auto const& prune
-  = [&](std::filesystem::path const& path, auto const& send_event) -> bool {
+  auto const& prune = [&](std::filesystem::path const& path,
+                          auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
     std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
@@ -2310,8 +2308,8 @@ inline size_t adapter(std::filesystem::path const& path,
   /*  Returns a functor to check if we're still living.
       The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool {
-    auto const& create_lifetime
-    = [id, &path, &callback]() noexcept -> std::function<bool()> {
+    auto const& create_lifetime =
+    [id, &path, &callback]() noexcept -> std::function<bool()> {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
       auto const maybe_node = lifetimes.find(id);
@@ -2430,10 +2428,10 @@ watch(std::filesystem::path const& path,
 
   auto msg = std::shared_ptr<message>{new message{}};
 
-  auto lifetime
-  = std::async(std::launch::async,
-               [=]() noexcept -> bool { return adapter(path, callback, msg); })
-    .share();
+  auto lifetime =
+  std::async(std::launch::async,
+             [=]() noexcept -> bool { return adapter(path, callback, msg); })
+  .share();
 
   return [=]() noexcept -> bool {
     return adapter(path, callback, msg) && lifetime.get();
