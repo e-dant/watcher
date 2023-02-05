@@ -50,7 +50,7 @@ An arbitrary filesystem event watcher which is
 1. Simple
 > These [3418](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines, two-thirds of which is documentation and tests, were written to be
-[read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../watch.hpp)
+[read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp)
 as easily as the API is used:
 ```cpp
 watch(path, [](event ev) { cout << ev; });
@@ -113,8 +113,8 @@ Copy the `include` directory into your project. Include `watcher` like this:
 #include <wtr/watcher.hpp>
 ```
 
-The [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../event.hpp)
-and [watch](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher../watch.hpp) headers
+The [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/event.hpp)
+and [watch](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp) headers
 are short and approachable. (You only ever need to include `wtr/watcher.hpp`.)
 
 There are two things the user needs:
