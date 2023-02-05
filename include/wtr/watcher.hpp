@@ -1,6 +1,32 @@
 #ifndef W973564ED9F278A21F3E12037288412FBAF175F889
 #define W973564ED9F278A21F3E12037288412FBAF175F889
 
+#include <cerrno>
+#include <chrono>
+#include <climits>
+#include <cstdio>
+#include <cstring>
+#include <fcntl.h>
+#include <filesystem>
+#include <functional>
+#include <future>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <ostream>
+#include <random>
+#include <string>
+#include <system_error>
+#include <TargetConditionals.h>
+#include <thread>
+#include <tuple>
+#include <unistd.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <windows.h>
+
 namespace detail {
 namespace wtr {
 namespace watcher {
@@ -35,8 +61,7 @@ inline constexpr platform_type platform
 #  define WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY TRUE
 
 /* LINUX_VERSION_CODE
-   KERNEL_VERSION */
-#  include <linux/version.h>
+KERNEL_VERSION */
 
 /* linux >= 5.9.0 */
 #  if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
@@ -45,18 +70,18 @@ inline constexpr platform_type platform
 #  endif
 /* linux >= 2.7.0 */
 #  if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)
-    = platform_type::linux_kernel;
+= platform_type::linux_kernel;
 #   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0
 #   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN FALSE
 /* linux unknown */
 #  else
-    = platform_type::linux_kernel_unknown;
+= platform_type::linux_kernel_unknown;
 #   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN TRUE
 #  endif
 
 /* android */
 # elif defined(__ANDROID_API__)
-    = platform_type::android;
+= platform_type::android;
 #  define WATER_WATCHER_PLATFORM_ANDROID_ANY TRUE
 #  define WATER_WATCHER_PLATFORM_ANDROID_UNKNOWN TRUE
 
@@ -65,36 +90,35 @@ inline constexpr platform_type platform
 #  define WATER_WATCHER_PLATFORM_MAC_ANY TRUE
 
 /* TARGET_OS_* */
-#  include <TargetConditionals.h>
 
 /* apple mac catalyst */
 #  if defined(TARGET_OS_MACCATALYST)
-    = platform_type::mac_catalyst;
+= platform_type::mac_catalyst;
 #  define WATER_WATCHER_PLATFORM_MAC_CATALYST TRUE
 /* apple macos, osx */
 #  elif defined(TARGET_OS_MAC)
-    = platform_type::mac_os;
+= platform_type::mac_os;
 #  define WATER_WATCHER_PLATFORM_MAC_OS TRUE
 /* apple ios */
 #  elif defined(TARGET_OS_IOS)
-    = platform_type::mac_ios;
+= platform_type::mac_ios;
 #  define WATER_WATCHER_PLATFORM_MAC_IOS TRUE
 /* apple unknown */
 #  else
-    = platform_type::mac_unknown;
+= platform_type::mac_unknown;
 #  define WATER_WATCHER_PLATFORM_MAC_UNKNOWN TRUE
 #  endif /* apple target */
 
 /* windows */
 # elif defined(WIN32) || defined(_WIN32)
-    = platform_type::windows;
+= platform_type::windows;
 #  define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
 #  define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
 
 /* unknown */
 # else
 # warning "host platform is unknown"
-    = platform_type::unknown;
+= platform_type::unknown;
 #  define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
 # endif
 
@@ -105,55 +129,51 @@ inline constexpr platform_type platform
 } /* namespace detail */
 
 /* @brief watcher/event
-   There are only three things the user needs:
-    - The `die` function
-    - The `watch` function
-    - The `event` object
+There are only three things the user needs:
+- The `die` function
+- The `watch` function
+- The `event` object
 
-   The `event` object is used to pass information about
-   filesystem events to the (user-supplied) callback
-   given to `watch`.
+The `event` object is used to pass information about
+filesystem events to the (user-supplied) callback
+given to `watch`.
 
-   The `event` object will contain the:
-     - Path, which is always absolute.
-     - Type, one of:
-       - dir
-       - file
-       - hard_link
-       - sym_link
-       - watcher
-       - other
-     - Event type, one of:
-       - rename
-       - modify
-       - create
-       - destroy
-       - owner
-       - other
-     - Event time in nanoseconds since epoch
+The `event` object will contain the:
+- Path, which is always absolute.
+- Type, one of:
+- dir
+- file
+- hard_link
+- sym_link
+- watcher
+- other
+- Event type, one of:
+- rename
+- modify
+- create
+- destroy
+- owner
+- other
+- Event time in nanoseconds since epoch
 
-   The `watcher` type is special.
-   Events with this type will include messages from
-   the watcher. You may recieve error messages or
-   important status updates.
+The `watcher` type is special.
+Events with this type will include messages from
+the watcher. You may recieve error messages or
+important status updates.
 
-   Happy hacking. */
+Happy hacking. */
 
 /* std::ostream */
-#include <ostream>
 
 /* std::chrono::system_clock::now
-   std::chrono::duration_cast
-   std::chrono::system_clock
-   std::chrono::nanoseconds
-   std::chrono::time_point */
-#include <chrono>
+std::chrono::duration_cast
+std::chrono::system_clock
+std::chrono::nanoseconds
+std::chrono::time_point */
 
 /* std::filesystem::path */
-#include <filesystem>
 
 /* std::function */
-#include <functional>
 
 namespace wtr {
 namespace watcher {
@@ -165,15 +185,15 @@ using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
 } /* namespace */
 
 /* @brief watcher/event/types
-   - wtr::watcher::event
-   - wtr::watcher::event::kind
-   - wtr::watcher::event::what
-   - wtr::watcher::event::callback */
+- wtr::watcher::event
+- wtr::watcher::event::kind
+- wtr::watcher::event::what
+- wtr::watcher::event::callback */
 
 /* @brief wtr/watcher/event/what
-   A structure intended to represent
-   what has happened to some path
-   at the moment of some affecting event. */
+A structure intended to represent
+what has happened to some path
+at the moment of some affecting event. */
 enum class what {
   /* The essentials */
   rename,
@@ -189,7 +209,7 @@ enum class what {
 };
 
 /* @brief wtr/watcher/event/kind
-   The essential kinds of paths. */
+The essential kinds of paths. */
 enum class kind {
   /* The essentials */
   dir,
@@ -234,8 +254,8 @@ inline auto kind_repr(enum kind const& k)
 
 struct event {
   /* I like these names. Very human.
-     'what happen'
-     'event kind' */
+  'what happen'
+  'event kind' */
   std::filesystem::path const where;
   enum what const what;
   enum kind const kind;
@@ -254,8 +274,8 @@ struct event {
   ~event() noexcept = default;
 
   /* @brief wtr/watcher/event/==
-     Compares event objects for equivalent
-     `where`, `what` and `kind` values. */
+  Compares event objects for equivalent
+  `where`, `what` and `kind` values. */
   friend bool operator==(event const& lhs, event const& rhs) noexcept
   {
     /* True if */
@@ -272,45 +292,45 @@ struct event {
   };
 
   /* @brief wtr/watcher/event/!=
-     Not == */
+  Not == */
   friend bool operator!=(event const& lhs, event const& rhs) noexcept
   {
     return ! (lhs == rhs);
   };
 
   /* @brief wtr/watcher/event/<<
-     Streams out `where`, `what` and `kind`.
-     Formats the stream as a json object. */
+  Streams out `where`, `what` and `kind`.
+  Formats the stream as a json object. */
   friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
   {
     /* clang-format off */
-    return os << R"(")" << ev.when << R"(":)"
-              << "{"
-                  << R"("where":)" << ev.where      << R"(,)"
-                  << R"("what":")"  << what_repr(ev.what) << R"(",)"
-                  << R"("kind":")"  << kind_repr(ev.kind) << R"(")"
-              << "}";
+return os << R"(")" << ev.when << R"(":)"
+<< "{"
+<< R"("where":)" << ev.where      << R"(,)"
+<< R"("what":")"  << what_repr(ev.what) << R"(",)"
+<< R"("kind":")"  << kind_repr(ev.kind) << R"(")"
+<< "}";
     /* clang-format on */
   }
 };
 
 /* @brief wtr/watcher/event/<<
-   Streams out a `what` value. */
+Streams out a `what` value. */
 inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
 {
   return os << "\"" << what_repr(w) << "\"";
 }
 
 /* @brief wtr/watcher/event/<<
-   Streams out a `kind` value. */
+Streams out a `kind` value. */
 inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
 {
   return os << "\"" << kind_repr(k) << "\"";
 }
 
 /* @brief watcher/event/callback
-   Ensure the adapters can recieve events
-   and will return nothing. */
+Ensure the adapters can recieve events
+and will return nothing. */
 using callback = function<void(event const&)>;
 
 } /* namespace event */
@@ -318,34 +338,28 @@ using callback = function<void(event const&)>;
 } /* namespace wtr   */
 
 /*
-  @brief watcher/adapter/windows
+@brief watcher/adapter/windows
 
-  The Windows `ReadDirectoryChangesW` adapter.
+The Windows `ReadDirectoryChangesW` adapter.
 */
-
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
 /* ReadDirectoryChangesW
-   CreateIoCompletionPort
-   CreateFileW
-   CreateEventW
-   GetQueuedCompletionStatus
-   ResetEvent
-   GetLastError
-   WideCharToMultiByte */
-#include <windows.h>
+CreateIoCompletionPort
+CreateFileW
+CreateEventW
+GetQueuedCompletionStatus
+ResetEvent
+GetLastError
+WideCharToMultiByte */
 /* milliseconds */
-#include <chrono>
 /* path */
-#include <filesystem>
 /* string
-   wstring */
-#include <string>
+wstring */
 /* this_thread::sleep_for */
-#include <thread>
 /* event
-   callback */
+callback */
 
 namespace detail {
 namespace wtr {
@@ -358,7 +372,7 @@ inline constexpr auto delay_ms_dw = static_cast<DWORD>(delay_ms.count());
 inline constexpr auto has_delay = delay_ms > std::chrono::milliseconds(0);
 
 /* I think the default page size in Windows is 64kb,
-   so 65536 might also work well. */
+so 65536 might also work well. */
 inline constexpr auto event_buf_len_max = 8192;
 
 /* Hold resources necessary to recieve and send filesystem events. */
@@ -521,9 +535,9 @@ do_event_send(watch_event_proxy& w,
 } /* namespace */
 
 /* while living
-   watch for events
-   return when dead
-   true if no errors */
+watch for events
+return when dead
+true if no errors */
 
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
@@ -576,44 +590,32 @@ inline bool watch(std::filesystem::path const& path,
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
 /*
-  @brief watcher/adapter/darwin
+@brief watcher/adapter/darwin
 
-  The Darwin `FSEvent` adapter.
+The Darwin `FSEvent` adapter.
 */
 
 /* kFS*
-   FS*
-   CF*
-   dispatch_queue* */
-#include <CoreServices/CoreServices.h>
+FS*
+CF*
+dispatch_queue* */
 /* milliseconds */
-#include <chrono>
 /* function */
-#include <functional>
 /* path */
-#include <filesystem>
 /* numeric_limits */
-#include <limits>
 /* mt19937
-   random_device
-   uniform_int_distribution */
-#include <random>
+random_device
+uniform_int_distribution */
 /* string
-   to_string */
-#include <string>
+to_string */
 /* sleep_for */
-#include <thread>
 /* tuple
-   make_tuple */
-#include <tuple>
+make_tuple */
 /* vector */
-#include <vector>
 /* snprintf */
-#include <cstdio>
 /* unordered_set */
-#include <unordered_set>
 /* event
-   callback */
+callback */
 
 namespace detail {
 namespace wtr {
@@ -634,9 +636,9 @@ inline constexpr auto has_delay = delay_ms.count() > 0;
 inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
 
 /* We could OR `event_stream_flags` with `kFSEventStreamCreateFlagNoDefer` if we
-   want less "sleepy" time after a period of no filesystem events. But we're
-   talking about saving a maximum latency of `delay_ms` after some period of
-   inactivity -- very small. (Not sure what the inactivity period is.) */
+want less "sleepy" time after a period of no filesystem events. But we're
+talking about saving a maximum latency of `delay_ms` after some period of
+inactivity -- very small. (Not sure what the inactivity period is.) */
 inline constexpr auto event_stream_flags =
   kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
   | kFSEventStreamCreateFlagUseCFTypes;
@@ -653,9 +655,9 @@ event_stream_open(std::filesystem::path const& path,
   auto funcptr_context =
     FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
   /* Creating this untyped array of strings is unavoidable.
-     `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
-     `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
-     address of an array (of strings). There might be some UB around here. */
+  `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
+  `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
+  address of an array (of strings). There might be some UB around here. */
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
   CFArrayRef path_array = CFArrayCreate(nullptr,
@@ -664,11 +666,11 @@ event_stream_open(std::filesystem::path const& path,
                                         &kCFTypeArrayCallBacks);
 
   /* The event queue name doesn't seem to need to be unique.
-     We try to make a unique name anyway, just in case.
-     The event queue name will be:
-       = "wtr" + [0, 28) character number
-     And will always be a string between 5 and 32-characters long:
-       = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
+  We try to make a unique name anyway, just in case.
+  The event queue name will be:
+  = "wtr" + [0, 28) character number
+  And will always be a string between 5 and 32-characters long:
+  = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
   char queue_name[3 + 28 + 1]{};
   std::mt19937 gen(std::random_device{}());
   std::snprintf(queue_name,
@@ -679,7 +681,7 @@ event_stream_open(std::filesystem::path const& path,
                   std::numeric_limits<size_t>::max())(gen));
 
   /* Request a file event stream for `path` from the kernel
-     which invokes `funcptr` with `funcptr_context` on events. */
+  which invokes `funcptr` with `funcptr_context` on events. */
   FSEventStreamRef stream = FSEventStreamCreate(
     nullptr,           /* Custom allocator, optional */
     funcptr,           /* A callable to invoke on changes */
@@ -707,15 +709,15 @@ event_stream_open(std::filesystem::path const& path,
 }
 
 /* @note
-   The functions we use to close the stream and queue take `_Nonnull`
-   parameters, so we should be able to take `const&` for our arguments.
-   We don't because it would be misleading. `stream` and `queue` are
-   eventually null (and always invalid) after the calls we make here.
+The functions we use to close the stream and queue take `_Nonnull`
+parameters, so we should be able to take `const&` for our arguments.
+We don't because it would be misleading. `stream` and `queue` are
+eventually null (and always invalid) after the calls we make here.
 
-   @note
-   Assuming macOS > 10.8 or iOS > 6.0, we don't need to check for null on the
-   dispatch queue after we release it:
-     https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
+@note
+Assuming macOS > 10.8 or iOS > 6.0, we don't need to check for null on the
+dispatch queue after we release it:
+https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
 */
 inline bool event_stream_close(
   std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept
@@ -737,21 +739,21 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
                                                 unsigned long i) noexcept
 {
   /* We make a path from a C string...
-     In an array, in a dictionary...
-     Without type safety...
-     Because most of darwin's api's are `void*`-typed.
+  In an array, in a dictionary...
+  Without type safety...
+  Because most of darwin's api's are `void*`-typed.
 
-     We are *should be* guarenteed at least:
-       1. Every target type's alignment:
-          Although the aliases are untyped,
-          the function names are.
-       2. Non-null aliases:
-          The dictionary and array data
-          structures that we're working with
-          are immutable and refcounted.
+  We are *should be* guarenteed at least:
+  1. Every target type's alignment:
+  Although the aliases are untyped,
+  the function names are.
+  2. Non-null aliases:
+  The dictionary and array data
+  structures that we're working with
+  are immutable and refcounted.
 
-     IOW we can't guarentee type safety through types,
-     but this is how Darwin's API is intended to be used. */
+  IOW we can't guarentee type safety through types,
+  but this is how Darwin's API is intended to be used. */
   return {
     CFStringGetCStringPtr(static_cast<CFStringRef>(CFDictionaryGetValue(
                             static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
@@ -762,20 +764,20 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
 }
 
 /* @note
-   Sometimes events are batched together and re-sent
-   (despite having already been sent).
-   Example:
-     [first batch of events from the os]
-     file 'a' created
-     -> create event for 'a' is sent
-     [some tiny delay, 1 ms or so]
-     [second batch of events from the os]
-     file 'a' destroyed
-     -> create event for 'a' is sent
-     -> destroy event for 'a' is sent
-   So, we filter out duplicate events when they're sent
-   in a batch. We do this by storing and pruning the
-   set of paths which we've seen created. */
+Sometimes events are batched together and re-sent
+(despite having already been sent).
+Example:
+[first batch of events from the os]
+file 'a' created
+-> create event for 'a' is sent
+[some tiny delay, 1 ms or so]
+[second batch of events from the os]
+file 'a' destroyed
+-> create event for 'a' is sent
+-> destroy event for 'a' is sent
+So, we filter out duplicate events when they're sent
+in a batch. We do this by storing and pruning the
+set of paths which we've seen created. */
 inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        void* arg_ptr,            /* Arguments passed to us */
                        unsigned long recv_count, /* Event count */
@@ -807,7 +809,7 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
              : evk::other;
 
     /* More than one thing might have happened to the same path.
-       (Which is why we use non-exclusive `if`s.) */
+    (Which is why we use non-exclusive `if`s.) */
     if (flag & kFSEventStreamEventFlagItemCreated) {
       if (seen_created->find(path_str) == seen_created->end()) {
         seen_created->emplace(path_str);
@@ -869,11 +871,8 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
 
-/*
-  @brief wtr/watcher/<d>/adapter/linux/fanotify
-
-  The Linux `fanotify` adapter.
-*/
+/*  @brief wtr/watcher/<d>/adapter/linux/fanotify
+The Linux `fanotify` adapter. */
 
 /* WATER_WATCHER_PLATFORM_* */
 
@@ -884,48 +883,34 @@ inline bool watch(std::filesystem::path const& path,
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
 
 /* O_* */
-#include <fcntl.h>
 /* EPOLL*
-   epoll_ctl
-   epoll_wait
-   epoll_event
-   epoll_create1 */
-#include <sys/epoll.h>
+epoll_ctl
+epoll_wait
+epoll_event
+epoll_create1 */
 /* FAN_*
-   fanotify_mark
-   fanotify_init
-   fanotify_event_metadata */
-#include <sys/fanotify.h>
+fanotify_mark
+fanotify_init
+fanotify_event_metadata */
 /* open
-   close
-   readlink */
-#include <unistd.h>
+close
+readlink */
 /* errno */
-#include <cerrno>
 /* PATH_MAX */
-#include <climits>
 /* snprintf */
-#include <cstdio>
 /* strerror */
-#include <cstring>
 /* path
-   is_directory
-   directory_options
-   recursive_directory_iterator */
-#include <filesystem>
+is_directory
+directory_options
+recursive_directory_iterator */
 /* function */
-#include <functional>
 /* optional */
-#include <optional>
 /* unordered_map */
-#include <unordered_map>
 /* unordered_set */
-#include <unordered_set>
 /* tuple
-   make_tuple */
-#include <tuple>
+make_tuple */
 /* event
-   callback */
+callback */
 
 namespace detail {
 namespace wtr {
@@ -933,49 +918,45 @@ namespace watcher {
 namespace adapter {
 namespace fanotify {
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>
-   Anonymous namespace for "private" things. */
-namespace {
-
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/constants
-    - delay
-      The delay, in milliseconds, while `epoll_wait` will
-      'sleep' for until we are woken up. We usually check
-      if we're still alive at that point.
+- delay
+The delay, in milliseconds, while `epoll_wait` will
+'sleep' for until we are woken up. We usually check
+if we're still alive at that point.
 
-    - event_wait_queue_max
-      Number of events allowed to be given to do_event_recv
-      (returned by `epoll_wait`). Any number between 1
-      and some large number should be fine. We don't
-      lose events if we 'miss' them, the events are
-      still waiting in the next call to `epoll_wait`.
+- event_wait_queue_max
+Number of events allowed to be given to recv
+(returned by `epoll_wait`). Any number between 1
+and some large number should be fine. We don't
+lose events if we 'miss' them, the events are
+still waiting in the next call to `epoll_wait`.
 
-    - event_buf_len:
-      For our event buffer, 4096 is a typical page size
-      and sufficiently large to hold a great many events.
-      That's a good thumb-rule, and it might be the best
-      value to use because there will be a possibly long
-      character string (for the filename) in the event.
-      We can infer some things about the size we need for
-      the event buffer, but it's unlikely to be meaningful
-      because of the variably sized character string being
-      reported. We could use something like:
-          event_buf_len
-            = ((event_wait_queue_max + PATH_MAX)
-            * (3 * sizeof(fanotify_event_metadata)));
-      But that's a lot of flourish for 72 bytes that won't
-      be meaningful.
+- event_buf_len:
+For our event buffer, 4096 is a typical page size
+and sufficiently large to hold a great many events.
+That's a good thumb-rule, and it might be the best
+value to use because there will be a possibly long
+character string (for the filename) in the event.
+We can infer some things about the size we need for
+the event buffer, but it's unlikely to be meaningful
+because of the variably sized character string being
+reported. We could use something like:
+event_buf_len
+= ((event_wait_queue_max + PATH_MAX)
+* (3 * sizeof(fanotify_event_metadata)));
+But that's a lot of flourish for 72 bytes that won't
+be meaningful.
 
-    - fan_init_flags:
-      Post-event reporting, non-blocking IO and unlimited
-      marks. We need sudo mode for the unlimited marks.
-      If we were making a filesystem auditor, we might use:
-          FAN_CLASS_PRE_CONTENT
-          | FAN_UNLIMITED_QUEUE
-          | FAN_UNLIMITED_MARKS
+- fan_init_flags:
+Post-event reporting, non-blocking IO and unlimited
+marks. We need sudo mode for the unlimited marks.
+If we were making a filesystem auditor, we might use:
+FAN_CLASS_PRE_CONTENT
+| FAN_UNLIMITED_QUEUE
+| FAN_UNLIMITED_MARKS
 
-    - fan_init_opt_flags:
-      Read-only, non-blocking, and close-on-exec. */
+- fan_init_opt_flags:
+Read-only, non-blocking, and close-on-exec. */
 inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = PATH_MAX;
@@ -985,14 +966,14 @@ inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
 inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
-   - sys_resource_type
-       An object holding:
-         - An fanotify file descriptor
-         - An epoll file descriptor
-         - An epoll configuration
-         - A set of watch marks (as returned by fanotify_mark)
-         - A map of (sub)path handles to filesystem paths (names)
-         - A boolean representing the validity of these resources */
+- sys_resource_type
+An object holding:
+- An fanotify file descriptor
+- An epoll file descriptor
+- An epoll configuration
+- A set of watch marks (as returned by fanotify_mark)
+- A map of (sub)path handles to filesystem paths (names)
+- A boolean: whether or not the resources are valid */
 using mark_set_type = std::unordered_set<int>;
 using dir_map_type = std::unordered_map<unsigned long, std::filesystem::path>;
 
@@ -1066,17 +1047,15 @@ inline auto unmark(std::filesystem::path const& full_path,
   return unmark(full_path, sr.watch_fd, sr.mark_set);
 }
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_open
-   Produces a `sys_resource_type` with the file descriptors from
-   `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/system_unfold
+Produces a `sys_resource_type` with the file descriptors from
+`fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
-do_sys_resource_open(std::filesystem::path const& path,
-                     ::wtr::watcher::event::callback const& callback) noexcept
+system_unfold(std::filesystem::path const& path,
+              ::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
-  namespace fs = std::filesystem;
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  namespace fs = ::std::filesystem;
 
   auto const& do_error = [&callback](auto const& error,
                                      auto const& path,
@@ -1089,7 +1068,9 @@ do_sys_resource_open(std::filesystem::path const& path,
                  .append(std::strerror(errno))
                  .append(")@")
                  .append(path);
-    callback({msg, evw::other, evk::watcher});
+    callback({msg,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -1117,7 +1098,7 @@ do_sys_resource_open(std::filesystem::path const& path,
     pmc.reserve(rsrv_count);
 
     /* The filesystem library throws here even if we use the error code
-       overloads. (Exceptions seem to be the only way to handle errors.) */
+    overloads. (Exceptions seem to be the only way to handle errors.) */
 
     if (mark(base_path, watch_fd, pmc))
       if (fs::is_directory(base_path)) try {
@@ -1125,11 +1106,12 @@ do_sys_resource_open(std::filesystem::path const& path,
             if (fs::is_directory(dir))
               if (! mark(dir.path(), watch_fd, pmc))
                 callback({"w/sys/not_watched@" / base_path / "@" / dir.path(),
-                          evw::other,
-                          evk::watcher});
+                          ::wtr::watcher::event::what::other,
+                          ::wtr::watcher::event::kind::watcher});
         } catch (...) {
-          callback(
-            {"w/sys/not_watched@" / base_path, evw::other, evk::watcher});
+          callback({"w/sys/not_watched@" / base_path,
+                    ::wtr::watcher::event::what::other,
+                    ::wtr::watcher::event::kind::watcher});
         }
 
     return pmc;
@@ -1144,8 +1126,8 @@ do_sys_resource_open(std::filesystem::path const& path,
       int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
       /* @note We could make the epoll and fanotify file descriptors
-         non-blocking with `fcntl`. It's not clear if we can do this
-         from their `*_init` calls. */
+      non-blocking with `fcntl`. It's not clear if we can do this
+      from their `*_init` calls. */
       /* fcntl(watch_fd, F_SETFL, O_NONBLOCK); */
       /* fcntl(event_fd, F_SETFL, O_NONBLOCK); */
 
@@ -1171,68 +1153,68 @@ do_sys_resource_open(std::filesystem::path const& path,
     return do_error("e/sys/fanotify_init", path, watch_fd);
 }
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_close
-   Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/system_fold
+Close the file descriptors `watch_fd` and `event_fd`. */
+inline auto system_fold(sys_resource_type& sr) noexcept -> bool
 {
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/lift_event
-    This lifts a path from our cache, in the system resource object `sr`, if
-    available. Otherwise, it will try to read a directory and directory entry.
-    Sometimes, such as on a directory being destroyed and the file not being
-    able to be opened, the directory entry is the only event info. We can still
-    get the rest of the path in those cases, however, by looking up the cached
-    "upper" directory that event belongs to.
+/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/raise
+Promotes an event to a full path and a hash.
 
-    Using the cache is helpful in other cases, too. This is an averaged bench of
-    the three paths this function can go down:
-      - Cache:            2427ns
-      - Dir:              8905ns
-      - Dir + Dir Entry:  31966ns
+This uses a path from our cache, in the system resource object `sr`, if
+available. Otherwise, it will try to read a directory and directory entry.
+Sometimes, such as on a directory being destroyed and the file not being
+able to be opened, the directory entry is the only event info. We can still
+get the rest of the path in those cases, however, by looking up the cached
+"upper" directory that event belongs to.
 
-    The shenanigans we do here depend on this event being
-    `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
-    some info about the directory and the directory entry
-    (the filename) of this event that doesn't exist when
-    other event types are reported. In particular, we need
-    a file descriptor to the directory (which we use
-    `readlink` on) and a character string representing the
-    name of the directory entry.
-    TLDR: We need information for the full path of the event,
-    information which is only reported inside this `if`.
+Using the cache is helpful in other cases, too. This is an averaged bench of
+the three branches this function can go down:
+- Cache:            2427ns
+- Dir:              8905ns
+- Dir + Dir Entry:  31966ns
 
-    From the kernel:
-      Variable size struct for
-      dir file handle + child file handle + name
+The shenanigans we do here depend on this event being
+`FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
+some info about the directory and the directory entry
+(the filename) of this event that doesn't exist when
+other event types are reported. In particular, we need
+a file descriptor to the directory (which we use
+`readlink` on) and a character string representing the
+name of the directory entry.
+TLDR: We need information for the full path of the event,
+information which is only reported inside this `if`.
 
-      [ Omitting definition of `fanotify_info` here ]
+From the kernel:
+Variable size struct for
+dir file handle + child file handle + name
 
-      (struct fanotify_fh) dir_fh starts at
-      buf[0]
+[ Omitting definition of `fanotify_info` here ]
 
-      (optional) dir2_fh starts at
-      buf[dir_fh_totlen]
+(struct fanotify_fh) dir_fh starts at
+buf[0]
 
-      (optional) file_fh starts at
-      buf[dir_fh_totlen + dir2_fh_totlen]
+(optional) dir2_fh starts at
+buf[dir_fh_totlen]
 
-      name starts at
-      buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
-      ...
+(optional) file_fh starts at
+buf[dir_fh_totlen + dir2_fh_totlen]
 
-    The kernel guarentees that there is a null-terminated
-    character string to the event's directory entry
-    after the file handle to the directory.
-    Confusing, right? */
-inline auto lift_event(sys_resource_type& sr,
-                       fanotify_event_info_fid const* dir_fid_info,
-                       std::filesystem::path const& base_path,
-                       ::wtr::watcher::event::callback const& callback) noexcept
+name starts at
+buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
+...
+
+The kernel guarentees that there is a null-terminated
+character string to the event's directory entry
+after the file handle to the directory.
+Confusing, right? */
+inline auto raise(sys_resource_type& sr,
+                  fanotify_event_metadata const* metadata) noexcept
   -> std::tuple<std::filesystem::path, unsigned long>
 {
-  namespace fs = std::filesystem;
+  namespace fs = ::std::filesystem;
 
   auto path_imbue = [](char* path_accum,
                        fanotify_event_info_fid const* dfid_info,
@@ -1251,10 +1233,12 @@ inline auto lift_event(sys_resource_type& sr,
                     file_name);
   };
 
-  auto* dir_fh = (file_handle*)(dir_fid_info->handle);
+  auto dir_fid_info = ((fanotify_event_info_fid const*)(metadata + 1));
+
+  auto dir_fh = (file_handle*)(dir_fid_info->handle);
 
   /* The sum of the handle's bytes. A low-quality hash.
-     Unreliable after the directory's inode is recycled. */
+  Unreliable after the directory's inode is recycled. */
   unsigned long dir_hash = std::abs(dir_fh->handle_type);
   for (unsigned char i = 0; i < dir_fh->handle_bytes; i++)
     dir_hash += *(dir_fh->f_handle + i);
@@ -1280,28 +1264,24 @@ inline auto lift_event(sys_resource_type& sr,
                                dir_fh,
                                O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
     if (fd > 0) {
-      char procpath[128];
-      std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
+      char fs_proc_path[128];
+      std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
       ssize_t dirname_len =
-        readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
+        readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
       close(fd);
 
       if (dirname_len > 0) {
         /* Put the directory name in the path accumulator.
-           Passing `dirname_len` has the effect of putting
-           the event's filename in the path buffer as well. */
+        Passing `dirname_len` has the effect of putting
+        the event's filename in the path buffer as well. */
         path_buf[dirname_len] = '\0';
         path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
         return std::make_tuple(fs::path{std::move(path_buf)}, dir_hash);
       }
-      else {
-        callback({"w/sys/readlink@" / base_path,
-                  ::wtr::watcher::event::what::other,
-                  ::wtr::watcher::event::kind::watcher});
+      else
 
         return std::make_tuple(fs::path{}, 0);
-      }
     }
     else {
       path_imbue(path_buf, dir_fid_info, dir_fh);
@@ -1311,64 +1291,80 @@ inline auto lift_event(sys_resource_type& sr,
   }
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_send
-   Send events to the user. */
-inline auto do_event_send(std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback,
-                          sys_resource_type& sr,
-                          fanotify_event_metadata const* metadata) noexcept
+inline auto raise(fanotify_event_metadata const* m) noexcept
+{
+  using namespace ::wtr::watcher::event;
+
+  return std::make_tuple(
+
+    m->mask & FAN_CREATE   ? what::create
+    : m->mask & FAN_DELETE ? what::destroy
+    : m->mask & FAN_MODIFY ? what::modify
+    : m->mask & FAN_MOVE   ? what::rename
+                           : what::other,
+
+    m->mask & FAN_ONDIR ? kind::dir : kind::file);
+}
+
+/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/send
+Send events to the user.
+
+This is the important part.
+Most of the other code is
+a layer of translation
+between us and the kernel. */
+inline auto send(sys_resource_type& sr,
+                 fanotify_event_metadata const* m,
+                 ::wtr::watcher::event::callback const& callback) noexcept
   -> bool
 {
   using namespace ::wtr::watcher::event;
 
-  auto [path, hash] =
-    lift_event(sr,
-               ((fanotify_event_info_fid const*)(metadata + 1)),
-               base_path,
-               callback);
+  auto [path, hash] = raise(sr, m);
 
-  auto m = metadata->mask;
+  auto [what, kind] = raise(m);
 
-  auto w = m & FAN_CREATE ? what::create
-         : m & FAN_DELETE ? what::destroy
-         : m & FAN_MODIFY ? what::modify
-         : m & FAN_MOVE   ? what::rename
-                          : what::other;
+  auto tend
 
-  auto k = m & FAN_ONDIR ? kind::dir : kind::file;
+    = hash ? kind == kind::dir
 
-  callback({path, w, k});
+             ? what == what::create  ? mark(path, sr, hash)
+             : what == what::destroy ? unmark(path, sr, hash)
+                                     : true
+             : true
+
+           : false;
 
   return
 
-    hash ? k == kind::dir ? w == what::create  ? mark(path, sr, hash)
-                          : w == what::destroy ? unmark(path, sr, hash)
-                                               : true
-                          : true
+    tend ? callback({path, what, kind}),
+
+    true
+
          : false;
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_recv
-   Reads through available (fanotify) filesystem events.
-   Discerns their path and type.
-   Calls the callback.
-   Returns false on eventful errors.
-   @note
-   The `metadata->fd` field contains either a file
-   descriptor or the value `FAN_NOFD`. File descriptors
-   are always greater than 0. `FAN_NOFD` represents an
-   event queue overflow for `fanotify` listeners which
-   are _not_ monitoring file handles, such as mount
-   monitors. The file handle is in the metadata when an
-   `fanotify` listener is monitoring events by their
-   file handles.
-   The `metadata->vers` field may differ between kernel
-   versions, so we check it against what we have been
-   compiled with. */
-inline auto
-do_event_recv(sys_resource_type& sr,
-              std::filesystem::path const& base_path,
-              ::wtr::watcher::event::callback const& callback) noexcept -> bool
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/recv
+Reads through available (fanotify) filesystem events.
+Discerns their path and type.
+Calls the callback.
+Returns false on eventful errors.
+@note
+The `metadata->fd` field contains either a file
+descriptor or the value `FAN_NOFD`. File descriptors
+are always greater than 0. `FAN_NOFD` represents an
+event queue overflow for `fanotify` listeners which
+are _not_ monitoring file handles, such as mount
+monitors. The file handle is in the metadata when an
+`fanotify` listener is monitoring events by their
+file handles.
+The `metadata->vers` field may differ between kernel
+versions, so we check it against what we have been
+compiled with. */
+inline auto recv(sys_resource_type& sr,
+                 std::filesystem::path const& base_path,
+                 ::wtr::watcher::event::callback const& callback) noexcept
+  -> bool
 {
   enum class state { ok, none, err };
 
@@ -1399,12 +1395,8 @@ do_event_recv(sys_resource_type& sr,
               if (((fanotify_event_info_fid*)(metadata + 1))->hdr.info_type
                   == FAN_EVENT_INFO_TYPE_DFID_NAME)
 
-                /* This is the important part:
-                   Send the events we recieve.
-                   Everything before here here
-                   is a layer of translation
-                   between us and the kernel. */
-                return do_event_send(base_path, callback, sr, metadata);
+                /* Send the events we recieve. */
+                return send(sr, metadata, callback);
 
               else
                 return ! do_error("w/self/event_info");
@@ -1425,82 +1417,82 @@ do_event_recv(sys_resource_type& sr,
   return false;
 };
 
-} /* namespace */
+/*  @brief wtr/watcher/<d>/adapter/watch
+Monitors `path` for changes.
+Invokes `callback` with an `event` when they happen.
+`watch` stops when asked to or irrecoverable errors occur.
+All events, including errors, are passed to `callback`.
 
-/*
-  @brief wtr/watcher/<d>/adapter/watch
-  Monitors `path` for changes.
-  Invokes `callback` with an `event` when they happen.
-  `watch` stops when asked to or irrecoverable errors occur.
-  All events, including errors, are passed to `callback`.
+@param path
+A filesystem path to watch for events.
 
-  @param path
-    A filesystem path to watch for events.
+@param callback
+A function to invoke with an `event` object
+when the files being watched change.
 
-  @param callback
-    A function to invoke with an `event` object
-    when the files being watched change.
-
-  @param is_living
-    A function to decide whether we're dead.
-*/
+@param is_living
+A function to decide whether we're dead. */
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
-
-  auto do_error = [&path, &callback](sys_resource_type& sr,
-                                     char const* msg) -> bool
+  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
   {
-    callback({msg / path, evw::other, evk::watcher});
+    callback({msg / path,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
 
-    if (do_sys_resource_close(sr))
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    if (clean)
+      callback({"s/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"e/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     return false;
   };
 
-  /* We have:
-       - system resources
-           For fanotify and epoll
-       - event recieve list
-           For receiving epoll events */
+  /*  While living, with
+  - System resources for fanotify and epoll
+  - An event list for receiving epoll events
 
-  sys_resource_type sr = do_sys_resource_open(path, callback);
+  Do
+  - Await filesystem events
+  - Invoke `callback` on errors and events */
 
-  if (sr.valid) {
-    epoll_event event_recv_list[event_wait_queue_max];
+  sys_resource_type sr = system_unfold(path, callback);
 
-    /* While living:
-        - Await filesystem events
-        - Invoke `callback` on errors and events */
+  epoll_event event_recv_list[event_wait_queue_max];
 
-    while (is_living()) {
+  if (sr.valid) [[likely]] {
+    while (is_living()) [[likely]]
+
+    {
       int event_count = epoll_wait(sr.event_fd,
                                    event_recv_list,
                                    event_wait_queue_max,
                                    delay_ms);
       if (event_count < 0)
-        return do_error(sr, "e/sys/epoll_wait");
+        return do_error(system_fold(sr), "e/sys/epoll_wait");
 
       else if (event_count > 0) [[likely]]
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
             if (is_living()) [[likely]]
-              if (! do_event_recv(sr, path, callback)) [[unlikely]]
-                return do_error(sr, "e/self/event_recv");
+              if (! recv(sr, path, callback)) [[unlikely]]
+                return do_error(system_fold(sr), "e/self/event_recv");
     }
 
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-    return do_sys_resource_close(sr);
+    callback({"s/self/die@" + path.string(),
+              ::wtr::watcher::event::what::destroy,
+              ::wtr::watcher::event::kind::watcher});
+    return system_fold(sr);
   }
   else
-    return do_error(sr, "e/self/sys_resource");
+    return do_error(system_fold(sr), "e/self/sys_resource");
 }
 
 } /* namespace fanotify */
@@ -1511,13 +1503,10 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-          && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+&& !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
-/*
-  @brief wtr/watcher/<d>/adapter/linux/inotify
-
-  The Linux `inotify` adapter.
-*/
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify
+The Linux `inotify` adapter. */
 
 /* WATER_WATCHER_PLATFORM_* */
 
@@ -1528,38 +1517,30 @@ inline bool watch(std::filesystem::path const& path,
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
 /* EPOLL*
-   epoll_ctl
-   epoll_wait
-   epoll_event
-   epoll_create
-   epoll_create1 */
-#include <sys/epoll.h>
+epoll_ctl
+epoll_wait
+epoll_event
+epoll_create
+epoll_create1 */
 /* IN_*
-   inotify_init
-   inotify_init1
-   inotify_event
-   inotify_add_watch */
-#include <sys/inotify.h>
+inotify_init
+inotify_init1
+inotify_event
+inotify_add_watch */
 /* open
-   read
-   close */
-#include <unistd.h>
+read
+close */
 /* path
-   is_directory
-   directory_options
-   recursive_directory_iterator */
-#include <filesystem>
+is_directory
+directory_options
+recursive_directory_iterator */
 /* function */
-#include <functional>
 /* tuple
-   make_tuple */
-#include <tuple>
+make_tuple */
 /* unordered_map */
-#include <unordered_map>
 /* memcpy */
-#include <cstring>
 /* event
-   callback */
+callback */
 
 namespace detail {
 namespace wtr {
@@ -1567,34 +1548,30 @@ namespace watcher {
 namespace adapter {
 namespace inotify {
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>
-   Anonymous namespace for "private" things. */
-namespace {
-
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/constants
-   - delay
-       The delay, in milliseconds, while `epoll_wait` will
-       'sleep' for until we are woken up. We usually check
-       if we're still alive at that point.
-   - event_wait_queue_max
-       Number of events allowed to be given to do_event_recv
-       (returned by `epoll_wait`). Any number between 1
-       and some large number should be fine. We don't
-       lose events if we 'miss' them, the events are
-       still waiting in the next call to `epoll_wait`.
-   - event_buf_len:
-       For our event buffer, 4096 is a typical page size
-       and sufficiently large to hold a great many events.
-       That's a good thumb-rule.
-   - in_init_opt
-       Use non-blocking IO.
-   - in_watch_opt
-       Everything we can get.
-   @todo
-   - Measure perf of IN_ALL_EVENTS
-   - Handle move events properly.
-     - Use IN_MOVED_TO
-     - Use event::<something> */
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/constants
+- delay
+The delay, in milliseconds, while `epoll_wait` will
+'sleep' for until we are woken up. We usually check
+if we're still alive at that point.
+- event_wait_queue_max
+Number of events allowed to be given to do_event_recv
+(returned by `epoll_wait`). Any number between 1
+and some large number should be fine. We don't
+lose events if we 'miss' them, the events are
+still waiting in the next call to `epoll_wait`.
+- event_buf_len:
+For our event buffer, 4096 is a typical page size
+and sufficiently large to hold a great many events.
+That's a good thumb-rule.
+- in_init_opt
+Use non-blocking IO.
+- in_watch_opt
+Everything we can get.
+@todo
+- Measure perf of IN_ALL_EVENTS
+- Handle move events properly.
+- Use IN_MOVED_TO
+- Use event::<something> */
 inline constexpr auto delay_ms = 16;
 inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
@@ -1602,13 +1579,13 @@ inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt =
   IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
-   - path_map_type
-       An alias for a map of file descriptors to paths.
-   - sys_resource_type
-       An object representing an inotify file descriptor,
-       an epoll file descriptor, an epoll configuration,
-       and whether or not these resources are valid. */
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
+- path_map_type
+An alias for a map of file descriptors to paths.
+- sys_resource_type
+An object representing an inotify file descriptor,
+an epoll file descriptor, an epoll configuration,
+and whether or not the resources are valid */
 using path_map_type = std::unordered_map<int, std::filesystem::path>;
 
 struct sys_resource_type {
@@ -1618,21 +1595,19 @@ struct sys_resource_type {
   epoll_event event_conf;
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
-   If the path given is a directory
-     - find all directories above the base path given.
-     - ignore nonexistent directories.
-     - return a map of watch descriptors -> directories.
-   If `path` is a file
-     - return it as the only value in a map.
-     - the watch descriptor key should always be 1. */
-inline auto
-do_path_map_create(int const watch_fd,
-                   std::filesystem::path const& base_path,
-                   ::wtr::watcher::event::callback const& callback) noexcept
-  -> path_map_type
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
+If the path given is a directory
+- find all directories above the base path given.
+- ignore nonexistent directories.
+- return a map of watch descriptors -> directories.
+If `path` is a file
+- return it as the only value in a map.
+- the watch descriptor key should always be 1. */
+inline auto path_map(std::filesystem::path const& base_path,
+                     ::wtr::watcher::event::callback const& callback,
+                     sys_resource_type const& sr) noexcept -> path_map_type
 {
-  namespace fs = std::filesystem;
+  namespace fs = ::std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
 
@@ -1643,34 +1618,35 @@ do_path_map_create(int const watch_fd,
   static constexpr auto path_map_reserve_count = 256;
 
   auto dir_ec = std::error_code{};
-  auto path_map = path_map_type{};
-  path_map.reserve(path_map_reserve_count);
+  auto pm = path_map_type{};
+  pm.reserve(path_map_reserve_count);
 
   auto do_mark = [&](fs::path const& d) noexcept -> bool
   {
-    int wd = inotify_add_watch(watch_fd, d.c_str(), in_watch_opt);
-    return wd > 0 ? path_map.emplace(wd, d).first != path_map.end() : false;
+    int wd = inotify_add_watch(sr.watch_fd, d.c_str(), in_watch_opt);
+    return wd > 0 ? pm.emplace(wd, d).first != pm.end() : false;
   };
 
-  if (do_mark(base_path))
-    if (fs::is_directory(base_path, dir_ec))
-      for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
-        if (! dir_ec)
-          if (fs::is_directory(dir, dir_ec))
-            if (! dir_ec)
-              if (! do_mark(dir.path()))
-                callback({"w/sys/path_unwatched@" / dir.path(),
-                          ::wtr::watcher::event::what::other,
-                          ::wtr::watcher::event::kind::watcher});
+  if (sr.valid)
+    if (do_mark(base_path))
+      if (fs::is_directory(base_path, dir_ec))
+        for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
+          if (! dir_ec)
+            if (fs::is_directory(dir, dir_ec))
+              if (! dir_ec)
+                if (! do_mark(dir.path()))
+                  callback({"w/sys/path_unwatched@" / dir.path(),
+                            ::wtr::watcher::event::what::other,
+                            ::wtr::watcher::event::kind::watcher});
 
-  return path_map;
+  return pm;
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_open
-   Produces a `sys_resource_type` with the file descriptors from
-   `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/system_unfold
+Produces a `sys_resource_type` with the file descriptors from
+`inotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
-do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
+system_unfold(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](auto msg,
@@ -1720,51 +1696,49 @@ do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_close
-   Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/system_fold
+Close the file descriptors `watch_fd` and `event_fd`. */
+inline auto system_fold(sys_resource_type& sr) noexcept -> bool
 {
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
-/* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_event_recv
-   Reads through available (inotify) filesystem events.
-   Discerns their path and type.
-   Calls the callback.
-   Returns false on eventful errors.
+/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_event_recv
+Reads through available (inotify) filesystem events.
+Discerns their path and type.
+Calls the callback.
+Returns false on eventful errors.
 
-   @todo
-   Return new directories when they appear,
-   Consider running and returning `find_dirs` from here.
-   Remove destroyed watches. */
+@todo
+Return new directories when they appear,
+Consider running and returning `find_dirs` from here.
+Remove destroyed watches. */
 inline auto
 do_event_recv(int watch_fd,
-              path_map_type& path_map,
+              path_map_type& pm,
               std::filesystem::path const& base_path,
               ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
-  namespace fs = std::filesystem;
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  namespace fs = ::std::filesystem;
 
   alignas(inotify_event) char buf[event_buf_len];
 
   enum class state { eventful, eventless, error };
 
-  /* While inotify has events pending, read them.
-     There might be several events from a single read.
+  /*  While inotify has events pending, read them.
+  There might be several events from a single read.
 
-     Three possible states:
-      - eventful: there are events to read
-      - eventless: there are no events to read
-      - error: there was an error reading events
+  Three possible states:
+  - eventful: there are events to read
+  - eventless: there are no events to read
+  - error: there was an error reading events
 
-     The EAGAIN "error" means there is nothing
-     to read. We count that as 'eventless'.
+  The EAGAIN "error" means there is nothing
+  to read. We count that as 'eventless'.
 
-     Forward events and errors to the user.
+  Forward events and errors to the user.
 
-     Return when eventless. */
+  Return when eventless. */
 
 recurse:
 
@@ -1781,36 +1755,45 @@ recurse:
            this_event += this_event->len) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
           auto path =
-            path_map.find(this_event->wd)->second / fs::path(this_event->name);
+            pm.find(this_event->wd)->second / fs::path(this_event->name);
 
-          auto kind = this_event->mask & IN_ISDIR ? evk::dir : evk::file;
+          auto kind = this_event->mask & IN_ISDIR
+                      ? ::wtr::watcher::event::kind::dir
+                      : ::wtr::watcher::event::kind::file;
 
-          auto what = this_event->mask & IN_CREATE ? evw::create
-                    : this_event->mask & IN_DELETE ? evw::destroy
-                    : this_event->mask & IN_MOVE   ? evw::rename
-                    : this_event->mask & IN_MODIFY ? evw::modify
-                                                   : evw::other;
+          auto what =
+            this_event->mask & IN_CREATE ? ::wtr::watcher::event::what::create
+            : this_event->mask & IN_DELETE
+              ? ::wtr::watcher::event::what::destroy
+            : this_event->mask & IN_MOVE   ? ::wtr::watcher::event::what::rename
+            : this_event->mask & IN_MODIFY ? ::wtr::watcher::event::what::modify
+                                           : ::wtr::watcher::event::what::other;
 
           callback({path, what, kind});
 
-          if (kind == evk::dir && what == evw::create)
-            path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] =
-              path;
+          if (kind == ::wtr::watcher::event::kind::dir
+              && what == ::wtr::watcher::event::what::create)
+            pm[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] = path;
 
-          else if (kind == evk::dir && what == evw::destroy) {
+          else if (kind == ::wtr::watcher::event::kind::dir
+                   && what == ::wtr::watcher::event::what::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
-            path_map.erase(this_event->wd);
+            pm.erase(this_event->wd);
           }
         }
         else
-          callback({"e/self/overflow@" / base_path, evw::other, evk::watcher});
+          callback({"e/self/overflow@" / base_path,
+                    ::wtr::watcher::event::what::other,
+                    ::wtr::watcher::event::kind::watcher});
       }
       /* Same as `return do_event_recv(..., buf)`.
-         Our stopping condition is `eventless` or `error`. */
+      Our stopping condition is `eventless` or `error`. */
       goto recurse;
 
     case state::error :
-      callback({"e/sys/read@" / base_path, evw::other, evk::watcher});
+      callback({"e/sys/read@" / base_path,
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
       return false;
 
     case state::eventless : return true;
@@ -1820,90 +1803,95 @@ recurse:
   return false;
 }
 
-} /* namespace */
+/*  @brief wtr/watcher/<d>/adapter/watch
+Monitors `path` for changes.
+Invokes `callback` with an `event` when they happen.
+`watch` stops when asked to or irrecoverable errors occur.
+All events, including errors, are passed to `callback`.
 
-/*
-  @brief wtr/watcher/<d>/adapter/watch
-  Monitors `path` for changes.
-  Invokes `callback` with an `event` when they happen.
-  `watch` stops when asked to or irrecoverable errors occur.
-  All events, including errors, are passed to `callback`.
+@param path
+A filesystem path to watch for events.
 
-  @param path
-    A filesystem path to watch for events.
+@param callback
+A function to invoke with an `event` object
+when the files being watched change.
 
-  @param callback
-    A function to invoke with an `event` object
-    when the files being watched change.
-
-  @param is_living
-    A function to decide whether we're dead.
-*/
+@param is_living
+A function to decide whether we're dead. */
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
-
-  auto do_error = [&path, &callback](sys_resource_type& sr,
-                                     char const* msg) -> bool
+  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
   {
-    callback({msg / path, evw::other, evk::watcher});
+    /* using evk = ::wtr::watcher::event::kind; */
+    /* using evw = ::wtr::watcher::event::what; */
 
-    if (do_sys_resource_close(sr))
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    callback({msg / path,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
+
+    if (clean)
+      callback({"s/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"e/self/die@" + path.string(),
+                ::wtr::watcher::event::what::other,
+                ::wtr::watcher::event::kind::watcher});
 
     return false;
   };
 
-  /* We have:
-       - system resources
-           For inotify and epoll
-       - event recieve list
-           For receiving epoll events
-       - path map
-           For event to path lookups */
+  /*  While living, with
+  - A lifetime the user hasn't ended
+  - A historical map of watch descriptors
+  to long paths (for event reporting)
+  - System resources for inotify and epoll
+  - An event buffer for events from epoll
 
-  sys_resource_type sr = do_sys_resource_open(callback);
-  if (sr.valid) {
-    auto path_map = do_path_map_create(sr.watch_fd, path, callback);
+  Do
+  - Await filesystem events
+  - Invoke `callback` on errors and events */
 
-    if (path_map.size() > 0) {
-      epoll_event event_recv_list[event_wait_queue_max];
+  sys_resource_type sr = system_unfold(callback);
 
-      /* While living:
-          - Await filesystem events
-          - Invoke `callback` on errors and events */
+  epoll_event event_recv_list[event_wait_queue_max];
 
-      while (is_living()) {
+  auto pm = path_map(path, callback, sr);
+
+  if (sr.valid) [[likely]]
+
+    if (pm.size() > 0) [[likely]] {
+      while (is_living()) [[likely]]
+
+      {
         int event_count = epoll_wait(sr.event_fd,
                                      event_recv_list,
                                      event_wait_queue_max,
                                      delay_ms);
 
         if (event_count < 0)
-          return do_error(sr, "e/sys/epoll_wait@");
+          return do_error(system_fold(sr), "e/sys/epoll_wait@");
 
         else if (event_count > 0) [[likely]]
           for (int n = 0; n < event_count; n++)
             if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-              if (! do_event_recv(sr.watch_fd, path_map, path, callback))
-                [[unlikely]]
-                return do_error(sr, "e/self/event_recv@");
+              if (! do_event_recv(sr.watch_fd, pm, path, callback)) [[unlikely]]
+                return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-      return do_sys_resource_close(sr);
+      callback({"s/self/die@" + path.string(),
+                ::wtr::watcher::event::what::destroy,
+                ::wtr::watcher::event::kind::watcher});
+      return system_fold(sr);
     }
     else
-      return do_error(sr, "e/self/path_map@");
-  }
+      return do_error(system_fold(sr), "e/self/path_map@");
+
   else
-    return do_error(sr, "e/self/sys_resource@");
+    return do_error(system_fold(sr), "e/self/sys_resource@");
 }
 
 } /* namespace inotify */
@@ -1914,12 +1902,12 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+|| defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
 /*
-  @brief wtr/detail/wtr/watcher/adapter/linux
+@brief wtr/detail/wtr/watcher/adapter/linux
 
-  The Linux adapters.
+The Linux adapters.
 */
 
 /* WATER_WATCHER_PLATFORM_* */
@@ -1929,13 +1917,11 @@ inline bool watch(std::filesystem::path const& path,
 #if ! defined(WATER_WATCHER_USE_WARTHOG)
 
 /* function */
-#include <functional>
 /* geteuid */
-#include <unistd.h>
 /* event
-   callback
-   inotify::watch
-   fanotify::watch */
+callback
+inotify::watch
+fanotify::watch */
 
 namespace detail {
 namespace wtr {
@@ -1943,33 +1929,33 @@ namespace watcher {
 namespace adapter {
 
 /*
-  @brief detail/wtr/watcher/adapter/watch
+@brief detail/wtr/watcher/adapter/watch
 
-  Monitors `path` for changes.
-  Invokes `callback` with an `event` when they happen.
-  `watch` stops when asked to or unrecoverable errors occur.
-  All events, including errors, are passed to `callback`.
+Monitors `path` for changes.
+Invokes `callback` with an `event` when they happen.
+`watch` stops when asked to or unrecoverable errors occur.
+All events, including errors, are passed to `callback`.
 
-  @param path
-    A filesystem path to watch for events.
+@param path
+A filesystem path to watch for events.
 
-  @param callback
-    A function to invoke with an `event` object
-    when the files being watched change.
+@param callback
+A function to invoke with an `event` object
+when the files being watched change.
 
-  @param is_living
-    A function to decide whether we're dead.
+@param is_living
+A function to decide whether we're dead.
 
-  @note
-  If we have a kernel that can use either `fanotify` or
-  `inotify`, then we will use `fanotify` if the user is
-  (effectively) root.
+@note
+If we have a kernel that can use either `fanotify` or
+`inotify`, then we will use `fanotify` if the user is
+(effectively) root.
 
-  If we can only use `fanotify` or `inotify`, then we'll
-  use them. We only use `inotify` on Android.
+If we can only use `fanotify` or `inotify`, then we'll
+use them. We only use `inotify` on Android.
 
-  There should never be a system that can use `fanotify`,
-  but not `inotify`. It's just here for completeness.
+There should never be a system that can use `fanotify`,
+but not `inotify`. It's just here for completeness.
 */
 
 inline bool watch(std::filesystem::path const& path,
@@ -2005,13 +1991,13 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+|| defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 
 /*
-  @brief watcher/adapter/android
+@brief watcher/adapter/android
 
-  The Android (Linux) `inotify` adapter.
+The Android (Linux) `inotify` adapter.
 */
 
 /* WATER_WATCHER_PLATFORM_* */
@@ -2025,34 +2011,27 @@ inline bool watch(std::filesystem::path const& path,
   || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
-  @brief watcher/adapter/warthog
+@brief watcher/adapter/warthog
 
-  A reasonably dumb adapter that works on any platform.
+A reasonably dumb adapter that works on any platform.
 
-  This adapter beats `kqueue`, but it doesn't bean recieving
-  filesystem events directly from the OS.
+This adapter beats `kqueue`, but it doesn't bean recieving
+filesystem events directly from the OS.
 
-  This is the fallback adapter on platforms that either
-    - Only support `kqueue` (`warthog` beats `kqueue`)
-    - Only support the C++ standard library
+This is the fallback adapter on platforms that either
+- Only support `kqueue` (`warthog` beats `kqueue`)
+- Only support the C++ standard library
 */
 
 /* milliseconds */
-#include <chrono>
 /* string */
-#include <string>
 /* filesystem::* */
-#include <filesystem>
 /* function */
-#include <functional>
 /* error_code */
-#include <system_error>
 /* this_thread::sleep_for */
-#include <thread>
 /* unordered_map */
-#include <unordered_map>
 /* event
-   callback */
+callback */
 
 namespace detail {
 namespace wtr {
@@ -2063,29 +2042,29 @@ namespace {
 /* clang-format off */
 
 inline constexpr std::filesystem::directory_options
-  scan_dir_options = 
-    /* This is ridiculous */
-    std::filesystem::directory_options::skip_permission_denied 
-    & std::filesystem::directory_options::follow_directory_symlink;
+scan_dir_options =
+/* This is ridiculous */
+std::filesystem::directory_options::skip_permission_denied
+& std::filesystem::directory_options::follow_directory_symlink;
 
 using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_type>;
 
 /* clang-format on */
 
 /*  @brief watcher/adapter/warthog/scan
-    - Scans `path` for changes.
-    - Updates our bucket to match the changes.
-    - Calls `send_event` when changes happen.
-    - Returns false if the file tree cannot be scanned. */
+- Scans `path` for changes.
+- Updates our bucket to match the changes.
+- Calls `send_event` when changes happen.
+- Returns false if the file tree cannot be scanned. */
 inline bool scan(std::filesystem::path const& path,
                  auto const& send_event,
                  bucket_type& bucket) noexcept
 {
   /* @brief watcher/adapter/warthog/scan_file
-     - Scans a (single) file for changes.
-     - Updates our bucket to match the changes.
-     - Calls `send_event` when changes happen.
-     - Returns false if the file cannot be scanned. */
+  - Scans a (single) file for changes.
+  - Updates our bucket to match the changes.
+  - Calls `send_event` when changes happen.
+  - Returns false if the file cannot be scanned. */
   auto const& scan_file = [&](std::filesystem::path const& file,
                               auto const& send_event) -> bool
   {
@@ -2126,10 +2105,10 @@ inline bool scan(std::filesystem::path const& path,
   };
 
   /* @brief watcher/adapter/warthog/scan_directory
-     - Scans a (single) directory for changes.
-     - Updates our bucket to match the changes.
-     - Calls `send_event` when changes happen.
-     - Returns false if the directory cannot be scanned. */
+  - Scans a (single) directory for changes.
+  - Updates our bucket to match the changes.
+  - Calls `send_event` when changes happen.
+  - Returns false if the directory cannot be scanned. */
   auto const& scan_directory = [&](std::filesystem::path const& dir,
                                    auto const& send_event) -> bool
   {
@@ -2158,22 +2137,22 @@ inline bool scan(std::filesystem::path const& path,
 };
 
 /* @brief wtr/watcher/warthog/tend_bucket
-   If the bucket is empty, try to populate it.
-   otherwise, prune it. */
+If the bucket is empty, try to populate it.
+otherwise, prune it. */
 inline bool tend_bucket(std::filesystem::path const& path,
                         auto const& send_event,
                         bucket_type& bucket) noexcept
 {
   /*  @brief watcher/adapter/warthog/populate
-      @param path - path to monitor for
-      Creates a file map, the "bucket", from `path`. */
+  @param path - path to monitor for
+  Creates a file map, the "bucket", from `path`. */
   auto const& populate = [&](std::filesystem::path const& path) -> bool
   {
     using std::filesystem::exists, std::filesystem::is_directory,
       std::filesystem::recursive_directory_iterator,
       std::filesystem::last_write_time;
     /* this happens when a path was changed while we were reading it.
-     there is nothing to do here; we prune later. */
+    there is nothing to do here; we prune later. */
     auto dir_it_ec = std::error_code{};
     auto lwt_ec = std::error_code{};
     if (exists(path)) {
@@ -2187,7 +2166,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
               bucket[file.path()] = lwt;
             else
               /* @todo use this practice elsewhere or make a fn for it
-                 otherwise, this might be confusing and inconsistent. */
+              otherwise, this might be confusing and inconsistent. */
               bucket[file.path()] = last_write_time(path);
           }
         }
@@ -2204,7 +2183,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
   };
 
   /*  @brief watcher/adapter/warthog/prune
-      Removes files which no longer exist from our bucket. */
+  Removes files which no longer exist from our bucket. */
   auto const& prune = [&](std::filesystem::path const& path,
                           auto const& send_event) -> bool
   {
@@ -2220,7 +2199,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
         /* if so, move on. */
         ? std::advance(bucket_it, 1)
         /* if not, call the closure, indicating destruction,
-           and remove it from our bucket. */
+        and remove it from our bucket. */
         : [&]()
       {
         send_event(event::event{bucket_it->first,
@@ -2245,20 +2224,20 @@ inline bool tend_bucket(std::filesystem::path const& path,
 } /* namespace */
 
 /*
-  @brief watcher/adapter/warthog/watch
+@brief watcher/adapter/warthog/watch
 
-  @param path:
-   A path to watch for changes.
+@param path:
+A path to watch for changes.
 
-  @param callback:
-   A callback to perform when the files
-   being watched change.
+@param callback:
+A callback to perform when the files
+being watched change.
 
-  Monitors `path` for changes.
+Monitors `path` for changes.
 
-  Calls `callback` with an `event` when they happen.
+Calls `callback` with an `event` when they happen.
 
-  Unless it should stop, or errors present, `watch` recurses.
+Unless it should stop, or errors present, `watch` recurses.
 */
 
 inline bool watch(std::filesystem::path const& path,
@@ -2268,12 +2247,12 @@ inline bool watch(std::filesystem::path const& path,
   using std::this_thread::sleep_for, std::chrono::milliseconds;
   /* Sleep for `delay_ms`.
 
-     Then, keep running if
-       - We are alive
-       - The bucket is doing well
-       - No errors occured while scanning
+  Then, keep running if
+  - We are alive
+  - The bucket is doing well
+  - No errors occured while scanning
 
-     Otherwise, stop and return false. */
+  Otherwise, stop and return false. */
 
   bucket_type bucket;
 
@@ -2303,24 +2282,19 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-          || defined(WATER_WATCHER_USE_WARTHOG) */
+|| defined(WATER_WATCHER_USE_WARTHOG) */
 
 /*  path */
-#include <filesystem>
 /*  shared_ptr */
-#include <memory>
 /*  mutex
-    scoped_lock */
-#include <mutex>
+scoped_lock */
 /*  mt19937
-    random_device
-    uniform_int_distribution */
-#include <random>
+random_device
+uniform_int_distribution */
 /*  unordered_map */
-#include <unordered_map>
 /*  watch
-    event
-    callback */
+event
+callback */
 
 namespace detail {
 namespace wtr {
@@ -2335,14 +2309,14 @@ struct message {
 };
 
 /*
-    carry message { live, 0 } =
-      id = random
-      message { die, id }
-      { live, id }
+carry message { live, 0 } =
+id = random
+message { die, id }
+{ live, id }
 
-    carry message { die, id } =
-      { die, id }
- */
+carry message { die, id } =
+{ die, id }
+*/
 inline message carry(std::shared_ptr<message> m) noexcept
 {
   auto random_id = []() noexcept -> size_t
@@ -2381,7 +2355,7 @@ inline size_t adapter(std::filesystem::path const& path,
   auto const msg = carry(previous);
 
   /*  Returns a functor to check if we're still living.
-      The functor is unique to every watcher. */
+  The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool
   {
     auto const& create_lifetime =
@@ -2446,56 +2420,52 @@ inline size_t adapter(std::filesystem::path const& path,
 }  // namespace detail
 
 /*  path */
-#include <filesystem>
 /*  async */
-#include <future>
 /*  function */
-#include <functional>
 /*  shared_ptr */
-#include <memory>
 /*  event
-    callback
-    adapter */
+callback
+adapter */
 
 namespace wtr {
 namespace watcher {
 
 /*  @brief wtr/watcher/watch
 
-    @param path:
-      The root path to watch for filesystem events.
+@param path:
+The root path to watch for filesystem events.
 
-    @param living_cb (optional):
-      Something (such as a closure) to be called when events
-      occur in the path being watched.
+@param living_cb (optional):
+Something (such as a closure) to be called when events
+occur in the path being watched.
 
-    This is an adaptor "switch" that chooses the ideal adaptor
-    for the host platform.
+This is an adaptor "switch" that chooses the ideal adaptor
+for the host platform.
 
-    Every adapter monitors `path` for changes and invokes the
-    `callback` with an `event` object when they occur.
+Every adapter monitors `path` for changes and invokes the
+`callback` with an `event` object when they occur.
 
-    There are two things the user needs:
-      - The `watch` function
-      - The `event` object
+There are two things the user needs:
+- The `watch` function
+- The `event` object
 
-    The watch function returns a function to stop its watcher.
+The watch function returns a function to stop its watcher.
 
-    Typical use looks like this:
-      auto lifetime = watch(".", [](event& e) {
-        std::cout
-          << "where: " << e.where << "\n"
-          << "kind: "  << e.kind  << "\n"
-          << "what: "  << e.what  << "\n"
-          << "when: "  << e.when  << "\n"
-          << std::endl;
-      };
+Typical use looks like this:
+auto lifetime = watch(".", [](event& e) {
+std::cout
+<< "where: " << e.where << "\n"
+<< "kind: "  << e.kind  << "\n"
+<< "what: "  << e.what  << "\n"
+<< "when: "  << e.when  << "\n"
+<< std::endl;
+};
 
-      auto dead = lifetime();
+auto dead = lifetime();
 
-    That's it.
+That's it.
 
-    Happy hacking. */
+Happy hacking. */
 
 [[nodiscard("Returns a function used to stop this watcher")]]
 
@@ -2519,4 +2489,3 @@ watch(std::filesystem::path const& path,
 } /* namespace watcher */
 } /* namespace wtr   */
 #endif /* W973564ED9F278A21F3E12037288412FBAF175F889 */
-
