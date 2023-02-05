@@ -97,13 +97,13 @@ int main(int argc, char** argv) {
     using event::kind, event::what;
 
     auto const maybe_comma =
-    ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
+      ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
 
     std::cout << ev << maybe_comma << std::endl;
   };
 
   auto const watch_expire =
-  [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
+    [](auto const& path, auto const& callback, auto const& alive_for) -> bool {
     using namespace std::chrono;
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
@@ -134,11 +134,11 @@ int main(int argc, char** argv) {
      Or run forever. */
   return help()
 
-       ? 0
+         ? 0
 
-       : alive_for > 0ns
+         : alive_for > 0ns
 
-         ? ! watch_expire(path, stream_json, alive_for)
+             ? ! watch_expire(path, stream_json, alive_for)
 
-         : ! watch(path, stream_json)();
+             : ! watch(path, stream_json)();
 }

@@ -10,7 +10,7 @@
 #include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-&& ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+  && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if ! defined(WATER_WATCHER_USE_WARTHOG)
 
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
@@ -145,7 +145,7 @@ inline auto mark(std::filesystem::path const& full_path,
   int wd = fanotify_mark(watch_fd,
                          FAN_MARK_ADD,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
-                         | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                           | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
                          AT_FDCWD,
                          full_path.c_str());
   if (wd >= 0) {
@@ -173,7 +173,7 @@ inline auto unmark(std::filesystem::path const& full_path,
   int wd = fanotify_mark(watch_fd,
                          FAN_MARK_REMOVE,
                          FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE
-                         | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
+                           | FAN_MOVE | FAN_DELETE_SELF | FAN_MOVE_SELF,
                          AT_FDCWD,
                          full_path.c_str());
   auto const& at = mark_set.find(wd);
@@ -201,7 +201,7 @@ inline auto unmark(std::filesystem::path const& full_path,
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto do_sys_resource_open(std::filesystem::path const& path,
                                  event::callback const& callback) noexcept
--> sys_resource_type {
+  -> sys_resource_type {
   namespace fs = ::std::filesystem;
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
@@ -210,32 +210,32 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
                                      auto const& path,
                                      int watch_fd,
                                      int event_fd =
-                                     -1) noexcept -> sys_resource_type {
+                                       -1) noexcept -> sys_resource_type {
     auto msg = std::string(error)
-               .append("(")
-               .append(std::strerror(errno))
-               .append(")@")
-               .append(path);
+                 .append("(")
+                 .append(std::strerror(errno))
+                 .append(")@")
+                 .append(path);
     callback({msg, evw::other, evk::watcher});
     return sys_resource_type{
-    .valid = false,
-    .watch_fd = watch_fd,
-    .event_fd = event_fd,
-    .event_conf = {.events = 0, .data = {.fd = watch_fd}},
-    .mark_set = {},
-    .dir_map = {},
+      .valid = false,
+      .watch_fd = watch_fd,
+      .event_fd = event_fd,
+      .event_conf = {.events = 0, .data = {.fd = watch_fd}},
+      .mark_set = {},
+      .dir_map = {},
     };
   };
   auto do_path_map_container_create =
-  [](int const watch_fd,
-     fs::path const& base_path,
-     event::callback const& callback) -> mark_set_type {
+    [](int const watch_fd,
+       fs::path const& base_path,
+       event::callback const& callback) -> mark_set_type {
     using diter = fs::recursive_directory_iterator;
 
     /* Follow symlinks, ignore paths which we don't have permissions for. */
     static constexpr auto dopt =
-    fs::directory_options::skip_permission_denied
-    & fs::directory_options::follow_directory_symlink;
+      fs::directory_options::skip_permission_denied
+      & fs::directory_options::follow_directory_symlink;
 
     static constexpr auto rsrv_count = 1024;
 
@@ -255,7 +255,7 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
                           evk::watcher});
         } catch (...) {
           callback(
-          {"w/sys/not_watched@" / base_path, evw::other, evk::watcher});
+            {"w/sys/not_watched@" / base_path, evw::other, evk::watcher});
         }
 
     return pmc;
@@ -278,12 +278,12 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
       if (event_fd >= 0)
         if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
           return sys_resource_type{
-          .valid = true,
-          .watch_fd = watch_fd,
-          .event_fd = event_fd,
-          .event_conf = event_conf,
-          .mark_set = std::move(pmc),
-          .dir_map = {},
+            .valid = true,
+            .watch_fd = watch_fd,
+            .event_fd = event_fd,
+            .event_conf = event_conf,
+            .mark_set = std::move(pmc),
+            .dir_map = {},
           };
         else
           return do_error("e/sys/epoll_ctl", path, watch_fd, event_fd);
@@ -353,7 +353,7 @@ inline auto lift_event(sys_resource_type& sr,
                        fanotify_event_info_fid const* dir_fid_info,
                        std::filesystem::path const& base_path,
                        event::callback const& callback) noexcept
--> std::tuple<std::filesystem::path, unsigned long> {
+  -> std::tuple<std::filesystem::path, unsigned long> {
   namespace fs = ::std::filesystem;
 
   auto path_imbue = [](char* path_accum,
@@ -362,8 +362,8 @@ inline auto lift_event(sys_resource_type& sr,
                        ssize_t dir_name_len = 0) noexcept -> void {
     char* name_info = (char*)(dfid_info + 1);
     char* file_name = static_cast<char*>(
-    name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
-    + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
+      name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
+      + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
 
     if (file_name && std::strcmp(file_name, ".") != 0)
       std::snprintf(path_accum + dir_name_len,
@@ -404,7 +404,7 @@ inline auto lift_event(sys_resource_type& sr,
       char procpath[128];
       std::snprintf(procpath, sizeof(procpath), "/proc/self/fd/%d", fd);
       ssize_t dirname_len =
-      readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
+        readlink(procpath, path_buf, sizeof(path_buf) - sizeof('\0'));
       close(fd);
 
       if (dirname_len > 0) {
@@ -436,14 +436,14 @@ inline auto do_event_send(std::filesystem::path const& base_path,
                           event::callback const& callback,
                           sys_resource_type& sr,
                           fanotify_event_metadata const* metadata) noexcept
--> bool {
+  -> bool {
   using namespace ::wtr::watcher::event;
 
   auto [path, hash] =
-  lift_event(sr,
-             ((fanotify_event_info_fid const*)(metadata + 1)),
-             base_path,
-             callback);
+    lift_event(sr,
+               ((fanotify_event_info_fid const*)(metadata + 1)),
+               base_path,
+               callback);
 
   auto m = metadata->mask;
 
@@ -459,11 +459,11 @@ inline auto do_event_send(std::filesystem::path const& base_path,
 
   return
 
-  hash ? k == kind::dir ? w == what::create  ? mark(path, sr, hash)
-                        : w == what::destroy ? unmark(path, sr, hash)
-                                             : true
-                        : true
-       : false;
+    hash ? k == kind::dir ? w == what::create  ? mark(path, sr, hash)
+                          : w == what::destroy ? unmark(path, sr, hash)
+                                               : true
+                          : true
+         : false;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_recv
@@ -497,10 +497,10 @@ inline auto do_event_recv(sys_resource_type& sr,
   alignas(fanotify_event_metadata) char event_buf[event_buf_len];
   auto event_read = read(sr.watch_fd, event_buf, sizeof(event_buf));
 
-  switch (event_read > 0      ? state::ok
-          : event_read == 0   ? state::none
-            : errno == EAGAIN ? state::none
-                              : state::err) {
+  switch (event_read > 0    ? state::ok
+          : event_read == 0 ? state::none
+          : errno == EAGAIN ? state::none
+                            : state::err) {
     case state::ok : {
       /* Loop over everything in the event buffer. */
       for (auto* metadata = (fanotify_event_metadata const*)event_buf;
@@ -592,8 +592,10 @@ inline bool watch(std::filesystem::path const& path,
         - Invoke `callback` on errors and events */
 
     while (is_living()) {
-      int event_count =
-      epoll_wait(sr.event_fd, event_recv_list, event_wait_queue_max, delay_ms);
+      int event_count = epoll_wait(sr.event_fd,
+                                   event_recv_list,
+                                   event_wait_queue_max,
+                                   delay_ms);
       if (event_count < 0)
         return do_error(sr, "e/sys/epoll_wait");
 

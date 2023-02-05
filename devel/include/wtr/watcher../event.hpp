@@ -57,7 +57,7 @@ namespace event {
 
 namespace {
 using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
-std::chrono::time_point, std::chrono::system_clock;
+  std::chrono::time_point, std::chrono::system_clock;
 } /* namespace */
 
 /* @brief watcher/event/types
@@ -134,9 +134,9 @@ struct event {
   enum what const what;
   enum kind const kind;
   long long const when{
-  duration_cast<nanoseconds>(
-  time_point<system_clock>{system_clock::now()}.time_since_epoch())
-  .count()};
+    duration_cast<nanoseconds>(
+      time_point<system_clock>{system_clock::now()}.time_since_epoch())
+      .count()};
 
   event(std::filesystem::path const where,
         enum what const what,
@@ -153,14 +153,14 @@ struct event {
   friend bool operator==(event const& lhs, event const& rhs) noexcept {
     /* True if */
     return
-    /* The path */
-    lhs.where == rhs.where
-    /* And what happened */
-    && lhs.what == rhs.what
-    /* And the kind of path */
-    && lhs.kind == rhs.kind
-    /* And the time */
-    && lhs.when == rhs.when;
+      /* The path */
+      lhs.where == rhs.where
+      /* And what happened */
+      && lhs.what == rhs.what
+      /* And the kind of path */
+      && lhs.kind == rhs.kind
+      /* And the time */
+      && lhs.when == rhs.when;
     /* Are the same. */
   };
 

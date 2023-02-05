@@ -83,9 +83,9 @@ auto mk_events(std::filesystem::path const& base_path,
 
   if (options & mk_events_die_after) {
     auto ev =
-    event::event{std::string("s/self/die@").append(base_path.string()),
-                 event::what::destroy,
-                 event::kind::watcher};
+      event::event{std::string("s/self/die@").append(base_path.string()),
+                   event::what::destroy,
+                   event::kind::watcher};
     event_list->push_back(ev);
     auto has = false;
     for (auto& i : *event_list)

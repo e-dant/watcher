@@ -61,9 +61,9 @@ TEST_CASE("Simple", "[simple]") {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   event_sent_list.push_back(
-  {std::string("s/self/live@").append(store_path.string()),
-   event::what::create,
-   event::kind::watcher});
+    {std::string("s/self/live@").append(store_path.string()),
+     event::what::create,
+     event::kind::watcher});
 
   auto lifetime = wtr::watcher::watch(store_path, [](event::event const& ev) {
     auto _ = std::scoped_lock{event_recv_list_mtx};
@@ -80,24 +80,24 @@ TEST_CASE("Simple", "[simple]") {
     REQUIRE(std::filesystem::is_directory(new_dir_path));
 
     event_sent_list.push_back(
-    {new_dir_path, event::what::create, event::kind::dir});
+      {new_dir_path, event::what::create, event::kind::dir});
 
     auto const new_file_path =
-    store_path / ("new_file" + std::to_string(i) + ".txt");
+      store_path / ("new_file" + std::to_string(i) + ".txt");
     std::ofstream(new_file_path).close();
 
     REQUIRE(std::filesystem::is_regular_file(new_file_path));
 
     event_sent_list.push_back(
-    {new_file_path, event::what::create, event::kind::file});
+      {new_file_path, event::what::create, event::kind::file});
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   event_sent_list.push_back(
-  {std::string("s/self/die@").append(store_path.string()),
-   event::what::destroy,
-   event::kind::watcher});
+    {std::string("s/self/die@").append(store_path.string()),
+     event::what::destroy,
+     event::kind::watcher});
 
   auto dead = lifetime();
 
@@ -107,8 +107,8 @@ TEST_CASE("Simple", "[simple]") {
   REQUIRE(! std::filesystem::exists(base_store_path));
 
   auto const max_i = event_sent_list.size() > event_recv_list.size()
-                   ? event_recv_list.size()
-                   : event_sent_list.size();
+                     ? event_recv_list.size()
+                     : event_sent_list.size();
   for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

@@ -62,10 +62,9 @@ watch(std::filesystem::path const& path,
 
   auto msg = std::shared_ptr<message>{new message{}};
 
-  auto lifetime =
-  std::async(std::launch::async,
-             [=]() noexcept -> bool { return adapter(path, callback, msg); })
-  .share();
+  auto lifetime = std::async(std::launch::async, [=]() noexcept -> bool {
+                    return adapter(path, callback, msg);
+                  }).share();
 
   return [=]() noexcept -> bool {
     return adapter(path, callback, msg) && lifetime.get();

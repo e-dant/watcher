@@ -48,13 +48,13 @@ TEST_CASE("New Directories", "[new_directories]") {
   auto const base_store_path = wtr::test_watcher::test_store_path;
   auto const store_path_first = base_store_path / "new_directories_first_store";
   auto const store_path_second =
-  base_store_path / "new_directories_second_store";
+    base_store_path / "new_directories_second_store";
   auto const store_path_list =
-  std::vector<std::filesystem::path>{base_store_path,
-                                     store_path_first,
-                                     store_path_second};
+    std::vector<std::filesystem::path>{base_store_path,
+                                       store_path_first,
+                                       store_path_second};
   auto const new_store_path_list =
-  std::vector<std::filesystem::path>{store_path_first, store_path_second};
+    std::vector<std::filesystem::path>{store_path_first, store_path_second};
 
   static constexpr auto title = "New Directories";
 
@@ -69,17 +69,17 @@ TEST_CASE("New Directories", "[new_directories]") {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   event_sent_list.push_back(
-  {std::string("s/self/live@").append(base_store_path.string()),
-   wtr::watcher::event::what::create,
-   wtr::watcher::event::kind::watcher});
+    {std::string("s/self/live@").append(base_store_path.string()),
+     wtr::watcher::event::what::create,
+     wtr::watcher::event::kind::watcher});
 
   auto lifetime =
-  wtr::watcher::watch(base_store_path,
-                      [&](wtr::watcher::event::event const& ev) {
-                        auto _ = std::scoped_lock{event_recv_list_mtx};
-                        std::cout << ev << std::endl;
-                        event_recv_list.push_back(ev);
-                      });
+    wtr::watcher::watch(base_store_path,
+                        [&](wtr::watcher::event::event const& ev) {
+                          auto _ = std::scoped_lock{event_recv_list_mtx};
+                          std::cout << ev << std::endl;
+                          event_recv_list.push_back(ev);
+                        });
 
   /* @todo
      This sleep is hiding a bug on Linux which begins
@@ -89,9 +89,9 @@ TEST_CASE("New Directories", "[new_directories]") {
   for (auto const& p : new_store_path_list) {
     std::filesystem::create_directory(p);
     event_sent_list.push_back(
-    wtr::watcher::event::event{p,
-                               wtr::watcher::event::what::create,
-                               wtr::watcher::event::kind::dir});
+      wtr::watcher::event::event{p,
+                                 wtr::watcher::event::what::create,
+                                 wtr::watcher::event::kind::dir});
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -102,9 +102,9 @@ TEST_CASE("New Directories", "[new_directories]") {
       std::filesystem::create_directory(new_dir_path);
       REQUIRE(std::filesystem::exists(new_dir_path));
       event_sent_list.push_back(
-      wtr::watcher::event::event{new_dir_path,
-                                 wtr::watcher::event::what::create,
-                                 wtr::watcher::event::kind::dir});
+        wtr::watcher::event::event{new_dir_path,
+                                   wtr::watcher::event::what::create,
+                                   wtr::watcher::event::kind::dir});
 
       /* @todo
          This sleep is hiding a bug for the Linux adapters.
@@ -118,9 +118,9 @@ TEST_CASE("New Directories", "[new_directories]") {
       std::ofstream{new_file_path}; /* NOLINT */
       REQUIRE(std::filesystem::exists(new_file_path));
       event_sent_list.push_back(
-      wtr::watcher::event::event{new_file_path,
-                                 wtr::watcher::event::what::create,
-                                 wtr::watcher::event::kind::file});
+        wtr::watcher::event::event{new_file_path,
+                                   wtr::watcher::event::what::create,
+                                   wtr::watcher::event::kind::file});
 
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -129,9 +129,9 @@ TEST_CASE("New Directories", "[new_directories]") {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   event_sent_list.push_back(
-  {std::string("s/self/die@").append(base_store_path.string()),
-   wtr::watcher::event::what::destroy,
-   wtr::watcher::event::kind::watcher});
+    {std::string("s/self/die@").append(base_store_path.string()),
+     wtr::watcher::event::what::destroy,
+     wtr::watcher::event::kind::watcher});
 
   auto dead = lifetime();
 
@@ -141,8 +141,8 @@ TEST_CASE("New Directories", "[new_directories]") {
   REQUIRE(! std::filesystem::exists(base_store_path));
 
   auto const max_i = event_sent_list.size() > event_recv_list.size()
-                   ? event_recv_list.size()
-                   : event_sent_list.size();
+                     ? event_recv_list.size()
+                     : event_sent_list.size();
   for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

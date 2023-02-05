@@ -23,14 +23,14 @@ TEST_CASE("Event Targets", "[event_targets]") {
   static constexpr auto path_count = 10;
 
   auto const store_path =
-  wtr::test_watcher::test_store_path / "event_targets_store";
+    wtr::test_watcher::test_store_path / "event_targets_store";
 
   auto [event_sent_list, event_recv_list] =
-  wtr::test_watcher::watch_gather("Event Targets", store_path, path_count);
+    wtr::test_watcher::watch_gather("Event Targets", store_path, path_count);
 
   auto const max_i = event_sent_list.size() > event_recv_list.size()
-                   ? event_recv_list.size()
-                   : event_sent_list.size();
+                     ? event_recv_list.size()
+                     : event_sent_list.size();
   for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

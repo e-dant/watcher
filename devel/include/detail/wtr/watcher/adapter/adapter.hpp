@@ -77,7 +77,7 @@ inline size_t adapter(std::filesystem::path const& path,
       The functor is unique to every watcher. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool {
     auto const& create_lifetime =
-    [id, &path, &callback]() noexcept -> std::function<bool()> {
+      [id, &path, &callback]() noexcept -> std::function<bool()> {
       auto _ = std::scoped_lock{lifetimes_mtx};
 
       auto const maybe_node = lifetimes.find(id);
@@ -95,7 +95,7 @@ inline size_t adapter(std::filesystem::path const& path,
 
       } else {
         callback(
-        {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
+          {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
 
         return []() constexpr noexcept -> bool { return false; };
       }

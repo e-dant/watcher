@@ -10,7 +10,7 @@
 #include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-|| defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+  || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #if ! defined(WATER_WATCHER_USE_WARTHOG)
 
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
@@ -90,7 +90,7 @@ inline constexpr auto event_wait_queue_max = 1;
 inline constexpr auto event_buf_len = 4096;
 inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt =
-IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
+  IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
    - path_map_type
@@ -119,14 +119,14 @@ struct sys_resource_type {
 inline auto do_path_map_create(int const watch_fd,
                                std::filesystem::path const& base_path,
                                event::callback const& callback) noexcept
--> path_map_type {
+  -> path_map_type {
   namespace fs = ::std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
   static constexpr auto fs_dir_opt =
-  dopt::skip_permission_denied & dopt::follow_directory_symlink;
+    dopt::skip_permission_denied & dopt::follow_directory_symlink;
 
   static constexpr auto path_map_reserve_count = 256;
 
@@ -157,24 +157,24 @@ inline auto do_path_map_create(int const watch_fd,
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto do_sys_resource_open(event::callback const& callback) noexcept
--> sys_resource_type {
+  -> sys_resource_type {
   auto do_error = [&callback](auto msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type {
     callback({msg, event::what::other, event::kind::watcher});
     return sys_resource_type{
-    .valid = false,
-    .watch_fd = watch_fd,
-    .event_fd = event_fd,
-    .event_conf = {.events = 0, .data = {.fd = watch_fd}}
+      .valid = false,
+      .watch_fd = watch_fd,
+      .event_fd = event_fd,
+      .event_conf = {.events = 0, .data = {.fd = watch_fd}}
     };
   };
 
   int watch_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-  = inotify_init();
+    = inotify_init();
 #elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
-  = inotify_init1(in_init_opt);
+    = inotify_init1(in_init_opt);
 #endif
 
   if (watch_fd >= 0) {
@@ -182,9 +182,9 @@ inline auto do_sys_resource_open(event::callback const& callback) noexcept
 
     int event_fd
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-    = epoll_create(event_wait_queue_max);
+      = epoll_create(event_wait_queue_max);
 #elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
-    = epoll_create1(EPOLL_CLOEXEC);
+      = epoll_create1(EPOLL_CLOEXEC);
 #endif
 
     if (event_fd >= 0)
@@ -248,10 +248,10 @@ recurse:
 
   ssize_t read_len = read(watch_fd, buf, event_buf_len);
 
-  switch (read_len > 0        ? state::eventful
-          : read_len == 0     ? state::eventless
-            : errno == EAGAIN ? state::eventless
-                              : state::error) {
+  switch (read_len > 0      ? state::eventful
+          : read_len == 0   ? state::eventless
+          : errno == EAGAIN ? state::eventless
+                            : state::error) {
     case state::eventful :
       /* Loop over all events in the buffer. */
       for (auto this_event = (inotify_event*)buf;
@@ -259,7 +259,7 @@ recurse:
            this_event += this_event->len) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
           auto path =
-          path_map.find(this_event->wd)->second / fs::path(this_event->name);
+            path_map.find(this_event->wd)->second / fs::path(this_event->name);
 
           auto kind = this_event->mask & IN_ISDIR ? evk::dir : evk::file;
 
@@ -273,7 +273,7 @@ recurse:
 
           if (kind == evk::dir && what == evw::create)
             path_map[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] =
-            path;
+              path;
 
           else if (kind == evk::dir && what == evw::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
@@ -368,7 +368,7 @@ inline bool watch(std::filesystem::path const& path,
           for (int n = 0; n < event_count; n++)
             if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
               if (! do_event_recv(sr.watch_fd, path_map, path, callback))
-              [[unlikely]]
+                [[unlikely]]
                 return do_error(sr, "e/self/event_recv@");
       }
 

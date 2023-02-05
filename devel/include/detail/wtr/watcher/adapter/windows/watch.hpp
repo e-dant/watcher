@@ -72,17 +72,17 @@ public:
     memcpy(path_name, path.c_str(), path.string().size());
 
     path_handle =
-    CreateFileW(path.c_str(),
-                FILE_LIST_DIRECTORY,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                nullptr,
-                OPEN_EXISTING,
-                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                nullptr);
+      CreateFileW(path.c_str(),
+                  FILE_LIST_DIRECTORY,
+                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                  nullptr,
+                  OPEN_EXISTING,
+                  FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                  nullptr);
 
     if (path_handle)
       event_completion_token =
-      CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
+        CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 
     if (event_completion_token)
       is_valid = CreateIoCompletionPort(path_handle,
@@ -115,17 +115,17 @@ inline bool do_event_recv(watch_event_proxy& w,
   memset(&w.event_overlap, 0, sizeof(OVERLAPPED));
 
   auto read_ok = ReadDirectoryChangesW(
-  w.path_handle,
-  w.event_buf,
-  event_buf_len_max,
-  true,
-  FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
-  | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_LAST_WRITE
-  | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
-  | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
-  &bytes_returned,
-  &w.event_overlap,
-  nullptr);
+    w.path_handle,
+    w.event_buf,
+    event_buf_len_max,
+    true,
+    FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
+      | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_LAST_WRITE
+      | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
+      | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
+    &bytes_returned,
+    &w.event_overlap,
+    nullptr);
 
   if (w.event_buf && read_ok) {
     w.event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
@@ -152,7 +152,7 @@ inline bool do_event_send(watch_event_proxy& w,
            <= buf + w.event_buf_len_ready) {
       if (buf->FileNameLength % 2 == 0) {
         auto where =
-        w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
+          w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
         auto what = [&buf]() noexcept -> event::what {
           switch (buf->Action) {
@@ -178,7 +178,7 @@ inline bool do_event_send(watch_event_proxy& w,
           break;
         else
           buf =
-          (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
+            (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
       }
     }
     return true;

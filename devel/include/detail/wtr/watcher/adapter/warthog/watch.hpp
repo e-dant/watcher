@@ -4,7 +4,7 @@
 #include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-|| defined(WATER_WATCHER_USE_WARTHOG)
+  || defined(WATER_WATCHER_USE_WARTHOG)
 
 /*
   @brief watcher/adapter/warthog
@@ -71,7 +71,7 @@ inline bool scan(std::filesystem::path const& path,
   auto const& scan_file = [&](std::filesystem::path const& file,
                               auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
-    std::filesystem::last_write_time;
+      std::filesystem::last_write_time;
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /* grabbing the file's last write time */
@@ -95,7 +95,7 @@ inline bool scan(std::filesystem::path const& path,
           bucket[file] = timestamp;
           /* and call the closure on them, indicating modification */
           send_event(
-          event::event{file, event::what::modify, event::kind::file});
+            event::event{file, event::what::modify, event::kind::file});
         }
       }
       return true;
@@ -112,7 +112,7 @@ inline bool scan(std::filesystem::path const& path,
   auto const& scan_directory = [&](std::filesystem::path const& dir,
                                    auto const& send_event) -> bool {
     using std::filesystem::recursive_directory_iterator,
-    std::filesystem::is_directory;
+      std::filesystem::is_directory;
     /* if this thing is a directory */
     if (is_directory(dir)) {
       /* try to iterate through its contents */
@@ -145,8 +145,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
       Creates a file map, the "bucket", from `path`. */
   auto const& populate = [&](std::filesystem::path const& path) -> bool {
     using std::filesystem::exists, std::filesystem::is_directory,
-    std::filesystem::recursive_directory_iterator,
-    std::filesystem::last_write_time;
+      std::filesystem::recursive_directory_iterator,
+      std::filesystem::last_write_time;
     /* this happens when a path was changed while we were reading it.
      there is nothing to do here; we prune later. */
     auto dir_it_ec = std::error_code{};
@@ -182,26 +182,26 @@ inline bool tend_bucket(std::filesystem::path const& path,
   auto const& prune = [&](std::filesystem::path const& path,
                           auto const& send_event) -> bool {
     using std::filesystem::exists, std::filesystem::is_regular_file,
-    std::filesystem::is_directory, std::filesystem::is_symlink;
+      std::filesystem::is_directory, std::filesystem::is_symlink;
     auto bucket_it = bucket.begin();
     /* while looking through the bucket's contents, */
     while (bucket_it != bucket.end()) {
       /* check if the stuff in our bucket exists anymore. */
       exists(bucket_it->first)
-      /* if so, move on. */
-      ? std::advance(bucket_it, 1)
-      /* if not, call the closure, indicating destruction,
-         and remove it from our bucket. */
-      : [&]() {
-          send_event(event::event{bucket_it->first,
-                                  event::what::destroy,
-                                  is_regular_file(path) ? event::kind::file
-                                  : is_directory(path)  ? event::kind::dir
-                                    : is_symlink(path)  ? event::kind::sym_link
-                                                        : event::kind::other});
-          /* bucket, erase it! */
-          bucket_it = bucket.erase(bucket_it);
-        }();
+        /* if so, move on. */
+        ? std::advance(bucket_it, 1)
+        /* if not, call the closure, indicating destruction,
+           and remove it from our bucket. */
+        : [&]() {
+            send_event(event::event{bucket_it->first,
+                                    event::what::destroy,
+                                    is_regular_file(path) ? event::kind::file
+                                    : is_directory(path)  ? event::kind::dir
+                                    : is_symlink(path) ? event::kind::sym_link
+                                                       : event::kind::other});
+            /* bucket, erase it! */
+            bucket_it = bucket.erase(bucket_it);
+          }();
     }
     return true;
   };
@@ -254,7 +254,7 @@ inline bool watch(std::filesystem::path const& path,
     if (! tend_bucket(path, callback, bucket)
         || ! scan(path, callback, bucket)) {
       callback(
-      {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
+        {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
 
       return false;
     } else {
