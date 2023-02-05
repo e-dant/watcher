@@ -839,8 +839,8 @@ inline bool watch(std::filesystem::path const& path,
                   event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  using evk = wtr::watcher::event::kind;
+  using evw = wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
   auto seen_created_paths = std::unordered_set<std::string>{};
@@ -1078,9 +1078,9 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
                                  event::callback const& callback) noexcept
   -> sys_resource_type
 {
-  namespace fs = ::std::filesystem;
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  namespace fs = std::filesystem;
+  using evk = wtr::watcher::event::kind;
+  using evw = wtr::watcher::event::what;
 
   auto const& do_error = [&callback](auto const& error,
                                      auto const& path,
@@ -1236,7 +1236,7 @@ inline auto lift_event(sys_resource_type& sr,
                        event::callback const& callback) noexcept
   -> std::tuple<std::filesystem::path, unsigned long>
 {
-  namespace fs = ::std::filesystem;
+  namespace fs = std::filesystem;
 
   auto path_imbue = [](char* path_accum,
                        fanotify_event_info_fid const* dfid_info,
@@ -1323,7 +1323,7 @@ inline auto do_event_send(std::filesystem::path const& base_path,
                           fanotify_event_metadata const* metadata) noexcept
   -> bool
 {
-  using namespace ::wtr::watcher::event;
+  using namespace wtr::watcher::event;
 
   auto [path, hash] =
     lift_event(sr,
@@ -1452,8 +1452,8 @@ inline bool watch(std::filesystem::path const& path,
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = ::wtr::watcher::event::kind;
-    using evw = ::wtr::watcher::event::what;
+    using evk = wtr::watcher::event::kind;
+    using evw = wtr::watcher::event::what;
 
     callback({msg / path, evw::other, evk::watcher});
 
@@ -1634,7 +1634,7 @@ inline auto do_path_map_create(int const watch_fd,
                                event::callback const& callback) noexcept
   -> path_map_type
 {
-  namespace fs = ::std::filesystem;
+  namespace fs = std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
 
@@ -1741,9 +1741,9 @@ inline auto do_event_recv(int watch_fd,
                           std::filesystem::path const& base_path,
                           event::callback const& callback) noexcept -> bool
 {
-  namespace fs = ::std::filesystem;
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  namespace fs = std::filesystem;
+  using evk = wtr::watcher::event::kind;
+  using evw = wtr::watcher::event::what;
 
   alignas(inotify_event) char buf[event_buf_len];
 
@@ -1844,8 +1844,8 @@ inline bool watch(std::filesystem::path const& path,
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = ::wtr::watcher::event::kind;
-    using evw = ::wtr::watcher::event::what;
+    using evk = wtr::watcher::event::kind;
+    using evw = wtr::watcher::event::what;
 
     callback({msg / path, evw::other, evk::watcher});
 
