@@ -8,7 +8,7 @@ AlignConsecutiveBitFields:
   AcrossComments: true
 # AlignConsecutiveDeclarations: None
 # AlignConsecutiveMacros
-AlignEscapedNewlines: Right
+AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
 AlignTrailingComments: true
 # [v16+]
