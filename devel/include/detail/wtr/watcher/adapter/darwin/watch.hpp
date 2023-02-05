@@ -46,14 +46,14 @@
    callback */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
 struct argptr_type {
-  event::callback const& callback;
+  ::wtr::watcher::event::callback const& callback;
   std::unordered_set<std::string>* seen_created_paths;
 };
 
@@ -215,8 +215,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        FSEventStreamEventId const*     /* event stream id */
                        ) noexcept
 {
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
 
   auto [callback, seen_created] = *static_cast<argptr_type*>(arg_ptr);
 
@@ -242,35 +242,34 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
     if (flag & kFSEventStreamEventFlagItemCreated) {
       if (seen_created->find(path_str) == seen_created->end()) {
         seen_created->emplace(path_str);
-        callback(event::event{path, evw::create, k});
+        callback(::wtr::watcher::event::event{path, evw::create, k});
       }
     }
     if (flag & kFSEventStreamEventFlagItemRemoved) {
       auto const& seen_created_at = seen_created->find(path_str);
       if (seen_created_at != seen_created->end()) {
         seen_created->erase(seen_created_at);
-        callback(event::event{path, evw::destroy, k});
+        callback(::wtr::watcher::event::event{path, evw::destroy, k});
       }
     }
     if (flag & kFSEventStreamEventFlagItemModified) {
-      callback(event::event{path, evw::modify, k});
+      callback(::wtr::watcher::event::event{path, evw::modify, k});
     }
     if (flag & kFSEventStreamEventFlagItemRenamed) {
-      callback(event::event{path, evw::rename, k});
+      callback(::wtr::watcher::event::event{path, evw::rename, k});
     }
   }
 }
 
 } /* namespace */
 
-/* @pragma/tool/hone/insert namespace { */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
   auto seen_created_paths = std::unordered_set<std::string>{};
@@ -295,10 +294,9 @@ inline bool watch(std::filesystem::path const& path,
   return ok;
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
+} /* namespace detail */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */

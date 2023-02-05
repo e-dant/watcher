@@ -23,11 +23,10 @@
    fanotify::watch */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
-/* @pragma/tool/hone/insert namespace { */
 
 /*
   @brief detail/wtr/watcher/adapter/watch
@@ -60,7 +59,7 @@ namespace adapter {
 */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   return
@@ -86,11 +85,10 @@ inline bool watch(std::filesystem::path const& path,
 #endif
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */

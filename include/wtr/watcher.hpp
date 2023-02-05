@@ -1,10 +1,9 @@
 #ifndef W973564ED9F278A21F3E12037288412FBAF175F889
 #define W973564ED9F278A21F3E12037288412FBAF175F889
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
-namespace { /* @pragma/tool/hone/insert */
 
 enum class platform_type {
   /* Linux */
@@ -101,10 +100,10 @@ inline constexpr platform_type platform
 
 /* clang-format on */
 
-} /* @pragma/tool/hone/insert */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
+} /* namespace detail */
+
 
 /* @brief watcher/event
    There are only three things the user needs:
@@ -349,9 +348,9 @@ using callback = function<void(event const&)>;
 /* event
    callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
@@ -428,7 +427,7 @@ inline bool has_event(watch_event_proxy& w) noexcept
 }
 
 inline bool do_event_recv(watch_event_proxy& w,
-                          event::callback const& callback) noexcept
+                          ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace wtr::watcher::event;
 
@@ -467,8 +466,10 @@ inline bool do_event_recv(watch_event_proxy& w,
 }
 
 inline bool do_event_send(watch_event_proxy& w,
-                          event::callback const& callback) noexcept
+                          ::wtr::watcher::event::callback const& callback) noexcept
 {
+  using namespace ::wtr::watcher;
+
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   if (is_valid(w)) {
@@ -518,7 +519,6 @@ inline bool do_event_send(watch_event_proxy& w,
 
 } /* namespace */
 
-namespace { /* @pragma/tool/hone/insert */
 
 /* while living
    watch for events
@@ -526,7 +526,7 @@ namespace { /* @pragma/tool/hone/insert */
    true if no errors */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   auto w = watch_event_proxy{path};
@@ -564,11 +564,10 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
@@ -616,14 +615,14 @@ inline bool watch(std::filesystem::path const& path,
 /* event
    callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
 struct argptr_type {
-  event::callback const& callback;
+  ::wtr::watcher::event::callback const& callback;
   std::unordered_set<std::string>* seen_created_paths;
 };
 
@@ -785,8 +784,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        FSEventStreamEventId const*     /* event stream id */
                        ) noexcept
 {
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
 
   auto [callback, seen_created] = *static_cast<argptr_type*>(arg_ptr);
 
@@ -812,35 +811,34 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
     if (flag & kFSEventStreamEventFlagItemCreated) {
       if (seen_created->find(path_str) == seen_created->end()) {
         seen_created->emplace(path_str);
-        callback(event::event{path, evw::create, k});
+        callback(::wtr::watcher::event::event{path, evw::create, k});
       }
     }
     if (flag & kFSEventStreamEventFlagItemRemoved) {
       auto const& seen_created_at = seen_created->find(path_str);
       if (seen_created_at != seen_created->end()) {
         seen_created->erase(seen_created_at);
-        callback(event::event{path, evw::destroy, k});
+        callback(::wtr::watcher::event::event{path, evw::destroy, k});
       }
     }
     if (flag & kFSEventStreamEventFlagItemModified) {
-      callback(event::event{path, evw::modify, k});
+      callback(::wtr::watcher::event::event{path, evw::modify, k});
     }
     if (flag & kFSEventStreamEventFlagItemRenamed) {
-      callback(event::event{path, evw::rename, k});
+      callback(::wtr::watcher::event::event{path, evw::rename, k});
     }
   }
 }
 
 } /* namespace */
 
-namespace { /* @pragma/tool/hone/insert */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
   auto seen_created_paths = std::unordered_set<std::string>{};
@@ -865,11 +863,10 @@ inline bool watch(std::filesystem::path const& path,
   return ok;
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
+} /* namespace detail */
 
 #endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
 
@@ -931,12 +928,11 @@ inline bool watch(std::filesystem::path const& path,
 /* event
    callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace fanotify {
-namespace { /* @pragma/tool/hone/insert */
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>
    Anonymous namespace for "private" things. */
@@ -1075,12 +1071,12 @@ inline auto unmark(std::filesystem::path const& full_path,
    Produces a `sys_resource_type` with the file descriptors from
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto do_sys_resource_open(std::filesystem::path const& path,
-                                 event::callback const& callback) noexcept
+                                 ::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   namespace fs = std::filesystem;
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
 
   auto const& do_error = [&callback](auto const& error,
                                      auto const& path,
@@ -1106,7 +1102,7 @@ inline auto do_sys_resource_open(std::filesystem::path const& path,
   auto do_path_map_container_create =
     [](int const watch_fd,
        fs::path const& base_path,
-       event::callback const& callback) -> mark_set_type
+       ::wtr::watcher::event::callback const& callback) -> mark_set_type
   {
     using diter = fs::recursive_directory_iterator;
 
@@ -1233,7 +1229,7 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
 inline auto lift_event(sys_resource_type& sr,
                        fanotify_event_info_fid const* dir_fid_info,
                        std::filesystem::path const& base_path,
-                       event::callback const& callback) noexcept
+                       ::wtr::watcher::event::callback const& callback) noexcept
   -> std::tuple<std::filesystem::path, unsigned long>
 {
   namespace fs = std::filesystem;
@@ -1301,8 +1297,8 @@ inline auto lift_event(sys_resource_type& sr,
       }
       else {
         callback({"w/sys/readlink@" / base_path,
-                  event::what::other,
-                  event::kind::watcher});
+                  ::wtr::watcher::event::what::other,
+                  ::wtr::watcher::event::kind::watcher});
 
         return std::make_tuple(fs::path{}, 0);
       }
@@ -1318,12 +1314,12 @@ inline auto lift_event(sys_resource_type& sr,
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_event_send
    Send events to the user. */
 inline auto do_event_send(std::filesystem::path const& base_path,
-                          event::callback const& callback,
+                          ::wtr::watcher::event::callback const& callback,
                           sys_resource_type& sr,
                           fanotify_event_metadata const* metadata) noexcept
   -> bool
 {
-  using namespace wtr::watcher::event;
+  using namespace ::wtr::watcher::event;
 
   auto [path, hash] =
     lift_event(sr,
@@ -1371,13 +1367,13 @@ inline auto do_event_send(std::filesystem::path const& base_path,
    compiled with. */
 inline auto do_event_recv(sys_resource_type& sr,
                           std::filesystem::path const& base_path,
-                          event::callback const& callback) noexcept -> bool
+                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   enum class state { ok, none, err };
 
   auto do_error = [&base_path, &callback](char const* msg) noexcept -> bool
   {
-    callback({msg / base_path, event::what::other, event::kind::watcher});
+    callback({msg / base_path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
     return false;
   };
 
@@ -1446,15 +1442,15 @@ inline auto do_event_recv(sys_resource_type& sr,
     A function to decide whether we're dead.
 */
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
+
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = wtr::watcher::event::kind;
-    using evw = wtr::watcher::event::what;
-
     callback({msg / path, evw::other, evk::watcher});
 
     if (do_sys_resource_close(sr))
@@ -1504,12 +1500,11 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource");
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace fanotify */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
@@ -1563,12 +1558,11 @@ inline bool watch(std::filesystem::path const& path,
 /* event
    callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace inotify {
-namespace { /* @pragma/tool/hone/insert */
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>
    Anonymous namespace for "private" things. */
@@ -1631,7 +1625,7 @@ struct sys_resource_type {
      - the watch descriptor key should always be 1. */
 inline auto do_path_map_create(int const watch_fd,
                                std::filesystem::path const& base_path,
-                               event::callback const& callback) noexcept
+                               ::wtr::watcher::event::callback const& callback) noexcept
   -> path_map_type
 {
   namespace fs = std::filesystem;
@@ -1662,8 +1656,8 @@ inline auto do_path_map_create(int const watch_fd,
             if (! dir_ec)
               if (! do_mark(dir.path()))
                 callback({"w/sys/path_unwatched@" / dir.path(),
-                          event::what::other,
-                          event::kind::watcher});
+                          ::wtr::watcher::event::what::other,
+                          ::wtr::watcher::event::kind::watcher});
 
   return path_map;
 };
@@ -1671,14 +1665,14 @@ inline auto do_path_map_create(int const watch_fd,
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(event::callback const& callback) noexcept
+inline auto do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](auto msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({msg, event::what::other, event::kind::watcher});
+    callback({msg, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -1739,11 +1733,11 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
 inline auto do_event_recv(int watch_fd,
                           path_map_type& path_map,
                           std::filesystem::path const& base_path,
-                          event::callback const& callback) noexcept -> bool
+                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = std::filesystem;
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
 
   alignas(inotify_event) char buf[event_buf_len];
 
@@ -1838,15 +1832,15 @@ recurse:
     A function to decide whether we're dead.
 */
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
+
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = wtr::watcher::event::kind;
-    using evw = wtr::watcher::event::what;
-
     callback({msg / path, evw::other, evk::watcher});
 
     if (do_sys_resource_close(sr))
@@ -1904,12 +1898,11 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource@");
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace inotify */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
@@ -1936,11 +1929,10 @@ inline bool watch(std::filesystem::path const& path,
    inotify::watch
    fanotify::watch */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
-namespace { /* @pragma/tool/hone/insert */
 
 /*
   @brief detail/wtr/watcher/adapter/watch
@@ -1973,7 +1965,7 @@ namespace { /* @pragma/tool/hone/insert */
 */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   return
@@ -1999,11 +1991,10 @@ inline bool watch(std::filesystem::path const& path,
 #endif
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
@@ -2055,9 +2046,9 @@ inline bool watch(std::filesystem::path const& path,
 /* event
    callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
@@ -2090,8 +2081,10 @@ inline bool scan(std::filesystem::path const& path,
   auto const& scan_file = [&](std::filesystem::path const& file,
                               auto const& send_event) -> bool
   {
+    using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::last_write_time;
+
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /* grabbing the file's last write time */
@@ -2207,8 +2200,10 @@ inline bool tend_bucket(std::filesystem::path const& path,
   auto const& prune = [&](std::filesystem::path const& path,
                           auto const& send_event) -> bool
   {
+    using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink;
+
     auto bucket_it = bucket.begin();
     /* while looking through the bucket's contents, */
     while (bucket_it != bucket.end()) {
@@ -2241,7 +2236,6 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
-namespace { /* @pragma/tool/hone/insert */
 
 /*
   @brief watcher/adapter/warthog/watch
@@ -2261,7 +2255,7 @@ namespace { /* @pragma/tool/hone/insert */
 */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
@@ -2296,11 +2290,10 @@ inline bool watch(std::filesystem::path const& path,
   return true;
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
           || defined(WATER_WATCHER_USE_WARTHOG) */
@@ -2322,16 +2315,15 @@ inline bool watch(std::filesystem::path const& path,
     event
     callback */
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
-namespace { /* @pragma/tool/hone/insert */
 
 enum class word { live, die };
 
 struct message {
-  word word{word::live};
+  word w{word::live};
   size_t id{0};
 };
 
@@ -2356,9 +2348,9 @@ inline message carry(std::shared_ptr<message> m) noexcept
 
   auto _ = std::scoped_lock<std::mutex>{mtx};
 
-  auto const w{m->word};
+  auto const w{m->w};
 
-  m->word = word::die;
+  m->w = word::die;
 
   m->id = m->id > 0 ? m->id : random_id();
 
@@ -2366,9 +2358,10 @@ inline message carry(std::shared_ptr<message> m) noexcept
 };
 
 inline size_t adapter(std::filesystem::path const& path,
-                      event::callback const& callback,
+                      ::wtr::watcher::event::callback const& callback,
                       std::shared_ptr<message> previous) noexcept
 {
+  using namespace ::detail::wtr::watcher::adapter;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -2431,7 +2424,7 @@ inline size_t adapter(std::filesystem::path const& path,
       return 0;
   };
 
-  switch (msg.word) {
+  switch (msg.w) {
     case word::live : return live();
 
     case word::die : return die();
@@ -2440,11 +2433,11 @@ inline size_t adapter(std::filesystem::path const& path,
   }
 }
 
-} /* @pragma/tool/hone/insert */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+
 
 /*  path */
 #include <filesystem>
@@ -2504,7 +2497,7 @@ inline auto
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept -> std::function<bool()>
 {
-  using namespace ::wtr::watcher::detail::adapter;
+  using namespace ::detail::wtr::watcher::adapter;
 
   auto msg = std::shared_ptr<message>{new message{}};
 

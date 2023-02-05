@@ -37,9 +37,9 @@
    callback */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
@@ -72,8 +72,10 @@ inline bool scan(std::filesystem::path const& path,
   auto const& scan_file = [&](std::filesystem::path const& file,
                               auto const& send_event) -> bool
   {
+    using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::last_write_time;
+
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /* grabbing the file's last write time */
@@ -189,8 +191,10 @@ inline bool tend_bucket(std::filesystem::path const& path,
   auto const& prune = [&](std::filesystem::path const& path,
                           auto const& send_event) -> bool
   {
+    using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
       std::filesystem::is_directory, std::filesystem::is_symlink;
+
     auto bucket_it = bucket.begin();
     /* while looking through the bucket's contents, */
     while (bucket_it != bucket.end()) {
@@ -223,7 +227,6 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
-/* @pragma/tool/hone/insert namespace { */
 
 /*
   @brief watcher/adapter/warthog/watch
@@ -243,7 +246,7 @@ inline bool tend_bucket(std::filesystem::path const& path,
 */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
@@ -278,11 +281,10 @@ inline bool watch(std::filesystem::path const& path,
   return true;
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
           || defined(WATER_WATCHER_USE_WARTHOG) */

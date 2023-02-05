@@ -1,9 +1,8 @@
 #pragma once
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
-/* @pragma/tool/hone/insert namespace { */
 
 enum class platform_type {
   /* Linux */
@@ -100,7 +99,7 @@ inline constexpr platform_type platform
 
 /* clang-format on */
 
-/* @pragma/tool/hone/insert } */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr   */
+} /* namespace detail */
+

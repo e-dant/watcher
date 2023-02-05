@@ -32,9 +32,9 @@
    callback */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace {
 
@@ -111,7 +111,7 @@ inline bool has_event(watch_event_proxy& w) noexcept
 }
 
 inline bool do_event_recv(watch_event_proxy& w,
-                          event::callback const& callback) noexcept
+                          ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace wtr::watcher::event;
 
@@ -150,8 +150,10 @@ inline bool do_event_recv(watch_event_proxy& w,
 }
 
 inline bool do_event_send(watch_event_proxy& w,
-                          event::callback const& callback) noexcept
+                          ::wtr::watcher::event::callback const& callback) noexcept
 {
+  using namespace ::wtr::watcher;
+
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   if (is_valid(w)) {
@@ -201,7 +203,6 @@ inline bool do_event_send(watch_event_proxy& w,
 
 } /* namespace */
 
-/* @pragma/tool/hone/insert namespace { */
 
 /* while living
    watch for events
@@ -209,7 +210,7 @@ inline bool do_event_send(watch_event_proxy& w,
    true if no errors */
 
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
   auto w = watch_event_proxy{path};
@@ -247,10 +248,9 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */

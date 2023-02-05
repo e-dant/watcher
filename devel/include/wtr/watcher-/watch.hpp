@@ -59,7 +59,7 @@ inline auto
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept -> std::function<bool()>
 {
-  using namespace ::wtr::watcher::detail::adapter;
+  using namespace ::detail::wtr::watcher::adapter;
 
   auto msg = std::shared_ptr<message>{new message{}};
 

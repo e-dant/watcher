@@ -50,12 +50,11 @@
    callback */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
 namespace inotify {
-/* @pragma/tool/hone/insert namespace { */
 
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>
    Anonymous namespace for "private" things. */
@@ -118,7 +117,7 @@ struct sys_resource_type {
      - the watch descriptor key should always be 1. */
 inline auto do_path_map_create(int const watch_fd,
                                std::filesystem::path const& base_path,
-                               event::callback const& callback) noexcept
+                               ::wtr::watcher::event::callback const& callback) noexcept
   -> path_map_type
 {
   namespace fs = std::filesystem;
@@ -149,8 +148,8 @@ inline auto do_path_map_create(int const watch_fd,
             if (! dir_ec)
               if (! do_mark(dir.path()))
                 callback({"w/sys/path_unwatched@" / dir.path(),
-                          event::what::other,
-                          event::kind::watcher});
+                          ::wtr::watcher::event::what::other,
+                          ::wtr::watcher::event::kind::watcher});
 
   return path_map;
 };
@@ -158,14 +157,14 @@ inline auto do_path_map_create(int const watch_fd,
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(event::callback const& callback) noexcept
+inline auto do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](auto msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({msg, event::what::other, event::kind::watcher});
+    callback({msg, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -226,11 +225,11 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
 inline auto do_event_recv(int watch_fd,
                           path_map_type& path_map,
                           std::filesystem::path const& base_path,
-                          event::callback const& callback) noexcept -> bool
+                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = std::filesystem;
-  using evk = wtr::watcher::event::kind;
-  using evw = wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
 
   alignas(inotify_event) char buf[event_buf_len];
 
@@ -325,15 +324,15 @@ recurse:
     A function to decide whether we're dead.
 */
 inline bool watch(std::filesystem::path const& path,
-                  event::callback const& callback,
+                  ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using evk = ::wtr::watcher::event::kind;
+  using evw = ::wtr::watcher::event::what;
+
   auto do_error = [&path, &callback](sys_resource_type& sr,
                                      char const* msg) -> bool
   {
-    using evk = wtr::watcher::event::kind;
-    using evw = wtr::watcher::event::what;
-
     callback({msg / path, evw::other, evk::watcher});
 
     if (do_sys_resource_close(sr))
@@ -391,12 +390,11 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(sr, "e/self/sys_resource@");
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace inotify */
 } /* namespace adapter */
-} /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+} /* namespace detail */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \

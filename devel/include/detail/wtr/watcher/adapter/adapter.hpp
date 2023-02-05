@@ -18,16 +18,15 @@
     callback */
 #include <wtr/watcher.hpp>
 
+namespace detail {
 namespace wtr {
 namespace watcher {
-namespace detail {
 namespace adapter {
-/* @pragma/tool/hone/insert namespace { */
 
 enum class word { live, die };
 
 struct message {
-  word word{word::live};
+  word w{word::live};
   size_t id{0};
 };
 
@@ -52,9 +51,9 @@ inline message carry(std::shared_ptr<message> m) noexcept
 
   auto _ = std::scoped_lock<std::mutex>{mtx};
 
-  auto const w{m->word};
+  auto const w{m->w};
 
-  m->word = word::die;
+  m->w = word::die;
 
   m->id = m->id > 0 ? m->id : random_id();
 
@@ -62,9 +61,10 @@ inline message carry(std::shared_ptr<message> m) noexcept
 };
 
 inline size_t adapter(std::filesystem::path const& path,
-                      event::callback const& callback,
+                      ::wtr::watcher::event::callback const& callback,
                       std::shared_ptr<message> previous) noexcept
 {
+  using namespace ::detail::wtr::watcher::adapter;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -127,7 +127,7 @@ inline size_t adapter(std::filesystem::path const& path,
       return 0;
   };
 
-  switch (msg.word) {
+  switch (msg.w) {
     case word::live : return live();
 
     case word::die : return die();
@@ -136,8 +136,8 @@ inline size_t adapter(std::filesystem::path const& path,
   }
 }
 
-/* @pragma/tool/hone/insert } */
 } /* namespace adapter */
 } /* namespace detail */
 } /* namespace watcher */
 } /* namespace wtr */
+
