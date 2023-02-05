@@ -104,7 +104,6 @@ inline constexpr platform_type platform
 } /* namespace wtr   */
 } /* namespace detail */
 
-
 /* @brief watcher/event
    There are only three things the user needs:
     - The `die` function
@@ -426,8 +425,9 @@ inline bool has_event(watch_event_proxy& w) noexcept
   return w.event_buf_len_ready != 0;
 }
 
-inline bool do_event_recv(watch_event_proxy& w,
-                          ::wtr::watcher::event::callback const& callback) noexcept
+inline bool
+do_event_recv(watch_event_proxy& w,
+              ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace wtr::watcher::event;
 
@@ -465,8 +465,9 @@ inline bool do_event_recv(watch_event_proxy& w,
   }
 }
 
-inline bool do_event_send(watch_event_proxy& w,
-                          ::wtr::watcher::event::callback const& callback) noexcept
+inline bool
+do_event_send(watch_event_proxy& w,
+              ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace ::wtr::watcher;
 
@@ -518,7 +519,6 @@ inline bool do_event_send(watch_event_proxy& w,
 }
 
 } /* namespace */
-
 
 /* while living
    watch for events
@@ -832,7 +832,6 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
 } /* namespace */
 
-
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
@@ -1070,8 +1069,9 @@ inline auto unmark(std::filesystem::path const& full_path,
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(std::filesystem::path const& path,
-                                 ::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_sys_resource_open(std::filesystem::path const& path,
+                     ::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   namespace fs = std::filesystem;
@@ -1365,15 +1365,18 @@ inline auto do_event_send(std::filesystem::path const& base_path,
    The `metadata->vers` field may differ between kernel
    versions, so we check it against what we have been
    compiled with. */
-inline auto do_event_recv(sys_resource_type& sr,
-                          std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto
+do_event_recv(sys_resource_type& sr,
+              std::filesystem::path const& base_path,
+              ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   enum class state { ok, none, err };
 
   auto do_error = [&base_path, &callback](char const* msg) noexcept -> bool
   {
-    callback({msg / base_path, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    callback({msg / base_path,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return false;
   };
 
@@ -1623,9 +1626,10 @@ struct sys_resource_type {
    If `path` is a file
      - return it as the only value in a map.
      - the watch descriptor key should always be 1. */
-inline auto do_path_map_create(int const watch_fd,
-                               std::filesystem::path const& base_path,
-                               ::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_path_map_create(int const watch_fd,
+                   std::filesystem::path const& base_path,
+                   ::wtr::watcher::event::callback const& callback) noexcept
   -> path_map_type
 {
   namespace fs = std::filesystem;
@@ -1665,14 +1669,17 @@ inline auto do_path_map_create(int const watch_fd,
 /* @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_sys_resource_open
    Produces a `sys_resource_type` with the file descriptors from
    `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
+inline auto
+do_sys_resource_open(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](auto msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({msg, ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+    callback({msg,
+              ::wtr::watcher::event::what::other,
+              ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -1730,10 +1737,11 @@ inline auto do_sys_resource_close(sys_resource_type& sr) noexcept -> bool
    Return new directories when they appear,
    Consider running and returning `find_dirs` from here.
    Remove destroyed watches. */
-inline auto do_event_recv(int watch_fd,
-                          path_map_type& path_map,
-                          std::filesystem::path const& base_path,
-                          ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto
+do_event_recv(int watch_fd,
+              path_map_type& path_map,
+              std::filesystem::path const& base_path,
+              ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = std::filesystem;
   using evk = ::wtr::watcher::event::kind;
@@ -2236,7 +2244,6 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
-
 /*
   @brief watcher/adapter/warthog/watch
 
@@ -2434,10 +2441,9 @@ inline size_t adapter(std::filesystem::path const& path,
 }
 
 } /* namespace adapter */
-} /* namespace detail */
-} /* namespace watcher */
-} /* namespace wtr */
-
+}  // namespace watcher
+}  // namespace wtr
+}  // namespace detail
 
 /*  path */
 #include <filesystem>
