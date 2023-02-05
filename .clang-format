@@ -60,7 +60,7 @@ BreakStringLiterals: true
 ColumnLimit: 80
 # CommentPragmas regex
 CompactNamespaces: false
-ContinuationIndentWidth: 0
+ContinuationIndentWidth: 2
 Cpp11BracedListStyle: true
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: Always
