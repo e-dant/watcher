@@ -8,7 +8,7 @@ int main()
   auto cb = [](wtr::event::event const& ev)
   {
     auto [where, kind, what, when] = ev;
-    std::cout << "{\"" << when << "\":[" << where << "," << kind << "," << what << "," << "]}," << std::endl;
+    std::cout << "{\"" << when << "\":[" << where << "," << kind << "," << what << "]}," << std::endl;
     // Or, simply:
     // std::cout << ev << "," << std::endl;
   };
