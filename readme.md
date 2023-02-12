@@ -47,9 +47,9 @@ eval c++ -std=c++2a -O3 src/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 ```
 
 ```json
-{"1676230605412906000":["/Users/edant/dev/watcher/.git/objects/a3/7c930de44735d72810f669facf3a249eef665b","create","file",]},
-{"1676230605412910000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","create","file",]},
-{"1676230605412913000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","destroy","file",]},
+{"1676230605412906000":["/Users/edant/dev/watcher/.git/objects/a3/7c930de44735d72810f669facf3a249eef665b","create","file"]},
+{"1676230605412910000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","create","file"]},
+{"1676230605412913000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","destroy","file"]},
 ```
 
 Enjoy!
