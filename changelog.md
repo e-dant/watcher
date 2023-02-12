@@ -9,13 +9,13 @@
 ```cpp
 // Object-like style
 
-auto lifetime = watch(".", [](auto e){cout << e;});
+auto lifetime = wtr::watch(".", [](auto e){cout << e;});
 
 lifetime.close();
 
 // Function-like style
 
-auto die = watch(".", [](auto e){cout << e;});
+auto die = wtr::watch(".", [](auto e){cout << e;});
 
 die();
 ```
