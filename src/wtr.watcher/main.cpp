@@ -115,13 +115,13 @@ int main(int argc, char** argv)
 
     /* This is the heart of the function.
        Watching, concurrently. */
-    auto lifetime = watch(path, callback);
+    auto watcher = watch(path, callback);
 
     /* Until our time is up. */
     std::this_thread::sleep_for(alive_for);
 
     /* Then dying. */
-    auto const dead = lifetime();
+    auto const dead = watcher.close();
 
     std::cout << "}"
               << "\n,\"milliseconds\":"
@@ -145,5 +145,5 @@ int main(int argc, char** argv)
 
              ? ! watch_expire(path, stream_json, alive_for)
 
-             : ! watch(path, stream_json)();
+             : ! watch(path, stream_json).close();
 }

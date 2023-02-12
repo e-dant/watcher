@@ -53,7 +53,8 @@ lines, two-thirds of which is documentation and tests, were written to be
 [read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp)
 as easily as the API is used:
 ```cpp
-watch(path, [](event ev) { cout << ev; });
+auto w = watch(path, [](event ev) { cout << ev; });
+w.close();
 ```
 ```sh
 wtr.watcher ~
@@ -131,7 +132,7 @@ function stops the associated watch.
 Typical use looks like this:
 
 ```cpp
-auto life = watch(".", [](event const& e) {
+auto w = watch(".", [](event const& e) {
   std::cout
     << "where: " << e.where << "\n"
     << "kind: "  << e.kind  << "\n"
@@ -139,7 +140,7 @@ auto life = watch(".", [](event const& e) {
     << "when: "  << e.when  << "\n"
     << std::endl;
 };
-auto dead = life();
+auto dead = w.close(); // w() also works
 ```
 
 `watch` will happily continue watching until you stop

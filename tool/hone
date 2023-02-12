@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
-# 2002: If we wanted to be performant, we wouldn't use bash. cat is fine.
-# 2068: We want to resplit argument in this case
+# 2002: If we needed this to be performant, we wouldn't use bash. cat is fine.
+# 2068: We want to resplit argument in this case.
 # shellcheck disable=SC2002,2068
 
 PROJECT_ID='W973564ED9F278A21F3E12037288412FBAF175F889'
@@ -15,8 +15,6 @@ tool::hone() {
   option:
     --header-content-amalgam
     --header-content-raw
-    --header-content-sans-includes
-    --header-includes-unique
     --header-path-all
     --help
 
@@ -36,11 +34,11 @@ tool::hone() {
       | grep -E '([ ]*)#([ ]*)include ' \
       | sed -E 's/(([ ]*)#([ ]*)include )|(["<>])//g')"
 
-  HEADER_INCLUDES_UNIQUE="$(\
-    find include/detail include/wtr -name '*.hpp' -exec cat {} \; \
-      | sed -E 's/(([ ]+)?#([ ]+)?include [<"][0-9a-zA-Z\-_\.\:;~`!@#$%^&\*\(\)'\'']+[">])|(.*)/\1/g' \
-      | sort \
-      | awk '!seen[$0]++')"
+  # HEADER_INCLUDES_UNIQUE="$(\
+  #   find include/detail include/wtr -name '*.hpp' -exec cat {} \; \
+  #     | sed -E 's/(([ ]+)?#([ ]+)?include [<"][0-9a-zA-Z\-_\.\:;~`!@#$%^&\*\(\)'\'']+[">])|(.*)/\1/g' \
+  #     | sort \
+  #     | awk '!seen[$0]++')"
 
   HEADER_PATH_ALL="$(\
     while read -r H
@@ -56,41 +54,41 @@ tool::hone() {
     while read -r TOK
     do
       cat "$TOK" \
-        | sed -E 's|(/\* )(@pragma/tool/hone/insert )(.+)( \*/)|\3 /\* @pragma/tool/hone/insert \*/|g'
+        | sed -E 's|(/\* )(@pragma/tool/hone/insert )(.+)( \*/)|\3 /\* @pragma/tool/hone/insert \*/|g' \
+        | sed '/#pragma once/d'
     done <<< "$HEADER_PATH_ALL"
   )"
 
-  # cat the headers, remove includes.
-  # @todo this function is slow.
-  HEADER_CONTENT_SANS_INCLUDES="$(\
-    while read -r H
-    do
-      echo "$H" \
-        | sed -E '/#pragma once/d' \
-        | sed -E '/([ ]+)?#([ ]+)?include/d'
-    done <<< "$HEADER_CONTENT_RAW"
-  )"
+  # # cat the headers, remove includes.
+  # # @todo this function is slow.
+  # HEADER_CONTENT_SANS_INCLUDES="$(\
+  #   while read -r H
+  #   do
+  #     echo "$H" \
+  #       | sed -E '/#pragma once/d' \
+  #       | sed -E '/([ ]+)?#([ ]+)?include/d'
+  #   done <<< "$HEADER_CONTENT_RAW"
+  # )"
 
-  # give us the amalgamation:
-  #   unique(-enough) include guard
-  #   unique includes
-  #   header content (sans includes)
+  # give us the amalgamated header
   HEADER_CONTENT_AMALGAM="$(\
-    echo "#ifndef $PROJECT_ID" \
-      && echo "#define $PROJECT_ID" \
-      && echo "$HEADER_INCLUDES_UNIQUE" \
-      && echo "$HEADER_CONTENT_SANS_INCLUDES" \
-      && echo "#endif /* $PROJECT_ID */"
+    RAW="$(\
+      echo "#ifndef $PROJECT_ID" \
+        && echo "#define $PROJECT_ID" \
+        && echo "$HEADER_CONTENT_RAW" \
+        && echo "#endif /* $PROJECT_ID */"
+    )"
+    echo "$RAW" | clang-format
   )"
 
   if test -n "$*"
   then
     if echo "$*" | grep -q -- --header-content-amalgam
-    then echo "$HEADER_CONTENT_AMALGAM" | clang-format; fi
+    then echo "$HEADER_CONTENT_AMALGAM"; fi
     if echo "$*" | grep -q -- --header-content-raw
     then echo "$HEADER_CONTENT_RAW"; fi
-    if echo "$*" | grep -q -- --header-content-sans-includes
-    then echo "$HEADER_CONTENT_SANS_INCLUDES"; fi
+    # if echo "$*" | grep -q -- --header-content-sans-includes
+    # then echo "$HEADER_CONTENT_SANS_INCLUDES"; fi
     if echo "$*" | grep -q -- --header-path-all
     then echo "$HEADER_PATH_ALL"; fi
     if echo "$*" | grep -q -- --help
