@@ -13,26 +13,24 @@
 #include "../../include/wtr/watcher.hpp"  // Point this to wherever yours is
 #include <iostream>
 
-int main(int argc, char** argv)
+// This is the entire API.
+int main()
 {
+  // The watcher will call this function on every event.
   auto cb = [](wtr::event::event const& ev)
   {
-    std::cout << ev << "," << std::endl;
-    // Or, manually:
-    // std::cout << "event at path: " << ev.where << "\n"
-    //           << "kind of path: " << ev.kind << "\n"
-    //           << "event type: " << ev.what << "\n"
-    //           << "nanoseconds since epoch: " << ev.when
-    //           << std::endl;
+    auto [where, kind, what, when] = ev;
+    std::cout << "{\"" << when << "\":[" << where << "," << kind << "," << what << "," << "]}," << std::endl;
+    // Or, simply:
+    // std::cout << ev << "," << std::endl;
   };
 
-  // This is the entire API.
-  auto watcher = wtr::watch(argc > 1 ? argv[1] : ".", cb);
+  // Watch the current directory asynchronously.
+  auto watcher = wtr::watch(".", cb);
 
   // Close whenever you're done.
   // watcher.close();
 }
-
 ```
 
 ```sh
@@ -45,9 +43,10 @@ eval c++ -std=c++2a -O3 src/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 ```
 
 ```json
-"1666393024210001000": {"where": "./watcher/.git/logs/HEAD","what": "modify","kind": "file"},
-"1666393024210026000": {"where": "./watcher/.git/logs/refs/heads/next","what": "modify","kind": "file"},
-"1666393024210032000": {"where": "./watcher/.git/refs/heads/next.lock","what": "create","kind": "other"},
+
+{"1676230331779423000":["/Users/edant/dev/watcher/.git/objects/c9/tmp_obj_ABk5w4","destroy","file"]},
+{"1676230331779426000":["/Users/edant/dev/watcher/.git/objects/c9/tmp_obj_ABk5w4","modify","file"]},
+{"1676230331779429000":["/Users/edant/dev/watcher/.git/index.lock","create","file"]},
 ```
 
 Enjoy!
