@@ -205,7 +205,7 @@ enum class kind {
 };
 
 namespace {
-inline auto what_repr(enum what const& w)
+inline auto repr(enum what const& w)
 {
   switch (w) {
     case what::rename : return "rename";
@@ -218,7 +218,7 @@ inline auto what_repr(enum what const& w)
   }
 }
 
-inline auto kind_repr(enum kind const& k)
+inline auto repr(enum kind const& k)
 {
   switch (k) {
     case kind::dir : return "dir";
@@ -258,14 +258,14 @@ struct event {
    Streams out a `what` value. */
 inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
 {
-  return os << "\"" << what_repr(w) << "\"";
+  return os << "\"" << repr(w) << "\"";
 }
 
 /* @brief wtr/watcher/event/<<
    Streams out a `kind` value. */
 inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
 {
-  return os << "\"" << kind_repr(k) << "\"";
+  return os << "\"" << repr(k) << "\"";
 }
 
 /* @brief wtr/watcher/event/==
@@ -302,8 +302,8 @@ inline std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
     return os << R"(")" << ev.when << R"(":)"
               << "{"
                   << R"("where":)" << ev.where      << R"(,)"
-                  << R"("what":")"  << what_repr(ev.what) << R"(",)"
-                  << R"("kind":")"  << kind_repr(ev.kind) << R"(")"
+                  << R"("what":")"  << repr(ev.what) << R"(",)"
+                  << R"("kind":")"  << repr(ev.kind) << R"(")"
               << "}";
   /* clang-format on */
 }
@@ -429,7 +429,7 @@ inline bool
 do_event_recv(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace wtr::watcher::event;
+  using namespace ::wtr::watcher::event;
 
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
@@ -469,7 +469,7 @@ inline bool
 do_event_send(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace ::wtr::watcher;
+  using namespace ::wtr::watcher::event;
 
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
@@ -483,11 +483,11 @@ do_event_send(watch_event_proxy& w,
         auto what = [&buf]() noexcept -> event::what
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return event::what::modify;
-            case FILE_ACTION_ADDED : return event::what::create;
-            case FILE_ACTION_REMOVED : return event::what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return event::what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
+            case FILE_ACTION_MODIFIED : return what::modify;
+            case FILE_ACTION_ADDED : return what::create;
+            case FILE_ACTION_REMOVED : return what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME : return what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME : return what::rename;
             default : return event::what::other;
           }
         }();
@@ -495,8 +495,8 @@ do_event_send(watch_event_proxy& w,
         auto kind = [&where]()
         {
           try {
-            return std::filesystem::is_directory(where) ? event::kind::dir
-                                                        : event::kind::file;
+            return std::filesystem::is_directory(where) ? kind::dir
+                                                        : kind::file;
           } catch (...) {
             return event::kind::other;
           }
