@@ -300,7 +300,7 @@ build::build() {
         $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_extra_for_platform "$PLATFORM") \
-        -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
+        -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
     # echo "$cmake_config_command"
@@ -341,7 +341,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
+            -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON")
 
         # echo "$cmake_config_command"
@@ -383,6 +383,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON \
             -DWTR_WATCHER_USE_TEST=ON")
 
