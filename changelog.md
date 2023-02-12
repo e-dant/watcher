@@ -7,13 +7,13 @@
 `wtr::watcher::die` doesn't exist. Instead, closing the watcher is dependant on there *being* a watch: `watch()` returns a *unique* way for you to close it.
 
 ```cpp
-// A somewhat object-oriented style:
+// Object-like style
 
 auto lifetime = watch(".", [](auto e){cout << e;});
 
 lifetime.close();
 
-// A somewhat functional style:
+// Function-like style
 
 auto die = watch(".", [](auto e){cout << e;});
 
