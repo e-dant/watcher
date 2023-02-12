@@ -62,7 +62,7 @@ watch(std::filesystem::path const& path,
 
   /*  A message, unique to this watcher.
       Shared between the user and the adapter. */
-  auto msg = std::shared_ptr<message>{new message{}};
+  auto msg = std::make_shared<message>();
 
   /*  Begin our lifetime.
       Every watcher has a unique lifetime. */
@@ -73,11 +73,11 @@ watch(std::filesystem::path const& path,
 
   /*  Provide a way to stop the watcher to the user.
       The `close()` function is unique to every watcher.
-      A watcher that doesn't exist can't be closed.
-      A watcher that isn't "owned" can't be closed.
+      A watcher that doesn't exist or isn't "owned"
+      can't be closed. That's important.
       The structure that we return is intended to allow
-      the `.close()` syntax. Returning an anonymouns
-      function can be odd to read. */
+      the `watch(args).close()` syntax as well as an
+      anonymous `watch(args)()`. */
   struct _ {
     std::function<bool()> close;
 
