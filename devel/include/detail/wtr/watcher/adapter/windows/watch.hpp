@@ -214,6 +214,8 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using namespace ::wtr::watcher::event;
+
   auto w = watch_event_proxy{path};
 
   if (is_valid(w)) {
@@ -239,12 +241,12 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
 
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
     return false;
   }
 }
