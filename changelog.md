@@ -4,7 +4,7 @@
 
 ### 0.6.0 API
 
-`wtr::watcher::die` doesn't exist. Instead, it's dependant on there *being* a watch: `watch()` returns a *unique* way to close itself (and nothing else). Typical use looks like this:
+`wtr::watcher::die` doesn't exist. Instead, closing the watcher is dependant on there *being* a watch: `watch()` returns a *unique* way for you to close it.
 
 ```cpp
 // A somewhat object-oriented style:
