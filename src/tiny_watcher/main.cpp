@@ -5,13 +5,15 @@
 int main()
 {
   // The watcher will call this function on every event.
-  auto cb = [](wtr::event::event const& ev)
+  auto cb = [](wtr::event::event const& e)
   {
-    auto [where, kind, what, when] = ev;
-    std::cout << "{\"" << when << "\":[" << where << "," << kind << "," << what
-              << "]}," << std::endl;
-    // Or, simply:
-    // std::cout << ev << "," << std::endl;
+    std::cout << "{\"" << e.when << "\":["
+              << e.where << "," << e.kind << "," << e.what << "]}," << std::endl;
+    // You can also just stream like this:
+    // std::cout << e << "," << std::endl;
+
+    // And you can unfold the event like this:
+    // auto [where, kind, what, when] = e;
   };
 
   // Watch the current directory asynchronously.
