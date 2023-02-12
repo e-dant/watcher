@@ -24,6 +24,8 @@ die();
 
 Instead of `#include <watcher/watcher.hpp>`, now you include `<wtr/watcher.hpp>`. This lines up with the namespace.
 
+The namespace `wtr::watcher` is inlined, so calling `wtr::watcher::watch(...)` is the same as `wtr::watch(...)`. Inline namespaces are generally used for versioning, not simplifying. I still think it's a worthwhile change for the user.
+
 ### 0.6.0 Internal Behavior
 
 Every watcher is unique. (Before, we tried to do fancy stuff by counting watchers on each path. I thought that would be useful someday to coalesce events. The watchers are so efficient that this doesn't seem to matter. If the OS wants to batch event reporting across "listeners", which it probably already does, then that's fine.)
