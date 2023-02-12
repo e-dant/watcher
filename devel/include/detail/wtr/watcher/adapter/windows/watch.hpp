@@ -154,7 +154,7 @@ inline bool
 do_event_send(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using namespace ::wtr::watcher;
 
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
@@ -168,11 +168,11 @@ do_event_send(watch_event_proxy& w,
         auto what = [&buf]() noexcept -> event::what
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return what::modify;
-            case FILE_ACTION_ADDED : return what::create;
-            case FILE_ACTION_REMOVED : return what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return what::rename;
+            case FILE_ACTION_MODIFIED : return event::what::modify;
+            case FILE_ACTION_ADDED : return event::what::create;
+            case FILE_ACTION_REMOVED : return event::what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME : return event::what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
             default : return event::what::other;
           }
         }();
@@ -180,8 +180,8 @@ do_event_send(watch_event_proxy& w,
         auto kind = [&where]()
         {
           try {
-            return std::filesystem::is_directory(where) ? kind::dir
-                                                        : kind::file;
+            return std::filesystem::is_directory(where) ? event::kind::dir
+                                                        : event::kind::file;
           } catch (...) {
             return event::kind::other;
           }
