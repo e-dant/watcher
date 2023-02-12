@@ -16,6 +16,18 @@
 namespace wtr {
 namespace watcher {
 
+/*  Contains a way to stop an instance of `watch()`.
+    This is the structure that we return from there.
+    It is intended to allow the `watch(args).close()`
+    syntax as well as an anonymous `watch(args)()`.
+    We define it up here so that editors can suggest
+    and complete the `.close()` function. */
+struct _ {
+  std::function<bool()> close;
+
+  bool operator()() const noexcept { return close(); }
+};
+
 /*  @brief wtr/watcher/watch
 
     @param path:
@@ -54,7 +66,9 @@ namespace watcher {
     Happy hacking. */
 
 [[nodiscard("Returns a way to stop this watcher, for example: auto w = "
-            "watch(p, cb) ; w.close() // or w();")]] inline auto
+            "watch(p, cb) ; w.close() // or w();")]]
+
+inline _
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept
 {
@@ -65,30 +79,23 @@ watch(std::filesystem::path const& path,
       Think of it like a cookie. */
   auto msg = std::make_shared<message>();
 
-  /*  Begin our lifetime.
+  /*  Start and run the watcher asynchronously.
       Every watcher has a unique lifetime. */
   auto lifetime =
     std::async(std::launch::async,
                [=]() noexcept -> bool { return adapter(path, callback, msg); })
       .share();
 
-  /*  Provide a way to stop the watcher to the user.
+  /*  Provides the user with a way to stop the watcher.
       The `close()` function is unique to every watcher.
       A watcher that doesn't exist or isn't "owned"
       can't be closed. That's important.
       The structure that we return is intended to allow
       the `watch(args).close()` syntax as well as an
-      anonymous `watch(args)()`. */
-  struct _ {
-    std::function<bool()> close;
-
-    bool operator()() const noexcept { return close(); }
-  };
-
-  auto close = [=]() noexcept -> bool
-  { return adapter(path, callback, msg) && lifetime.get(); };
-
-  return _{close};
+      anonymous `watch(args)()`. Overloading the `()`
+      operator allows the first syntax. */
+  return _{.close = [=]() noexcept -> bool
+           { return adapter(path, callback, msg) && lifetime.get(); }};
 }
 
 } /* namespace watcher */
