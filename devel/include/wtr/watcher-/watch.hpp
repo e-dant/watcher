@@ -80,7 +80,11 @@ watch(std::filesystem::path const& path,
   auto msg = std::make_shared<message>();
 
   /*  Start and run the watcher asynchronously.
-      Every watcher has a unique lifetime. */
+      Every watcher has a unique lifetime.
+      We want the context to be copied by value
+      (the `=` capture) because we're travelling
+      across threads and leaving this function's
+      scope. (References wouldn't work.) */
   auto lifetime =
     std::async(std::launch::async,
                [=]() noexcept -> bool { return adapter(path, callback, msg); })
