@@ -61,7 +61,8 @@ watch(std::filesystem::path const& path,
   using namespace ::detail::wtr::watcher::adapter;
 
   /*  A message, unique to this watcher.
-      Shared between the user and the adapter. */
+      Shared between this scope and the adapter.
+      Think of it like a cookie. */
   auto msg = std::make_shared<message>();
 
   /*  Begin our lifetime.
