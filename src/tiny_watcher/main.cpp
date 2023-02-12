@@ -7,8 +7,8 @@ int main()
   // The watcher will call this function on every event.
   auto cb = [](wtr::event::event const& e)
   {
-    std::cout << "{\"" << e.when << "\":["
-              << e.where << "," << e.kind << "," << e.what << "]}," << std::endl;
+    std::cout << "{\"" << e.when << "\":[" << e.where << "," << e.kind << ","
+              << e.what << "]}," << std::endl;
     // You can also just stream like this:
     // std::cout << e << "," << std::endl;
 
