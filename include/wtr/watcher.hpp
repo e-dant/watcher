@@ -252,46 +252,6 @@ struct event {
         kind{kind} {};
 
   ~event() noexcept = default;
-
-  /* @brief wtr/watcher/event/==
-     Compares event objects for equivalent
-     `where`, `what` and `kind` values. */
-  friend bool operator==(event const& lhs, event const& rhs) noexcept
-  {
-    /* True if */
-    return
-      /* The path */
-      lhs.where == rhs.where
-      /* And what happened */
-      && lhs.what == rhs.what
-      /* And the kind of path */
-      && lhs.kind == rhs.kind
-      /* And the time */
-      && lhs.when == rhs.when;
-    /* Are the same. */
-  };
-
-  /* @brief wtr/watcher/event/!=
-     Not == */
-  friend bool operator!=(event const& lhs, event const& rhs) noexcept
-  {
-    return ! (lhs == rhs);
-  };
-
-  /* @brief wtr/watcher/event/<<
-     Streams out `where`, `what` and `kind`.
-     Formats the stream as a json object. */
-  friend std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
-  {
-    /* clang-format off */
-    return os << R"(")" << ev.when << R"(":)"
-              << "{"
-                  << R"("where":)" << ev.where      << R"(,)"
-                  << R"("what":")"  << what_repr(ev.what) << R"(",)"
-                  << R"("kind":")"  << kind_repr(ev.kind) << R"(")"
-              << "}";
-    /* clang-format on */
-  }
 };
 
 /* @brief wtr/watcher/event/<<
@@ -308,6 +268,46 @@ inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
   return os << "\"" << kind_repr(k) << "\"";
 }
 
+/* @brief wtr/watcher/event/==
+   Compares event objects for equivalent
+   `where`, `what` and `kind` values. */
+inline bool operator==(event const& lhs, event const& rhs) noexcept
+{
+  /* True if */
+  return
+    /* The path */
+    lhs.where == rhs.where
+    /* And what happened */
+    && lhs.what == rhs.what
+    /* And the kind of path */
+    && lhs.kind == rhs.kind
+    /* And the time */
+    && lhs.when == rhs.when;
+  /* Are the same. */
+};
+
+/* @brief wtr/watcher/event/!=
+   Not == */
+inline bool operator!=(event const& lhs, event const& rhs) noexcept
+{
+  return ! (lhs == rhs);
+};
+
+/* @brief wtr/watcher/event/<<
+   Streams out `where`, `what` and `kind`.
+   Formats the stream as a json object. */
+inline std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
+{
+  /* clang-format off */
+    return os << R"(")" << ev.when << R"(":)"
+              << "{"
+                  << R"("where":)" << ev.where      << R"(,)"
+                  << R"("what":")"  << what_repr(ev.what) << R"(",)"
+                  << R"("kind":")"  << kind_repr(ev.kind) << R"(")"
+              << "}";
+  /* clang-format on */
+}
+
 /* @brief watcher/event/callback
    Ensure the adapters can recieve events
    and will return nothing. */
@@ -322,8 +322,6 @@ using callback = function<void(event const&)>;
 
   The Windows `ReadDirectoryChangesW` adapter.
 */
-
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
@@ -345,9 +343,9 @@ using callback = function<void(event const&)>;
 #include <string>
 /* this_thread::sleep_for */
 #include <thread>
+
 /* event
    callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -574,7 +572,6 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
 
@@ -615,9 +612,9 @@ inline bool watch(std::filesystem::path const& path,
 #include <cstdio>
 /* unordered_set */
 #include <unordered_set>
+
 /* event
    callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -877,7 +874,6 @@ inline bool watch(std::filesystem::path const& path,
     The Linux `fanotify` adapter. */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
   && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -926,9 +922,9 @@ inline bool watch(std::filesystem::path const& path,
 /* tuple
    make_tuple */
 #include <tuple>
+
 /* event
    callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -1527,7 +1523,6 @@ inline bool watch(std::filesystem::path const& path,
     The Linux `inotify` adapter. */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
   || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1566,9 +1561,9 @@ inline bool watch(std::filesystem::path const& path,
 #include <unordered_map>
 /* memcpy */
 #include <cstring>
+
 /* event
    callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -1939,7 +1934,6 @@ inline bool watch(std::filesystem::path const& path,
 */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
   || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1949,11 +1943,11 @@ inline bool watch(std::filesystem::path const& path,
 #include <functional>
 /* geteuid */
 #include <unistd.h>
+
 /* event
    callback
    inotify::watch
    fanotify::watch */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -2033,14 +2027,11 @@ inline bool watch(std::filesystem::path const& path,
 */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#include <detail/wtr/watcher/adapter/linux/watch.hpp>
 #endif
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
   || defined(WATER_WATCHER_USE_WARTHOG)
@@ -2072,9 +2063,9 @@ inline bool watch(std::filesystem::path const& path,
 #include <thread>
 /* unordered_map */
 #include <unordered_map>
+
 /* event
    callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -2340,10 +2331,10 @@ inline bool watch(std::filesystem::path const& path,
 #include <random>
 /*  unordered_map */
 #include <unordered_map>
+
 /*  watch
     event
     callback */
-#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {
@@ -2476,10 +2467,10 @@ inline size_t adapter(std::filesystem::path const& path,
 #include <functional>
 /*  shared_ptr */
 #include <memory>
+
 /*  event
     callback
     adapter */
-#include <wtr/watcher.hpp>
 
 namespace wtr {
 namespace watcher {

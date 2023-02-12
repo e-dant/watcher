@@ -55,7 +55,9 @@ tool::hone() {
     do
       cat "$TOK" \
         | sed -E 's|(/\* )(@pragma/tool/hone/insert )(.+)( \*/)|\3 /\* @pragma/tool/hone/insert \*/|g' \
-        | sed '/#pragma once/d'
+        | sed '/#pragma once/d' \
+        | sed '/#include <detail\/wtr\/watcher\/.*/d' \
+        | sed '/#include <wtr\/watcher.*/d'
     done <<< "$HEADER_PATH_ALL"
   )"
 
