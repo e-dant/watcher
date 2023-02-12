@@ -1,21 +1,20 @@
 #include "../../include/wtr/watcher.hpp"  // Point this to wherever yours is
 #include <iostream>
 
-int main(int argc, char** argv)
+// This is the entire API.
+int main()
 {
+  // The watcher will call this function on every event.
   auto cb = [](wtr::event::event const& ev)
   {
-    std::cout << ev << "," << std::endl;
-    // Or, manually:
-    // std::cout << "event at path: " << ev.where << "\n"
-    //           << "kind of path: " << ev.kind << "\n"
-    //           << "event type: " << ev.what << "\n"
-    //           << "nanoseconds since epoch: " << ev.when
-    //           << std::endl;
+    auto [where, kind, what, when] = ev;
+    std::cout << "{" << where << "," << kind << "," << what << "," << when << "}," << std::endl;
+    // Or, simply:
+    // std::cout << ev << "," << std::endl;
   };
 
-  // This is the entire API.
-  auto watcher = wtr::watch(argc > 1 ? argv[1] : ".", cb);
+  // Watch the current directory asynchronously.
+  auto watcher = wtr::watch(".", cb);
 
   // Close whenever you're done.
   // watcher.close();
