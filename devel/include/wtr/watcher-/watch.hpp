@@ -14,7 +14,7 @@
 #include <wtr/watcher.hpp>
 
 namespace wtr {
-namespace watcher {
+inline namespace watcher {
 
 /*  Contains a way to stop an instance of `watch()`.
     This is the structure that we return from there.

@@ -52,7 +52,7 @@
 #include <functional>
 
 namespace wtr {
-namespace watcher {
+inline namespace watcher {
 namespace event {
 
 namespace {
