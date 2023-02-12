@@ -55,8 +55,9 @@ namespace watcher {
 
 [[nodiscard("Returns a way to stop this watcher, for example: auto w = "
             "watch(p, cb) ; w.close() // or w();")]] inline auto
-watch(std::filesystem::path const &path,
-      event::callback const &callback) noexcept {
+watch(std::filesystem::path const& path,
+      event::callback const& callback) noexcept
+{
   using namespace ::detail::wtr::watcher::adapter;
 
   /*  A message, unique to this watcher.
@@ -65,9 +66,10 @@ watch(std::filesystem::path const &path,
 
   /*  Begin our lifetime.
       Every watcher has a unique lifetime. */
-  auto lifetime = std::async(std::launch::async, [=]() noexcept -> bool {
-                    return adapter(path, callback, msg);
-                  }).share();
+  auto lifetime =
+    std::async(std::launch::async,
+               [=]() noexcept -> bool { return adapter(path, callback, msg); })
+      .share();
 
   /*  Provide a way to stop the watcher to the user.
       The `close()` function is unique to every watcher.
@@ -78,12 +80,12 @@ watch(std::filesystem::path const &path,
       function can be odd to read. */
   struct _ {
     std::function<bool()> close;
+
     bool operator()() const noexcept { return close(); }
   };
 
-  auto close = [=]() noexcept -> bool {
-    return adapter(path, callback, msg) && lifetime.get();
-  };
+  auto close = [=]() noexcept -> bool
+  { return adapter(path, callback, msg) && lifetime.get(); };
 
   return _{close};
 }
