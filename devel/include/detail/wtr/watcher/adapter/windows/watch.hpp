@@ -41,7 +41,6 @@ namespace {
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
 inline constexpr auto delay_ms_dw = static_cast<DWORD>(delay_ms.count());
 inline constexpr auto has_delay = delay_ms > std::chrono::milliseconds(0);
-
 /* I think the default page size in Windows is 64kb,
    so 65536 might also work well. */
 inline constexpr auto event_buf_len_max = 8192;
@@ -51,7 +50,7 @@ class watch_event_proxy {
 public:
   bool is_valid{true};
 
-  std::filesystem::path path;
+  std::filesystem::path path{};
 
   wchar_t path_name[256]{L""};
 
