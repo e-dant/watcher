@@ -131,21 +131,20 @@ There are two things the user needs:
 callback, with is a function-like thing. Passing `watch`
 a character array and a lambda would work well.
 
-Important: `watch` returns a function. Calling that
-function stops the associated watch.
-
-Typical use looks like this:
+Closing the watcher is dependant on there *being* a watch: `watch()` returns a *unique* way to close itself (and nothing else). Typical use looks like this:
 
 ```cpp
-auto w = watch(".", [](event const& e) {
-  std::cout
-    << "where: " << e.where << "\n"
-    << "kind: "  << e.kind  << "\n"
-    << "what: "  << e.what  << "\n"
-    << "when: "  << e.when  << "\n"
-    << std::endl;
-};
-auto dead = w.close(); // w() also works
+// A somewhat object-oriented style:
+
+auto lifetime = watch(".", [](auto e){cout << e;});
+
+lifetime.close();
+
+// A somewhat functional style:
+
+auto die = watch(".", [](auto e){cout << e;});
+
+die();
 ```
 
 `watch` will happily continue watching until you stop
@@ -185,6 +184,7 @@ becomes alive and when it dies.
 
 The last event will always be a `destroy` event from the watcher.
 You can parse it like this:
+
 ```cpp
   auto is_last = ev.kind == kind::watcher
               && ev.what == what::destroy;

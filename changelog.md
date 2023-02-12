@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.0
+
+### 0.6.0 API
+
+`wtr::watcher::die` doesn't exist. Instead, it's dependant on there *being* a watch: `watch()` returns a *unique* way to close itself (and nothing else). Typical use looks like this:
+
+```cpp
+// A somewhat object-oriented style:
+
+auto lifetime = watch(".", [](auto e){cout << e;});
+
+lifetime.close();
+
+// A somewhat functional style:
+
+auto die = watch(".", [](auto e){cout << e;});
+
+die();
+```
+
+`watch()` isn't an object. It's a function that returns a (structure containing a) named function, `close()`. `()` also resolve to `close()`, so it can be anonymous, too.
+
+Instead of `#include <watcher/watcher.hpp>`, now you include `<wtr/watcher.hpp>`. This lines up with the namespace.
+
+### 0.6.0 Internal Behavior
+
+Every watcher is unique. (Before, we tried to do fancy stuff by counting watchers on each path. I thought that would be useful someday to coalesce events. The watchers are so efficient that this doesn't seem to matter. If the OS wants to batch event reporting across "listeners", which it probably already does, then that's fine.)
+
 ## 0.5.6
 
 ### 0.5.6 Housekeeping
