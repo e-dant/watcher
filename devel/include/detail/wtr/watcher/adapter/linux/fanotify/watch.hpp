@@ -385,7 +385,7 @@ inline auto raise(sys_resource_type& sr,
   /* The sum of the handle's bytes. A low-quality hash.
      Unreliable after the directory's inode is recycled. */
   unsigned long dir_hash = std::abs(dir_fh->handle_type);
-  for (unsigned char i = 0; i < dir_fh->handle_bytes; i++)
+  for (decltype(dir_fh->handle_bytes) i = 0; i < dir_fh->handle_bytes; i++)
     dir_hash += *(dir_fh->f_handle + i);
 
   auto const& cache = sr.dir_map.find(dir_hash);
