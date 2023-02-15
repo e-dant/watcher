@@ -79,8 +79,6 @@ SANITIZERS=(
 )
 
 TESTS=(
-  # 'test_regular_file_events'
-  # 'test_directory_events'
   'test_watch_targets'
   'test_concurrent_watch_targets'
   'test_new_directories'

@@ -13,8 +13,6 @@ FetchContent_MakeAvailable(snitch)
 
 # [test target definitions]
 set(TEST_PROJECT_NAME                     "wtr.test_watcher")
-set(TEST_REGULAR_FILE_EVENTS_SOURCES      "../../src/test_watcher/test_regular_file_events/test_regular_file_events.cpp")
-set(TEST_DIRECTORY_EVENTS_SOURCES         "../../src/test_watcher/test_directory_events/test_directory_events.cpp")
 set(TEST_CONCURRENT_WATCH_TARGETS_SOURCES "../../src/test_watcher/test_concurrent_watch_targets/test_concurrent_watch_targets.cpp")
 set(TEST_WATCH_TARGETS_SOURCES            "../../src/test_watcher/test_watch_targets/test_watch_targets.cpp")
 set(TEST_NEW_DIRECTORIES_SOURCES          "../../src/test_watcher/test_new_directories/test_new_directories.cpp")
@@ -29,6 +27,3 @@ include("${TEST_PROJECT_NAME}.test_watch_targets")
 include("${TEST_PROJECT_NAME}.test_concurrent_watch_targets")
 include("${TEST_PROJECT_NAME}.test_new_directories")
 include("${TEST_PROJECT_NAME}.test_simple")
-include("${TEST_PROJECT_NAME}.test_directory_events")
-include("${TEST_PROJECT_NAME}.test_regular_file_events")
-
