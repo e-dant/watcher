@@ -30,6 +30,35 @@ using namespace std::chrono;
 using std::function;
 namespace fs = std::filesystem;
 
+/*  @todo
+    [ -what < all rename modify create destroy owner other > = all ]
+    [ -kind < all dir file hard_link sym_link watcher other > = all ] */
+inline constexpr auto usage =
+  "wtr.watcher [ -h | --help ] [ PATH = . [ -UNIT < TIME > ]\n"
+  "\n"
+  "  PATH\n"
+  "    Any path. Relative or absolute.\n"
+  "    Defaults to the current directory.\n"
+  "    If the given path doesn't exist,\n"
+  "    the current directory is used.\n"
+  "\n"
+  "  UNIT\n"
+  "    One of:\n"
+  "    -nanoseconds,  -ns,\n"
+  "    -microseconds, -us,\n"
+  "    -milliseconds, -ms,\n"
+  "    -seconds,      -s,\n"
+  "    -minutes,      -m,\n"
+  "    -hours,        -h,\n"
+  "    -days,         -d,\n"
+  "    -weeks,        -w,\n"
+  "    -months,       -mts,\n"
+  "    -years,        -y\n"
+  "\n"
+  "  TIME\n"
+  "    Any positive integer, as long as it's\n"
+  "    less than ULONG_MAX. Which is large.\n";
+
 auto watch_forever_or_expire(
   std::optional<std::chrono::nanoseconds const> const& alive_for)
 {
@@ -113,21 +142,21 @@ auto from_cmdline(int const argc, char const** const argv)
   {
     auto given_or_zero_time = [&]()
     {
-      auto t = [&] { return argc > 2 ? std::stoull(argv[2]) : 0; }();
+      auto t = [&] { return argc > 3 ? std::stoull(argv[3]) : 0; }();
 
-      auto targis = [&](char const* a) { return argis(3, a); };
+      auto targis = [&](char const* a) { return argis(2, a); };
 
       // clang-format off
-      return targis("nanoseconds")  || targis("ns")  ? nanoseconds(t)
-           : targis("microseconds") || targis("us")  ? microseconds(t)
-           : targis("milliseconds") || targis("ms")  ? milliseconds(t)
-           : targis("seconds")      || targis("s")   ? seconds(t)
-           : targis("minutes")      || targis("m")   ? minutes(t)
-           : targis("hours")        || targis("h")   ? hours(t)
-           : targis("days")         || targis("d")   ? 24   * hours(t)
-           : targis("weeks")        || targis("w")   ? 168  * hours(t)
-           : targis("months")       || targis("mts") ? 730  * hours(t)
-           : targis("years")        || targis("y")   ? 8760 * hours(t)
+      return targis("-nanoseconds")  || targis("-ns")  ? nanoseconds(t)
+           : targis("-microseconds") || targis("-us")  ? microseconds(t)
+           : targis("-milliseconds") || targis("-ms")  ? milliseconds(t)
+           : targis("-seconds")      || targis("-s")   ? seconds(t)
+           : targis("-minutes")      || targis("-m")   ? minutes(t)
+           : targis("-hours")        || targis("-h")   ? hours(t)
+           : targis("-days")         || targis("-d")   ? 24   * hours(t)
+           : targis("-weeks")        || targis("-w")   ? 168  * hours(t)
+           : targis("-months")       || targis("-mts") ? 730  * hours(t)
+           : targis("-years")        || targis("-y")   ? 8760 * hours(t)
                                                      : milliseconds(t);
       // clang-format on
     }();
@@ -139,9 +168,7 @@ auto from_cmdline(int const argc, char const** const argv)
   {
     auto help = []
     {
-      std::cout << "wtr.watcher"
-                   " [ -h | --help ]"
-                   " [ path = . [ time = 0 [ unit = ms ] ] ]\n";
+      std::cout << usage;
       return 0;
     };
 
@@ -157,15 +184,7 @@ auto from_cmdline(int const argc, char const** const argv)
                          maybe_help());
 };
 
-/*  wtr.watcher
-      [ -h | --help ]
-      [ -p = . [ -t = 0 [ unit = ms ] ] ]
-
-      @todo
-      [ -what < all rename modify create destroy owner other > = all ]
-      [ -kind < all dir file hard_link sym_link watcher other > = all ]
-
-    Watch a path for some time.
+/*  Watch a path for some time.
     Or watch a path forever.
     Show what happens, or show help. */
 int main(int const argc, char const** const argv)
