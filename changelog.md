@@ -2,7 +2,7 @@
 
 ## 0.6.1
 
-CLI code is a bit simpler. Plans for filters.
+CLI code is a bit simpler. Usage is more helpful. Plans for filters.
 
 The type of the `fanotify` adapter's loop variable for handle hashes is a `decltype` of the bytes. Not a char. This is correct.
 
