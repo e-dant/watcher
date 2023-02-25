@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+CLI code is a bit simpler. Plans for filters.
+
+The type of the `fanotify` adapter's loop variable for handle hashes is a `decltype` of the bytes. Not a char. This is correct.
+
 ## 0.6.0
 
 ### 0.6.0 API
@@ -244,3 +250,4 @@ The first public release includes:
 - Event parsing control
 - The CLI program
 - Documentation throughout
+
