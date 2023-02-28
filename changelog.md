@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.1
+## 0.8.0
 
 The Darwin adapter is more skeptical of the kernel. We check for null on the context passed to us in `event_recv`, even though it shouldn't be possible for it to be null.
 
@@ -12,6 +12,8 @@ inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os, enum k
 ```
 
 Users should be able to work off of `std::basic_ostream<Char, CharTraits>` if they want to send it to something other than the standard streams.
+
+This is a new minor release because I'm not sure if the `basic_ostream` changes are ABI-compatible with `0.7.0`.
 
 ## 0.7.0
 
