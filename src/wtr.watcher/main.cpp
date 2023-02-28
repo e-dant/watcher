@@ -11,6 +11,8 @@
 /*  std::cout
     std::endl */
 #include <iostream>
+/*  std::optional */
+#include <optional>
 /*  std::stoull */
 #include <string>
 /*  std::make_tuple */
