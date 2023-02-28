@@ -1,10 +1,25 @@
 # Changelog
 
-## 0.6.1
+## 0.7.1
+
+The Darwin adapter is more skeptical of the kernel. We check for null on the context passed to us in `event_recv`, even though it shouldn't be possible for it to be null.
+
+The `operator<<`s for `event` are more user-customizable. Their signatures look like this now:
+
+```cpp
+template<class Char, class CharTraits>
+inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os, enum kind const& k) noexcept;
+```
+
+Users should be able to work off of `std::basic_ostream<Char, CharTraits>` if they want to send it to something other than the standard streams.
+
+## 0.7.0
 
 CLI code is a bit simpler. Usage is more helpful. Plans for filters.
 
 The type of the `fanotify` adapter's loop variable for handle hashes is a `decltype` of the bytes. Not a char. This is correct.
+
+This release should have been `0.6.1`.
 
 ## 0.6.0
 
@@ -250,4 +265,3 @@ The first public release includes:
 - Event parsing control
 - The CLI program
 - Documentation throughout
-
