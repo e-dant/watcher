@@ -35,8 +35,8 @@
 
    Happy hacking. */
 
-/* std::ostream */
-#include <ostream>
+/* std::basic_ostream */
+#include <ios>
 
 /* std::chrono::system_clock::now
    std::chrono::duration_cast
@@ -100,34 +100,6 @@ enum class kind {
   other,
 };
 
-namespace {
-inline auto repr(enum what const& w)
-{
-  switch (w) {
-    case what::rename : return "rename";
-    case what::modify : return "modify";
-    case what::create : return "create";
-    case what::destroy : return "destroy";
-    case what::owner : return "owner";
-    case what::other : return "other";
-    default : return "other";
-  }
-}
-
-inline auto repr(enum kind const& k)
-{
-  switch (k) {
-    case kind::dir : return "dir";
-    case kind::file : return "file";
-    case kind::hard_link : return "hard_link";
-    case kind::sym_link : return "sym_link";
-    case kind::watcher : return "watcher";
-    case kind::other : return "other";
-    default : return "other";
-  }
-}
-} /* namespace */
-
 struct event {
   /* I like these names. Very human.
      'what happen'
@@ -152,16 +124,55 @@ struct event {
 
 /* @brief wtr/watcher/event/<<
    Streams out a `what` value. */
-inline std::ostream& operator<<(std::ostream& os, enum what const& w) noexcept
+template<class Char, class CharTraits>
+inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                enum what const& w) noexcept
 {
-  return os << "\"" << repr(w) << "\"";
+  /* clang-format off */
+  switch (w) {
+    case what::rename  : return os << "\"rename\"";
+    case what::modify  : return os << "\"modify\"";
+    case what::create  : return os << "\"create\"";
+    case what::destroy : return os << "\"destroy\"";
+    case what::owner   : return os << "\"owner\"";
+    case what::other   : return os << "\"other\"";
+    default            : return os << "\"other\"";
+  }
+  /* clang-format on */
 }
 
 /* @brief wtr/watcher/event/<<
    Streams out a `kind` value. */
-inline std::ostream& operator<<(std::ostream& os, enum kind const& k) noexcept
+template<class Char, class CharTraits>
+inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                enum kind const& k) noexcept
 {
-  return os << "\"" << repr(k) << "\"";
+  /* clang-format off */
+  switch (k) {
+    case kind::dir       : return os << "\"dir\"";
+    case kind::file      : return os << "\"file\"";
+    case kind::hard_link : return os << "\"hard_link\"";
+    case kind::sym_link  : return os << "\"sym_link\"";
+    case kind::watcher   : return os << "\"watcher\"";
+    case kind::other     : return os << "\"other\"";
+    default              : return os << "\"other\"";
+  }
+  /* clang-format on */
+}
+
+/* @brief wtr/watcher/event/<<
+   Streams out `where`, `what` and `kind`.
+   Formats the stream as a json object. */
+template<class Char, class CharTraits>
+inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                event const& ev) noexcept
+{
+  /* clang-format off */
+    return os << R"(")" << ev.when << R"(":)"
+              << "{" << R"("where":)" << ev.where << R"(,)"
+                     << R"("what":)"  << ev.what  << R"(,)"
+                     << R"("kind":)"  << ev.kind  << "}";
+  /* clang-format on */
 }
 
 /* @brief wtr/watcher/event/==
@@ -188,21 +199,6 @@ inline bool operator!=(event const& lhs, event const& rhs) noexcept
 {
   return ! (lhs == rhs);
 };
-
-/* @brief wtr/watcher/event/<<
-   Streams out `where`, `what` and `kind`.
-   Formats the stream as a json object. */
-inline std::ostream& operator<<(std::ostream& os, event const& ev) noexcept
-{
-  /* clang-format off */
-    return os << R"(")" << ev.when << R"(":)"
-              << "{"
-                  << R"("where":)" << ev.where      << R"(,)"
-                  << R"("what":")"  << repr(ev.what) << R"(",)"
-                  << R"("kind":")"  << repr(ev.kind) << R"(")"
-              << "}";
-  /* clang-format on */
-}
 
 /* @brief watcher/event/callback
    Ensure the adapters can recieve events
