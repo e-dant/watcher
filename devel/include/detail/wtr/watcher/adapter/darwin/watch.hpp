@@ -68,17 +68,20 @@ inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
    want less "sleepy" time after a period of no filesystem events. But we're
    talking about saving a maximum latency of `delay_ms` after some period of
    inactivity -- very small. (Not sure what the inactivity period is.) */
-inline constexpr auto event_stream_flags =
+inline constexpr unsigned event_stream_flags =
   kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
   | kFSEventStreamCreateFlagUseCFTypes;
+
+inline constexpr unsigned kFSEventStreamEventFlagItemIsAnyHardLink =
+  kFSEventStreamEventFlagItemIsHardlink
+  | kFSEventStreamEventFlagItemIsLastHardlink;
 
 inline std::tuple<FSEventStreamRef, dispatch_queue_t>
 event_stream_open(std::filesystem::path const& path,
                   FSEventStreamCallback funcptr,
-                  argptr_type const& funcptr_args,
-                  std::function<void()> lifetime_fn) noexcept
+                  argptr_type const& funcptr_args) noexcept
 {
-  static constexpr CFIndex path_array_size{1};
+  static constexpr CFIndex path_array_size = 1;
   static constexpr auto queue_priority = -10;
 
   auto funcptr_context =
@@ -132,8 +135,6 @@ event_stream_open(std::filesystem::path const& path,
 
   FSEventStreamStart(stream);
 
-  lifetime_fn();
-
   return std::make_tuple(stream, queue);
 }
 
@@ -160,8 +161,11 @@ inline bool event_stream_close(
       dispatch_release(queue);
       return true;
     }
+    else
+      return false;
   }
-  return false;
+  else
+    return false;
 }
 
 inline std::filesystem::path path_from_event_at(void* event_recv_paths,
@@ -218,45 +222,45 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
   using evk = ::wtr::watcher::event::kind;
   using evw = ::wtr::watcher::event::what;
 
-  auto [callback, seen_created] = *static_cast<argptr_type*>(arg_ptr);
+  if (arg_ptr && recv_paths) {
 
-  for (unsigned long i = 0; i < recv_count; i++) {
-    auto path = path_from_event_at(recv_paths, i);
-    /* `path` has no hash function, so we use a string. */
-    auto path_str = path.string();
+    auto [callback, seen_created] = *static_cast<argptr_type*>(arg_ptr);
 
-    decltype(*recv_flags) flag = recv_flags[i];
+    for (unsigned long i = 0; i < recv_count; i++) {
+      auto path = path_from_event_at(recv_paths, i);
+      /* `path` has no hash function, so we use a string. */
+      auto path_str = path.string();
 
-    /* A single path won't have different "kinds". */
-    auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
-           : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
-           : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
-           : flag
-                 & (kFSEventStreamEventFlagItemIsHardlink
-                    | kFSEventStreamEventFlagItemIsLastHardlink)
-             ? evk::hard_link
-             : evk::other;
+      decltype(*recv_flags) flag = recv_flags[i];
 
-    /* More than one thing might have happened to the same path.
-       (Which is why we use non-exclusive `if`s.) */
-    if (flag & kFSEventStreamEventFlagItemCreated) {
-      if (seen_created->find(path_str) == seen_created->end()) {
-        seen_created->emplace(path_str);
-        callback(::wtr::watcher::event::event{path, evw::create, k});
+      /* A single path won't have different "kinds". */
+      auto k = flag & kFSEventStreamEventFlagItemIsFile        ? evk::file
+             : flag & kFSEventStreamEventFlagItemIsDir         ? evk::dir
+             : flag & kFSEventStreamEventFlagItemIsSymlink     ? evk::sym_link
+             : flag & kFSEventStreamEventFlagItemIsAnyHardLink ? evk::hard_link
+                                                               : evk::other;
+
+      /* More than one thing might have happened to the same path.
+         (Which is why we use non-exclusive `if`s.) */
+      if (flag & kFSEventStreamEventFlagItemCreated) {
+        if (seen_created->find(path_str) == seen_created->end()) {
+          seen_created->emplace(path_str);
+          callback({path, evw::create, k});
+        }
       }
-    }
-    if (flag & kFSEventStreamEventFlagItemRemoved) {
-      auto const& seen_created_at = seen_created->find(path_str);
-      if (seen_created_at != seen_created->end()) {
-        seen_created->erase(seen_created_at);
-        callback(::wtr::watcher::event::event{path, evw::destroy, k});
+      if (flag & kFSEventStreamEventFlagItemRemoved) {
+        auto const& seen_created_at = seen_created->find(path_str);
+        if (seen_created_at != seen_created->end()) {
+          seen_created->erase(seen_created_at);
+          callback({path, evw::destroy, k});
+        }
       }
-    }
-    if (flag & kFSEventStreamEventFlagItemModified) {
-      callback(::wtr::watcher::event::event{path, evw::modify, k});
-    }
-    if (flag & kFSEventStreamEventFlagItemRenamed) {
-      callback(::wtr::watcher::event::event{path, evw::rename, k});
+      if (flag & kFSEventStreamEventFlagItemModified) {
+        callback({path, evw::modify, k});
+      }
+      if (flag & kFSEventStreamEventFlagItemRenamed) {
+        callback({path, evw::rename, k});
+      }
     }
   }
 }
@@ -274,23 +278,21 @@ inline bool watch(std::filesystem::path const& path,
   auto seen_created_paths = std::unordered_set<std::string>{};
   auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
 
-  auto ok = event_stream_close(event_stream_open(path,
-                                                 event_recv,
-                                                 event_recv_argptr,
-                                                 [&is_living]()
-                                                 {
-                                                   while (is_living())
-                                                     if constexpr (has_delay)
-                                                       sleep_for(delay_ms);
-                                                 }));
+  auto stream_resources =
+    event_stream_open(path, event_recv, event_recv_argptr);
 
-  if (ok)
+  while (is_living())
+    if constexpr (has_delay) sleep_for(delay_ms);
+
+  auto died_ok = event_stream_close(std::move(stream_resources));
+
+  if (died_ok)
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
 
   else
     callback({"e/self/die@" + path.string(), evw::destroy, evk::watcher});
 
-  return ok;
+  return died_ok;
 }
 
 } /* namespace adapter */
