@@ -2,7 +2,8 @@
 
 /*  path */
 #include <filesystem>
-/*  shared_ptr */
+/*  shared_ptr
+    unique_ptr */
 #include <memory>
 /*  mutex
     scoped_lock */
@@ -30,16 +31,18 @@ struct message {
   size_t id{0};
 };
 
+namespace {
+
 /*
-    carry message { live, 0 } =
+    next_state message { live, 0 } =
       id = random
       message { die, id }
       { live, id }
 
-    carry message { die, id } =
+    next_state message { die, id } =
       { die, id }
  */
-inline message carry(std::shared_ptr<message> m) noexcept
+inline message next_state(std::shared_ptr<message> const& m) noexcept
 {
   auto random_id = []() noexcept -> size_t
   {
@@ -60,9 +63,11 @@ inline message carry(std::shared_ptr<message> m) noexcept
   return message{w, m->id};
 };
 
+} /* namespace */
+
 inline size_t adapter(std::filesystem::path const& path,
                       ::wtr::watcher::event::callback const& callback,
-                      std::shared_ptr<message> previous) noexcept
+                      std::shared_ptr<message> const& previous) noexcept
 {
   using namespace ::detail::wtr::watcher::adapter;
   using evw = ::wtr::watcher::event::what;
@@ -74,7 +79,7 @@ inline size_t adapter(std::filesystem::path const& path,
   /*  A mutex to synchronize access to the container. */
   static auto lifetimes_mtx{std::mutex{}};
 
-  auto const msg = carry(previous);
+  auto const msg = next_state(previous);
 
   /*  Returns a functor to check if we're still living.
       The functor is unique to every watcher. */
@@ -134,7 +139,7 @@ inline size_t adapter(std::filesystem::path const& path,
 
     default : return false;
   }
-}
+};
 
 } /* namespace adapter */
 }  // namespace watcher
