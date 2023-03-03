@@ -33,15 +33,13 @@ struct message {
 
 namespace {
 
-/*
-    next_state message { live, 0 } =
+/*  next_state message =
       id = random
-      message { die, id }
-      { live, id }
+      message = { die, id }
+      return { live, id }
 
-    next_state message { die, id } =
-      { die, id }
- */
+    next_state message =
+      return { die, id } */
 inline message next_state(std::shared_ptr<message> const& m) noexcept
 {
   auto random_id = []() noexcept -> size_t
@@ -69,22 +67,24 @@ inline size_t adapter(std::filesystem::path const& path,
                       ::wtr::watcher::event::callback const& callback,
                       std::shared_ptr<message> const& previous) noexcept
 {
-  using namespace ::detail::wtr::watcher::adapter;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
   /*  This map associates watchers with (maybe not unique) paths. */
   static auto lifetimes{std::unordered_map<size_t, std::filesystem::path>{}};
-
-  /*  A mutex to synchronize access to the container. */
   static auto lifetimes_mtx{std::mutex{}};
 
   auto const msg = next_state(previous);
 
-  /*  Returns a functor to check if we're still living.
-      The functor is unique to every watcher. */
+  /*  Creates a watcher at some path with a unique lifetime
+      The lifetime ends whenever we receive the `die` word
+      in this watcher's message.
+
+      True if a new watcher was created without error. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool
   {
+    /*  Returns a functor to check if we're still living.
+        The functor is unique to every watcher. */
     auto const& create_lifetime =
       [id, &path, &callback]() noexcept -> std::function<bool()>
     {
@@ -92,8 +92,12 @@ inline size_t adapter(std::filesystem::path const& path,
 
       auto const maybe_node = lifetimes.find(id);
 
+      /*  If this watcher wasn't alive when we were called, then
+          return a functor which is true until we end the lifetime.
+
+          True if `id` exists in `lifetimes`. */
       if (maybe_node == lifetimes.end()) [[likely]] {
-        lifetimes[id] = path;
+        lifetimes.emplace(id, path);
 
         callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
@@ -104,6 +108,8 @@ inline size_t adapter(std::filesystem::path const& path,
           return lifetimes.find(id) != lifetimes.end();
         };
       }
+
+      /*  Or we return a functor that always returns false. */
       else {
         callback(
           {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
@@ -112,24 +118,29 @@ inline size_t adapter(std::filesystem::path const& path,
       }
     };
 
-    return watch(path, callback, create_lifetime()) ? id : 0;
+    return watch(path, callback, create_lifetime()) ? true : false;
   };
 
-  auto const& die = [id = msg.id]() noexcept -> size_t
+  /*  Removes a watcher's `id` from the lifetime container.
+      This ends the watcher's lifetime. The predicate functor
+      for a watcher without an `id` in this container always
+      returns false. The watchers know how to die after that.
+
+      True if `id` existed in the container and was removed. */
+  auto const& die = [id = msg.id]() noexcept -> bool
   {
     auto _ = std::scoped_lock{lifetimes_mtx};
 
     auto const maybe_node = lifetimes.find(id);
 
     if (maybe_node != lifetimes.end()) [[likely]] {
-      size_t id = maybe_node->first;
+      lifetimes.erase(maybe_node->first);
 
-      lifetimes.erase(maybe_node);
-
-      return id;
+      return true;
     }
+
     else
-      return 0;
+      return false;
   };
 
   switch (msg.w) {
