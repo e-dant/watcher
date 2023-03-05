@@ -255,7 +255,8 @@ system_unfold(std::filesystem::path const& path,
                 if (! ec)
                   if (! mark(dir.path(), watch_fd, pmc))
                     callback({std::string{"w/sys/not_watched@"}
-                                + base_path.string() + "@" + dir.path().string(),
+                                + base_path.string() + "@"
+                                + dir.path().string(),
                               ::wtr::watcher::event::what::other,
                               ::wtr::watcher::event::kind::watcher});
 
