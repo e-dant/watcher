@@ -29,12 +29,12 @@ requires(std::is_nothrow_invocable_v<Fn>
 struct _ {
   Fn const close{};
 
-  constexpr auto operator()() const noexcept -> bool { return this->close(); };
+  inline constexpr auto operator()() const noexcept -> bool { return this->close(); };
 
-  constexpr _(Fn&& fn) noexcept
+  inline constexpr _(Fn&& fn) noexcept
       : close{std::forward<Fn>(fn)} {};
 
-  constexpr ~_() = default;
+  inline constexpr ~_() = default;
 };
 
 /*  @brief wtr/watcher/watch

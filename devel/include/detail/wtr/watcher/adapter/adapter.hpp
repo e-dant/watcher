@@ -31,7 +31,7 @@ struct future {
   bool closed{false};
 };
 
-auto open(std::filesystem::path const& path,
+inline auto open(std::filesystem::path const& path,
           ::wtr::watcher::event::callback const& callback) noexcept
   -> future::shared
 {
@@ -57,7 +57,7 @@ auto open(std::filesystem::path const& path,
   return fut;
 };
 
-auto close(future::shared const& fut) noexcept -> bool
+inline auto close(future::shared const& fut) noexcept -> bool
 {
   if (! fut->closed) {
     {

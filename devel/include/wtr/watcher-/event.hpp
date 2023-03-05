@@ -168,17 +168,17 @@ inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
                                 event const& ev) noexcept
 {
   /* clang-format off */
-    return os << R"(")" << ev.when << R"(":)"
-              << "{" << R"("where":)" << ev.where << R"(,)"
-                     << R"("what":)"  << ev.what  << R"(,)"
-                     << R"("kind":)"  << ev.kind  << "}";
+    return os << '"' << ev.when << '"'
+              << ":{" << "\"where\":" << ev.where << ','
+                      << "\"what\":"  << ev.what  << ','
+                      << "\"kind\":"  << ev.kind  << "}";
   /* clang-format on */
 }
 
 /* @brief wtr/watcher/event/==
    Compares event objects for equivalent
    `where`, `what` and `kind` values. */
-inline bool operator==(event const& lhs, event const& rhs) noexcept
+inline constexpr bool operator==(event const& lhs, event const& rhs) noexcept
 {
   /* True if */
   return
@@ -195,7 +195,7 @@ inline bool operator==(event const& lhs, event const& rhs) noexcept
 
 /* @brief wtr/watcher/event/!=
    Not == */
-inline bool operator!=(event const& lhs, event const& rhs) noexcept
+inline constexpr bool operator!=(event const& lhs, event const& rhs) noexcept
 {
   return ! (lhs == rhs);
 };
