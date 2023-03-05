@@ -45,6 +45,8 @@ cd "$(dirname "$0")" \
   || return $?
 THIS_DIR="$PWD"
 
+EC=0
+
 if echo "$1" | grep -q -- --
 then
   PLATFORM='this'
@@ -109,7 +111,7 @@ OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
 build::init::cc() {
   if uname | grep -qE '(Darwin)|(Linux)'
   then
-    local EC;
+    local ok=0
     local WTR_LLVM_VERSION=15
     local WTR_LLVM_DIR="$THIS_DIR/../../../tool/compiler/llvm"
     
@@ -118,14 +120,14 @@ build::init::cc() {
     
     if test -n "$CC" -a -n "$CXX"
     then
-      EC=0
+      ok=0
     elif test -d "$WTR_LLVM_DIR"
     then
       if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
       then
         "$WTR_LLVM_DIR/tool/version/set" "$WTR_LLVM_VERSION"
         "$WTR_LLVM_DIR/build/build"
-        EC=$?
+        ok=$?
       fi
       CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
       CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
@@ -134,7 +136,7 @@ build::init::cc() {
     export CC
     export CXX
 
-    return "$EC"
+    return $ok
   fi
 }
 
@@ -457,7 +459,7 @@ build::build() {
     done
   fi
 
-  return $ok
+  EC=$ok
 }
 
 build::run::test() {
@@ -609,13 +611,7 @@ build::clean "$@" \
   && build::write::current_artifacts "$@" \
   && build::install "$@"
 
-EC=$?
-
-# @todo
-# Undo this once the sanitizers behave.
-# Which might be a long time...
-EC=0
-
 cd "$LAST_DIR" \
   || exit 1
+
 exit $EC
