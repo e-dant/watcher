@@ -117,6 +117,8 @@ inline auto path_map(std::filesystem::path const& base_path,
   namespace fs = ::std::filesystem;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
   static constexpr auto fs_dir_opt =
@@ -143,10 +145,11 @@ inline auto path_map(std::filesystem::path const& base_path,
               if (fs::is_directory(dir, dir_ec))
                 if (! dir_ec)
                   if (! do_mark(dir.path()))
-                    callback({std::string{"w/sys/path_unwatched@"}
+                    callback({"w/sys/not_watched@"
+                                + base_path.string() + "@"
                                 + dir.path().string(),
-                              ::wtr::watcher::event::what::other,
-                              ::wtr::watcher::event::kind::watcher});
+                              evw::other,
+                              evk::watcher});
 
   return pm;
 };
@@ -158,7 +161,7 @@ inline auto
 system_unfold(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
-  auto do_error = [&callback](auto msg,
+  auto do_error = [&callback](char const* const msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
@@ -291,7 +294,7 @@ recurse:
           }
         }
         else
-          callback({"e/self/overflow@" / base_path,
+          callback({"e/self/overflow@" + base_path.string(),
                     ::wtr::watcher::event::what::other,
                     ::wtr::watcher::event::kind::watcher});
       }
@@ -300,7 +303,7 @@ recurse:
       goto recurse;
 
     case state::error :
-      callback({"e/sys/read@" / base_path,
+      callback({"e/sys/read@" + base_path.string(),
                 ::wtr::watcher::event::what::other,
                 ::wtr::watcher::event::kind::watcher});
       return false;
@@ -331,24 +334,18 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
-  {
-    /* using evk = enum ::wtr::watcher::event::kind; */
-    /* using evw = enum ::wtr::watcher::event::what; */
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
-    callback({msg / path,
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher});
+  auto do_error = [&path, &callback](bool clean, std::string&& msg) -> bool
+  {
+    callback({msg + path.string(), evw::other, evk::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(),
-                ::wtr::watcher::event::what::other,
-                ::wtr::watcher::event::kind::watcher});
+      callback({"s/self/die@" + path.string(), evw::other, evk::watcher});
 
     else
-      callback({"e/self/die@" + path.string(),
-                ::wtr::watcher::event::what::other,
-                ::wtr::watcher::event::kind::watcher});
+      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
 
     return false;
   };
@@ -391,9 +388,7 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(),
-                ::wtr::watcher::event::what::destroy,
-                ::wtr::watcher::event::kind::watcher});
+      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
       return system_fold(sr);
     }
     else
@@ -412,3 +407,4 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+

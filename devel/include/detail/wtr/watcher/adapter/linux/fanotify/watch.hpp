@@ -203,21 +203,22 @@ system_unfold(std::filesystem::path const& path,
   -> sys_resource_type
 {
   namespace fs = ::std::filesystem;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
-  auto const& do_error = [&callback](auto const& error,
-                                     auto const& path,
+  auto const& do_error = [&callback](char const* const error,
+                                     fs::path const& path,
                                      int watch_fd,
                                      int event_fd =
                                        -1) noexcept -> sys_resource_type
   {
-    auto msg = std::string(error)
-                 .append("(")
-                 .append(std::strerror(errno))
-                 .append(")@")
-                 .append(path);
-    callback({msg,
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher});
+    callback({std::string{error}
+                .append("(")
+                .append(std::strerror(errno))
+                .append(")@")
+                .append(path),
+              evw::other,
+              evk::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -254,11 +255,11 @@ system_unfold(std::filesystem::path const& path,
               if (fs::is_directory(dir, ec))
                 if (! ec)
                   if (! mark(dir.path(), watch_fd, pmc))
-                    callback({std::string{"w/sys/not_watched@"}
+                    callback({"w/sys/not_watched@"
                                 + base_path.string() + "@"
                                 + dir.path().string(),
-                              ::wtr::watcher::event::what::other,
-                              ::wtr::watcher::event::kind::watcher});
+                              evw::other,
+                              evk::watcher});
 
     return pmc;
   };
@@ -652,3 +653,4 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
           && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+
