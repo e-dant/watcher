@@ -8,7 +8,6 @@
 */
 
 /* clang-format off */
-#define WTR_WATCHER_O 1
 #include <detail/wtr/watcher/platform.hpp>
 #include <wtr/watcher-/event.hpp>
 #include <detail/wtr/watcher/adapter/windows/watch.hpp>

@@ -25,7 +25,9 @@ inline namespace watcher {
     It is intended to allow the `watch(args).close()`
     syntax as well as an anonymous `watch(args)()`.
     We define it up here so that editors can suggest
-    and complete the `.close()` function. */
+    and complete the `.close()` function. Also because
+    we can't template a type inside a function. */
+
 template<class F>
 requires(std::is_nothrow_invocable_v<F>
          and std::is_same_v<std::invoke_result_t<F>, bool>)
@@ -39,24 +41,6 @@ struct _ {
 
   constexpr ~_() = default;
 };
-
-#if WTR_WATCHER_O
-
-[[nodiscard("Returns a way to stop this watcher, for example: auto w = "
-            "watch(p, cb) ; w.close() // or w();")]]
-
-inline auto
-watch(std::filesystem::path const& path,
-      event::callback const& callback) noexcept
-{
-
-  using namespace ::detail::wtr::watcher::adapter::o;
-
-  return _{[a{new adapter(path, callback)}]() constexpr noexcept -> bool
-           { return a->close() ? (delete a, true) : (delete a, false); }};
-}
-
-#else
 
 /*  @brief wtr/watcher/watch
 
@@ -95,44 +79,18 @@ watch(std::filesystem::path const& path,
 
     Happy hacking. */
 
-[[nodiscard("Returns a way to stop this watcher, for example: auto w = "
-            "watch(p, cb) ; w.close() // or w();")]]
+[[nodiscard("Returns a way to stop this watcher, for example: "
+            "auto w = watch(p, cb) ; w.close() // or w();")]]
 
 inline auto
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept
 {
-  using namespace ::detail::wtr::watcher::adapter::f;
+  using namespace ::detail::wtr::watcher::adapter;
 
-  /*  A message, unique to this watcher.
-      Shared between this scope and the adapter.
-      Think of it like a cookie. */
-  auto msg = std::make_shared<message>();
-
-  /*  Start and run the watcher asynchronously.
-      Every watcher has a unique lifetime.
-      We want the context to be copied by value
-      (the `=` capture) because we're travelling
-      across threads and leaving this function's
-      scope. (References wouldn't work.) */
-  auto lifetime =
-    std::async(std::launch::async,
-               [=]() noexcept -> bool { return adapter(path, callback, msg); })
-      .share();
-
-  /*  Provides the user with a way to stop the watcher.
-      The `close()` function is unique to every watcher.
-      A watcher that doesn't exist or isn't "owned"
-      can't be closed. That's important.
-      The structure that we return is intended to allow
-      the `watch(args).close()` syntax as well as an
-      anonymous `watch(args)()`. Overloading the `()`
-      operator allows the first syntax. */
-  return _{[=]() noexcept -> bool
-           { return adapter(path, callback, msg) && lifetime.get(); }};
-}
-
-#endif
+  return _{[adapter{open(path, callback)}]() noexcept -> bool
+           { return close(adapter); }};
+};
 
 } /* namespace watcher */
 } /* namespace wtr   */

@@ -95,6 +95,7 @@ auto watch_forever_or_expire(
     [](std::filesystem::path const& path, wtr::event::callback const& callback)
     {
       auto _{watch(path, callback)};
+      (void)_;
       return true;
     }};
 
