@@ -174,7 +174,7 @@ do_event_send(watch_event_proxy& w,
             case FILE_ACTION_REMOVED : return evw::destroy;
             case FILE_ACTION_RENAMED_OLD_NAME : return evw::rename;
             case FILE_ACTION_RENAMED_NEW_NAME : return evw::rename;
-            default : return event::what::other;
+            default : return evw::other;
           }
         }();
 
