@@ -2432,6 +2432,12 @@ struct _ {
 
 /*  @brief wtr/watcher/watch
 
+    Returns an asyncronous filesystem watcher as a function
+    object. Calling the function object with `()` or `.close()`
+    will stop the watcher.
+
+    Closing the watcher is the only blocking operation.
+
     @param path:
       The root path to watch for filesystem events.
 

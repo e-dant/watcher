@@ -32,6 +32,7 @@ int main()
   auto watcher = wtr::watch(".", cb);
 
   // Close whenever you're done.
+  // This is the only blocking operation.
   // watcher.close();
 }
 
