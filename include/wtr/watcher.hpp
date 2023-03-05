@@ -1651,14 +1651,15 @@ inline auto path_map(std::filesystem::path const& base_path,
   if (sr.valid)
     if (do_mark(base_path))
       if (fs::is_directory(base_path, dir_ec))
-        for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
-          if (! dir_ec)
-            if (fs::is_directory(dir, dir_ec))
-              if (! dir_ec)
-                if (! do_mark(dir.path()))
-                  callback({"w/sys/path_unwatched@" / dir.path(),
-                            ::wtr::watcher::event::what::other,
-                            ::wtr::watcher::event::kind::watcher});
+        if (! dir_ec)
+          for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
+            if (! dir_ec)
+              if (fs::is_directory(dir, dir_ec))
+                if (! dir_ec)
+                  if (! do_mark(dir.path()))
+                    callback({"w/sys/path_unwatched@" / dir.path(),
+                              ::wtr::watcher::event::what::other,
+                              ::wtr::watcher::event::kind::watcher});
 
   return pm;
 };
