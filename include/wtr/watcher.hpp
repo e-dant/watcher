@@ -419,7 +419,8 @@ inline bool
 do_event_recv(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
@@ -447,9 +448,9 @@ do_event_recv(watch_event_proxy& w,
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
         w.is_valid = false;
-        callback({"e/sys/read/pending", what::other, kind::watcher});
+        callback({"e/sys/read/pending", evw::other, evk::watcher});
         break;
-      default : callback({"e/sys/read", what::other, kind::watcher}); break;
+      default : callback({"e/sys/read", evw::other, evk::watcher}); break;
     }
     return false;
   }
@@ -519,7 +520,8 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   auto w = watch_event_proxy{path};
 
@@ -546,12 +548,11 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
-
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
+    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
     return false;
   }
 }
@@ -1301,17 +1302,18 @@ inline auto raise(sys_resource_type& sr,
 
 inline auto raise(fanotify_event_metadata const* m) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   return std::make_tuple(
 
-    m->mask & FAN_CREATE   ? what::create
-    : m->mask & FAN_DELETE ? what::destroy
-    : m->mask & FAN_MODIFY ? what::modify
-    : m->mask & FAN_MOVE   ? what::rename
-                           : what::other,
+    m->mask & FAN_CREATE   ? evw::create
+    : m->mask & FAN_DELETE ? evw::destroy
+    : m->mask & FAN_MODIFY ? evw::modify
+    : m->mask & FAN_MOVE   ? evw::rename
+                           : evw::other,
 
-    m->mask & FAN_ONDIR ? kind::dir : kind::file);
+    m->mask & FAN_ONDIR ? evk::dir : evk::file);
 }
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/send
@@ -1326,7 +1328,8 @@ inline auto send(sys_resource_type& sr,
                  ::wtr::watcher::event::callback const& callback) noexcept
   -> bool
 {
-  using namespace ::wtr::watcher::event;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   auto [path, hash] = raise(sr, m);
 
@@ -1334,11 +1337,11 @@ inline auto send(sys_resource_type& sr,
 
   auto tend
 
-    = hash ? kind == kind::dir
+    = hash ? kind == evk::dir
 
-             ? what == what::create  ? mark(path, sr, hash)
-             : what == what::destroy ? unmark(path, sr, hash)
-                                     : true
+             ? what == evw::create  ? mark(path, sr, hash)
+             : what == evw::destroy ? unmark(path, sr, hash)
+                                    : true
              : true
 
            : false;
