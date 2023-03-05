@@ -10,26 +10,28 @@
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
-/* ReadDirectoryChangesW
-   CreateIoCompletionPort
-   CreateFileW
-   CreateEventW
-   GetQueuedCompletionStatus
-   ResetEvent
-   GetLastError
-   WideCharToMultiByte */
+/*  ReadDirectoryChangesW
+    CreateIoCompletionPort
+    CreateFileW
+    CreateEventW
+    GetQueuedCompletionStatus
+    ResetEvent
+    GetLastError
+    WideCharToMultiByte */
 #include <windows.h>
-/* milliseconds */
+/*  milliseconds */
 #include <chrono>
-/* path */
+/*  path */
 #include <filesystem>
-/* string
-   wstring */
+/*  string
+    wstring */
 #include <string>
-/* this_thread::sleep_for */
+/*  error_code */
+#include <system_error>
+/*  this_thread::sleep_for */
 #include <thread>
-/* event
-   callback */
+/*  event
+    callback */
 #include <wtr/watcher.hpp>
 
 namespace detail {
@@ -180,11 +182,9 @@ do_event_send(watch_event_proxy& w,
 
         auto kind = [&where]() -> evk
         {
-          try {
-            return std::filesystem::is_directory(where) ? evk::dir : evk::file;
-          } catch (...) {
-            return evk::other;
-          }
+          auto ec = std::error_code{};
+          auto k = std::filesystem::is_directory(where, ec) ? evk::dir : evk::file;
+          return ec ? evk::other : k;
         }();
 
         callback({where, what, kind});

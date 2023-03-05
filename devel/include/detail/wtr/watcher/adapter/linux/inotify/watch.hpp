@@ -3,7 +3,7 @@
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify
     The Linux `inotify` adapter. */
 
-/* WATER_WATCHER_PLATFORM_* */
+/*  WATER_WATCHER_PLATFORM_* */
 #include <detail/wtr/watcher/platform.hpp>
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
@@ -12,39 +12,41 @@
 
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
-/* EPOLL*
-   epoll_ctl
-   epoll_wait
-   epoll_event
-   epoll_create
-   epoll_create1 */
+/*  EPOLL*
+    epoll_ctl
+    epoll_wait
+    epoll_event
+    epoll_create
+    epoll_create1 */
 #include <sys/epoll.h>
-/* IN_*
-   inotify_init
-   inotify_init1
-   inotify_event
-   inotify_add_watch */
+/*  IN_*
+    inotify_init
+    inotify_init1
+    inotify_event
+    inotify_add_watch */
 #include <sys/inotify.h>
 /* open
    read
    close */
 #include <unistd.h>
-/* path
-   is_directory
-   directory_options
-   recursive_directory_iterator */
+/*  path
+    is_directory
+    directory_options
+    recursive_directory_iterator */
 #include <filesystem>
-/* function */
+/*  function */
 #include <functional>
-/* tuple
-   make_tuple */
+/*  tuple
+    make_tuple */
 #include <tuple>
-/* unordered_map */
+/*  error_code */
+#include <system_error>
+/*  unordered_map */
 #include <unordered_map>
-/* memcpy */
+/*  memcpy */
 #include <cstring>
-/* event
-   callback */
+/*  event
+    callback */
 #include <wtr/watcher.hpp>
 
 namespace detail {
