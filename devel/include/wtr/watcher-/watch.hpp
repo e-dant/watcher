@@ -23,16 +23,16 @@ inline namespace watcher {
     and complete the `.close()` function. Also because
     we can't template a type inside a function. */
 
-template<class F>
-requires(std::is_nothrow_invocable_v<F>
-         and std::is_same_v<std::invoke_result_t<F>, bool>)
+template<class Fn>
+requires(std::is_nothrow_invocable_v<Fn>
+         and std::is_same_v<std::invoke_result_t<Fn>, bool>)
 struct _ {
-  F const close{};
+  Fn const close{};
 
   constexpr auto operator()() const noexcept -> bool { return this->close(); };
 
-  constexpr _(F&& f) noexcept
-      : close{std::forward<F>(f)} {};
+  constexpr _(Fn&& fn) noexcept
+      : close{std::forward<Fn>(fn)} {};
 
   constexpr ~_() = default;
 };

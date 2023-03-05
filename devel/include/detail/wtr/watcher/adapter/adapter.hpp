@@ -45,16 +45,16 @@ auto open(std::filesystem::path const& path,
   callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
   fut->work = std::async(std::launch::async,
-                       [path, callback, fut]() noexcept -> bool
-                       {
-                         return watch(path,
-                                      callback,
-                                      [fut]() noexcept -> bool
-                                      {
-                                        auto _ = std::scoped_lock{fut->lk};
-                                        return ! fut->closed;
-                                      });
-                       });
+                         [path, callback, fut]() noexcept -> bool
+                         {
+                           return watch(path,
+                                        callback,
+                                        [fut]() noexcept -> bool
+                                        {
+                                          auto _ = std::scoped_lock{fut->lk};
+                                          return ! fut->closed;
+                                        });
+                         });
 
   return fut;
 };

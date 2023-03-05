@@ -2328,12 +2328,7 @@ inline bool watch(std::filesystem::path const& path,
 /*  mutex
     scoped_lock */
 #include <mutex>
-/*  mt19937
-    random_device
-    uniform_int_distribution */
-#include <random>
 /*  unordered_map */
-#include <thread>
 #include <unordered_map>
 
 /*  watch
@@ -2345,7 +2340,8 @@ namespace wtr {
 namespace watcher {
 namespace adapter {
 
-struct adapter_t {
+struct future {
+  using shared = std::shared_ptr<future>;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -2356,38 +2352,38 @@ struct adapter_t {
 
 auto open(std::filesystem::path const& path,
           ::wtr::watcher::event::callback const& callback) noexcept
-  -> std::shared_ptr<adapter_t>
+  -> future::shared
 {
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
-  auto a = std::make_shared<adapter_t>();
+  auto fut = std::make_shared<future>();
 
   callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
-  a->work = std::async(std::launch::async,
-                       [path, callback, a]() noexcept -> bool
-                       {
-                         return watch(path,
-                                      callback,
-                                      [a]() noexcept -> bool
-                                      {
-                                        auto _ = std::scoped_lock{a->lk};
-                                        return ! a->closed;
-                                      });
-                       });
+  fut->work = std::async(std::launch::async,
+                         [path, callback, fut]() noexcept -> bool
+                         {
+                           return watch(path,
+                                        callback,
+                                        [fut]() noexcept -> bool
+                                        {
+                                          auto _ = std::scoped_lock{fut->lk};
+                                          return ! fut->closed;
+                                        });
+                         });
 
-  return a;
+  return fut;
 };
 
-auto close(std::shared_ptr<adapter_t> const& a) noexcept -> bool
+auto close(future::shared const& fut) noexcept -> bool
 {
-  if (! a->closed) {
+  if (! fut->closed) {
     {
-      auto _ = std::scoped_lock{a->lk};
-      a->closed = true;
+      auto _ = std::scoped_lock{fut->lk};
+      fut->closed = true;
     }
-    return a->work.get();
+    return fut->work.get();
   }
 
   else
@@ -2401,13 +2397,8 @@ auto close(std::shared_ptr<adapter_t> const& a) noexcept -> bool
 
 /*  path */
 #include <filesystem>
-/*  async */
-#include <future>
 /*  function */
 #include <functional>
-/*  shared_ptr
-    unique_ptr */
-#include <memory>
 /*  is_*,
     invoke_result */
 #include <type_traits>
@@ -2427,16 +2418,16 @@ inline namespace watcher {
     and complete the `.close()` function. Also because
     we can't template a type inside a function. */
 
-template<class F>
-requires(std::is_nothrow_invocable_v<F>
-         and std::is_same_v<std::invoke_result_t<F>, bool>)
+template<class Fn>
+requires(std::is_nothrow_invocable_v<Fn>
+         and std::is_same_v<std::invoke_result_t<Fn>, bool>)
 struct _ {
-  F const close{};
+  Fn const close{};
 
   constexpr auto operator()() const noexcept -> bool { return this->close(); };
 
-  constexpr _(F&& f) noexcept
-      : close{std::forward<F>(f)} {};
+  constexpr _(Fn&& fn) noexcept
+      : close{std::forward<Fn>(fn)} {};
 
   constexpr ~_() = default;
 };
