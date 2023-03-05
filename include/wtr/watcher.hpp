@@ -2319,7 +2319,11 @@ inline bool watch(std::filesystem::path const& path,
 
 /*  path */
 #include <filesystem>
-/*  shared_ptr */
+/*  async
+    future */
+#include <future>
+/*  shared_ptr
+    unique_ptr */
 #include <memory>
 /*  mutex
     scoped_lock */
@@ -2329,6 +2333,7 @@ inline bool watch(std::filesystem::path const& path,
     uniform_int_distribution */
 #include <random>
 /*  unordered_map */
+#include <thread>
 #include <unordered_map>
 
 /*  watch
@@ -2340,6 +2345,97 @@ namespace wtr {
 namespace watcher {
 namespace adapter {
 
+#if WTR_WATCHER_O == 1
+
+namespace o {
+class adapter {
+
+private:
+  using evw = ::wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+
+  std::filesystem::path path{};
+  ::wtr::watcher::event::callback callback{};
+  bool res{false};
+  mutable std::mutex lk{};
+  mutable bool alive{false};
+  mutable std::future<void> future{};
+
+  auto open_async() noexcept -> void
+  {
+    if (! this->alive) {
+      this->alive = true;
+
+      callback(
+        {"s/self/live@" + this->path.string(), evw::create, evk::watcher});
+
+      this->future =
+        std::async(std::launch::async,
+                   [this]() noexcept
+                   {
+                     this->res =
+                       watch(this->path,
+                             this->callback,
+                             [this]() noexcept -> bool
+                             {
+                               auto _ = std::scoped_lock<std::mutex>{this->lk};
+                               return this->alive;
+                             });
+                   });
+    }
+
+    else
+      callback({"e/self/already_alive@" + this->path.string(),
+                evw::create,
+                evk::watcher});
+  }
+
+public:
+  adapter(std::filesystem::path const& path,
+          ::wtr::watcher::event::callback const& callback) noexcept
+      : path{path},
+        callback{callback}
+  {
+    using namespace std::chrono_literals;
+
+    this->open_async();
+
+    // condition variable, this should be...
+    while (! this->alive) std::this_thread::sleep_for(1us);
+  };
+
+  adapter(adapter const&) = delete;
+  adapter(adapter&&) = delete;
+  adapter& operator=(adapter const&) = delete;
+  adapter& operator=(adapter&&) = delete;
+
+  ~adapter() noexcept = default;  // { this->close(); };
+
+  auto close() const noexcept -> bool
+  {
+    using namespace std::chrono_literals;
+
+    while (! this->lk.try_lock())
+      ;
+
+    if (this->alive) {
+      this->alive = false;
+      this->lk.unlock();
+      this->future.get();
+      return this->res;
+    }
+
+    else {
+      this->lk.unlock();
+      return false;
+    }
+  };
+};
+}  // namespace o
+
+#else
+
+namespace f {
 enum class word { live, die };
 
 struct message {
@@ -2347,16 +2443,16 @@ struct message {
   size_t id{0};
 };
 
-/*
-    carry message { live, 0 } =
-      id = random
-      message { die, id }
-      { live, id }
+namespace {
 
-    carry message { die, id } =
-      { die, id }
- */
-inline message carry(std::shared_ptr<message> m) noexcept
+/*  next_state message =
+      id = random
+      message = { die, id }
+      return { live, id }
+
+    next_state message =
+      return { die, id } */
+inline message next_state(std::shared_ptr<message> const& m) noexcept
 {
   auto random_id = []() noexcept -> size_t
   {
@@ -2377,26 +2473,30 @@ inline message carry(std::shared_ptr<message> m) noexcept
   return message{w, m->id};
 };
 
+} /* namespace */
+
 inline size_t adapter(std::filesystem::path const& path,
                       ::wtr::watcher::event::callback const& callback,
-                      std::shared_ptr<message> previous) noexcept
+                      std::shared_ptr<message> const& previous) noexcept
 {
-  using namespace ::detail::wtr::watcher::adapter;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
   /*  This map associates watchers with (maybe not unique) paths. */
   static auto lifetimes{std::unordered_map<size_t, std::filesystem::path>{}};
-
-  /*  A mutex to synchronize access to the container. */
   static auto lifetimes_mtx{std::mutex{}};
 
-  auto const msg = carry(previous);
+  auto const msg = next_state(previous);
 
-  /*  Returns a functor to check if we're still living.
-      The functor is unique to every watcher. */
+  /*  Creates a watcher at some path with a unique lifetime
+      The lifetime ends whenever we receive the `die` word
+      in this watcher's message.
+
+      True if a new watcher was created without error. */
   auto const& live = [id = msg.id, &path, &callback]() -> bool
   {
+    /*  Returns a functor to check if we're still living.
+        The functor is unique to every watcher. */
     auto const& create_lifetime =
       [id, &path, &callback]() noexcept -> std::function<bool()>
     {
@@ -2404,8 +2504,12 @@ inline size_t adapter(std::filesystem::path const& path,
 
       auto const maybe_node = lifetimes.find(id);
 
+      /*  If this watcher wasn't alive when we were called, then
+          return a functor which is true until we end the lifetime.
+
+          True if `id` exists in `lifetimes`. */
       if (maybe_node == lifetimes.end()) [[likely]] {
-        lifetimes[id] = path;
+        lifetimes.emplace(id, path);
 
         callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
@@ -2416,6 +2520,8 @@ inline size_t adapter(std::filesystem::path const& path,
           return lifetimes.find(id) != lifetimes.end();
         };
       }
+
+      /*  Or we return a functor that always returns false. */
       else {
         callback(
           {"e/self/already_alive@" + path.string(), evw::create, evk::watcher});
@@ -2424,24 +2530,29 @@ inline size_t adapter(std::filesystem::path const& path,
       }
     };
 
-    return watch(path, callback, create_lifetime()) ? id : 0;
+    return watch(path, callback, create_lifetime()) ? true : false;
   };
 
-  auto const& die = [id = msg.id]() noexcept -> size_t
+  /*  Removes a watcher's `id` from the lifetime container.
+      This ends the watcher's lifetime. The predicate functor
+      for a watcher without an `id` in this container always
+      returns false. The watchers know how to die after that.
+
+      True if `id` existed in the container and was removed. */
+  auto const& die = [id = msg.id]() noexcept -> bool
   {
     auto _ = std::scoped_lock{lifetimes_mtx};
 
     auto const maybe_node = lifetimes.find(id);
 
     if (maybe_node != lifetimes.end()) [[likely]] {
-      size_t id = maybe_node->first;
+      lifetimes.erase(maybe_node->first);
 
-      lifetimes.erase(maybe_node);
-
-      return id;
+      return true;
     }
+
     else
-      return 0;
+      return false;
   };
 
   switch (msg.w) {
@@ -2451,9 +2562,13 @@ inline size_t adapter(std::filesystem::path const& path,
 
     default : return false;
   }
-}
+};
 
-} /* namespace adapter */
+}  // namespace f
+
+#endif
+
+}  // namespace adapter
 }  // namespace watcher
 }  // namespace wtr
 }  // namespace detail
@@ -2464,8 +2579,12 @@ inline size_t adapter(std::filesystem::path const& path,
 #include <future>
 /*  function */
 #include <functional>
-/*  shared_ptr */
+/*  shared_ptr
+    unique_ptr */
 #include <memory>
+/*  is_*,
+    invoke_result */
+#include <type_traits>
 
 /*  event
     callback
@@ -2480,11 +2599,37 @@ inline namespace watcher {
     syntax as well as an anonymous `watch(args)()`.
     We define it up here so that editors can suggest
     and complete the `.close()` function. */
+template<class F>
+requires(std::is_nothrow_invocable_v<F>
+         and std::is_same_v<std::invoke_result_t<F>, bool>)
 struct _ {
-  std::function<bool()> close;
+  F const close{};
 
-  bool operator()() const noexcept { return close(); }
+  constexpr auto operator()() const noexcept -> bool { return this->close(); };
+
+  constexpr _(F&& f) noexcept
+      : close{std::forward<F>(f)} {};
+
+  constexpr ~_() = default;
 };
+
+#if WTR_WATCHER_O
+
+[[nodiscard("Returns a way to stop this watcher, for example: auto w = "
+            "watch(p, cb) ; w.close() // or w();")]]
+
+inline auto
+watch(std::filesystem::path const& path,
+      event::callback const& callback) noexcept
+{
+
+  using namespace ::detail::wtr::watcher::adapter::o;
+
+  return _{[a{new adapter(path, callback)}]() constexpr noexcept -> bool
+           { return a->close() ? (delete a, true) : (delete a, false); }};
+}
+
+#else
 
 /*  @brief wtr/watcher/watch
 
@@ -2526,11 +2671,11 @@ struct _ {
 [[nodiscard("Returns a way to stop this watcher, for example: auto w = "
             "watch(p, cb) ; w.close() // or w();")]]
 
-inline _
+inline auto
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept
 {
-  using namespace ::detail::wtr::watcher::adapter;
+  using namespace ::detail::wtr::watcher::adapter::f;
 
   /*  A message, unique to this watcher.
       Shared between this scope and the adapter.
@@ -2556,9 +2701,11 @@ watch(std::filesystem::path const& path,
       the `watch(args).close()` syntax as well as an
       anonymous `watch(args)()`. Overloading the `()`
       operator allows the first syntax. */
-  return _{.close = [=]() noexcept -> bool
+  return _{[=]() noexcept -> bool
            { return adapter(path, callback, msg) && lifetime.get(); }};
 }
+
+#endif
 
 } /* namespace watcher */
 } /* namespace wtr   */

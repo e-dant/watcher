@@ -4,7 +4,7 @@ add_executable("${PROJECT_NAME}"
 
 # [c++ standard]
 set_property(TARGET "${PROJECT_NAME}" PROPERTY
-  CXX_STANDARD 17)
+  CXX_STANDARD 20)
 
 # [compile options, esp. sanitizers]
 target_compile_options("${PROJECT_NAME}" PRIVATE

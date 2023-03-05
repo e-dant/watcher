@@ -37,6 +37,7 @@ TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
   auto const max_i = event_sent_list.size() > event_recv_list.size()
                      ? event_recv_list.size()
                      : event_sent_list.size();
+
   for (size_t i = 0; i < max_i; ++i) {
     if (event_sent_list[i].kind != event::kind::watcher) {
       if (event_sent_list[i].where != event_recv_list[i].where)

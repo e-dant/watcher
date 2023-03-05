@@ -44,6 +44,7 @@ option(WTR_WATCHER_USE_RELEASE        "Build with all optimizations"            
 option(WTR_WATCHER_USE_SINGLE_INCLUDE "Build with a single header"                  OFF)
 option(WTR_WATCHER_USE_TINY_MAIN      "Build the tiny main program"                 OFF)
 option(WTR_WATCHER_USE_TEST           "Build the test programs"                     OFF)
+option(WTR_WATCHER_USE_BENCH          "Build the benchmarking programs"             OFF)
 option(WTR_WATCHER_USE_NOSAN          "This option does nothing"                    OFF)
 option(WTR_WATCHER_USE_ASAN           "Build with the address sanitizer"            OFF)
 option(WTR_WATCHER_USE_MSAN           "Build with the memory sanitizer"             OFF)

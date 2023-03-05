@@ -9,8 +9,10 @@ then
     $0 [platform = this
       [--no-build-release]
       [--no-build-debug]
+      [--no-build-bench]
       [--no-build-test]
       [--no-build]
+      [--no-run-bench]
       [--no-run-test]
       [--install]
       [--clean]
@@ -22,9 +24,11 @@ then
   Options
     --no-build-release:   Skip builds with optimizations
     --no-build-debug:     Skip builds with sanitizers and debug symbols
-    --no-build-test:      Skip builds with sanitizers, benchmarks and unit tests
+    --no-build-bench:     Skip builds with benchmarks
+    --no-build-test:      Skip builds with sanitizers and unit tests
     --no-build:           Skip building everything
-    --no-run-test:        Skip running the benchmarks and unit tests
+    --no-run-bench:       Skip running the benchmarks
+    --no-run-test:        Skip running the unit tests
     --install:            Install the release build
     --clean:              Removes the build/out directory
 
@@ -53,10 +57,13 @@ fi
 BUILD_SEPERATOR='
 ================================[ watcher/build ]=============================='
 
-# @note build/build/test_seperator
-# Alternative for seperating test runs.
+# @note build/build/*_seperator
+# Alternative for seperating test and bench runs.
 TEST_SEPERATOR='
 ================================[ watcher/test ]==============================='
+
+BENCH_SEPERATOR='
+================================[ watcher/bench ]=============================='
 
 # @note build/build/san/address
 # I'm not ready to give up on my trusty asan yet, but I'm close.
@@ -83,6 +90,10 @@ TESTS=(
   'test_concurrent_watch_targets'
   'test_new_directories'
   'test_simple'
+)
+
+BENCHES=(
+  'bench_concurrent_watch_targets'
 )
 
 # The `build::build` function will append to this list
@@ -405,6 +416,47 @@ build::build() {
     done
   fi
 
+  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-bench'
+  then
+    echo "$BUILD_SEPERATOR"
+
+    this_out_dir="$OUT_PLATFORM_DIR/bench"
+
+    mkdir -p "$this_out_dir"
+
+    # we need to use `tr` here because the bash on
+    # some github runners reject the ${var^^} syntax
+
+    # shellcheck disable=2116,2155
+    local cmake_config_command=$(echo " \
+      cmake \
+        -S '$PWD/in' \
+        -B '$this_out_dir' \
+        $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
+        $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
+        $(build::get_cmake_extra_for_platform "$PLATFORM") \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
+        -DWTR_WATCHER_USE_BENCH=ON")
+
+    # echo "$cmake_config_command"
+
+    eval "$cmake_config_command"
+    ok=$((ok + $?))
+
+    for BENCH in "${BENCHES[@]}"
+    do
+      this_artifact="$OUT_PLATFORM_DIR/bench/wtr.bench_watcher.$BENCH"
+      cmake \
+        --build "$this_out_dir" \
+        --config Debug \
+        -j8 \
+        --target "wtr.bench_watcher.$BENCH" \
+        && ARTIFACTS+=("$this_artifact")
+      ok=$((ok + $?))
+    done
+  fi
+
   return $ok
 }
 
@@ -447,6 +499,50 @@ build::run::test() {
           -type f \
           -name "wtr.test_watcher.$TEST" \
           -or -name "wtr.test_watcher.$TEST.exe"\
+            2> /dev/null)"
+    done
+  fi
+}
+
+build::run::bench() {
+  if ! echo "$*" | grep -q -- --no-run-bench
+  then
+    for BENCH in "${BENCHES[@]}"
+    do
+      while read -r BENCH_PATH
+      do
+        if test -x "$BENCH_PATH"
+        then
+
+          # setup bench title
+
+          bench_name="bench/${BENCH_PATH##*bench/}"
+          bench_title="$(echo "[ $bench_name ]" | sed 's/wtr.bench_watcher.bench_//g')"
+          chars_on_left_side=$(($((${#BENCH_SEPERATOR} - ${#bench_title})) / 2))
+          for character in $(seq 1 $chars_on_left_side)
+          do bench_title="-$bench_title"; done
+          # shellcheck disable=SC2034
+          for character in $(seq 1 $chars_on_left_side)
+          do test ${#bench_title} -lt $((${#BENCH_SEPERATOR} - 1)) \
+              && bench_title="$bench_title-"
+          done
+
+          # show seperators
+
+          echo "$TEST_SEPERATOR"
+          echo "$bench_title"
+
+          # run bench, show & save results
+
+          "$BENCH_PATH" \
+            | tee "$BENCH_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
+
+        fi
+      done <<< "$(\
+        find "$OUT_PLATFORM_DIR" \
+          -type f \
+          -name "wtr.bench_watcher.$BENCH" \
+          -or -name "wtr.bench_watcher.$BENCH.exe"\
             2> /dev/null)"
     done
   fi
@@ -509,6 +605,7 @@ build::install() {
 build::clean "$@" \
   && build::build "$@" \
   && build::run::test "$@" \
+  && build::run::bench "$@" \
   && build::write::current_artifacts "$@" \
   && build::install "$@"
 

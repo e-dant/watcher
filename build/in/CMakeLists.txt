@@ -10,13 +10,18 @@ project(
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# [options and configuration, esp. tests and sanitizers]
+# The WTR_WATCHER_USE_* options selected here by defaults or by user choice.
+# Option WTR_WATCHER_USE_RELEASE is the default.
 include(wtr.cmake_options_watcher)
 
-# [build type selection]
 if(WTR_WATCHER_USE_TEST)
   include(wtr.test_watcher)
 endif()
-if(WTR_WATCHER_USE_RELEASE) # This is the default
+
+if(WTR_WATCHER_USE_BENCH)
+  include(wtr.bench_watcher)
+endif()
+
+if(WTR_WATCHER_USE_RELEASE)
   include(wtr.watcher)
 endif()

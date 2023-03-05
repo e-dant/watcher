@@ -2,6 +2,9 @@
 
 /*  path */
 #include <filesystem>
+/*  async
+    future */
+#include <future>
 /*  shared_ptr
     unique_ptr */
 #include <memory>
@@ -13,6 +16,7 @@
     uniform_int_distribution */
 #include <random>
 /*  unordered_map */
+#include <thread>
 #include <unordered_map>
 /*  watch
     event
@@ -24,6 +28,97 @@ namespace wtr {
 namespace watcher {
 namespace adapter {
 
+#if WTR_WATCHER_O == 1
+
+namespace o {
+class adapter {
+
+private:
+  using evw = ::wtr::watcher::event::what;
+  using evk = ::wtr::watcher::event::kind;
+
+  std::filesystem::path path{};
+  ::wtr::watcher::event::callback callback{};
+  bool res{false};
+  mutable std::mutex lk{};
+  mutable bool alive{false};
+  mutable std::future<void> future{};
+
+  auto open_async() noexcept -> void
+  {
+    if (! this->alive) {
+      this->alive = true;
+
+      callback(
+        {"s/self/live@" + this->path.string(), evw::create, evk::watcher});
+
+      this->future =
+        std::async(std::launch::async,
+                   [this]() noexcept
+                   {
+                     this->res =
+                       watch(this->path,
+                             this->callback,
+                             [this]() noexcept -> bool
+                             {
+                               auto _ = std::scoped_lock<std::mutex>{this->lk};
+                               return this->alive;
+                             });
+                   });
+    }
+
+    else
+      callback({"e/self/already_alive@" + this->path.string(),
+                evw::create,
+                evk::watcher});
+  }
+
+public:
+  adapter(std::filesystem::path const& path,
+          ::wtr::watcher::event::callback const& callback) noexcept
+      : path{path},
+        callback{callback}
+  {
+    using namespace std::chrono_literals;
+
+    this->open_async();
+
+    // condition variable, this should be...
+    while (! this->alive) std::this_thread::sleep_for(1us);
+  };
+
+  adapter(adapter const&) = delete;
+  adapter(adapter&&) = delete;
+  adapter& operator=(adapter const&) = delete;
+  adapter& operator=(adapter&&) = delete;
+
+  ~adapter() noexcept = default;  // { this->close(); };
+
+  auto close() const noexcept -> bool
+  {
+    using namespace std::chrono_literals;
+
+    while (! this->lk.try_lock())
+      ;
+
+    if (this->alive) {
+      this->alive = false;
+      this->lk.unlock();
+      this->future.get();
+      return this->res;
+    }
+
+    else {
+      this->lk.unlock();
+      return false;
+    }
+  };
+};
+}  // namespace o
+
+#else
+
+namespace f {
 enum class word { live, die };
 
 struct message {
@@ -152,7 +247,11 @@ inline size_t adapter(std::filesystem::path const& path,
   }
 };
 
-} /* namespace adapter */
+}  // namespace f
+
+#endif
+
+}  // namespace adapter
 }  // namespace watcher
 }  // namespace wtr
 }  // namespace detail

@@ -6,8 +6,12 @@
 #include <future>
 /*  function */
 #include <functional>
-/*  shared_ptr */
+/*  shared_ptr
+    unique_ptr */
 #include <memory>
+/*  is_*,
+    invoke_result */
+#include <type_traits>
 /*  event
     callback
     adapter */
@@ -22,11 +26,37 @@ inline namespace watcher {
     syntax as well as an anonymous `watch(args)()`.
     We define it up here so that editors can suggest
     and complete the `.close()` function. */
+template<class F>
+requires(std::is_nothrow_invocable_v<F>
+         and std::is_same_v<std::invoke_result_t<F>, bool>)
 struct _ {
-  std::function<bool()> close;
+  F const close{};
 
-  bool operator()() const noexcept { return close(); }
+  constexpr auto operator()() const noexcept -> bool { return this->close(); };
+
+  constexpr _(F&& f) noexcept
+      : close{std::forward<F>(f)} {};
+
+  constexpr ~_() = default;
 };
+
+#if WTR_WATCHER_O
+
+[[nodiscard("Returns a way to stop this watcher, for example: auto w = "
+            "watch(p, cb) ; w.close() // or w();")]]
+
+inline auto
+watch(std::filesystem::path const& path,
+      event::callback const& callback) noexcept
+{
+
+  using namespace ::detail::wtr::watcher::adapter::o;
+
+  return _{[a{new adapter(path, callback)}]() constexpr noexcept -> bool
+           { return a->close() ? (delete a, true) : (delete a, false); }};
+}
+
+#else
 
 /*  @brief wtr/watcher/watch
 
@@ -68,11 +98,11 @@ struct _ {
 [[nodiscard("Returns a way to stop this watcher, for example: auto w = "
             "watch(p, cb) ; w.close() // or w();")]]
 
-inline _
+inline auto
 watch(std::filesystem::path const& path,
       event::callback const& callback) noexcept
 {
-  using namespace ::detail::wtr::watcher::adapter;
+  using namespace ::detail::wtr::watcher::adapter::f;
 
   /*  A message, unique to this watcher.
       Shared between this scope and the adapter.
@@ -98,9 +128,11 @@ watch(std::filesystem::path const& path,
       the `watch(args).close()` syntax as well as an
       anonymous `watch(args)()`. Overloading the `()`
       operator allows the first syntax. */
-  return _{.close = [=]() noexcept -> bool
+  return _{[=]() noexcept -> bool
            { return adapter(path, callback, msg) && lifetime.get(); }};
 }
+
+#endif
 
 } /* namespace watcher */
 } /* namespace wtr   */
