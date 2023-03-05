@@ -11,12 +11,7 @@
 /*  mutex
     scoped_lock */
 #include <mutex>
-/*  mt19937
-    random_device
-    uniform_int_distribution */
-#include <random>
 /*  unordered_map */
-#include <thread>
 #include <unordered_map>
 /*  watch
     event
@@ -28,7 +23,8 @@ namespace wtr {
 namespace watcher {
 namespace adapter {
 
-struct adapter_t {
+struct future {
+  using shared = std::shared_ptr<future>;
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
@@ -39,38 +35,38 @@ struct adapter_t {
 
 auto open(std::filesystem::path const& path,
           ::wtr::watcher::event::callback const& callback) noexcept
-  -> std::shared_ptr<adapter_t>
+  -> future::shared
 {
   using evw = ::wtr::watcher::event::what;
   using evk = ::wtr::watcher::event::kind;
 
-  auto a = std::make_shared<adapter_t>();
+  auto fut = std::make_shared<future>();
 
   callback({"s/self/live@" + path.string(), evw::create, evk::watcher});
 
-  a->work = std::async(std::launch::async,
-                       [path, callback, a]() noexcept -> bool
+  fut->work = std::async(std::launch::async,
+                       [path, callback, fut]() noexcept -> bool
                        {
                          return watch(path,
                                       callback,
-                                      [a]() noexcept -> bool
+                                      [fut]() noexcept -> bool
                                       {
-                                        auto _ = std::scoped_lock{a->lk};
-                                        return ! a->closed;
+                                        auto _ = std::scoped_lock{fut->lk};
+                                        return ! fut->closed;
                                       });
                        });
 
-  return a;
+  return fut;
 };
 
-auto close(std::shared_ptr<adapter_t> const& a) noexcept -> bool
+auto close(future::shared const& fut) noexcept -> bool
 {
-  if (! a->closed) {
+  if (! fut->closed) {
     {
-      auto _ = std::scoped_lock{a->lk};
-      a->closed = true;
+      auto _ = std::scoped_lock{fut->lk};
+      fut->closed = true;
     }
-    return a->work.get();
+    return fut->work.get();
   }
 
   else

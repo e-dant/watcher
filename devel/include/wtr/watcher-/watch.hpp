@@ -2,13 +2,8 @@
 
 /*  path */
 #include <filesystem>
-/*  async */
-#include <future>
 /*  function */
 #include <functional>
-/*  shared_ptr
-    unique_ptr */
-#include <memory>
 /*  is_*,
     invoke_result */
 #include <type_traits>
