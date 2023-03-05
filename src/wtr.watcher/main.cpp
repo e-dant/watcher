@@ -94,9 +94,7 @@ auto watch_forever_or_expire(
   auto forever = std::function<bool(std::filesystem::path const&,
                                     wtr::event::callback const&)>{
     [](std::filesystem::path const& path, wtr::event::callback const& callback)
-    {
-      return ((void)wtr::watch(path, callback), true);
-    }};
+    { return ((void)wtr::watch(path, callback), true); }};
 
   if (alive_for.has_value())
     return expire;

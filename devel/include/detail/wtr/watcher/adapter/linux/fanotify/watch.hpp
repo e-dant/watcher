@@ -255,8 +255,7 @@ system_unfold(std::filesystem::path const& path,
               if (fs::is_directory(dir, ec))
                 if (! ec)
                   if (! mark(dir.path(), watch_fd, pmc))
-                    callback({"w/sys/not_watched@"
-                                + base_path.string() + "@"
+                    callback({"w/sys/not_watched@" + base_path.string() + "@"
                                 + dir.path().string(),
                               evw::other,
                               evk::watcher});
@@ -653,4 +652,3 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
           && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
-
