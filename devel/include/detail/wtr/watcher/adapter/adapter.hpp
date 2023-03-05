@@ -25,12 +25,10 @@ namespace adapter {
 
 struct future {
   using shared = std::shared_ptr<future>;
-  using evw = ::wtr::watcher::event::what;
-  using evk = ::wtr::watcher::event::kind;
 
   mutable std::mutex lk{};
-  bool closed{false};
   std::future<bool> work{};
+  bool closed{false};
 };
 
 auto open(std::filesystem::path const& path,
