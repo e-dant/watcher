@@ -40,7 +40,7 @@ jobs:
       - name: Build
         run: |
           export CXX=$(which ${{matrix.cxx_compiler}})
-          build/build --no-run-test
+          build/build --no-run-test --no-run-bench
 
       - name: Test
         run: |

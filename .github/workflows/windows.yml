@@ -55,7 +55,7 @@ jobs:
 
       - name: Build
         run: |
-          bash -c 'build/build --no-run-test'
+          bash -c 'build/build --no-run-test --no-run-bench'
 
       - name: Test
         run: |
