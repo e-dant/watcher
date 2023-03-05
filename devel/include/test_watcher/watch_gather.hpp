@@ -59,10 +59,10 @@ auto watch_gather(auto const& /* Title */
   static constexpr auto pre_create_event_delay = std::chrono::milliseconds(10);
   static constexpr auto pre_stop_watch_delay = std::chrono::milliseconds(10);
 
-  auto event_recv_list = std::vector<wtr::watcher::event::event>{};
+  auto event_recv_list = std::vector<wtr::watcher::event>{};
   auto event_recv_list_mtx = std::mutex{};
 
-  auto event_sent_list = std::vector<wtr::watcher::event::event>{};
+  auto event_sent_list = std::vector<wtr::watcher::event>{};
   auto watch_path_list = std::vector<std::filesystem::path>{};
 
   auto lifetimes = std::vector<std::function<bool()>>{};
@@ -105,7 +105,7 @@ auto watch_gather(auto const& /* Title */
 
       lifetimes.emplace_back(
         wtr::watcher::watch(p,
-                            [&](wtr::watcher::event::event const& ev)
+                            [&](wtr::watcher::event const& ev)
                             {
                               auto _ = std::scoped_lock{event_recv_list_mtx};
                               std::cout << ev << std::endl;
@@ -126,18 +126,18 @@ auto watch_gather(auto const& /* Title */
   {
     for (auto const& p : watch_path_list)
       event_sent_list.emplace_back(
-        watcher::event::event{std::string("s/self/live@").append(p.string()),
-                              wtr::watcher::event::what::create,
-                              wtr::watcher::event::kind::watcher});
+        watcher::event{std::string("s/self/live@").append(p.string()),
+                       wtr::watcher::event::what::create,
+                       wtr::watcher::event::kind::watcher});
     for (auto const& p : watch_path_list)
       wtr::test_watcher::mk_events(p, path_count, &event_sent_list);
     for (auto const& p : watch_path_list)
       if (! std::filesystem::exists(p)) assert(std::filesystem::exists(p));
     for (auto const& p : watch_path_list)
       event_sent_list.emplace_back(
-        watcher::event::event{std::string("s/self/die@").append(p.string()),
-                              wtr::watcher::event::what::destroy,
-                              wtr::watcher::event::kind::watcher});
+        watcher::event{std::string("s/self/die@").append(p.string()),
+                       wtr::watcher::event::what::destroy,
+                       wtr::watcher::event::kind::watcher});
   }
 
   /* Wait */

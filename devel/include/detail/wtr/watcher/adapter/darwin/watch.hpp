@@ -219,8 +219,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        FSEventStreamEventId const*     /* event stream id */
                        ) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   if (arg_ptr && recv_paths) {
 
@@ -271,8 +271,8 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
   auto seen_created_paths = std::unordered_set<std::string>{};

@@ -329,8 +329,8 @@ inline bool watch(std::filesystem::path const& path,
 {
   auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
   {
-    /* using evk = ::wtr::watcher::event::kind; */
-    /* using evw = ::wtr::watcher::event::what; */
+    /* using evk = enum ::wtr::watcher::event::kind; */
+    /* using evw = enum ::wtr::watcher::event::what; */
 
     callback({msg / path,
               ::wtr::watcher::event::what::other,

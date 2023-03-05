@@ -83,14 +83,14 @@ inline bool scan(std::filesystem::path const& path,
       if (ec) {
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
-        send_event(event::event{file, event::what::destroy, event::kind::file});
+        send_event(event{file, event::what::destroy, event::kind::file});
         if (bucket.contains(file)) bucket.erase(file);
       }
       /* if it's not in our bucket, */
       else if (! bucket.contains(file)) {
         /* we put it in there and call the closure, indicating creation. */
         bucket[file] = timestamp;
-        send_event(event::event{file, event::what::create, event::kind::file});
+        send_event(event{file, event::what::create, event::kind::file});
       }
       /* otherwise, it is already in our bucket. */
       else {
@@ -98,8 +98,7 @@ inline bool scan(std::filesystem::path const& path,
         if (bucket[file] != timestamp) {
           bucket[file] = timestamp;
           /* and call the closure on them, indicating modification */
-          send_event(
-            event::event{file, event::what::modify, event::kind::file});
+          send_event(event{file, event::what::modify, event::kind::file});
         }
       }
       return true;
@@ -206,12 +205,12 @@ inline bool tend_bucket(std::filesystem::path const& path,
            and remove it from our bucket. */
         : [&]()
       {
-        send_event(event::event{bucket_it->first,
-                                event::what::destroy,
-                                is_regular_file(path) ? event::kind::file
-                                : is_directory(path)  ? event::kind::dir
-                                : is_symlink(path)    ? event::kind::sym_link
-                                                      : event::kind::other});
+        send_event(event{bucket_it->first,
+                         event::what::destroy,
+                         is_regular_file(path) ? event::kind::file
+                         : is_directory(path)  ? event::kind::dir
+                         : is_symlink(path)    ? event::kind::sym_link
+                                               : event::kind::other});
         /* bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();

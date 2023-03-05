@@ -21,7 +21,10 @@ inline namespace watcher {
     syntax as well as an anonymous `watch(args)()`.
     We define it up here so that editors can suggest
     and complete the `.close()` function. Also because
-    we can't template a type inside a function. */
+    we can't template a type inside a function.
+
+    This thing is similar to an unnamed function object
+    containing a named method. */
 
 template<class Fn>
 requires(std::is_nothrow_invocable_v<Fn>
@@ -29,7 +32,10 @@ requires(std::is_nothrow_invocable_v<Fn>
 struct _ {
   Fn const close{};
 
-  inline constexpr auto operator()() const noexcept -> bool { return this->close(); };
+  inline constexpr auto operator()() const noexcept -> bool
+  {
+    return this->close();
+  };
 
   inline constexpr _(Fn&& fn) noexcept
       : close{std::forward<Fn>(fn)} {};

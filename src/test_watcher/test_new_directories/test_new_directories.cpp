@@ -42,9 +42,9 @@ TEST_CASE("New Directories", "[new_directories]")
 
   static constexpr auto path_count = 10;
   static constexpr auto title = "New Directories";
-  static auto event_recv_list = std::vector<event::event>{};
+  static auto event_recv_list = std::vector<event>{};
   static auto event_recv_list_mtx = std::mutex{};
-  static auto event_sent_list = std::vector<event::event>{};
+  static auto event_sent_list = std::vector<event>{};
   static auto watch_path_list = std::vector<fs::path>{};
   auto const base_store_path = test_store_path;
   auto const store_path_first = base_store_path / "new_directories_first_store";
@@ -71,7 +71,7 @@ TEST_CASE("New Directories", "[new_directories]")
      event::kind::watcher});
 
   auto lifetime = watch(base_store_path,
-                        [&](event::event const& ev)
+                        [&](event const& ev)
                         {
                           auto _ = std::scoped_lock{event_recv_list_mtx};
                           std::cout << ev << std::endl;
@@ -85,8 +85,7 @@ TEST_CASE("New Directories", "[new_directories]")
 
   for (auto const& p : new_store_path_list) {
     fs::create_directory(p);
-    event_sent_list.push_back(
-      event::event{p, event::what::create, event::kind::dir});
+    event_sent_list.push_back(event{p, event::what::create, event::kind::dir});
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -97,7 +96,7 @@ TEST_CASE("New Directories", "[new_directories]")
       fs::create_directory(new_dir_path);
       REQUIRE(fs::exists(new_dir_path));
       event_sent_list.push_back(
-        event::event{new_dir_path, event::what::create, event::kind::dir});
+        event{new_dir_path, event::what::create, event::kind::dir});
 
       /* @todo
          This sleep is hiding a bug for the Linux adapters.
@@ -111,7 +110,7 @@ TEST_CASE("New Directories", "[new_directories]")
       std::ofstream{new_file_path}; /* NOLINT */
       REQUIRE(fs::exists(new_file_path));
       event_sent_list.push_back(
-        event::event{new_file_path, event::what::create, event::kind::file});
+        event{new_file_path, event::what::create, event::kind::file});
 
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

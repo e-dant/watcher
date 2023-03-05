@@ -104,121 +104,114 @@ inline constexpr platform_type platform
 } /* namespace wtr   */
 } /* namespace detail */
 
-/* @brief watcher/event
-   There are only three things the user needs:
-    - The `die` function
-    - The `watch` function
-    - The `event` object
-
-   The `event` object is used to pass information about
-   filesystem events to the (user-supplied) callback
-   given to `watch`.
-
-   The `event` object will contain the:
-     - Path, which is always absolute.
-     - Type, one of:
-       - dir
-       - file
-       - hard_link
-       - sym_link
-       - watcher
-       - other
-     - Event type, one of:
-       - rename
-       - modify
-       - create
-       - destroy
-       - owner
-       - other
-     - Event time in nanoseconds since epoch
-
-   The `watcher` type is special.
-   Events with this type will include messages from
-   the watcher. You may recieve error messages or
-   important status updates.
-
-   Happy hacking. */
-
 /* std::basic_ostream */
 #include <ios>
-
 /* std::chrono::system_clock::now
    std::chrono::duration_cast
    std::chrono::system_clock
    std::chrono::nanoseconds
    std::chrono::time_point */
 #include <chrono>
-
 /* std::filesystem::path */
 #include <filesystem>
-
 /* std::function */
 #include <functional>
 
 namespace wtr {
 inline namespace watcher {
-namespace event {
 
-namespace {
-using std::function, std::chrono::duration_cast, std::chrono::nanoseconds,
-  std::chrono::time_point, std::chrono::system_clock;
-} /* namespace */
+/*  @brief watcher/event
+    There are only three things the user needs:
+      - The `die` function
+      - The `watch` function
+      - The `event` object
 
-/* @brief watcher/event/types
-   - wtr::watcher::event
-   - wtr::watcher::event::kind
-   - wtr::watcher::event::what
-   - wtr::watcher::event::callback */
+    The `event` object is used to pass information about
+    filesystem events to the (user-supplied) callback
+    given to `watch`.
 
-/* @brief wtr/watcher/event/what
-   A structure intended to represent
-   what has happened to some path
-   at the moment of some affecting event. */
-enum class what {
-  /* The essentials */
-  rename,
-  modify,
-  create,
-  destroy,
+    The `event` object will contain the:
+      - Path, which is always absolute.
+      - Type, one of:
+        - dir
+        - file
+        - hard_link
+        - sym_link
+        - watcher
+        - other
+      - Event type, one of:
+        - rename
+        - modify
+        - create
+        - destroy
+        - owner
+        - other
+      - Event time in nanoseconds since epoch
 
-  /* The attributes */
-  owner,
-
-  /* Catch-all */
-  other,
-};
-
-/* @brief wtr/watcher/event/kind
-   The essential kinds of paths. */
-enum class kind {
-  /* The essentials */
-  dir,
-  file,
-  hard_link,
-  sym_link,
-
-  /* The specials */
-  watcher,
-
-  /* Catch-all */
-  other,
-};
+    The `watcher` type is special.
+    Events with this type will include messages from
+    the watcher. You may recieve error messages or
+    important status updates.  */
 
 struct event {
+
+private:
   /* I like these names. Very human.
      'what happen'
      'event kind' */
-  std::filesystem::path const where;
-  enum what const what;
-  enum kind const kind;
-  long long const when{
-    duration_cast<nanoseconds>(
-      time_point<system_clock>{system_clock::now()}.time_since_epoch())
-      .count()};
+  using path_type = std::filesystem::path;
+  using ns = std::chrono::nanoseconds;
+  using clock = std::chrono::system_clock;
+  using time_point = std::chrono::time_point<clock>;
 
-  event(std::filesystem::path const where,
-        enum what const what,
-        enum kind const kind) noexcept
+public:
+  /*  @brief watcher/event/callback
+      Ensure the adapters can recieve events
+      and will return nothing. */
+  using callback = std::function<void(event const&)>;
+
+  /*  @brief wtr/watcher/event/what
+      A structure intended to represent
+      what has happened to some path
+      at the moment of some affecting event. */
+  enum class what {
+    /* The essentials */
+    rename,
+    modify,
+    create,
+    destroy,
+    /* The attributes */
+    owner,
+    /* Catch-all */
+    other,
+  };
+
+  /*  @brief wtr/watcher/event/kind
+      The essential kinds of paths. */
+  enum class kind {
+    /* The essentials */
+    dir,
+    file,
+    hard_link,
+    sym_link,
+    /* The specials */
+    watcher,
+    /* Catch-all */
+    other,
+  };
+
+  path_type const where{};
+
+  enum what const what {};
+
+  enum kind const kind {};
+
+  long long const when{
+    duration_cast<ns>(time_point{clock::now()}.time_since_epoch()).count()};
+
+  event(std::filesystem::path const& where,
+        enum what const& what,
+        enum kind const& kind) noexcept
       : where{where},
         what{what},
         kind{kind} {};
@@ -226,90 +219,92 @@ struct event {
   ~event() noexcept = default;
 };
 
-/* @brief wtr/watcher/event/<<
-   Streams out a `what` value. */
+/*  @brief wtr/watcher/event/<<
+    Streams out a `what` value. */
 template<class Char, class CharTraits>
-inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                enum what const& w) noexcept
+inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                 enum event::what const& w) noexcept
+  -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */
   switch (w) {
-    case what::rename  : return os << "\"rename\"";
-    case what::modify  : return os << "\"modify\"";
-    case what::create  : return os << "\"create\"";
-    case what::destroy : return os << "\"destroy\"";
-    case what::owner   : return os << "\"owner\"";
-    case what::other   : return os << "\"other\"";
-    default            : return os << "\"other\"";
+    case event::what::rename  : return os << "\"rename\"";
+    case event::what::modify  : return os << "\"modify\"";
+    case event::what::create  : return os << "\"create\"";
+    case event::what::destroy : return os << "\"destroy\"";
+    case event::what::owner   : return os << "\"owner\"";
+    case event::what::other   : return os << "\"other\"";
+    default                   : return os << "\"other\"";
   }
   /* clang-format on */
-}
+};
 
-/* @brief wtr/watcher/event/<<
-   Streams out a `kind` value. */
+/*  @brief wtr/watcher/event/<<
+    Streams out a `kind` value. */
 template<class Char, class CharTraits>
-inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                enum kind const& k) noexcept
+inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                 enum event::kind const& k) noexcept
+  -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */
   switch (k) {
-    case kind::dir       : return os << "\"dir\"";
-    case kind::file      : return os << "\"file\"";
-    case kind::hard_link : return os << "\"hard_link\"";
-    case kind::sym_link  : return os << "\"sym_link\"";
-    case kind::watcher   : return os << "\"watcher\"";
-    case kind::other     : return os << "\"other\"";
-    default              : return os << "\"other\"";
+    case event::kind::dir       : return os << "\"dir\"";
+    case event::kind::file      : return os << "\"file\"";
+    case event::kind::hard_link : return os << "\"hard_link\"";
+    case event::kind::sym_link  : return os << "\"sym_link\"";
+    case event::kind::watcher   : return os << "\"watcher\"";
+    case event::kind::other     : return os << "\"other\"";
+    default                     : return os << "\"other\"";
   }
   /* clang-format on */
-}
+};
 
-/* @brief wtr/watcher/event/<<
-   Streams out `where`, `what` and `kind`.
-   Formats the stream as a json object. */
+/*  @brief wtr/watcher/event/<<
+    Streams out `where`, `what` and `kind`.
+    Formats the stream as a json object.
+    Looks like this (without line breaks)
+      "1678046920675963000":{
+       "where":"/some_file.txt",
+       "what":"create",
+       "kind":"file"
+      } */
 template<class Char, class CharTraits>
-inline std::ostream& operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                event const& ev) noexcept
+inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
+                                 event const& ev) noexcept
+  -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */
-    return os << R"(")" << ev.when << R"(":)"
-              << "{" << R"("where":)" << ev.where << R"(,)"
-                     << R"("what":)"  << ev.what  << R"(,)"
-                     << R"("kind":)"  << ev.kind  << "}";
+    return os << '"' << ev.when
+              << "\":{\"where\":" << ev.where
+              <<    ",\"what\":"  << ev.what
+              <<    ",\"kind\":"  << ev.kind  << '}';
   /* clang-format on */
-}
-
-/* @brief wtr/watcher/event/==
-   Compares event objects for equivalent
-   `where`, `what` and `kind` values. */
-inline bool operator==(event const& lhs, event const& rhs) noexcept
-{
-  /* True if */
-  return
-    /* The path */
-    lhs.where == rhs.where
-    /* And what happened */
-    && lhs.what == rhs.what
-    /* And the kind of path */
-    && lhs.kind == rhs.kind
-    /* And the time */
-    && lhs.when == rhs.when;
-  /* Are the same. */
 };
 
-/* @brief wtr/watcher/event/!=
-   Not == */
-inline bool operator!=(event const& lhs, event const& rhs) noexcept
+/*  @brief wtr/watcher/event/==
+    A "strict" comparison of an event's `when`,
+    `where`, `what` and `kind` values.
+    Keep in mind that this compares `when`,
+    which might not be desireable. */
+inline constexpr auto operator==(event const& l, event const& r) noexcept
+  -> bool
 {
-  return ! (lhs == rhs);
+  /* clang-format off */
+  return l.where == r.where
+      && l.what  == r.what
+      && l.kind  == r.kind
+      && l.when  == r.when;
+  /* clang-format on */
 };
 
-/* @brief watcher/event/callback
-   Ensure the adapters can recieve events
-   and will return nothing. */
-using callback = function<void(event const&)>;
+/*  @brief wtr/watcher/event/!=
+    Not == */
+inline constexpr auto operator!=(event const& l, event const& r) noexcept
+  -> bool
+{
+  return ! (l == r);
+};
 
-} /* namespace event */
 } /* namespace watcher */
 } /* namespace wtr   */
 
@@ -786,8 +781,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        FSEventStreamEventId const*     /* event stream id */
                        ) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   if (arg_ptr && recv_paths) {
 
@@ -838,8 +833,8 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = ::wtr::watcher::event::kind;
-  using evw = ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
   auto seen_created_paths = std::unordered_set<std::string>{};
@@ -1846,8 +1841,8 @@ inline bool watch(std::filesystem::path const& path,
 {
   auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
   {
-    /* using evk = ::wtr::watcher::event::kind; */
-    /* using evw = ::wtr::watcher::event::what; */
+    /* using evk = enum ::wtr::watcher::event::kind; */
+    /* using evw = enum ::wtr::watcher::event::what; */
 
     callback({msg / path,
               ::wtr::watcher::event::what::other,
@@ -2112,14 +2107,14 @@ inline bool scan(std::filesystem::path const& path,
       if (ec) {
         /* the file changed while we were looking at it. so, we call the
          * closure, indicating destruction, and remove it from the bucket. */
-        send_event(event::event{file, event::what::destroy, event::kind::file});
+        send_event(event{file, event::what::destroy, event::kind::file});
         if (bucket.contains(file)) bucket.erase(file);
       }
       /* if it's not in our bucket, */
       else if (! bucket.contains(file)) {
         /* we put it in there and call the closure, indicating creation. */
         bucket[file] = timestamp;
-        send_event(event::event{file, event::what::create, event::kind::file});
+        send_event(event{file, event::what::create, event::kind::file});
       }
       /* otherwise, it is already in our bucket. */
       else {
@@ -2127,8 +2122,7 @@ inline bool scan(std::filesystem::path const& path,
         if (bucket[file] != timestamp) {
           bucket[file] = timestamp;
           /* and call the closure on them, indicating modification */
-          send_event(
-            event::event{file, event::what::modify, event::kind::file});
+          send_event(event{file, event::what::modify, event::kind::file});
         }
       }
       return true;
@@ -2235,12 +2229,12 @@ inline bool tend_bucket(std::filesystem::path const& path,
            and remove it from our bucket. */
         : [&]()
       {
-        send_event(event::event{bucket_it->first,
-                                event::what::destroy,
-                                is_regular_file(path) ? event::kind::file
-                                : is_directory(path)  ? event::kind::dir
-                                : is_symlink(path)    ? event::kind::sym_link
-                                                      : event::kind::other});
+        send_event(event{bucket_it->first,
+                         event::what::destroy,
+                         is_regular_file(path) ? event::kind::file
+                         : is_directory(path)  ? event::kind::dir
+                         : is_symlink(path)    ? event::kind::sym_link
+                                               : event::kind::other});
         /* bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();
@@ -2348,12 +2342,12 @@ struct future {
   bool closed{false};
 };
 
-auto open(std::filesystem::path const& path,
-          ::wtr::watcher::event::callback const& callback) noexcept
+inline auto open(std::filesystem::path const& path,
+                 ::wtr::watcher::event::callback const& callback) noexcept
   -> future::shared
 {
-  using evw = ::wtr::watcher::event::what;
-  using evk = ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
 
   auto fut = std::make_shared<future>();
 
@@ -2374,7 +2368,7 @@ auto open(std::filesystem::path const& path,
   return fut;
 };
 
-auto close(future::shared const& fut) noexcept -> bool
+inline auto close(future::shared const& fut) noexcept -> bool
 {
   if (! fut->closed) {
     {
@@ -2422,12 +2416,15 @@ requires(std::is_nothrow_invocable_v<Fn>
 struct _ {
   Fn const close{};
 
-  constexpr auto operator()() const noexcept -> bool { return this->close(); };
+  inline constexpr auto operator()() const noexcept -> bool
+  {
+    return this->close();
+  };
 
-  constexpr _(Fn&& fn) noexcept
+  inline constexpr _(Fn&& fn) noexcept
       : close{std::forward<Fn>(fn)} {};
 
-  constexpr ~_() = default;
+  inline constexpr ~_() = default;
 };
 
 /*  @brief wtr/watcher/watch

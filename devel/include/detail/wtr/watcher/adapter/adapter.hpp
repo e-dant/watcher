@@ -32,11 +32,11 @@ struct future {
 };
 
 inline auto open(std::filesystem::path const& path,
-          ::wtr::watcher::event::callback const& callback) noexcept
+                 ::wtr::watcher::event::callback const& callback) noexcept
   -> future::shared
 {
-  using evw = ::wtr::watcher::event::what;
-  using evk = ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
 
   auto fut = std::make_shared<future>();
 

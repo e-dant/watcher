@@ -5,7 +5,7 @@
 int main()
 {
   // The watcher will call this function on every event.
-  auto cb = [](wtr::event::event const& e)
+  auto cb = [](wtr::event const& e)
   {
     std::cout << "{\"" << e.when << "\":[" << e.where << "," << e.kind << ","
               << e.what << "]}," << std::endl;

@@ -39,9 +39,9 @@ TEST_CASE("Simple", "[simple]")
 
   static constexpr auto path_count = 3;
   static constexpr auto title = "Simple";
-  static auto event_recv_list = std::vector<event::event>{};
+  static auto event_recv_list = std::vector<event>{};
   static auto event_recv_list_mtx = std::mutex{};
-  static auto event_sent_list = std::vector<event::event>{};
+  static auto event_sent_list = std::vector<event>{};
   static auto watch_path_list = std::vector<std::string>{};
   static auto const store_path = test_store_path / "simple_store";
 
@@ -62,7 +62,7 @@ TEST_CASE("Simple", "[simple]")
      event::kind::watcher});
 
   auto watcher = watch(store_path,
-                       [](event::event const& ev)
+                       [](event const& ev)
                        {
                          auto _ = std::scoped_lock{event_recv_list_mtx};
                          std::cout << ev << std::endl;

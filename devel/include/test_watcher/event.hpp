@@ -41,7 +41,7 @@ inline bool str_eq(char const* a, char const* b)
    Half are destruction */
 auto mk_events(std::filesystem::path const& base_path,
                auto const& path_count,
-               std::vector<wtr::watcher::event::event>* event_list,
+               std::vector<wtr::watcher::event>* event_list,
                unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
@@ -63,7 +63,7 @@ auto mk_events(std::filesystem::path const& base_path,
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
-      auto ev = event::event{path, event::what::create, event::kind::file};
+      auto ev = event{path, event::what::create, event::kind::file};
       event_list->push_back(ev);
       std::ofstream{path}; /* NOLINT */
       auto has = false;
@@ -73,7 +73,7 @@ auto mk_events(std::filesystem::path const& base_path,
       assert(std::filesystem::exists(path));
     }
     else {
-      auto ev = event::event{path, event::what::destroy, event::kind::file};
+      auto ev = event{path, event::what::destroy, event::kind::file};
       event_list->push_back(ev);
       std::filesystem::remove(path);
       auto has = false;
@@ -85,10 +85,9 @@ auto mk_events(std::filesystem::path const& base_path,
   }
 
   if (options & mk_events_die_after) {
-    auto ev =
-      event::event{std::string("s/self/die@").append(base_path.string()),
-                   event::what::destroy,
-                   event::kind::watcher};
+    auto ev = event{std::string("s/self/die@").append(base_path.string()),
+                    event::what::destroy,
+                    event::kind::watcher};
     event_list->push_back(ev);
     auto has = false;
     for (auto& i : *event_list)

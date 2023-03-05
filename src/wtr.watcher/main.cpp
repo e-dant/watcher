@@ -128,9 +128,10 @@ auto from_cmdline(int const argc, char const** const argv)
         Append a comma until the last event: Watcher dying.
         Flush stdout, via `endl`, for piping.
         For manual parsing, see the file watcher/event.hpp. */
-    wtr::event::callback show_json = [](wtr::event::event const& ev)
+    wtr::event::callback show_json = [](wtr::event const& ev)
     {
-      using wtr::watcher::event::kind, wtr::watcher::event::what;
+      using kind = enum wtr::watcher::event::kind;
+      using what = enum wtr::watcher::event::what;
 
       auto comma_or_nothing =
         ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";

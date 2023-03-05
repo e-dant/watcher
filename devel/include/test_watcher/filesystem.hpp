@@ -26,8 +26,7 @@ inline auto create_regular_files(std::filesystem::path path, auto n)
   return create_regular_files(path.string(), n);
 }
 
-inline auto
-create_regular_files(std::vector<wtr::watcher::event::event>& events)
+inline auto create_regular_files(std::vector<wtr::watcher::event>& events)
 {
   for (auto& ev : events) std::ofstream{ev.where};
 }
