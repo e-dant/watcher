@@ -8,6 +8,8 @@
       exists
       path */
 #include <filesystem>
+/*  std::function */
+#include <functional>
 /*  std::cout
     std::endl */
 #include <iostream>
@@ -27,7 +29,6 @@
         kind */
 #include <wtr/watcher.hpp>
 
-using namespace wtr::watcher;
 using namespace std::chrono;
 using std::function;
 namespace fs = std::filesystem;
@@ -94,9 +95,7 @@ auto watch_forever_or_expire(
                                     wtr::event::callback const&)>{
     [](std::filesystem::path const& path, wtr::event::callback const& callback)
     {
-      auto _{watch(path, callback)};
-      (void)_;
-      return true;
+      return ((void)wtr::watch(path, callback), true);
     }};
 
   if (alive_for.has_value())
