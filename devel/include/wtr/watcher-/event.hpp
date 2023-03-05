@@ -182,8 +182,7 @@ inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
     `where`, `what` and `kind` values.
     Keep in mind that this compares `when`,
     which might not be desireable. */
-inline auto operator==(event const& l, event const& r) noexcept
-  -> bool
+inline auto operator==(event const& l, event const& r) noexcept -> bool
 {
   /* clang-format off */
   return l.where == r.where
@@ -195,8 +194,7 @@ inline auto operator==(event const& l, event const& r) noexcept
 
 /*  @brief wtr/watcher/event/!=
     Not == */
-inline auto operator!=(event const& l, event const& r) noexcept
-  -> bool
+inline auto operator!=(event const& l, event const& r) noexcept -> bool
 {
   return ! (l == r);
 };

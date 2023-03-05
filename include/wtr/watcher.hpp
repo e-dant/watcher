@@ -286,8 +286,7 @@ inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
     `where`, `what` and `kind` values.
     Keep in mind that this compares `when`,
     which might not be desireable. */
-inline constexpr auto operator==(event const& l, event const& r) noexcept
-  -> bool
+inline auto operator==(event const& l, event const& r) noexcept -> bool
 {
   /* clang-format off */
   return l.where == r.where
@@ -299,8 +298,7 @@ inline constexpr auto operator==(event const& l, event const& r) noexcept
 
 /*  @brief wtr/watcher/event/!=
     Not == */
-inline constexpr auto operator!=(event const& l, event const& r) noexcept
-  -> bool
+inline auto operator!=(event const& l, event const& r) noexcept -> bool
 {
   return ! (l == r);
 };
@@ -460,7 +458,8 @@ inline bool
 do_event_send(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace ::wtr::watcher;
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
 
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
@@ -471,25 +470,24 @@ do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept -> event::what
+        auto what = [&buf]() noexcept -> evw
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return event::what::modify;
-            case FILE_ACTION_ADDED : return event::what::create;
-            case FILE_ACTION_REMOVED : return event::what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return event::what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
+            case FILE_ACTION_MODIFIED : return evw::modify;
+            case FILE_ACTION_ADDED : return evw::create;
+            case FILE_ACTION_REMOVED : return evw::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME : return evw::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME : return evw::rename;
             default : return event::what::other;
           }
         }();
 
-        auto kind = [&where]()
+        auto kind = [&where]() -> evk
         {
           try {
-            return std::filesystem::is_directory(where) ? event::kind::dir
-                                                        : event::kind::file;
+            return std::filesystem::is_directory(where) ? evk::dir : evk::file;
           } catch (...) {
-            return event::kind::other;
+            return evk::other;
           }
         }();
 

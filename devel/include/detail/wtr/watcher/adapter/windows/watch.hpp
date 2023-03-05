@@ -181,8 +181,7 @@ do_event_send(watch_event_proxy& w,
         auto kind = [&where]() -> evk
         {
           try {
-            return std::filesystem::is_directory(where) ? evk::dir
-                                                        : evk::file;
+            return std::filesystem::is_directory(where) ? evk::dir : evk::file;
           } catch (...) {
             return evk::other;
           }
