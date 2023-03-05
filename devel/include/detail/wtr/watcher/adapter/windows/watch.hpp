@@ -183,7 +183,8 @@ do_event_send(watch_event_proxy& w,
         auto kind = [&where]() -> evk
         {
           auto ec = std::error_code{};
-          auto k = std::filesystem::is_directory(where, ec) ? evk::dir : evk::file;
+          auto k =
+            std::filesystem::is_directory(where, ec) ? evk::dir : evk::file;
           return ec ? evk::other : k;
         }();
 

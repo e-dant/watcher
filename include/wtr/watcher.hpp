@@ -314,27 +314,29 @@ inline auto operator!=(event const& l, event const& r) noexcept -> bool
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
-/* ReadDirectoryChangesW
-   CreateIoCompletionPort
-   CreateFileW
-   CreateEventW
-   GetQueuedCompletionStatus
-   ResetEvent
-   GetLastError
-   WideCharToMultiByte */
+/*  ReadDirectoryChangesW
+    CreateIoCompletionPort
+    CreateFileW
+    CreateEventW
+    GetQueuedCompletionStatus
+    ResetEvent
+    GetLastError
+    WideCharToMultiByte */
 #include <windows.h>
-/* milliseconds */
+/*  milliseconds */
 #include <chrono>
-/* path */
+/*  path */
 #include <filesystem>
-/* string
-   wstring */
+/*  string
+    wstring */
 #include <string>
-/* this_thread::sleep_for */
+/*  error_code */
+#include <system_error>
+/*  this_thread::sleep_for */
 #include <thread>
 
-/* event
-   callback */
+/*  event
+    callback */
 
 namespace detail {
 namespace wtr {
@@ -484,11 +486,10 @@ do_event_send(watch_event_proxy& w,
 
         auto kind = [&where]() -> evk
         {
-          try {
-            return std::filesystem::is_directory(where) ? evk::dir : evk::file;
-          } catch (...) {
-            return evk::other;
-          }
+          auto ec = std::error_code{};
+          auto k =
+            std::filesystem::is_directory(where, ec) ? evk::dir : evk::file;
+          return ec ? evk::other : k;
         }();
 
         callback({where, what, kind});
@@ -866,7 +867,7 @@ inline bool watch(std::filesystem::path const& path,
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify
     The Linux `fanotify` adapter. */
 
-/* WATER_WATCHER_PLATFORM_* */
+/*  WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
   && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -874,50 +875,52 @@ inline bool watch(std::filesystem::path const& path,
 
 #define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
 
-/* O_* */
+/*  O_* */
 #include <fcntl.h>
-/* EPOLL*
-   epoll_ctl
-   epoll_wait
-   epoll_event
-   epoll_create1 */
+/*  EPOLL*
+    epoll_ctl
+    epoll_wait
+    epoll_event
+    epoll_create1 */
 #include <sys/epoll.h>
-/* FAN_*
-   fanotify_mark
-   fanotify_init
-   fanotify_event_metadata */
+/*  FAN_*
+    fanotify_mark
+    fanotify_init
+    fanotify_event_metadata */
 #include <sys/fanotify.h>
-/* open
-   close
-   readlink */
+/*  open
+    close
+    readlink */
 #include <unistd.h>
-/* errno */
+/*  errno */
 #include <cerrno>
-/* PATH_MAX */
+/*  PATH_MAX */
 #include <climits>
-/* snprintf */
+/*  snprintf */
 #include <cstdio>
-/* strerror */
+/*  strerror */
 #include <cstring>
-/* path
-   is_directory
-   directory_options
-   recursive_directory_iterator */
+/*  path
+    is_directory
+    directory_options
+    recursive_directory_iterator */
 #include <filesystem>
-/* function */
+/*  function */
 #include <functional>
-/* optional */
+/*  optional */
 #include <optional>
-/* unordered_map */
+/*  error_code */
+#include <system_error>
+/*  unordered_map */
 #include <unordered_map>
-/* unordered_set */
+/*  unordered_set */
 #include <unordered_set>
-/* tuple
-   make_tuple */
+/*  tuple
+    make_tuple */
 #include <tuple>
 
-/* event
-   callback */
+/*  event
+    callback */
 
 namespace detail {
 namespace wtr {
@@ -1087,6 +1090,7 @@ system_unfold(std::filesystem::path const& path,
       .dir_map = {},
     };
   };
+
   auto do_path_map_container_create =
     [](int const watch_fd,
        fs::path const& base_path,
@@ -1101,25 +1105,22 @@ system_unfold(std::filesystem::path const& path,
 
     static constexpr auto rsrv_count = 1024;
 
-    mark_set_type pmc;
+    auto ec = std::error_code{};
+    auto pmc = mark_set_type{};
     pmc.reserve(rsrv_count);
 
-    /* The filesystem library throws here even if we use the error code
-       overloads. (Exceptions seem to be the only way to handle errors.) */
-
     if (mark(base_path, watch_fd, pmc))
-      if (fs::is_directory(base_path)) try {
-          for (auto& dir : diter(base_path, dopt))
-            if (fs::is_directory(dir))
-              if (! mark(dir.path(), watch_fd, pmc))
-                callback({"w/sys/not_watched@" / base_path / "@" / dir.path(),
-                          ::wtr::watcher::event::what::other,
-                          ::wtr::watcher::event::kind::watcher});
-        } catch (...) {
-          callback({"w/sys/not_watched@" / base_path,
-                    ::wtr::watcher::event::what::other,
-                    ::wtr::watcher::event::kind::watcher});
-        }
+      if (fs::is_directory(base_path, ec))
+        if (! ec)
+          for (auto& dir : diter(base_path, dopt, ec))
+            if (! ec)
+              if (fs::is_directory(dir, ec))
+                if (! ec)
+                  if (! mark(dir.path(), watch_fd, pmc))
+                    callback({std::string{"w/sys/not_watched@"} + base_path
+                                + "@" + dir.path(),
+                              ::wtr::watcher::event::what::other,
+                              ::wtr::watcher::event::kind::watcher});
 
     return pmc;
   };
@@ -1517,7 +1518,7 @@ inline bool watch(std::filesystem::path const& path,
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify
     The Linux `inotify` adapter. */
 
-/* WATER_WATCHER_PLATFORM_* */
+/*  WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
   || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1525,40 +1526,42 @@ inline bool watch(std::filesystem::path const& path,
 
 #define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
 
-/* EPOLL*
-   epoll_ctl
-   epoll_wait
-   epoll_event
-   epoll_create
-   epoll_create1 */
+/*  EPOLL*
+    epoll_ctl
+    epoll_wait
+    epoll_event
+    epoll_create
+    epoll_create1 */
 #include <sys/epoll.h>
-/* IN_*
-   inotify_init
-   inotify_init1
-   inotify_event
-   inotify_add_watch */
+/*  IN_*
+    inotify_init
+    inotify_init1
+    inotify_event
+    inotify_add_watch */
 #include <sys/inotify.h>
 /* open
    read
    close */
 #include <unistd.h>
-/* path
-   is_directory
-   directory_options
-   recursive_directory_iterator */
+/*  path
+    is_directory
+    directory_options
+    recursive_directory_iterator */
 #include <filesystem>
-/* function */
+/*  function */
 #include <functional>
-/* tuple
-   make_tuple */
+/*  tuple
+    make_tuple */
 #include <tuple>
-/* unordered_map */
+/*  error_code */
+#include <system_error>
+/*  unordered_map */
 #include <unordered_map>
-/* memcpy */
+/*  memcpy */
 #include <cstring>
 
-/* event
-   callback */
+/*  event
+    callback */
 
 namespace detail {
 namespace wtr {
