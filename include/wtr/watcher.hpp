@@ -1117,8 +1117,8 @@ system_unfold(std::filesystem::path const& path,
               if (fs::is_directory(dir, ec))
                 if (! ec)
                   if (! mark(dir.path(), watch_fd, pmc))
-                    callback({std::string{"w/sys/not_watched@"} + base_path
-                                + "@" + dir.path(),
+                    callback({std::string{"w/sys/not_watched@"}
+                                + base_path.string() + "@" + dir.path(),
                               ::wtr::watcher::event::what::other,
                               ::wtr::watcher::event::kind::watcher});
 
@@ -1657,7 +1657,8 @@ inline auto path_map(std::filesystem::path const& base_path,
               if (fs::is_directory(dir, dir_ec))
                 if (! dir_ec)
                   if (! do_mark(dir.path()))
-                    callback({"w/sys/path_unwatched@" / dir.path(),
+                    callback({std::string{"w/sys/path_unwatched@"}
+                                + dir.path().string(),
                               ::wtr::watcher::event::what::other,
                               ::wtr::watcher::event::kind::watcher});
 

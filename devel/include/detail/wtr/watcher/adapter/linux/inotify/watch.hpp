@@ -143,7 +143,8 @@ inline auto path_map(std::filesystem::path const& base_path,
               if (fs::is_directory(dir, dir_ec))
                 if (! dir_ec)
                   if (! do_mark(dir.path()))
-                    callback({"w/sys/path_unwatched@" / dir.path(),
+                    callback({std::string{"w/sys/path_unwatched@"}
+                                + dir.path().string(),
                               ::wtr::watcher::event::what::other,
                               ::wtr::watcher::event::kind::watcher});
 
