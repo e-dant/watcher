@@ -118,7 +118,7 @@ The important pieces are the (header-only) library and the (optional) CLI progra
 - Library: `include/wtr/watcher.hpp`. Include this to use *Watcher* in your project.
 - Program: `src/wtr.watcher/main.cpp`. Build this to use *Watcher* from the command line.
 
-A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#directory-tree).
+A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#namespaces-and-the-directory-tree).
 
 ### The Library
 
@@ -341,49 +341,69 @@ LL misses:          14,683  (     10,920 rd   +       3,763 wr)
 LL miss rate:          0.0% (        0.0%     +         0.0%  )
 ```
 
-### Directory Tree
+### Namespaces and the Directory Tree
 
-> You can run [`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree) to view this tree locally.
+**The user should only ever need to use the file `wtr/watcher.hpp` (and maybe this readme).**
+
+Namespaces and symbols closely follow the directories in the `devel/include` folder.
+Inline namespaces are in directories the the `-` affix.
+
+For example, `wtr::watch` is inside the file `devel/include/wtr/watcher-/watch.hpp`.
+The namespace `watcher` in `wtr::watcher::watch` is anonymous by this convention.
+
+More in depth: the function `::detail::wtr::watcher::adapter::watch()` is defined inside
+one (and only one!) of the files `devel/include/detail/wtr/watcher/adapter/*/watch.hpp`,
+where `*` is decided at compile-time (depending on the host's operating system).
+
+All of the headers in `devel/include` are amalgamated into `include/wtr/watcher.hpp`
+and an include guard is added to the top. The include guard doesn't change with the
+release version. In the future, it might.
+
 
 ```
 watcher
 ├── src
-│  ├── watcher
+│  ├── wtr.watcher
 │  │  └── main.cpp
 │  └── tiny_watcher
 │     └── main.cpp
 ├── include
-│  └── watcher
+│  └── wtr
 │     └── watcher.hpp
-├── devel/include
-│  └── watcher
-│     ├── watcher.hpp
+├── devel
+│  └── include
+│     ├── wtr
+│     │  ├── watcher.hpp
+│     │  └── watcher-
+│     │     ├── watch.hpp
+│     │     └── event.hpp
 │     └── detail
-│        ├── watch.hpp
-│        ├── platform.hpp
-│        ├── event.hpp
-│        └── adapter
-│           ├── adapter.hpp
-│           ├── windows
-│           │  └── watch.hpp
-│           ├── warthog
-│           │  └── watch.hpp
-│           ├── linux
-│           │  ├── watch.hpp
-│           │  ├── inotify
-│           │  │  └── watch.hpp
-│           │  └── fanotify
-│           │     └── watch.hpp
-│           ├── darwin
-│           │  └── watch.hpp
-│           └── android
-│              └── watch.hpp
+│        └── wtr
+│           └── watcher
+│              ├── platform.hpp
+│              └── adapter
+│                 ├── adapter.hpp
+│                 ├── windows
+│                 │  └── watch.hpp
+│                 ├── warthog
+│                 │  └── watch.hpp
+│                 ├── linux
+│                 │  ├── watch.hpp
+│                 │  ├── inotify
+│                 │  │  └── watch.hpp
+│                 │  └── fanotify
+│                 │     └── watch.hpp
+│                 ├── darwin
+│                 │  └── watch.hpp
+│                 └── android
+│                    └── watch.hpp
 └── build
    ├── build
    ├── out
    └── in
-
 ```
+
+> You can run [`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree) to view this tree locally.
 
 ### Comparison with Similar Projects
 
