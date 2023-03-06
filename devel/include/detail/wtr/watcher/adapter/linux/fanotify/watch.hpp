@@ -354,125 +354,145 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
     after the file handle to the directory.
     Confusing, right? */
 inline auto promote(sys_resource_type& sr,
-                  fanotify_event_metadata const* mtd) noexcept
-  -> std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind, unsigned long>
+                    fanotify_event_metadata const* mtd) noexcept
+  -> std::tuple<bool,
+                std::filesystem::path,
+                enum ::wtr::watcher::event::what,
+                enum ::wtr::watcher::event::kind,
+                unsigned long> {
+    namespace fs = ::std::filesystem;
+    using evw = enum ::wtr::watcher::event::what;
+    using evk = enum ::wtr::watcher::event::kind;
+
+    auto path_imbue = [](char* path_accum,
+                         fanotify_event_info_fid const* dfid_info,
+                         file_handle* dir_fh,
+                         ssize_t dir_name_len = 0) noexcept -> void
+    {
+      char* name_info = (char*)(dfid_info + 1);
+      char* file_name = static_cast<char*>(
+        name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
+        + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
+
+      if (file_name && std::strcmp(file_name, ".") != 0)
+        std::snprintf(path_accum + dir_name_len,
+                      PATH_MAX - dir_name_len,
+                      "/%s",
+                      file_name);
+    };
+
+    auto dir_fid_info = ((fanotify_event_info_fid const*)(mtd + 1));
+
+    auto dir_fh = (file_handle*)(dir_fid_info->handle);
+
+    auto what = mtd->mask & FAN_CREATE ? evw::create
+              : mtd->mask & FAN_DELETE ? evw::destroy
+              : mtd->mask & FAN_MODIFY ? evw::modify
+              : mtd->mask & FAN_MOVE   ? evw::rename
+                                       : evw::other;
+
+    auto kind = mtd->mask & FAN_ONDIR ? evk::dir : evk::file;
+
+    /* The sum of the handle's bytes. A low-quality hash.
+       Unreliable after the directory's inode is recycled. */
+    unsigned long dir_hash = std::abs(dir_fh->handle_type);
+    for (decltype(dir_fh->handle_bytes) i = 0; i < dir_fh->handle_bytes; i++)
+      dir_hash += *(dir_fh->f_handle + i);
+
+    auto const& cache = sr.dir_map.find(dir_hash);
+
+    if (cache != sr.dir_map.end()){
+      /* We already have a path name, use it */
+      char path_buf[PATH_MAX]; auto dir_name = cache->second.c_str();
+      auto dir_name_len = cache->second.string().length();
+
+      /* std::snprintf(path_buf, sizeof(path_buf), "%s", dir_name); */
+      std::memcpy(path_buf, dir_name, dir_name_len);
+      path_imbue(path_buf, dir_fid_info, dir_fh, dir_name_len);
+
+      return std::make_tuple(true,
+                             fs::path{std::move(path_buf)},
+                             what,
+                             kind,
+                             dir_hash);}
+else
 {
-  namespace fs = ::std::filesystem;
-  using evw = enum ::wtr::watcher::event::what;
-  using evk = enum ::wtr::watcher::event::kind;
+  /* We can get a path name, so get that and use it */
+  char path_buf[PATH_MAX];
+  int fd = open_by_handle_at(AT_FDCWD,
+                             dir_fh,
+                             O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
+  if (fd > 0) {
+    char fs_proc_path[128];
+    std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
+    ssize_t dirname_len =
+      readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
+    close(fd);
 
-  auto path_imbue = [](char* path_accum,
-                       fanotify_event_info_fid const* dfid_info,
-                       file_handle* dir_fh,
-                       ssize_t dir_name_len = 0) noexcept -> void
-  {
-    char* name_info = (char*)(dfid_info + 1);
-    char* file_name = static_cast<char*>(
-      name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
-      + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
+    if (dirname_len > 0) {
+      /* Put the directory name in the path accumulator.
+         Passing `dirname_len` has the effect of putting
+         the event's filename in the path buffer as well. */
+      path_buf[dirname_len] = '\0';
+      path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
-    if (file_name && std::strcmp(file_name, ".") != 0)
-      std::snprintf(path_accum + dir_name_len,
-                    PATH_MAX - dir_name_len,
-                    "/%s",
-                    file_name);
-  };
+      return std::make_tuple(true,
+                             fs::path{std::move(path_buf)},
+                             what,
+                             kind,
+                             dir_hash);
+    }
 
-  auto dir_fid_info = ((fanotify_event_info_fid const*)(mtd + 1));
-
-  auto dir_fh = (file_handle*)(dir_fid_info->handle);
-
-  auto what = mtd->mask & FAN_CREATE   ? evw::create
-    : mtd->mask & FAN_DELETE ? evw::destroy
-    : mtd->mask & FAN_MODIFY ? evw::modify
-    : mtd->mask & FAN_MOVE   ? evw::rename
-                           : evw::other;
-
-  auto kind = mtd->mask & FAN_ONDIR ? evk::dir : evk::file;
-
-  /* The sum of the handle's bytes. A low-quality hash.
-     Unreliable after the directory's inode is recycled. */
-  unsigned long dir_hash = std::abs(dir_fh->handle_type);
-  for (decltype(dir_fh->handle_bytes) i = 0; i < dir_fh->handle_bytes; i++)
-    dir_hash += *(dir_fh->f_handle + i);
-
-  auto const& cache = sr.dir_map.find(dir_hash);
-
-  if (cache != sr.dir_map.end()) {
-    /* We already have a path name, use it */
-    char path_buf[PATH_MAX];
-    auto dir_name = cache->second.c_str();
-    auto dir_name_len = cache->second.string().length();
-
-    /* std::snprintf(path_buf, sizeof(path_buf), "%s", dir_name); */
-    std::memcpy(path_buf, dir_name, dir_name_len);
-    path_imbue(path_buf, dir_fid_info, dir_fh, dir_name_len);
-
-    return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
+    else
+      return std::make_tuple(false, fs::path{}, what, kind, 0);
   }
   else {
-    /* We can get a path name, so get that and use it */
-    char path_buf[PATH_MAX];
-    int fd = open_by_handle_at(AT_FDCWD,
-                               dir_fh,
-                               O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
-    if (fd > 0) {
-      char fs_proc_path[128];
-      std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
-      ssize_t dirname_len =
-        readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
-      close(fd);
+    path_imbue(path_buf, dir_fid_info, dir_fh);
 
-      if (dirname_len > 0) {
-        /* Put the directory name in the path accumulator.
-           Passing `dirname_len` has the effect of putting
-           the event's filename in the path buffer as well. */
-        path_buf[dirname_len] = '\0';
-        path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
-
-        return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
-      }
-
-      else
-        return std::make_tuple(false, fs::path{}, what, kind, 0);
-    }
-    else {
-      path_imbue(path_buf, dir_fid_info, dir_fh);
-
-      return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
-    }
+    return std::make_tuple(true,
+                           fs::path{std::move(path_buf)},
+                           what,
+                           kind,
+                           dir_hash);
   }
-};
+}
+};  // namespace fanotify
 
-inline auto check_and_update(std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind, unsigned long> const& r,
-                           sys_resource_type& sr
-                           ) noexcept -> std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind>
-{
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+inline auto check_and_update(std::tuple<bool,
+                                        std::filesystem::path,
+                                        enum ::wtr::watcher::event::what,
+                                        enum ::wtr::watcher::event::kind,
+                                        unsigned long> const& r,
+                             sys_resource_type& sr) noexcept
+  -> std::tuple<bool,
+                std::filesystem::path,
+                enum ::wtr::watcher::event::what,
+                enum ::wtr::watcher::event::kind> {
+    using evk = enum ::wtr::watcher::event::kind;
+    using evw = enum ::wtr::watcher::event::what;
 
-  auto [valid, path, what, kind, hash] = r;
+    auto [valid, path, what, kind, hash] = r;
 
-  return std::make_tuple(
+    return std::make_tuple(
 
       valid && hash
 
-          ? kind == evk::dir
+        ? kind == evk::dir
 
-             ? what == evw::create  ? mark(path, sr, hash)
-             : what == evw::destroy ? unmark(path, sr, hash)
-                                    : true
+          ? what == evw::create  ? mark(path, sr, hash)
+          : what == evw::destroy ? unmark(path, sr, hash)
+                                 : true
 
-             : true
+          : true
 
-           : false,
+        : false,
 
-       path,
+      path,
 
-       what,
+      what,
 
-       kind);
-};
+      kind);
+  };
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/send
     Send events to the user.
@@ -481,15 +501,16 @@ inline auto check_and_update(std::tuple<bool, std::filesystem::path, enum ::wtr:
     Most of the other code is
     a layer of translation
     between us and the kernel. */
-inline auto send(std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind> const& from_kernel,
-                 ::wtr::watcher::event::callback const& callback) noexcept
-  -> bool
+inline auto
+send(std::tuple<bool,
+                std::filesystem::path,
+                enum ::wtr::watcher::event::what,
+                enum ::wtr::watcher::event::kind> const& from_kernel,
+     ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   auto [ok, path, what, kind] = from_kernel;
 
-  return ok
-         ? (callback({path, what, kind}), ok)
-         : ok;
+  return ok ? (callback({path, what, kind}), ok) : ok;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/recv
@@ -594,25 +615,23 @@ inline bool watch(std::filesystem::path const& path,
 
       system_fold(sr)
 
-           ? (callback(
-                {"s/self/die@" + path.string(), evw::other, evk::watcher}),
-              true)
+        ? (callback({"s/self/die@" + path.string(), evw::other, evk::watcher}),
+           true)
 
-           : (callback(
-                {"e/self/die@" + path.string(), evw::other, evk::watcher}),
-              false);
+        : (callback({"e/self/die@" + path.string(), evw::other, evk::watcher}),
+           false);
   };
 
   auto do_error = [&path, &callback, &done](sys_resource_type&& sr,
                                             char const* const msg) -> bool
   {
     return (
-        callback(
-          {std::string{msg} + "@" + path.string(), evw::other, evk::watcher}),
+      callback(
+        {std::string{msg} + "@" + path.string(), evw::other, evk::watcher}),
 
-        done(std::move(sr)),
+      done(std::move(sr)),
 
-        false);
+      false);
   };
 
   /*  While living, with
@@ -653,10 +672,10 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(std::move(sr), "e/self/sys_resource");
 }
 
-} /* namespace fanotify */
-} /* namespace adapter */
-} /* namespace watcher */
-} /* namespace wtr */
+}  // namespace adapter
+}  // namespace watcher
+}  // namespace wtr
+}  // namespace detail
 } /* namespace detail */
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
