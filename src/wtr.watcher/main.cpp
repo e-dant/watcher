@@ -29,10 +29,6 @@
         kind */
 #include <wtr/watcher.hpp>
 
-using namespace std::chrono;
-using std::function;
-namespace fs = std::filesystem;
-
 /*  @todo
     [ -what < all rename modify create destroy owner other > = all ]
     [ -kind < all dir file hard_link sym_link watcher other > = all ] */
@@ -72,6 +68,8 @@ auto watch_forever_or_expire(
     [alive_for](std::filesystem::path const& path,
                 wtr::event::callback const& callback)
     {
+      using namespace std::chrono;
+
       auto const then = system_clock::now();
       std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
 
@@ -105,11 +103,15 @@ auto watch_forever_or_expire(
 
 auto from_cmdline(int const argc, char const** const argv)
 {
+  using namespace std::chrono;
+
   auto argis = [&](auto const i, char const* a)
   { return argc > i ? std::strcmp(a, argv[i]) == 0 : false; };
 
   auto given_or_current_path = [](int const argc, char const** const argv)
   {
+    namespace fs = std::filesystem;
+
     return fs::absolute(
       [&]
       {
@@ -156,6 +158,7 @@ auto from_cmdline(int const argc, char const** const argv)
                                                        : milliseconds(t);
       // clang-format on
     }();
+
     return given_or_zero_time > 0ns ? std::make_optional(given_or_zero_time)
                                     : std::nullopt;
   };
@@ -164,12 +167,12 @@ auto from_cmdline(int const argc, char const** const argv)
   {
     auto help = []
     {
-      std::cout << usage;
-      return 0;
+      return (std::cout << usage, 0);
     };
 
     if (argis(1, "-h") || argis(1, "--help"))
       return help;
+
     else
       return std::nullopt;
   };
