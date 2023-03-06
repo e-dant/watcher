@@ -300,7 +300,7 @@ system_unfold(std::filesystem::path const& path,
    Close the file descriptors `watch_fd` and `event_fd`. */
 inline auto system_fold(sys_resource_type& sr) noexcept -> bool
 {
-  return ! (close(sr.watch_fd) && close(sr.event_fd));
+  return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 }
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/promote
