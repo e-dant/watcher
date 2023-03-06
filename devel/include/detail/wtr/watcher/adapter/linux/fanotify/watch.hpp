@@ -298,7 +298,7 @@ open_system_resources(std::filesystem::path const& path,
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/close_system_resources
    Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto close_system_resources(system_resources& sr) noexcept -> bool
+inline auto close_system_resources(system_resources&& sr) noexcept -> bool
 {
   return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 };
