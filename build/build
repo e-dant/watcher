@@ -463,7 +463,7 @@ build::build() {
 }
 
 build::run::test() {
-  if ! echo "$*" | grep -q -- --no-run-test
+  if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-test
   then
     for TEST in "${TESTS[@]}"
     do
@@ -507,7 +507,7 @@ build::run::test() {
 }
 
 build::run::bench() {
-  if ! echo "$*" | grep -q -- --no-run-bench
+  if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-bench
   then
     for BENCH in "${BENCHES[@]}"
     do
