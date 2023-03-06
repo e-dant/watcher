@@ -30,8 +30,8 @@
 #include <wtr/watcher.hpp>
 
 /*  @todo
-    [ -what < all rename modify create destroy owner other > = all ]
-    [ -kind < all dir file hard_link sym_link watcher other > = all ] */
+    [ -fwhat < all rename modify create destroy owner other > = all ]
+    [ -fkind < all dir file hard_link sym_link watcher other > = all ] */
 inline constexpr auto usage =
   "wtr.watcher [ -h | --help ] [ PATH = . [ -UNIT < TIME > ]\n"
   "\n"
@@ -60,39 +60,37 @@ inline constexpr auto usage =
 
 auto watch_forever_or_expire(
   std::optional<std::chrono::nanoseconds const> const& alive_for)
+  -> std::function<bool(std::filesystem::path const&,
+                        wtr::event::callback const&)>
 {
-
   /*  Watch for some time, `alive_for`. */
-  auto expire = std::function<bool(std::filesystem::path const&,
-                                   wtr::event::callback const&)>{
-    [alive_for](std::filesystem::path const& path,
-                wtr::event::callback const& callback)
-    {
-      using namespace std::chrono;
+  auto expire = [alive_for](std::filesystem::path const& path,
+                            wtr::event::callback const& callback)
+  {
+    using namespace std::chrono;
 
-      auto const then = system_clock::now();
-      std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
+    auto const then = system_clock::now();
+    std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
 
-      auto const die = wtr::watch(path, callback);
+    auto const die = wtr::watch(path, callback);
 
-      std::this_thread::sleep_for(alive_for.value());
+    std::this_thread::sleep_for(alive_for.value());
 
-      auto const dead = die();
+    auto const dead = die();
 
-      std::cout
-        << "}"
-        << "\n,\"milliseconds\":"
-        << duration_cast<milliseconds>(system_clock::now() - then).count()
-        << "\n,\"dead\":" << (dead ? "true" : "false") << "\n}}}" << std::endl;
+    std::cout << "}"
+              << "\n,\"milliseconds\":"
+              << duration_cast<milliseconds>(system_clock::now() - then).count()
+              << "\n,\"dead\":" << (dead ? "true" : "false") << "\n}}}"
+              << std::endl;
 
-      return dead;
-    }};
+    return dead;
+  };
 
   /*  Watch forever. */
-  auto forever = std::function<bool(std::filesystem::path const&,
-                                    wtr::event::callback const&)>{
+  auto forever =
     [](std::filesystem::path const& path, wtr::event::callback const& callback)
-    { return ((void)wtr::watch(path, callback), true); }};
+  { return ((void)wtr::watch(path, callback), true); };
 
   if (alive_for.has_value())
     return expire;
@@ -127,8 +125,8 @@ auto from_cmdline(int const argc, char const** const argv)
       For manual parsing, see the file watcher/event.hpp. */
   wtr::event::callback show_json = [](wtr::event const& ev) noexcept
   {
-    using kind = enum wtr::watcher::event::kind;
-    using what = enum wtr::watcher::event::what;
+    using kind = enum wtr::event::kind;
+    using what = enum wtr::event::what;
 
     auto comma_or_nothing =
       ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
@@ -165,10 +163,7 @@ auto from_cmdline(int const argc, char const** const argv)
 
   auto maybe_help = [&]() -> std::optional<std::function<int()>>
   {
-    auto help = []
-    {
-      return (std::cout << usage, 0);
-    };
+    auto help = [] { return (std::cout << usage, 0); };
 
     if (argis(1, "-h") || argis(1, "--help"))
       return help;
