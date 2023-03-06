@@ -123,7 +123,7 @@ auto from_cmdline(int const argc, char const** const argv)
       Append a comma until the last event: Watcher dying.
       Flush stdout, via `endl`, for piping.
       For manual parsing, see the file watcher/event.hpp. */
-  wtr::event::callback maybe_filter_callback = [](wtr::event const& ev) noexcept
+  wtr::event::callback show_json = [](wtr::event const& ev) noexcept
   {
     using kind = enum wtr::watcher::event::kind;
     using what = enum wtr::watcher::event::what;
@@ -175,7 +175,7 @@ auto from_cmdline(int const argc, char const** const argv)
   };
 
   return std::make_tuple(given_or_current_path(argc, argv),
-                         maybe_filter_callback,
+                         show_json,
                          maybe_time(argc, argv),
                          maybe_help());
 };
