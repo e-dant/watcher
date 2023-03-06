@@ -113,7 +113,7 @@ inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
 inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
-   - sys_resource_type
+   - system_resources
        An object holding:
          - An fanotify file descriptor
          - An epoll file descriptor
@@ -124,7 +124,7 @@ inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 using mark_set_type = std::unordered_set<int>;
 using dir_map_type = std::unordered_map<unsigned long, std::filesystem::path>;
 
-struct sys_resource_type {
+struct system_resources {
   bool valid;
   int watch_fd;
   int event_fd;
@@ -152,7 +152,7 @@ inline auto mark(std::filesystem::path const& full_path,
 };
 
 inline auto mark(std::filesystem::path const& full_path,
-                 sys_resource_type& sr,
+                 system_resources& sr,
                  unsigned long dir_hash) noexcept -> bool
 {
   if (sr.dir_map.find(dir_hash) == sr.dir_map.end())
@@ -184,7 +184,7 @@ inline auto unmark(std::filesystem::path const& full_path,
 };
 
 inline auto unmark(std::filesystem::path const& full_path,
-                   sys_resource_type& sr,
+                   system_resources& sr,
                    unsigned long dir_hash) noexcept -> bool
 {
   auto const& at = sr.dir_map.find(dir_hash);
@@ -194,13 +194,13 @@ inline auto unmark(std::filesystem::path const& full_path,
   return unmark(full_path, sr.watch_fd, sr.mark_set);
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/system_unfold
-   Produces a `sys_resource_type` with the file descriptors from
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/open_system_resources
+   Produces a `system_resources` with the file descriptors from
    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
-system_unfold(std::filesystem::path const& path,
-              ::wtr::watcher::event::callback const& callback) noexcept
-  -> sys_resource_type
+open_system_resources(std::filesystem::path const& path,
+                      ::wtr::watcher::event::callback const& callback) noexcept
+  -> system_resources
 {
   namespace fs = ::std::filesystem;
   using evk = enum ::wtr::watcher::event::kind;
@@ -209,14 +209,14 @@ system_unfold(std::filesystem::path const& path,
   auto do_error = [&path,
                    &callback](char const* const msg,
                               int watch_fd,
-                              int event_fd = -1) noexcept -> sys_resource_type
+                              int event_fd = -1) noexcept -> system_resources
   {
     callback(
       {std::string{msg} + "(" + std::strerror(errno) + ")@" + path.string(),
        evw::other,
        evk::watcher});
 
-    return sys_resource_type{
+    return system_resources{
       .valid = false,
       .watch_fd = watch_fd,
       .event_fd = event_fd,
@@ -276,7 +276,7 @@ system_unfold(std::filesystem::path const& path,
 
       if (event_fd >= 0)
         if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
-          return sys_resource_type{
+          return system_resources{
             .valid = true,
             .watch_fd = watch_fd,
             .event_fd = event_fd,
@@ -296,9 +296,9 @@ system_unfold(std::filesystem::path const& path,
     return do_error("e/sys/fanotify_init", watch_fd);
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/system_fold
+/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/close_system_resources
    Close the file descriptors `watch_fd` and `event_fd`. */
-inline auto system_fold(sys_resource_type& sr) noexcept -> bool
+inline auto close_system_resources(system_resources& sr) noexcept -> bool
 {
   return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 };
@@ -354,7 +354,8 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
     after the file handle to the directory.
     Confusing, right? */
 // clang-format off
-inline auto promote(sys_resource_type& sr,
+// note at the end of file re. clang format
+inline auto promote(system_resources& sr,
                     fanotify_event_metadata const* mtd) noexcept
   -> std::tuple<bool,
                 std::filesystem::path,
@@ -460,6 +461,7 @@ inline auto promote(sys_resource_type& sr,
     }
   }
 };
+
 // clang-format on
 
 inline auto check_and_update(std::tuple<bool,
@@ -467,7 +469,7 @@ inline auto check_and_update(std::tuple<bool,
                                         enum ::wtr::watcher::event::what,
                                         enum ::wtr::watcher::event::kind,
                                         unsigned long> const& r,
-                             sys_resource_type& sr) noexcept
+                             system_resources& sr) noexcept
   -> std::tuple<bool,
                 std::filesystem::path,
                 enum ::wtr::watcher::event::what,
@@ -534,7 +536,7 @@ send(std::tuple<bool,
    The `metadata->vers` field may differ between kernel
    versions, so we check it against what we have been
    compiled with. */
-inline auto recv(sys_resource_type& sr,
+inline auto recv(system_resources& sr,
                  std::filesystem::path const& base_path,
                  ::wtr::watcher::event::callback const& callback) noexcept
   -> bool
@@ -613,11 +615,11 @@ inline bool watch(std::filesystem::path const& path,
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  auto done = [&path, &callback](sys_resource_type&& sr) noexcept -> bool
+  auto done = [&path, &callback](system_resources&& sr) noexcept -> bool
   {
     return
 
-      system_fold(sr)
+      close_system_resources(sr)
 
         ? (callback({"s/self/die@" + path.string(), evw::other, evk::watcher}),
            true)
@@ -626,7 +628,7 @@ inline bool watch(std::filesystem::path const& path,
            false);
   };
 
-  auto do_error = [&path, &callback, &done](sys_resource_type&& sr,
+  auto do_error = [&path, &callback, &done](system_resources&& sr,
                                             char const* const msg) -> bool
   {
     return (
@@ -646,7 +648,7 @@ inline bool watch(std::filesystem::path const& path,
       - Await filesystem events
       - Invoke `callback` on errors and events */
 
-  auto sr = sys_resource_type{system_unfold(path, callback)};
+  auto sr = open_system_resources(path, callback);
 
   epoll_event event_recv_list[event_wait_queue_max];
 
@@ -676,11 +678,16 @@ inline bool watch(std::filesystem::path const& path,
     return do_error(std::move(sr), "e/self/sys_resource");
 };
 
-} // namespace fanotify
-} // namespace adapter
-} // namespace watcher
-} // namespace wtr
-} // namespace detail
+// clang-format off
+// returning tuples is confusing clang format
+
+}  // namespace fanotify
+}  // namespace adapter
+}  // namespace watcher
+}  // namespace wtr
+}  // namespace detail
+
+// clang-format on
 
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
