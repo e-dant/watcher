@@ -118,25 +118,20 @@ auto from_cmdline(int const argc, char const** const argv)
       }());
   };
 
-  auto maybe_filter_callback = []
+  /*  Show what happens.
+      Use the event's stream operator, formatting as json.
+      Append a comma until the last event: Watcher dying.
+      Flush stdout, via `endl`, for piping.
+      For manual parsing, see the file watcher/event.hpp. */
+  wtr::event::callback maybe_filter_callback = [](wtr::event const& ev) noexcept
   {
-    /*  Show what happens.
-        Use the event's stream operator, formatting as json.
-        Append a comma until the last event: Watcher dying.
-        Flush stdout, via `endl`, for piping.
-        For manual parsing, see the file watcher/event.hpp. */
-    wtr::event::callback show_json = [](wtr::event const& ev)
-    {
-      using kind = enum wtr::watcher::event::kind;
-      using what = enum wtr::watcher::event::what;
+    using kind = enum wtr::watcher::event::kind;
+    using what = enum wtr::watcher::event::what;
 
-      auto comma_or_nothing =
-        ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
+    auto comma_or_nothing =
+      ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
 
-      std::cout << ev << comma_or_nothing << std::endl;
-    };
-
-    return show_json;
+    std::cout << ev << comma_or_nothing << std::endl;
   };
 
   auto maybe_time = [&](int const argc, char const** const argv)
@@ -180,7 +175,7 @@ auto from_cmdline(int const argc, char const** const argv)
   };
 
   return std::make_tuple(given_or_current_path(argc, argv),
-                         maybe_filter_callback(),
+                         maybe_filter_callback,
                          maybe_time(argc, argv),
                          maybe_help());
 };
