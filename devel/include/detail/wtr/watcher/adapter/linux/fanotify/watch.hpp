@@ -206,7 +206,8 @@ system_unfold(std::filesystem::path const& path,
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  auto do_error = [&path, &callback](char const* const msg,
+  auto do_error = [&path,
+                   &callback](char const* const msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
@@ -516,8 +517,9 @@ inline auto recv(sys_resource_type& sr,
                    &callback](char const* const msg) noexcept -> bool
   {
     return (callback({std::string{msg} + "@" + base_path.string(),
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher}), false);
+                      ::wtr::watcher::event::what::other,
+                      ::wtr::watcher::event::kind::watcher}),
+            false);
   };
 
   /* Read some events. */
@@ -595,9 +597,10 @@ inline bool watch(std::filesystem::path const& path,
   };
 
   auto do_error = [&path, &callback, &done](sys_resource_type&& sr,
-                                     char const* const msg) -> bool
+                                            char const* const msg) -> bool
   {
-    callback({std::string{msg} + "@" + path.string(), evw::other, evk::watcher});
+    callback(
+      {std::string{msg} + "@" + path.string(), evw::other, evk::watcher});
 
     done(std::move(sr));
 

@@ -1069,13 +1069,13 @@ system_unfold(std::filesystem::path const& path,
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  auto do_error = [&callback](std::string const& msg,
-                              fs::path const& path,
+  auto do_error = [&path,
+                   &callback](char const* const msg,
                               int watch_fd,
                               int event_fd = -1) noexcept -> sys_resource_type
   {
     callback(
-      {msg.append("(").append(std::strerror(errno)).append(")@").append(path),
+      {std::string{msg} + "(" + std::strerror(errno) + ")@" + path.string(),
        evw::other,
        evk::watcher});
 
@@ -1148,15 +1148,15 @@ system_unfold(std::filesystem::path const& path,
             .dir_map = {},
           };
         else
-          return do_error("e/sys/epoll_ctl", path, watch_fd, event_fd);
+          return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
       else
-        return do_error("e/sys/epoll_create", path, watch_fd, event_fd);
+        return do_error("e/sys/epoll_create", watch_fd, event_fd);
     }
     else
-      return do_error("e/sys/fanotify_mark", path, watch_fd);
+      return do_error("e/sys/fanotify_mark", watch_fd);
   }
   else
-    return do_error("e/sys/fanotify_init", path, watch_fd);
+    return do_error("e/sys/fanotify_init", watch_fd);
 }
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/system_fold
@@ -1377,12 +1377,12 @@ inline auto recv(sys_resource_type& sr,
   enum class state { ok, none, err };
 
   auto do_error = [&base_path,
-                   &callback](std::string const& msg) noexcept -> bool
+                   &callback](char const* const msg) noexcept -> bool
   {
-    callback({msg + "@" + base_path,
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher});
-    return false;
+    return (callback({std::string{msg} + "@" + base_path.string(),
+                      ::wtr::watcher::event::what::other,
+                      ::wtr::watcher::event::kind::watcher}),
+            false);
   };
 
   /* Read some events. */
@@ -1448,7 +1448,7 @@ inline bool watch(std::filesystem::path const& path,
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  auto die = [&path, &callback](sys_resource_type&& sr) noexcept -> bool
+  auto done = [&path, &callback](sys_resource_type&& sr) noexcept -> bool
   {
     return system_fold(sr)
            ? (callback(
@@ -1459,12 +1459,13 @@ inline bool watch(std::filesystem::path const& path,
               false);
   };
 
-  auto do_error = [&path, &callback](sys_resource_type&& sr,
-                                     std::string const& msg) -> bool
+  auto do_error = [&path, &callback, &done](sys_resource_type&& sr,
+                                            char const* const msg) -> bool
   {
-    callback({msg + "@" + path, evw::other, evk::watcher});
+    callback(
+      {std::string{msg} + "@" + path.string(), evw::other, evk::watcher});
 
-    die(sr);
+    done(std::move(sr));
 
     return false;
   };
@@ -1490,21 +1491,21 @@ inline bool watch(std::filesystem::path const& path,
                                    event_wait_queue_max,
                                    delay_ms);
       if (event_count < 0)
-        return do_error(sr, "e/sys/epoll_wait");
+        return do_error(std::move(sr), "e/sys/epoll_wait");
 
       else if (event_count > 0) [[likely]]
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
             if (is_living()) [[likely]]
               if (! recv(sr, path, callback)) [[unlikely]]
-                return do_error(sr, "e/self/event_recv");
+                return do_error(std::move(sr), "e/self/event_recv");
     }
 
-    return die(sr);
+    return done(std::move(sr));
   }
 
   else
-    return do_error(sr, "e/self/sys_resource");
+    return do_error(std::move(sr), "e/self/sys_resource");
 }
 
 } /* namespace fanotify */
