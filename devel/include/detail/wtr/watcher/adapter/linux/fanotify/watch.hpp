@@ -206,19 +206,16 @@ system_unfold(std::filesystem::path const& path,
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  auto const& do_error = [&callback](char const* const error,
-                                     fs::path const& path,
-                                     int watch_fd,
-                                     int event_fd =
-                                       -1) noexcept -> sys_resource_type
+  auto do_error = [&callback](std::string const& msg,
+                              fs::path const& path,
+                              int watch_fd,
+                              int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({std::string{error}
-                .append("(")
-                .append(std::strerror(errno))
-                .append(")@")
-                .append(path),
-              evw::other,
-              evk::watcher});
+    callback(
+      {msg.append("(").append(std::strerror(errno)).append(")@").append(path),
+       evw::other,
+       evk::watcher});
+
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -516,9 +513,10 @@ inline auto recv(sys_resource_type& sr,
 {
   enum class state { ok, none, err };
 
-  auto do_error = [&base_path, &callback](char const* msg) noexcept -> bool
+  auto do_error = [&base_path,
+                   &callback](std::string const& msg) noexcept -> bool
   {
-    callback({msg / base_path,
+    callback({msg + "@" + base_path,
               ::wtr::watcher::event::what::other,
               ::wtr::watcher::event::kind::watcher});
     return false;
@@ -584,21 +582,26 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  auto do_error = [&path, &callback](bool clean, char const* msg) -> bool
+  using evk = enum ::wtr::watcher::event::kind;
+  using evw = enum ::wtr::watcher::event::what;
+
+  auto die = [&path, &callback](sys_resource_type&& sr) noexcept -> bool
   {
-    callback({msg / path,
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher});
+    return system_fold(sr)
+           ? (callback(
+                {"s/self/die@" + path.string(), evw::other, evk::watcher}),
+              true)
+           : (callback(
+                {"e/self/die@" + path.string(), evw::other, evk::watcher}),
+              false);
+  };
 
-    if (clean)
-      callback({"s/self/die@" + path.string(),
-                ::wtr::watcher::event::what::other,
-                ::wtr::watcher::event::kind::watcher});
+  auto do_error = [&path, &callback](sys_resource_type&& sr,
+                                     std::string const& msg) -> bool
+  {
+    callback({msg + "@" + path, evw::other, evk::watcher});
 
-    else
-      callback({"e/self/die@" + path.string(),
-                ::wtr::watcher::event::what::other,
-                ::wtr::watcher::event::kind::watcher});
+    die(sr);
 
     return false;
   };
@@ -624,23 +627,21 @@ inline bool watch(std::filesystem::path const& path,
                                    event_wait_queue_max,
                                    delay_ms);
       if (event_count < 0)
-        return do_error(system_fold(sr), "e/sys/epoll_wait");
+        return do_error(sr, "e/sys/epoll_wait");
 
       else if (event_count > 0) [[likely]]
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
             if (is_living()) [[likely]]
               if (! recv(sr, path, callback)) [[unlikely]]
-                return do_error(system_fold(sr), "e/self/event_recv");
+                return do_error(sr, "e/self/event_recv");
     }
 
-    callback({"s/self/die@" + path.string(),
-              ::wtr::watcher::event::what::destroy,
-              ::wtr::watcher::event::kind::watcher});
-    return system_fold(sr);
+    return die(sr);
   }
+
   else
-    return do_error(system_fold(sr), "e/self/sys_resource");
+    return do_error(sr, "e/self/sys_resource");
 }
 
 } /* namespace fanotify */
