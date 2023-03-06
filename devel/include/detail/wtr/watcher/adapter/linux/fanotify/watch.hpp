@@ -619,7 +619,7 @@ inline bool watch(std::filesystem::path const& path,
   {
     return
 
-      close_system_resources(sr)
+      close_system_resources(std::move(sr))
 
         ? (callback({"s/self/die@" + path.string(), evw::other, evk::watcher}),
            true)
