@@ -158,7 +158,7 @@ auto from_cmdline(int const argc, char const** const argv)
            : targis("-weeks")        || targis("-w")   ? 168  * hours(t)
            : targis("-months")       || targis("-mts") ? 730  * hours(t)
            : targis("-years")        || targis("-y")   ? 8760 * hours(t)
-                                                     : milliseconds(t);
+                                                       : milliseconds(t);
       // clang-format on
     }();
     return given_or_zero_time > 0ns ? std::make_optional(given_or_zero_time)
