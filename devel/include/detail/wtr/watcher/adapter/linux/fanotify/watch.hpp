@@ -303,7 +303,7 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/raise
+/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/promote
     Promotes an event to a full path and a hash.
 
     This uses a path from our cache, in the system resource object `sr`, if
@@ -353,11 +353,13 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto raise(sys_resource_type& sr,
-                  fanotify_event_metadata const* metadata) noexcept
-  -> std::tuple<std::filesystem::path, unsigned long>
+inline auto promote(sys_resource_type& sr,
+                  fanotify_event_metadata const* mtd) noexcept
+  -> std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind, unsigned long>
 {
   namespace fs = ::std::filesystem;
+  using evw = enum ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::kind;
 
   auto path_imbue = [](char* path_accum,
                        fanotify_event_info_fid const* dfid_info,
@@ -376,9 +378,17 @@ inline auto raise(sys_resource_type& sr,
                     file_name);
   };
 
-  auto dir_fid_info = ((fanotify_event_info_fid const*)(metadata + 1));
+  auto dir_fid_info = ((fanotify_event_info_fid const*)(mtd + 1));
 
   auto dir_fh = (file_handle*)(dir_fid_info->handle);
+
+  auto what = mtd->mask & FAN_CREATE   ? evw::create
+    : mtd->mask & FAN_DELETE ? evw::destroy
+    : mtd->mask & FAN_MODIFY ? evw::modify
+    : mtd->mask & FAN_MOVE   ? evw::rename
+                           : evw::other;
+
+  auto kind = mtd->mask & FAN_ONDIR ? evk::dir : evk::file;
 
   /* The sum of the handle's bytes. A low-quality hash.
      Unreliable after the directory's inode is recycled. */
@@ -398,7 +408,7 @@ inline auto raise(sys_resource_type& sr,
     std::memcpy(path_buf, dir_name, dir_name_len);
     path_imbue(path_buf, dir_fid_info, dir_fh, dir_name_len);
 
-    return std::make_tuple(fs::path{std::move(path_buf)}, dir_hash);
+    return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
   }
   else {
     /* We can get a path name, so get that and use it */
@@ -420,35 +430,49 @@ inline auto raise(sys_resource_type& sr,
         path_buf[dirname_len] = '\0';
         path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
-        return std::make_tuple(fs::path{std::move(path_buf)}, dir_hash);
+        return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
       }
-      else
 
-        return std::make_tuple(fs::path{}, 0);
+      else
+        return std::make_tuple(false, fs::path{}, what, kind, 0);
     }
     else {
       path_imbue(path_buf, dir_fid_info, dir_fh);
 
-      return std::make_tuple(fs::path{std::move(path_buf)}, dir_hash);
+      return std::make_tuple(true, fs::path{std::move(path_buf)}, what, kind, dir_hash);
     }
   }
 };
 
-inline auto raise(fanotify_event_metadata const* m) noexcept
+inline auto check_and_update(std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind, unsigned long> const& r,
+                           sys_resource_type& sr
+                           ) noexcept -> std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind>
 {
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
+  auto [valid, path, what, kind, hash] = r;
+
   return std::make_tuple(
 
-    m->mask & FAN_CREATE   ? evw::create
-    : m->mask & FAN_DELETE ? evw::destroy
-    : m->mask & FAN_MODIFY ? evw::modify
-    : m->mask & FAN_MOVE   ? evw::rename
-                           : evw::other,
+      valid && hash
 
-    m->mask & FAN_ONDIR ? evk::dir : evk::file);
-}
+          ? kind == evk::dir
+
+             ? what == evw::create  ? mark(path, sr, hash)
+             : what == evw::destroy ? unmark(path, sr, hash)
+                                    : true
+
+             : true
+
+           : false,
+
+       path,
+
+       what,
+
+       kind);
+};
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/send
     Send events to the user.
@@ -457,36 +481,15 @@ inline auto raise(fanotify_event_metadata const* m) noexcept
     Most of the other code is
     a layer of translation
     between us and the kernel. */
-inline auto send(sys_resource_type& sr,
-                 fanotify_event_metadata const* m,
+inline auto send(std::tuple<bool, std::filesystem::path, enum ::wtr::watcher::event::what, enum ::wtr::watcher::event::kind> const& from_kernel,
                  ::wtr::watcher::event::callback const& callback) noexcept
   -> bool
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  auto [ok, path, what, kind] = from_kernel;
 
-  auto [path, hash] = raise(sr, m);
-
-  auto [what, kind] = raise(m);
-
-  auto tend
-
-    = hash ? kind == evk::dir
-
-             ? what == evw::create  ? mark(path, sr, hash)
-             : what == evw::destroy ? unmark(path, sr, hash)
-                                    : true
-             : true
-
-           : false;
-
-  return
-
-    tend ? callback({path, what, kind}),
-
-    true
-
-         : false;
+  return ok
+         ? (callback({path, what, kind}), ok)
+         : ok;
 };
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/recv
@@ -532,17 +535,17 @@ inline auto recv(sys_resource_type& sr,
                             : state::err) {
     case state::ok : {
       /* Loop over everything in the event buffer. */
-      for (auto* metadata = (fanotify_event_metadata const*)event_buf;
-           FAN_EVENT_OK(metadata, event_read);
-           metadata = FAN_EVENT_NEXT(metadata, event_read))
-        if (metadata->fd == FAN_NOFD)
-          if (metadata->vers == FANOTIFY_METADATA_VERSION)
-            if (! (metadata->mask & FAN_Q_OVERFLOW))
-              if (((fanotify_event_info_fid*)(metadata + 1))->hdr.info_type
-                  == FAN_EVENT_INFO_TYPE_DFID_NAME)
+      for (auto* mtd = (fanotify_event_metadata const*)event_buf;
+           FAN_EVENT_OK(mtd, event_read);
+           mtd = FAN_EVENT_NEXT(mtd, event_read))
+        if (mtd->fd == FAN_NOFD) [[likely]]
+          if (mtd->vers == FANOTIFY_METADATA_VERSION) [[likely]]
+            if (! (mtd->mask & FAN_Q_OVERFLOW)) [[likely]]
+              if (((fanotify_event_info_fid*)(mtd + 1))->hdr.info_type
+                  == FAN_EVENT_INFO_TYPE_DFID_NAME) [[likely]]
 
-                /* Send the events we recieve. */
-                return send(sr, metadata, callback);
+                /* Send the events we receive. */
+                return send(check_and_update(promote(sr, mtd), sr), callback);
 
               else
                 return ! do_error("w/self/event_info");
@@ -587,10 +590,14 @@ inline bool watch(std::filesystem::path const& path,
 
   auto done = [&path, &callback](sys_resource_type&& sr) noexcept -> bool
   {
-    return system_fold(sr)
+    return
+
+      system_fold(sr)
+
            ? (callback(
                 {"s/self/die@" + path.string(), evw::other, evk::watcher}),
               true)
+
            : (callback(
                 {"e/self/die@" + path.string(), evw::other, evk::watcher}),
               false);
@@ -599,12 +606,13 @@ inline bool watch(std::filesystem::path const& path,
   auto do_error = [&path, &callback, &done](sys_resource_type&& sr,
                                             char const* const msg) -> bool
   {
-    callback(
-      {std::string{msg} + "@" + path.string(), evw::other, evk::watcher});
+    return (
+        callback(
+          {std::string{msg} + "@" + path.string(), evw::other, evk::watcher}),
 
-    done(std::move(sr));
+        done(std::move(sr)),
 
-    return false;
+        false);
   };
 
   /*  While living, with
@@ -615,7 +623,7 @@ inline bool watch(std::filesystem::path const& path,
       - Await filesystem events
       - Invoke `callback` on errors and events */
 
-  sys_resource_type sr = system_unfold(path, callback);
+  auto sr = sys_resource_type{system_unfold(path, callback)};
 
   epoll_event event_recv_list[event_wait_queue_max];
 
