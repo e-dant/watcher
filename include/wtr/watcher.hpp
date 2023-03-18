@@ -733,29 +733,28 @@ inline bool event_stream_close(
 inline std::filesystem::path path_from_event_at(void* event_recv_paths,
                                                 unsigned long i) noexcept
 {
-  /* We make a path from a C string...
-     In an array, in a dictionary...
-     Without type safety...
-     Because most of darwin's api's are `void*`-typed.
+  /*  We make a path from a C string...
+      In an array, in a dictionary...
+      Without type safety...
+      Because most of darwin's apis are `void*`-typed.
 
-     We are *should be* guarenteed at least:
-       1. Every target type's alignment:
-          Although the aliases are untyped,
-          the function names are.
-       2. Non-null aliases:
-          The dictionary and array data
-          structures that we're working with
-          are immutable and refcounted.
+      We should be guarenteed that nothing in here is
+      or can be null, but I'm skeptical. We ask Darwin
+      for utf8 strings from a dictionary of utf8 strings
+      which it gave us. Nothing should be able to be null.
+      We'll check anyway, just in case Darwin lies. */
 
-     IOW we can't guarentee type safety through types,
-     but this is how Darwin's API is intended to be used. */
-  return {
+  namespace fs = std::filesystem;
+
+  auto cstr =
     CFStringGetCStringPtr(static_cast<CFStringRef>(CFDictionaryGetValue(
                             static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
                               static_cast<CFArrayRef>(event_recv_paths),
                               static_cast<CFIndex>(i))),
                             kFSEventStreamEventExtendedDataPathKey)),
-                          kCFStringEncodingUTF8)};
+                          kCFStringEncodingUTF8);
+
+  return cstr ? fs::path{cstr} : fs::path{};
 }
 
 /* @note
@@ -790,38 +789,42 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
 
     for (unsigned long i = 0; i < recv_count; i++) {
       auto path = path_from_event_at(recv_paths, i);
-      /* `path` has no hash function, so we use a string. */
-      auto path_str = path.string();
 
-      decltype(*recv_flags) flag = recv_flags[i];
+      if (! path.empty()) {
+        /* `path` has no hash function, so we use a string. */
+        auto path_str = path.string();
 
-      /* A single path won't have different "kinds". */
-      auto k = flag & kFSEventStreamEventFlagItemIsFile        ? evk::file
-             : flag & kFSEventStreamEventFlagItemIsDir         ? evk::dir
-             : flag & kFSEventStreamEventFlagItemIsSymlink     ? evk::sym_link
-             : flag & kFSEventStreamEventFlagItemIsAnyHardLink ? evk::hard_link
-                                                               : evk::other;
+        decltype(*recv_flags) flag = recv_flags[i];
 
-      /* More than one thing might have happened to the same path.
-         (Which is why we use non-exclusive `if`s.) */
-      if (flag & kFSEventStreamEventFlagItemCreated) {
-        if (seen_created->find(path_str) == seen_created->end()) {
-          seen_created->emplace(path_str);
-          callback({path, evw::create, k});
+        /* A single path won't have different "kinds". */
+        auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
+               : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
+               : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
+               : flag & kFSEventStreamEventFlagItemIsAnyHardLink
+                 ? evk::hard_link
+                 : evk::other;
+
+        /* More than one thing might have happened to the same path.
+           (Which is why we use non-exclusive `if`s.) */
+        if (flag & kFSEventStreamEventFlagItemCreated) {
+          if (seen_created->find(path_str) == seen_created->end()) {
+            seen_created->emplace(path_str);
+            callback({path, evw::create, k});
+          }
         }
-      }
-      if (flag & kFSEventStreamEventFlagItemRemoved) {
-        auto const& seen_created_at = seen_created->find(path_str);
-        if (seen_created_at != seen_created->end()) {
-          seen_created->erase(seen_created_at);
-          callback({path, evw::destroy, k});
+        if (flag & kFSEventStreamEventFlagItemRemoved) {
+          auto const& seen_created_at = seen_created->find(path_str);
+          if (seen_created_at != seen_created->end()) {
+            seen_created->erase(seen_created_at);
+            callback({path, evw::destroy, k});
+          }
         }
-      }
-      if (flag & kFSEventStreamEventFlagItemModified) {
-        callback({path, evw::modify, k});
-      }
-      if (flag & kFSEventStreamEventFlagItemRenamed) {
-        callback({path, evw::rename, k});
+        if (flag & kFSEventStreamEventFlagItemModified) {
+          callback({path, evw::modify, k});
+        }
+        if (flag & kFSEventStreamEventFlagItemRenamed) {
+          callback({path, evw::rename, k});
+        }
       }
     }
   }
