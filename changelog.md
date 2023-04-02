@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+Fixed a for loop with bad pointer math on the linux/inotify adapter.
+
 ## 0.8.0
 
 The Darwin adapter is more skeptical of the kernel. We check for null on the context passed to us in `event_recv`, even though it shouldn't be possible for it to be null.
