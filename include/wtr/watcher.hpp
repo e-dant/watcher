@@ -1817,11 +1817,11 @@ recurse:
           : read_len == 0   ? state::eventless
           : errno == EAGAIN ? state::eventless
                             : state::error) {
-    case state::eventful :
+    case state::eventful : {
       /* Loop over all events in the buffer. */
-      for (auto this_event = (inotify_event*)buf;
-           this_event < (inotify_event*)(buf + read_len);
-           this_event += this_event->len) {
+      auto this_event = (inotify_event*)buf;
+      while (this_event < (inotify_event*)(buf + read_len)) {
+        printf("%p\n", (void*)this_event);
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
           auto path =
             pm.find(this_event->wd)->second / fs::path(this_event->name);
@@ -1854,10 +1854,13 @@ recurse:
           callback({"e/self/overflow@" + base_path.string(),
                     ::wtr::watcher::event::what::other,
                     ::wtr::watcher::event::kind::watcher});
+
+        this_event += sizeof(inotify_event);
       }
       /* Same as `return do_event_recv(..., buf)`.
          Our stopping condition is `eventless` or `error`. */
       goto recurse;
+    }
 
     case state::error :
       callback({"e/sys/read@" + base_path.string(),
