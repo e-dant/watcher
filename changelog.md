@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+Removed a stray `printf()` from the linux/inotify adapter.
+
 ## 0.8.1
 
 Fixed a for loop with bad pointer math on the linux/inotify adapter.

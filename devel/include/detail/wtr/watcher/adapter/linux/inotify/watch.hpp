@@ -263,7 +263,6 @@ recurse:
       /* Loop over all events in the buffer. */
       auto this_event = (inotify_event*)buf;
       while (this_event < (inotify_event*)(buf + read_len)) {
-        printf("%p\n", (void*)this_event);
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
           auto path =
             pm.find(this_event->wd)->second / fs::path(this_event->name);
