@@ -414,9 +414,9 @@ https://github.com/notify-rs/notify:
   lines of docs: 1071
   implementation languages: rust
   interface languages: rust
-  supported platforms: linux
-  kernel apis: inotify
-  non-blocking: yes
+  supported platforms: linux, windows, darwin, bsd
+  kernel apis: inotify, readdirectorychanges, fsevents, kqueue
+  non-blocking: yes (with api caveats)
   dependencies: none
   tests: yes (many)
   static analysis: yes (borrow checked)
