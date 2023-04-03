@@ -1,6 +1,7 @@
 /*  std::chrono::* */
 #include <chrono>
 /*  std::strcmp */
+#include <condition_variable>
 #include <cstring>
 /*  std::filesystem::
       current_path
@@ -90,7 +91,16 @@ auto watch_forever_or_expire(
   /*  Watch forever. */
   auto forever =
     [](std::filesystem::path const& path, wtr::event::callback const& callback)
-  { return ((void)wtr::watch(path, callback), true); };
+  {
+    (void)wtr::watch(path, callback);
+
+    /*  Wait forever. */
+    auto m = std::mutex{};
+    auto lk = std::unique_lock<std::mutex>{m};
+    std::condition_variable{}.wait(lk, []{return false;});
+
+    return true;
+  };
 
   if (alive_for.has_value())
     return expire;
