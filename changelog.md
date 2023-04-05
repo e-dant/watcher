@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3
+
+`std::filesystem` throws exceptions *even when we use the `std::error_code`* interfaces. Unfortunately, this library needs to build with exceptions for now as a workaround. The alternative is a crash. This was a regression and could happen when watching not-really-a-filesystem parts of the filesystem, like `/proc`, or just everything, `/`.
+
+In the future, we could use a POSIX API to avoid `std::filesystem`'s reliance on exceptions.
+
 ## 0.8.2
 
 Removed a stray `printf()` from the linux/inotify adapter.
