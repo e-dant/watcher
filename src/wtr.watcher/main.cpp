@@ -97,7 +97,7 @@ auto watch_forever_or_expire(
     /*  Wait forever. */
     auto m = std::mutex{};
     auto lk = std::unique_lock<std::mutex>{m};
-    std::condition_variable{}.wait(lk, []{return false;});
+    std::condition_variable{}.wait(lk, [] { return false; });
 
     return true;
   };
