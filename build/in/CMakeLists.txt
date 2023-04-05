@@ -3,7 +3,7 @@ cmake_policy(SET CMP0048 NEW) # For VERSION in project()
 cmake_minimum_required(VERSION 3.2)
 project(
   wtr.watcher
-  VERSION 0.8.2 # hook: tool/release
+  VERSION 0.8.3 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES CXX)
