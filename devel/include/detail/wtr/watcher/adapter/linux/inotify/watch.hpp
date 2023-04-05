@@ -126,7 +126,6 @@ inline auto path_map(std::filesystem::path const& base_path,
 
   static constexpr auto path_map_reserve_count = 256;
 
-  auto dir_ec = std::error_code{};
   auto pm = path_map_type{};
   pm.reserve(path_map_reserve_count);
 
@@ -136,19 +135,18 @@ inline auto path_map(std::filesystem::path const& base_path,
     return wd > 0 ? pm.emplace(wd, d).first != pm.end() : false;
   };
 
-  if (sr.valid)
-    if (do_mark(base_path))
-      if (fs::is_directory(base_path, dir_ec))
-        if (! dir_ec)
-          for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
-            if (! dir_ec)
-              if (fs::is_directory(dir, dir_ec))
-                if (! dir_ec)
-                  if (! do_mark(dir.path()))
-                    callback({"w/sys/not_watched@" + base_path.string() + "@"
-                                + dir.path().string(),
-                              evw::other,
-                              evk::watcher});
+  try {
+    if (sr.valid)
+      if (do_mark(base_path))
+        if (fs::is_directory(base_path))
+          for (auto dir : diter(base_path, fs_dir_opt))
+            if (fs::is_directory(dir))
+              if (! do_mark(dir.path()))
+                callback({"w/sys/not_watched@" + base_path.string() + "@"
+                            + dir.path().string(),
+                          evw::other,
+                          evk::watcher});
+  } catch (...) {}
 
   return pm;
 };

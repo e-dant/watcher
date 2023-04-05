@@ -1106,22 +1106,20 @@ open_system_resources(std::filesystem::path const& path,
 
     static constexpr auto rsrv_count = 1024;
 
-    auto ec = std::error_code{};
     auto pmc = mark_set_type{};
     pmc.reserve(rsrv_count);
 
     if (mark(base_path, watch_fd, pmc))
-      if (fs::is_directory(base_path, ec))
-        if (! ec)
-          for (auto& dir : diter(base_path, dopt, ec))
-            if (! ec)
-              if (fs::is_directory(dir, ec))
-                if (! ec)
+      if (fs::is_directory(base_path))
+        try {
+          for (auto& dir : diter(base_path, dopt))
+              if (fs::is_directory(dir))
                   if (! mark(dir.path(), watch_fd, pmc))
                     callback({"w/sys/not_watched@" + base_path.string() + "@"
                                 + dir.path().string(),
                               evw::other,
                               evk::watcher});
+        }catch(...){}
 
     return pmc;
   };
@@ -1670,7 +1668,7 @@ struct sys_resource_type {
       - the watch descriptor key should always be 1. */
 inline auto path_map(std::filesystem::path const& base_path,
                      ::wtr::watcher::event::callback const& callback,
-                     sys_resource_type const& sr) noexcept -> path_map_type
+                     sys_resource_type const& sr) -> path_map_type
 {
   namespace fs = ::std::filesystem;
   using diter = fs::recursive_directory_iterator;
@@ -1684,7 +1682,6 @@ inline auto path_map(std::filesystem::path const& base_path,
 
   static constexpr auto path_map_reserve_count = 256;
 
-  auto dir_ec = std::error_code{};
   auto pm = path_map_type{};
   pm.reserve(path_map_reserve_count);
 
@@ -1696,17 +1693,16 @@ inline auto path_map(std::filesystem::path const& base_path,
 
   if (sr.valid)
     if (do_mark(base_path))
-      if (fs::is_directory(base_path, dir_ec))
-        if (! dir_ec)
-          for (auto dir : diter(base_path, fs_dir_opt, dir_ec))
-            if (! dir_ec)
-              if (fs::is_directory(dir, dir_ec))
-                if (! dir_ec)
+      if (fs::is_directory(base_path))
+        try {
+          for (auto dir : diter(base_path, fs_dir_opt))
+              if (fs::is_directory(dir))
                   if (! do_mark(dir.path()))
                     callback({"w/sys/not_watched@" + base_path.string() + "@"
                                 + dir.path().string(),
                               evw::other,
                               evk::watcher});
+        } catch (...) {}
 
   return pm;
 };

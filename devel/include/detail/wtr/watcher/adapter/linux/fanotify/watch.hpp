@@ -240,22 +240,20 @@ open_system_resources(std::filesystem::path const& path,
 
     static constexpr auto rsrv_count = 1024;
 
-    auto ec = std::error_code{};
     auto pmc = mark_set_type{};
     pmc.reserve(rsrv_count);
 
-    if (mark(base_path, watch_fd, pmc))
-      if (fs::is_directory(base_path, ec))
-        if (! ec)
-          for (auto& dir : diter(base_path, dopt, ec))
-            if (! ec)
-              if (fs::is_directory(dir, ec))
-                if (! ec)
-                  if (! mark(dir.path(), watch_fd, pmc))
-                    callback({"w/sys/not_watched@" + base_path.string() + "@"
-                                + dir.path().string(),
-                              evw::other,
-                              evk::watcher});
+    try {
+      if (mark(base_path, watch_fd, pmc))
+        if (fs::is_directory(base_path))
+          for (auto& dir : diter(base_path, dopt))
+            if (fs::is_directory(dir))
+              if (! mark(dir.path(), watch_fd, pmc))
+                callback({"w/sys/not_watched@" + base_path.string() + "@"
+                            + dir.path().string(),
+                          evw::other,
+                          evk::watcher});
+    } catch (...) {}
 
     return pmc;
   };
