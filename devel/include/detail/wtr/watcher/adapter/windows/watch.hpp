@@ -141,9 +141,15 @@ do_event_recv(watch_event_proxy& w,
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
         w.is_valid = false;
-        callback({"e/sys/read/pending", ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher});
+        callback({"e/sys/read/pending",
+                  ::wtr::watcher::event::what::other,
+                  ::wtr::watcher::event::kind::watcher});
         break;
-      default : callback({"e/sys/read", ::wtr::watcher::event::what::other, ::wtr::watcher::event::kind::watcher}); break;
+      default :
+        callback({"e/sys/read",
+                  ::wtr::watcher::event::what::other,
+                  ::wtr::watcher::event::kind::watcher});
+        break;
     }
     return false;
   }
@@ -165,11 +171,15 @@ do_event_send(watch_event_proxy& w,
         auto what = [&buf]() noexcept -> ::wtr::watcher::event::what
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return ::wtr::watcher::event::what::modify;
+            case FILE_ACTION_MODIFIED :
+              return ::wtr::watcher::event::what::modify;
             case FILE_ACTION_ADDED : return ::wtr::watcher::event::what::create;
-            case FILE_ACTION_REMOVED : return ::wtr::watcher::event::what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return ::wtr::watcher::event::what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return ::wtr::watcher::event::what::rename;
+            case FILE_ACTION_REMOVED :
+              return ::wtr::watcher::event::what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME :
+              return ::wtr::watcher::event::what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME :
+              return ::wtr::watcher::event::what::rename;
             default : return ::wtr::watcher::event::what::other;
           }
         }();
@@ -177,8 +187,9 @@ do_event_send(watch_event_proxy& w,
         auto kind = [&where]() -> ::wtr::watcher::event::kind
         {
           auto ec = std::error_code{};
-          auto k =
-            std::filesystem::is_directory(where, ec) ? ::wtr::watcher::event::kind::dir : evk::file;
+          auto k = std::filesystem::is_directory(where, ec)
+                   ? ::wtr::watcher::event::kind::dir
+                   : evk::file;
           return ec ? ::wtr::watcher::event::kind::other : k;
         }();
 
@@ -234,11 +245,15 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(), ::wtr::watcher::event::what::destroy, ::wtr::watcher::event::kind::watcher});
+    callback({"s/self/die@" + path.string(),
+              ::wtr::watcher::event::what::destroy,
+              ::wtr::watcher::event::kind::watcher});
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(), ::wtr::watcher::event::what::destroy, ::wtr::watcher::event::kind::watcher});
+    callback({"s/self/die@" + path.string(),
+              ::wtr::watcher::event::what::destroy,
+              ::wtr::watcher::event::kind::watcher});
     return false;
   }
 }

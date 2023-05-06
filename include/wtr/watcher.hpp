@@ -419,9 +419,6 @@ inline bool
 do_event_recv(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
-
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
   memset(&w.event_overlap, 0, sizeof(OVERLAPPED));
@@ -448,9 +445,15 @@ do_event_recv(watch_event_proxy& w,
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
         w.is_valid = false;
-        callback({"e/sys/read/pending", evw::other, evk::watcher});
+        callback({"e/sys/read/pending",
+                  ::wtr::watcher::event::what::other,
+                  ::wtr::watcher::event::kind::watcher});
         break;
-      default : callback({"e/sys/read", evw::other, evk::watcher}); break;
+      default :
+        callback({"e/sys/read",
+                  ::wtr::watcher::event::what::other,
+                  ::wtr::watcher::event::kind::watcher});
+        break;
     }
     return false;
   }
@@ -460,9 +463,6 @@ inline bool
 do_event_send(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
-
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   if (is_valid(w)) {
@@ -472,24 +472,29 @@ do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept -> evw
+        auto what = [&buf]() noexcept -> ::wtr::watcher::event::what
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return evw::modify;
-            case FILE_ACTION_ADDED : return evw::create;
-            case FILE_ACTION_REMOVED : return evw::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return evw::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return evw::rename;
-            default : return evw::other;
+            case FILE_ACTION_MODIFIED :
+              return ::wtr::watcher::event::what::modify;
+            case FILE_ACTION_ADDED : return ::wtr::watcher::event::what::create;
+            case FILE_ACTION_REMOVED :
+              return ::wtr::watcher::event::what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME :
+              return ::wtr::watcher::event::what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME :
+              return ::wtr::watcher::event::what::rename;
+            default : return ::wtr::watcher::event::what::other;
           }
         }();
 
-        auto kind = [&where]() -> evk
+        auto kind = [&where]() -> ::wtr::watcher::event::kind
         {
           auto ec = std::error_code{};
-          auto k =
-            std::filesystem::is_directory(where, ec) ? evk::dir : evk::file;
-          return ec ? evk::other : k;
+          auto k = std::filesystem::is_directory(where, ec)
+                   ? ::wtr::watcher::event::kind::dir
+                   : evk::file;
+          return ec ? ::wtr::watcher::event::kind::other : k;
         }();
 
         callback({where, what, kind});
@@ -519,9 +524,6 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
-
   auto w = watch_event_proxy{path};
 
   if (is_valid(w)) {
@@ -547,11 +549,15 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    callback({"s/self/die@" + path.string(),
+              ::wtr::watcher::event::what::destroy,
+              ::wtr::watcher::event::kind::watcher});
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+    callback({"s/self/die@" + path.string(),
+              ::wtr::watcher::event::what::destroy,
+              ::wtr::watcher::event::kind::watcher});
     return false;
   }
 }
