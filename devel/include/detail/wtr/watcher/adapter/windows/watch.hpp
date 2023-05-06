@@ -10,28 +10,26 @@
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
-/*  ReadDirectoryChangesW
-    CreateIoCompletionPort
-    CreateFileW
-    CreateEventW
-    GetQueuedCompletionStatus
-    ResetEvent
-    GetLastError
-    WideCharToMultiByte */
+/* ReadDirectoryChangesW
+   CreateIoCompletionPort
+   CreateFileW
+   CreateEventW
+   GetQueuedCompletionStatus
+   ResetEvent
+   GetLastError
+   WideCharToMultiByte */
 #include <windows.h>
-/*  milliseconds */
+/* milliseconds */
 #include <chrono>
-/*  path */
+/* path */
 #include <filesystem>
-/*  string
-    wstring */
+/* string
+   wstring */
 #include <string>
-/*  error_code */
-#include <system_error>
-/*  this_thread::sleep_for */
+/* this_thread::sleep_for */
 #include <thread>
-/*  event
-    callback */
+/* event
+   callback */
 #include <wtr/watcher.hpp>
 
 namespace detail {
@@ -115,6 +113,8 @@ inline bool
 do_event_recv(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
+  using namespace ::wtr::watcher::event;
+
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
   memset(&w.event_overlap, 0, sizeof(OVERLAPPED));
@@ -141,15 +141,9 @@ do_event_recv(watch_event_proxy& w,
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
         w.is_valid = false;
-        callback({"e/sys/read/pending",
-                  wtr::watcher::event::what::other,
-                  wtr::watcher::event::kind::watcher});
+        callback({"e/sys/read/pending", what::other, kind::watcher});
         break;
-      default :
-        callback({"e/sys/read",
-                  wtr::watcher::event::what::other,
-                  wtr::watcher::event::kind::watcher});
-        break;
+      default : callback({"e/sys/read", what::other, kind::watcher}); break;
     }
     return false;
   }
@@ -159,6 +153,8 @@ inline bool
 do_event_send(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
+  using namespace ::wtr::watcher;
+
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
   if (is_valid(w)) {
@@ -168,29 +164,26 @@ do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept -> wtr::watcher::event::what
+        auto what = [&buf]() noexcept -> event::what
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED :
-              return wtr::watcher::event::what::modify;
-            case FILE_ACTION_ADDED : return wtr::watcher::event::what::create;
-            case FILE_ACTION_REMOVED :
-              return wtr::watcher::event::what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME :
-              return wtr::watcher::event::what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME :
-              return wtr::watcher::event::what::rename;
-            default : return wtr::watcher::event::what::other;
+            case FILE_ACTION_MODIFIED : return event::what::modify;
+            case FILE_ACTION_ADDED : return event::what::create;
+            case FILE_ACTION_REMOVED : return event::what::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME : return event::what::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
+            default : return event::what::other;
           }
         }();
 
-        auto kind = [&where]() -> wtr::watcher::event::kind
+        auto kind = [&where]()
         {
-          auto ec = std::error_code{};
-          auto k = std::filesystem::is_directory(where, ec)
-                   ? wtr::watcher::event::kind::dir
-                   : wtr::watcher::event::kind::file;
-          return ec ? wtr::watcher::event::kind::other : k;
+          try {
+            return std::filesystem::is_directory(where) ? event::kind::dir
+                                                        : event::kind::file;
+          } catch (...) {
+            return event::kind::other;
+          }
         }();
 
         callback({where, what, kind});
@@ -220,6 +213,8 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
+  using namespace ::wtr::watcher::event;
+
   auto w = watch_event_proxy{path};
 
   if (is_valid(w)) {
@@ -245,15 +240,12 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(),
-              wtr::watcher::event::what::destroy,
-              wtr::watcher::event::kind::watcher});
+    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
+
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(),
-              wtr::watcher::event::what::destroy,
-              wtr::watcher::event::kind::watcher});
+    callback({"s/self/die@" + path.string(), what::destroy, kind::watcher});
     return false;
   }
 }
