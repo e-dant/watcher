@@ -113,7 +113,7 @@ inline bool
 do_event_recv(watch_event_proxy& w,
               ::wtr::watcher::event::callback const& callback) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using namespace ::wtr::watcher;
 
   w.event_buf_len_ready = 0;
   DWORD bytes_returned = 0;
@@ -213,7 +213,7 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using namespace ::wtr::watcher::event;
+  using namespace ::wtr::watcher;
 
   auto w = watch_event_proxy{path};
 
