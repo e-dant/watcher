@@ -406,12 +406,12 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
 
 // clang-format on
 
-inline auto check_and_update(std::tuple<bool,
-                                        std::filesystem::path,
-                                        enum ::wtr::watcher::event::what,
-                                        enum ::wtr::watcher::event::kind>
-                                        const& r,
-                             system_resources& sr) noexcept
+inline auto
+check_and_update(std::tuple<bool,
+                            std::filesystem::path,
+                            enum ::wtr::watcher::event::what,
+                            enum ::wtr::watcher::event::kind> const& r,
+                 system_resources& sr) noexcept
   -> std::tuple<bool,
                 std::filesystem::path,
                 enum ::wtr::watcher::event::what,
