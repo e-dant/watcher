@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.6
+
+Added *0.8.[5, 4]* to the changelog.
+
+## 0.8.5
+
+Added a blocking operation to the `tiny_watcher` example where the user's work would go. (In this case, reading something from `stdin`.)
+
+## 0.8.4
+
+Fixed a compilation error on MSVC. Evidently, MSVC has some difficulty knowing the difference between an `enum` and an `enum class` depending on its use, regardless of its declared type.
+
 ## 0.8.3
 
 `std::filesystem` throws exceptions *even when we use the `std::error_code`* interfaces. Unfortunately, this library needs to build with exceptions for now as a workaround. The alternative is a crash. This was a regression and could happen when watching not-really-a-filesystem parts of the filesystem, like `/proc`, or just everything, `/`.
