@@ -170,8 +170,9 @@ do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept {
-          switch (buf->Action){
+        auto what = [&buf]() noexcept
+        {
+          switch (buf->Action) {
             case FILE_ACTION_MODIFIED : return event::what::modify;
             case FILE_ACTION_ADDED : return event::what::create;
             case FILE_ACTION_REMOVED : return event::what::destroy;
@@ -179,37 +180,36 @@ do_event_send(watch_event_proxy& w,
             case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
             default : return event::what::other;
           }
+        }();
+
+        auto kind = [&where]()
+        {
+          try {
+            return std::filesystem::is_directory(where) ? event::kind::dir
+                                                        : event::kind::file;
+          } catch (...) {
+            return event::kind::other;
+          }
+        }();
+
+        callback({where, what, kind});
+
+        if (buf->NextEntryOffset == 0)
+          break;
+        else
+          buf =
+            (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
       }
-      ();
-
-      auto kind = [&where]()
-      {
-        try {
-          return std::filesystem::is_directory(where) ? event::kind::dir
-                                                      : event::kind::file;
-        } catch (...) {
-          return event::kind::other;
-        }
-      }();
-
-      callback({where, what, kind});
-
-      if (buf->NextEntryOffset == 0)
-        break;
-      else
-        buf = (FILE_NOTIFY_INFORMATION*)((uint8_t*)buf + buf->NextEntryOffset);
     }
+    return true;
   }
-  return true;
-}
 
-else
-{
-  return false;
-}
+  else {
+    return false;
+  }
 }  // namespace
 
-}  // namespace adapter
+}  // namespace
 
 /* while living
    watch for events
@@ -261,9 +261,9 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
+}  // namespace adapter
 }  // namespace watcher
 }  // namespace wtr
-}  // namespace detail
 } /* namespace detail */
 
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
