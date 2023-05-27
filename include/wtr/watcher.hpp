@@ -988,6 +988,8 @@ inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
 inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
 /* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
+   - mark_set_type
+       A set of file descriptors for fanotify resources.
    - system_resources
        An object holding:
          - An fanotify file descriptor
@@ -997,7 +999,6 @@ inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
          - A map of (sub)path handles to filesystem paths (names)
          - A boolean: whether or not the resources are valid */
 using mark_set_type = std::unordered_set<int>;
-using dir_map_type = std::unordered_map<unsigned long, std::filesystem::path>;
 
 struct system_resources {
   bool valid;
@@ -1005,12 +1006,11 @@ struct system_resources {
   int event_fd;
   epoll_event event_conf;
   mark_set_type mark_set;
-  dir_map_type dir_map;
 };
 
 inline auto mark(std::filesystem::path const& full_path,
                  int watch_fd,
-                 mark_set_type& pmc) noexcept -> bool
+                 mark_set_type& ms) noexcept -> bool
 {
   int wd = fanotify_mark(watch_fd,
                          FAN_MARK_ADD,
@@ -1019,7 +1019,7 @@ inline auto mark(std::filesystem::path const& full_path,
                          AT_FDCWD,
                          full_path.c_str());
   if (wd >= 0) {
-    pmc.insert(wd);
+    ms.insert(wd);
     return true;
   }
   else
@@ -1027,15 +1027,9 @@ inline auto mark(std::filesystem::path const& full_path,
 };
 
 inline auto mark(std::filesystem::path const& full_path,
-                 system_resources& sr,
-                 unsigned long dir_hash) noexcept -> bool
+                 system_resources& sr) noexcept -> bool
 {
-  if (sr.dir_map.find(dir_hash) == sr.dir_map.end())
-    return mark(full_path, sr.watch_fd, sr.mark_set)
-        && sr.dir_map.emplace(dir_hash, full_path.parent_path()).second;
-
-  else
-    return mark(full_path, sr.watch_fd, sr.mark_set);
+  return mark(full_path, sr.watch_fd, sr.mark_set);
 };
 
 inline auto unmark(std::filesystem::path const& full_path,
@@ -1059,13 +1053,8 @@ inline auto unmark(std::filesystem::path const& full_path,
 };
 
 inline auto unmark(std::filesystem::path const& full_path,
-                   system_resources& sr,
-                   unsigned long dir_hash) noexcept -> bool
+                   system_resources& sr) noexcept -> bool
 {
-  auto const& at = sr.dir_map.find(dir_hash);
-
-  if (at != sr.dir_map.end()) sr.dir_map.erase(at);
-
   return unmark(full_path, sr.watch_fd, sr.mark_set);
 };
 
@@ -1097,7 +1086,6 @@ open_system_resources(std::filesystem::path const& path,
       .event_fd = event_fd,
       .event_conf = {.events = 0, .data = {.fd = watch_fd}},
       .mark_set = {},
-      .dir_map = {},
     };
   };
 
@@ -1155,7 +1143,6 @@ open_system_resources(std::filesystem::path const& path,
             .event_fd = event_fd,
             .event_conf = event_conf,
             .mark_set = std::move(pmc),
-            .dir_map = {},
           };
         else
           return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
@@ -1177,20 +1164,7 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
 };
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/promote
-    Promotes an event to a full path and a hash.
-
-    This uses a path from our cache, in the system resource object `sr`, if
-    available. Otherwise, it will try to read a directory and directory entry.
-    Sometimes, such as on a directory being destroyed and the file not being
-    able to be opened, the directory entry is the only event info. We can still
-    get the rest of the path in those cases, however, by looking up the cached
-    "upper" directory that event belongs to.
-
-    Using the cache is helpful in other cases, too. This is an averaged bench of
-    the three branches this function can go down:
-      - Cache:            2427ns
-      - Dir:              8905ns
-      - Dir + Dir Entry:  31966ns
+    Promotes an event's metadata to a full path.
 
     The shenanigans we do here depend on this event being
     `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
@@ -1228,13 +1202,11 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
     Confusing, right? */
 // clang-format off
 // note at the end of file re. clang format
-inline auto promote(system_resources& sr,
-                    fanotify_event_metadata const* mtd) noexcept
+inline auto promote(fanotify_event_metadata const* mtd) noexcept
   -> std::tuple<bool,
                 std::filesystem::path,
                 enum ::wtr::watcher::event::what,
-                enum ::wtr::watcher::event::kind,
-                unsigned long>
+                enum ::wtr::watcher::event::kind>
 {
   namespace fs = ::std::filesystem;
   using evw = enum ::wtr::watcher::event::what;
@@ -1269,80 +1241,52 @@ inline auto promote(system_resources& sr,
 
   auto kind = mtd->mask & FAN_ONDIR ? evk::dir : evk::file;
 
-  /* The sum of the handle's bytes. A low-quality hash.
-     Unreliable after the directory's inode is recycled. */
-  unsigned long dir_hash = std::abs(dir_fh->handle_type);
-  for (decltype(dir_fh->handle_bytes) i = 0; i < dir_fh->handle_bytes; i++)
-    dir_hash += *(dir_fh->f_handle + i);
+  /* We can get a path name, so get that and use it */
+  char path_buf[PATH_MAX];
+  int fd = open_by_handle_at(AT_FDCWD,
+                             dir_fh,
+                             O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
+  if (fd > 0) {
+    char fs_proc_path[128];
+    std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
+    ssize_t dirname_len =
+      readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
+    close(fd);
 
-  auto const& cache = sr.dir_map.find(dir_hash);
-
-  if (cache != sr.dir_map.end()) {
-    /* We already have a path name, use it */
-    char path_buf[PATH_MAX]; auto dir_name = cache->second.c_str();
-    auto dir_name_len = cache->second.string().length();
-
-    /* std::snprintf(path_buf, sizeof(path_buf), "%s", dir_name); */
-    std::memcpy(path_buf, dir_name, dir_name_len);
-    path_imbue(path_buf, dir_fid_info, dir_fh, dir_name_len);
-
-    return std::make_tuple(true,
-                           fs::path{std::move(path_buf)},
-                           what,
-                           kind,
-                           dir_hash);
-  }
-
-  else {
-    /* We can get a path name, so get that and use it */
-    char path_buf[PATH_MAX];
-    int fd = open_by_handle_at(AT_FDCWD,
-                               dir_fh,
-                               O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
-    if (fd > 0) {
-      char fs_proc_path[128];
-      std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
-      ssize_t dirname_len =
-        readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
-      close(fd);
-
-      if (dirname_len > 0) {
-        /* Put the directory name in the path accumulator.
-           Passing `dirname_len` has the effect of putting
-           the event's filename in the path buffer as well. */
-        path_buf[dirname_len] = '\0';
-        path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
-
-        return std::make_tuple(true,
-                               fs::path{std::move(path_buf)},
-                               what,
-                               kind,
-                               dir_hash);
-      }
-
-      else
-        return std::make_tuple(false, fs::path{}, what, kind, 0);
-    }
-    else {
-      path_imbue(path_buf, dir_fid_info, dir_fh);
+    if (dirname_len > 0) {
+      /* Put the directory name in the path accumulator.
+         Passing `dirname_len` has the effect of putting
+         the event's filename in the path buffer as well. */
+      path_buf[dirname_len] = '\0';
+      path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
       return std::make_tuple(true,
                              fs::path{std::move(path_buf)},
                              what,
-                             kind,
-                             dir_hash);
+                             kind);
     }
+
+    else
+      return std::make_tuple(false, fs::path{}, what, kind);
+  }
+  else {
+    path_imbue(path_buf, dir_fid_info, dir_fh);
+
+    return std::make_tuple(true,
+                           fs::path{std::move(path_buf)},
+                           what,
+                           kind);
   }
 };
 
 // clang-format on
 
-inline auto check_and_update(std::tuple<bool,
-                                        std::filesystem::path,
-                                        enum ::wtr::watcher::event::what,
-                                        enum ::wtr::watcher::event::kind,
-                                        unsigned long> const& r,
-                             system_resources& sr) noexcept
+inline auto
+check_and_update(std::tuple<bool,
+                            std::filesystem::path,
+                            enum ::wtr::watcher::event::what,
+                            enum ::wtr::watcher::event::kind> const& r,
+                 system_resources& sr) noexcept
   -> std::tuple<bool,
                 std::filesystem::path,
                 enum ::wtr::watcher::event::what,
@@ -1350,16 +1294,16 @@ inline auto check_and_update(std::tuple<bool,
     using evk = enum ::wtr::watcher::event::kind;
     using evw = enum ::wtr::watcher::event::what;
 
-    auto [valid, path, what, kind, hash] = r;
+    auto [valid, path, what, kind] = r;
 
     return std::make_tuple(
 
-      valid && hash
+      valid
 
         ? kind == evk::dir
 
-          ? what == evw::create  ? mark(path, sr, hash)
-          : what == evw::destroy ? unmark(path, sr, hash)
+          ? what == evw::create  ? mark(path, sr)
+          : what == evw::destroy ? unmark(path, sr)
                                  : true
 
           : true
@@ -1445,7 +1389,7 @@ inline auto recv(system_resources& sr,
                   == FAN_EVENT_INFO_TYPE_DFID_NAME) [[likely]]
 
                 /* Send the events we receive. */
-                return send(check_and_update(promote(sr, mtd), sr), callback);
+                return send(check_and_update(promote(mtd), sr), callback);
 
               else
                 return ! do_error("w/self/event_info");
