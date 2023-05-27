@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.7
+
+Removed the directory cache from the `fanotify` adapter. There were some cases where this cache produced misleading results.
+
 ## 0.8.6
 
 Added *0.8.[5, 4]* to the changelog.
