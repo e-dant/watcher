@@ -170,7 +170,7 @@ do_event_send(watch_event_proxy& w,
         auto where =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept -> enum event::what {
+        auto what = [&buf]() noexcept {
           switch (buf->Action){
             case FILE_ACTION_MODIFIED : return event::what::modify;
             case FILE_ACTION_ADDED : return event::what::create;
