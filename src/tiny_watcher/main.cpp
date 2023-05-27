@@ -19,6 +19,9 @@ int main()
   // Watch the current directory asynchronously.
   auto watcher = wtr::watch(".", cb);
 
+  // Do some work. (We'll just wait for a newline.)
+  std::cin.get();
+
   // Close whenever you're done.
   // watcher.close();
 }
