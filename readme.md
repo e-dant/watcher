@@ -10,7 +10,7 @@
 ## Quick Start
 
 ```cpp
-#include "../../include/wtr/watcher.hpp"  // Point this to wherever yours is
+#include "../../include/wtr/watcher.hpp" // Or wherever yours is
 #include <iostream>
 
 // This is the entire API.
@@ -20,7 +20,8 @@ int main()
   auto cb = [](wtr::event const& e)
   {
     std::cout << "{\"" << e.when << "\":["
-              << e.where << "," << e.kind << "," << e.what << "]}," << std::endl;
+              << e.where << "," << e.kind << "," << e.what
+              << "]}," << std::endl;
     // You can also just stream like this:
     // std::cout << e << "," << std::endl;
 
