@@ -74,13 +74,10 @@ tool::hone() {
 
   # give us the amalgamated header
   HEADER_CONTENT_AMALGAM="$(\
-    RAW="$(\
-      echo "#ifndef $PROJECT_ID" \
-        && echo "#define $PROJECT_ID" \
-        && echo "$HEADER_CONTENT_RAW" \
-        && echo "#endif /* $PROJECT_ID */"
-    )"
-    echo "$RAW" | clang-format
+    echo "#ifndef $PROJECT_ID" \
+      && echo "#define $PROJECT_ID" \
+      && echo "$HEADER_CONTENT_RAW" \
+      && echo "#endif /* $PROJECT_ID */"
   )"
 
   if test -n "$*"
