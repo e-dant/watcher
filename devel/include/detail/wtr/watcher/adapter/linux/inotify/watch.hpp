@@ -115,10 +115,9 @@ inline auto path_map(std::filesystem::path const& base_path,
                      sys_resource_type const& sr) noexcept -> path_map_type
 {
   namespace fs = ::std::filesystem;
+  using ev = ::wtr::watcher::event;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
   static constexpr auto fs_dir_opt =
@@ -144,8 +143,8 @@ inline auto path_map(std::filesystem::path const& base_path,
               if (! do_mark(dir.path()))
                 callback({"w/sys/not_watched@" + base_path.string() + "@"
                             + dir.path().string(),
-                          evw::other,
-                          evk::watcher});
+                          ev::what::other,
+                          ev::kind::watcher});
   } catch (...) {}
 
   return pm;
@@ -333,18 +332,17 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  using ev = ::wtr::watcher::event;
 
   auto do_error = [&path, &callback](bool clean, std::string&& msg) -> bool
   {
-    callback({msg + path.string(), evw::other, evk::watcher});
+    callback({msg + path.string(), ev::what::other, ev::kind::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     return false;
   };
@@ -387,7 +385,7 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+      callback({"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
       return system_fold(sr);
     }
     else

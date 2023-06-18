@@ -312,6 +312,7 @@ inline auto operator!=(event const& l, event const& r) noexcept -> bool
   The Windows `ReadDirectoryChangesW` adapter.
 */
 
+
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
 /* ReadDirectoryChangesW
@@ -332,7 +333,6 @@ inline auto operator!=(event const& l, event const& r) noexcept -> bool
 #include <string>
 /* this_thread::sleep_for */
 #include <thread>
-
 /* event
    callback */
 
@@ -613,7 +613,6 @@ inline bool watch(std::filesystem::path const& path,
 #include <cstdio>
 /* unordered_set */
 #include <unordered_set>
-
 /* event
    callback */
 
@@ -930,7 +929,6 @@ inline bool watch(std::filesystem::path const& path,
 /*  tuple
     make_tuple */
 #include <tuple>
-
 /*  event
     callback */
 
@@ -1067,8 +1065,7 @@ open_system_resources(std::filesystem::path const& path,
   -> system_resources
 {
   namespace fs = ::std::filesystem;
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  using ev = ::wtr::watcher::event;
 
   auto do_error = [&path,
                    &callback](char const* const msg,
@@ -1077,8 +1074,8 @@ open_system_resources(std::filesystem::path const& path,
   {
     callback(
       {std::string{msg} + "(" + std::strerror(errno) + ")@" + path.string(),
-       evw::other,
-       evk::watcher});
+       ev::what::other,
+       ev::kind::watcher});
 
     return system_resources{
       .valid = false,
@@ -1114,8 +1111,8 @@ open_system_resources(std::filesystem::path const& path,
               if (! mark(dir.path(), watch_fd, pmc))
                 callback({"w/sys/not_watched@" + base_path.string() + "@"
                             + dir.path().string(),
-                          evw::other,
-                          evk::watcher});
+                          ev::what::other,
+                          ev::kind::watcher});
     } catch (...) {}
 
     return pmc;
@@ -1209,8 +1206,7 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
                 enum ::wtr::watcher::event::kind>
 {
   namespace fs = ::std::filesystem;
-  using evw = enum ::wtr::watcher::event::what;
-  using evk = enum ::wtr::watcher::event::kind;
+  using ev = ::wtr::watcher::event;
 
   auto path_imbue = [](char* path_accum,
                        fanotify_event_info_fid const* dfid_info,
@@ -1233,13 +1229,13 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
 
   auto dir_fh = (file_handle*)(dir_fid_info->handle);
 
-  auto what = mtd->mask & FAN_CREATE ? evw::create
-            : mtd->mask & FAN_DELETE ? evw::destroy
-            : mtd->mask & FAN_MODIFY ? evw::modify
-            : mtd->mask & FAN_MOVE   ? evw::rename
-                                     : evw::other;
+  auto what = mtd->mask & FAN_CREATE ? ev::what::create
+            : mtd->mask & FAN_DELETE ? ev::what::destroy
+            : mtd->mask & FAN_MODIFY ? ev::what::modify
+            : mtd->mask & FAN_MOVE   ? ev::what::rename
+                                     : ev::what::other;
 
-  auto kind = mtd->mask & FAN_ONDIR ? evk::dir : evk::file;
+  auto kind = mtd->mask & FAN_ONDIR ? ev::kind::dir : ev::kind::file;
 
   /* We can get a path name, so get that and use it */
   char path_buf[PATH_MAX];
@@ -1291,8 +1287,7 @@ check_and_update(std::tuple<bool,
                 std::filesystem::path,
                 enum ::wtr::watcher::event::what,
                 enum ::wtr::watcher::event::kind> {
-    using evk = enum ::wtr::watcher::event::kind;
-    using evw = enum ::wtr::watcher::event::what;
+    using ev = ::wtr::watcher::event;
 
     auto [valid, path, what, kind] = r;
 
@@ -1300,10 +1295,10 @@ check_and_update(std::tuple<bool,
 
       valid
 
-        ? kind == evk::dir
+        ? kind == ev::kind::dir
 
-          ? what == evw::create  ? mark(path, sr)
-          : what == evw::destroy ? unmark(path, sr)
+          ? what == ev::what::create  ? mark(path, sr)
+          : what == ev::what::destroy ? unmark(path, sr)
                                  : true
 
           : true
@@ -1429,8 +1424,7 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  using ev = ::wtr::watcher::event;
 
   auto done = [&path, &callback](system_resources&& sr) noexcept -> bool
   {
@@ -1438,10 +1432,10 @@ inline bool watch(std::filesystem::path const& path,
 
       close_system_resources(std::move(sr))
 
-        ? (callback({"s/self/die@" + path.string(), evw::other, evk::watcher}),
+        ? (callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
            true)
 
-        : (callback({"e/self/die@" + path.string(), evw::other, evk::watcher}),
+        : (callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
            false);
   };
 
@@ -1450,7 +1444,7 @@ inline bool watch(std::filesystem::path const& path,
   {
     return (
       callback(
-        {std::string{msg} + "@" + path.string(), evw::other, evk::watcher}),
+        {std::string{msg} + "@" + path.string(), ev::what::other, ev::kind::watcher}),
 
       done(std::move(sr)),
 
@@ -1554,7 +1548,6 @@ inline bool watch(std::filesystem::path const& path,
 #include <unordered_map>
 /*  memcpy */
 #include <cstring>
-
 /*  event
     callback */
 
@@ -1624,10 +1617,9 @@ inline auto path_map(std::filesystem::path const& base_path,
                      sys_resource_type const& sr) noexcept -> path_map_type
 {
   namespace fs = ::std::filesystem;
+  using ev = ::wtr::watcher::event;
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
 
   /* Follow symlinks, ignore paths which we don't have permissions for. */
   static constexpr auto fs_dir_opt =
@@ -1653,8 +1645,8 @@ inline auto path_map(std::filesystem::path const& base_path,
               if (! do_mark(dir.path()))
                 callback({"w/sys/not_watched@" + base_path.string() + "@"
                             + dir.path().string(),
-                          evw::other,
-                          evk::watcher});
+                          ev::what::other,
+                          ev::kind::watcher});
   } catch (...) {}
 
   return pm;
@@ -1842,18 +1834,17 @@ inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  using ev = ::wtr::watcher::event;
 
   auto do_error = [&path, &callback](bool clean, std::string&& msg) -> bool
   {
-    callback({msg + path.string(), evw::other, evk::watcher});
+    callback({msg + path.string(), ev::what::other, ev::kind::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), evw::other, evk::watcher});
+      callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     return false;
   };
@@ -1896,7 +1887,7 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
+      callback({"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
       return system_fold(sr);
     }
     else
@@ -1932,7 +1923,6 @@ inline bool watch(std::filesystem::path const& path,
 #include <functional>
 /* geteuid */
 #include <unistd.h>
-
 /* event
    callback
    inotify::watch
@@ -2052,7 +2042,6 @@ inline bool watch(std::filesystem::path const& path,
 #include <thread>
 /* unordered_map */
 #include <unordered_map>
-
 /* event
    callback */
 
@@ -2319,7 +2308,6 @@ inline bool watch(std::filesystem::path const& path,
 #include <mutex>
 /*  unordered_map */
 #include <unordered_map>
-
 /*  watch
     event
     callback */
@@ -2388,7 +2376,6 @@ inline auto close(future::shared const& fut) noexcept -> bool
 /*  is_*,
     invoke_result */
 #include <type_traits>
-
 /*  event
     callback
     adapter */

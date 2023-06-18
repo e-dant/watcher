@@ -135,11 +135,8 @@ auto from_cmdline(int const argc, char const** const argv)
       For manual parsing, see the file watcher/event.hpp. */
   wtr::event::callback show_json = [](wtr::event const& ev) noexcept
   {
-    using kind = enum wtr::event::kind;
-    using what = enum wtr::event::what;
-
     auto comma_or_nothing =
-      ev.kind == kind::watcher && ev.what == what::destroy ? "" : ",";
+      ev.kind == wtr::event::kind::watcher && ev.what == wtr::event::what::destroy ? "" : ",";
 
     std::cout << ev << comma_or_nothing << std::endl;
   };
