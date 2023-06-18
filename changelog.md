@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.8
+
+Fixed some build errors on g++ 10.2.1 around `using shorthand = big_long::enum_name;` syntax.
+Made amalgamation (`tool/hone --header-content-amalgam`) much faster by skipping the formatting pass.
+
 ## 0.8.7
 
 Removed the directory cache from the `fanotify` adapter. There were some cases where this cache produced misleading results.
