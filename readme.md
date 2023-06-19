@@ -17,6 +17,7 @@
 int main()
 {
   // The watcher will call this function on every event.
+  // This function can block (depending on what you do in it).
   auto cb = [](wtr::event const& e)
   {
     std::cout << "{\"" << e.when << "\":["
@@ -35,9 +36,10 @@ int main()
   // Do some work. (We'll just wait for a newline.)
   std::cin.get();
 
-  // Close whenever you're done.
-  // This is the only blocking operation.
-  // watcher.close();
+  // Closing the watcher is a blocking operation.
+  // The watcher is closed when it goes out of scope,
+  // but you can manually close it like this:
+  watcher.close();
 }
 
 ```
