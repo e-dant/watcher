@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.0
+
+The API is now RAII-safe.
+
+This hadn't been part of the API for a long time because I had been exploring
+bindings to other languages. I had some concerns about an instance of the
+watcher being destroyed across an FFI boundary. If those bindings are made, we
+could write a separate C-style API for them to use.
+
+This is a minor release because it affects the API. Current users shouldn't
+notice the API change, though. Manually closing the watcher is still just fine,
+which is how it had been done before.
+
 ## 0.8.8
 
 Fixed some build errors on g++ 10.2.1 around `using shorthand = big_long::enum_name;` syntax.
