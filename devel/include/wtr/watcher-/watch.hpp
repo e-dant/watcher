@@ -4,9 +4,10 @@
 #include <filesystem>
 /*  function */
 #include <functional>
-/*  is_*,
-    invoke_result */
+/*  is_nothrow_invocable */
 #include <type_traits>
+/*  convertible_to */
+#include <concepts>
 /*  event
     callback
     adapter */
@@ -25,27 +26,23 @@ inline namespace watcher {
 
     This thing is similar to an unnamed function object
     containing a named method. */
-
+/* clang-format off */
 template<class Fn>
-requires(std::is_nothrow_invocable_v<Fn>
-         and std::is_same_v<std::invoke_result_t<Fn>, bool>)
+requires (std::is_nothrow_invocable_v<Fn>) and
+requires (Fn f) { { f() } -> std::convertible_to<bool>; }
 struct _ {
   Fn const close{};
-
   inline constexpr auto operator()() const noexcept -> bool
-  {
-    return this->close();
-  };
-
-  inline constexpr _(Fn&& fn) noexcept
-      : close{std::forward<Fn>(fn)} {};
-
-  inline constexpr ~_() = default;
+  { return this->close(); };
+  inline constexpr _(Fn const& f) noexcept : close{f} {};
+  inline constexpr ~_() noexcept { this->close(); }
 };
+
+/* clang-format on */
 
 /*  @brief wtr/watcher/watch
 
-    Returns an asyncronous filesystem watcher as a function
+    Returns an asynchronous filesystem watcher as a function
     object. Calling the function object with `()` or `.close()`
     will stop the watcher.
 
@@ -80,14 +77,21 @@ struct _ {
         << "when: "  << e.when  << "\n"
         << std::endl;
     };
+
+    Optionally, you can manually stop the watcher:
+
     auto dead = w.close(); // w() also works
 
     That's it.
 
     Happy hacking. */
 
-[[nodiscard("Returns a way to stop this watcher, for example: "
-            "auto w = watch(p, cb) ; w.close() // or w();")]]
+[[nodiscard("Return this watcher's lifetime. "
+            "Without holding this object, the watcher "
+            "will stop right after being created. "
+            "This also returns a way to stop the watcher "
+            "manually, for example: "
+            "auto w = watch(path, cb); w.close() or w()")]]
 
 inline auto
 watch(std::filesystem::path const& path,
@@ -95,7 +99,7 @@ watch(std::filesystem::path const& path,
 {
   using namespace ::detail::wtr::watcher::adapter;
 
-  return _{[adapter{open(path, callback)}]() noexcept -> bool
+  return _{[adapter = open(path, callback)]() noexcept -> bool
            { return close(adapter); }};
 };
 
