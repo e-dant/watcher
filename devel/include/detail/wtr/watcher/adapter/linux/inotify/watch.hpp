@@ -339,10 +339,12 @@ inline bool watch(std::filesystem::path const& path,
     callback({msg + path.string(), ev::what::other, ev::kind::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
+      callback(
+        {"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
+      callback(
+        {"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     return false;
   };
@@ -385,7 +387,8 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
+      callback(
+        {"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
       return system_fold(sr);
     }
     else
