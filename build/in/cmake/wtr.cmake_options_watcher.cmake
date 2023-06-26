@@ -3,7 +3,7 @@ include(FetchContent)
 include(GNUInstallDirs)
 
 # [options: defaults: sources and prerequisites]
-set(SOURCES "../../src/wtr.watcher/main.cpp")
+set(SOURCES "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/wtr.watcher/main.cpp")
 set(INCLUDE_PATH)
 # [options: cc: error on everything]
 if(MSVC)
@@ -57,14 +57,14 @@ option(WTR_WATCHER_USE_KCFISAN        "Build with the kernel cfi sanitizer"     
 
 # [options: meaning: include]
 if(WTR_WATCHER_USE_SINGLE_INCLUDE)
-  list(APPEND INCLUDE_PATH    "../../include")
+  list(APPEND INCLUDE_PATH    "${WTR_WATCHER_ROOT_SOURCE_DIR}/include")
 else()
-  list(APPEND INCLUDE_PATH    "../../devel/include")
+  list(APPEND INCLUDE_PATH    "${WTR_WATCHER_ROOT_SOURCE_DIR}/devel/include")
 endif()
 
 # [options: meaning: source]
 if(WTR_WATCHER_USE_TINY_MAIN)
-  set(SOURCES                 "../../src/tiny_watcher/main.cpp")
+  set(SOURCES                 "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/tiny_watcher/main.cpp")
 endif()
 
 # [options: meaning: sanitizer]

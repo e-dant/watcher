@@ -10,7 +10,7 @@ FetchContent_MakeAvailable(snitch)
 
 # [target definitions]
 set(BENCH_PROJECT_NAME                     "wtr.bench_watcher")
-set(BENCH_CONCURRENT_WATCH_TARGETS_SOURCES "../../src/bench_watcher/bench_concurrent_watch_targets/bench_concurrent_watch_targets.cpp")
+set(BENCH_CONCURRENT_WATCH_TARGETS_SOURCES "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/bench_watcher/bench_concurrent_watch_targets/bench_concurrent_watch_targets.cpp")
 set(BENCH_LINK_LIBRARIES                   "${LINK_LIBRARIES}" "snitch::snitch")
 set(BENCH_COMPILE_OPTIONS                  "${COMPILE_OPTIONS}")
 set(BENCH_LINK_OPTIONS                     "${LINK_OPTIONS}")

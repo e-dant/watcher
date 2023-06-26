@@ -108,53 +108,6 @@ test -n "$PLATFORM" \
 OUT_DIR="$PWD/out"
 OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
 
-build::init::cc() {
-  if uname | grep -qE '(Darwin)|(Linux)'
-  then
-    local ok=0
-    local WTR_LLVM_VERSION=15
-    local WTR_LLVM_DIR="$THIS_DIR/../../../tool/compiler/llvm"
-    
-    CC="$(which clang)"
-    CXX="$(which clang++)"
-    
-    if test -n "$CC" -a -n "$CXX"
-    then
-      ok=0
-    elif test -d "$WTR_LLVM_DIR"
-    then
-      if ! test -x "$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
-      then
-        "$WTR_LLVM_DIR/tool/version/set" "$WTR_LLVM_VERSION"
-        "$WTR_LLVM_DIR/build/build"
-        ok=$?
-      fi
-      CC="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang"
-      CXX="$WTR_LLVM_DIR/build/out/$WTR_LLVM_VERSION/bin/clang++"
-    fi
-
-    export CC
-    export CXX
-
-    return $ok
-  fi
-}
-
-build::compdb() {
-  compdb_path="$OUT_PLATFORM_DIR/release/compile_commands.json"
-  if test -f "$compdb_path"
-  then
-    local FROM="$compdb_path"
-    local TO='../compile_commands.json'
-
-    ln -sf "$FROM" "$TO"
-
-    return $?
-  else
-    return 0
-  fi
-}
-
 build::get_cmake_system_name_opt_for_platform() {
   if test -n "$1"
   then
@@ -312,6 +265,7 @@ build::build() {
         $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_extra_for_platform "$PLATFORM") \
         -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
+        -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
     # echo "$cmake_config_command"
@@ -352,6 +306,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
             -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON")
 
@@ -394,6 +349,7 @@ build::build() {
             $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
             -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
             -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON \
             -DWTR_WATCHER_USE_TEST=ON")
@@ -438,6 +394,7 @@ build::build() {
         $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_extra_for_platform "$PLATFORM") \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
         -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
         -DWTR_WATCHER_USE_BENCH=ON")
 

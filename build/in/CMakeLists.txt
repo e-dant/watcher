@@ -8,7 +8,9 @@ project(
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES CXX)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(WTR_WATCHER_ROOT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE STRING
+  "Root source directory of this project")
+list(APPEND CMAKE_MODULE_PATH "${WTR_WATCHER_ROOT_SOURCE_DIR}/build/in/cmake")
 
 # The WTR_WATCHER_USE_* options selected here by defaults or by user choice.
 # Option WTR_WATCHER_USE_RELEASE is the default.
