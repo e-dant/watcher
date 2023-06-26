@@ -1,12 +1,5 @@
 # Test Watcher
 
-## Tests
-
-- Regular File Events
-- Directory Events
-
-## Notes
-
 On macOS, when testing more than several thousand or so filesystem events, "ghost" events from prior tests appear.
 
 For example, a few minutes after the directory test, we will still see events like this in our queue:
