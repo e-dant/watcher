@@ -16,7 +16,6 @@
 /*  watch
     event
     callback */
-#include <iostream>
 #include <wtr/watcher.hpp>
 
 namespace detail {
@@ -67,11 +66,8 @@ inline auto close(future::shared const& fut) noexcept -> bool
     return fut->work.get();
   }
 
-  else {
-    std::cerr << "wtr::watcher::adapter::close: "
-              << "future already closed" << std::endl;
+  else
     return false;
-  }
 };
 
 }  // namespace adapter
