@@ -1299,7 +1299,7 @@ check_and_update(std::tuple<bool,
 
           ? what == ev::what::create  ? mark(path, sr)
           : what == ev::what::destroy ? unmark(path, sr)
-                                 : true
+                                      : true
 
           : true
 
@@ -1432,23 +1432,27 @@ inline bool watch(std::filesystem::path const& path,
 
       close_system_resources(std::move(sr))
 
-        ? (callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
+        ? (callback({"s/self/die@" + path.string(),
+                     ev::what::other,
+                     ev::kind::watcher}),
            true)
 
-        : (callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
+        : (callback({"e/self/die@" + path.string(),
+                     ev::what::other,
+                     ev::kind::watcher}),
            false);
   };
 
   auto do_error = [&path, &callback, &done](system_resources&& sr,
                                             char const* const msg) -> bool
   {
-    return (
-      callback(
-        {std::string{msg} + "@" + path.string(), ev::what::other, ev::kind::watcher}),
+    return (callback({std::string{msg} + "@" + path.string(),
+                      ev::what::other,
+                      ev::kind::watcher}),
 
-      done(std::move(sr)),
+            done(std::move(sr)),
 
-      false);
+            false);
   };
 
   /*  While living, with
@@ -1841,10 +1845,12 @@ inline bool watch(std::filesystem::path const& path,
     callback({msg + path.string(), ev::what::other, ev::kind::watcher});
 
     if (clean)
-      callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
+      callback(
+        {"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     else
-      callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
+      callback(
+        {"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher});
 
     return false;
   };
@@ -1887,7 +1893,8 @@ inline bool watch(std::filesystem::path const& path,
                 return do_error(system_fold(sr), "e/self/event_recv@");
       }
 
-      callback({"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
+      callback(
+        {"s/self/die@" + path.string(), ev::what::destroy, ev::kind::watcher});
       return system_fold(sr);
     }
     else
@@ -2311,6 +2318,7 @@ inline bool watch(std::filesystem::path const& path,
 /*  watch
     event
     callback */
+#include <iostream>
 
 namespace detail {
 namespace wtr {
@@ -2360,8 +2368,11 @@ inline auto close(future::shared const& fut) noexcept -> bool
     return fut->work.get();
   }
 
-  else
+  else {
+    std::cerr << "wtr::watcher::adapter::close: "
+              << "future already closed" << std::endl;
     return false;
+  }
 };
 
 }  // namespace adapter
@@ -2383,6 +2394,68 @@ inline auto close(future::shared const& fut) noexcept -> bool
 
 namespace wtr {
 inline namespace watcher {
+
+/*  @brief wtr/watcher/watch
+
+    An asynchronous filesystem watcher.
+
+    Begins watching when constructed.
+
+    Stops watching when the object's lifetime ends
+    or when `.close()` is called.
+
+    Closing the watcher is the only blocking operation.
+
+    @param path:
+      The root path to watch for filesystem events.
+
+    @param living_cb (optional):
+      Something (such as a closure) to be called when events
+      occur in the path being watched.
+
+    This is an adaptor "switch" that chooses the ideal adaptor
+    for the host platform.
+
+    Every adapter monitors `path` for changes and invokes the
+    `callback` with an `event` object when they occur.
+
+    There are two things the user needs: `watch` and `event`.
+
+    Typical use looks something like this:
+
+    auto w = watch(".", [](event const& e) {
+      std::cout
+        << "where: " << e.where << "\n"
+        << "kind: "  << e.kind  << "\n"
+        << "what: "  << e.what  << "\n"
+        << "when: "  << e.when  << "\n"
+        << std::endl;
+    };
+
+    That's it.
+
+    Happy hacking. */
+class Watch {
+private:
+  using Callback = ::wtr::watcher::event::callback;
+  using Path = ::std::filesystem::path;
+  using Fut = ::detail::wtr::watcher::adapter::future::shared;
+  Fut fut{};
+
+public:
+  inline auto close() const noexcept -> bool
+  {
+    return ::detail::wtr::watcher::adapter::close(this->fut);
+  };
+
+  inline Watch(Path const& path, Callback const& callback) noexcept
+      : fut{::detail::wtr::watcher::adapter::open(path, callback)}
+  {}
+
+  inline ~Watch() noexcept { this->close(); }
+};
+
+inline namespace v0_8 {
 
 /*  Contains a way to stop an instance of `watch()`.
     This is the structure that we return from there.
@@ -2471,6 +2544,7 @@ watch(std::filesystem::path const& path,
            { return close(adapter); }};
 };
 
+} /* namespace v0_8 */
 } /* namespace watcher */
 } /* namespace wtr   */
 #endif /* W973564ED9F278A21F3E12037288412FBAF175F889 */
