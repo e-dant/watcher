@@ -62,11 +62,17 @@ private:
   using Path = ::std::filesystem::path;
   using Fut = ::detail::wtr::watcher::adapter::future::shared;
   Fut fut{};
+
 public:
   inline auto close() const noexcept -> bool
-  { return ::detail::wtr::watcher::adapter::close(this->fut); };
+  {
+    return ::detail::wtr::watcher::adapter::close(this->fut);
+  };
+
   inline Watch(Path const& path, Callback const& callback) noexcept
-  : fut{::detail::wtr::watcher::adapter::open(path, callback)} {}
+      : fut{::detail::wtr::watcher::adapter::open(path, callback)}
+  {}
+
   inline ~Watch() noexcept { this->close(); }
 };
 

@@ -16,9 +16,8 @@
 /*  watch
     event
     callback */
-#include <wtr/watcher.hpp>
-
 #include <iostream>
+#include <wtr/watcher.hpp>
 
 namespace detail {
 namespace wtr {

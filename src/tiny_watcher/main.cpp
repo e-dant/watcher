@@ -1,4 +1,4 @@
-#include "../../include/wtr/watcher.hpp" // Or wherever yours is
+#include "../../include/wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
 
 // This is the entire API.
@@ -8,9 +8,8 @@ int main()
   // This function can block (depending on what you do in it).
   auto cb = [](wtr::event const& e)
   {
-    std::cout << "{\"" << e.when << "\":["
-              << e.where << "," << e.kind << "," << e.what
-              << "]}," << std::endl;
+    std::cout << "{\"" << e.when << "\":[" << e.where << "," << e.kind << ","
+              << e.what << "]}," << std::endl;
     // You can also just stream like this:
     // std::cout << e << "," << std::endl;
 

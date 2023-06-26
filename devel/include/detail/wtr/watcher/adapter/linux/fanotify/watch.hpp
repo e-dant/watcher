@@ -426,7 +426,7 @@ check_and_update(std::tuple<bool,
 
           ? what == ev::what::create  ? mark(path, sr)
           : what == ev::what::destroy ? unmark(path, sr)
-                                 : true
+                                      : true
 
           : true
 
@@ -559,23 +559,27 @@ inline bool watch(std::filesystem::path const& path,
 
       close_system_resources(std::move(sr))
 
-        ? (callback({"s/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
+        ? (callback({"s/self/die@" + path.string(),
+                     ev::what::other,
+                     ev::kind::watcher}),
            true)
 
-        : (callback({"e/self/die@" + path.string(), ev::what::other, ev::kind::watcher}),
+        : (callback({"e/self/die@" + path.string(),
+                     ev::what::other,
+                     ev::kind::watcher}),
            false);
   };
 
   auto do_error = [&path, &callback, &done](system_resources&& sr,
                                             char const* const msg) -> bool
   {
-    return (
-      callback(
-        {std::string{msg} + "@" + path.string(), ev::what::other, ev::kind::watcher}),
+    return (callback({std::string{msg} + "@" + path.string(),
+                      ev::what::other,
+                      ev::kind::watcher}),
 
-      done(std::move(sr)),
+            done(std::move(sr)),
 
-      false);
+            false);
   };
 
   /*  While living, with
