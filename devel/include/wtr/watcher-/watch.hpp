@@ -16,6 +16,62 @@
 namespace wtr {
 inline namespace watcher {
 
+/*  @brief wtr/watcher/watch
+
+    An asynchronous filesystem watcher.
+
+    Begins watching when constructed.
+
+    Stops watching when the object's lifetime ends
+    or when `.close()` is called.
+
+    Closing the watcher is the only blocking operation.
+
+    @param path:
+      The root path to watch for filesystem events.
+
+    @param living_cb (optional):
+      Something (such as a closure) to be called when events
+      occur in the path being watched.
+
+    This is an adaptor "switch" that chooses the ideal adaptor
+    for the host platform.
+
+    Every adapter monitors `path` for changes and invokes the
+    `callback` with an `event` object when they occur.
+
+    There are two things the user needs: `watch` and `event`.
+
+    Typical use looks something like this:
+
+    auto w = watch(".", [](event const& e) {
+      std::cout
+        << "where: " << e.where << "\n"
+        << "kind: "  << e.kind  << "\n"
+        << "what: "  << e.what  << "\n"
+        << "when: "  << e.when  << "\n"
+        << std::endl;
+    };
+
+    That's it.
+
+    Happy hacking. */
+class Watch {
+private:
+  using Callback = ::wtr::watcher::event::callback;
+  using Path = ::std::filesystem::path;
+  using Fut = ::detail::wtr::watcher::adapter::future::shared;
+  Fut fut{};
+public:
+  inline auto close() const noexcept -> bool
+  { return ::detail::wtr::watcher::adapter::close(this->fut); };
+  inline Watch(Path const& path, Callback const& callback) noexcept
+  : fut{::detail::wtr::watcher::adapter::open(path, callback)} {}
+  inline ~Watch() noexcept { this->close(); }
+};
+
+inline namespace v0_8 {
+
 /*  Contains a way to stop an instance of `watch()`.
     This is the structure that we return from there.
     It is intended to allow the `watch(args).close()`
@@ -103,5 +159,6 @@ watch(std::filesystem::path const& path,
            { return close(adapter); }};
 };
 
+} /* namespace v0_8 */
 } /* namespace watcher */
 } /* namespace wtr   */
