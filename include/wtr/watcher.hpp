@@ -2318,7 +2318,6 @@ inline bool watch(std::filesystem::path const& path,
 /*  watch
     event
     callback */
-#include <iostream>
 
 namespace detail {
 namespace wtr {
@@ -2368,11 +2367,8 @@ inline auto close(future::shared const& fut) noexcept -> bool
     return fut->work.get();
   }
 
-  else {
-    std::cerr << "wtr::watcher::adapter::close: "
-              << "future already closed" << std::endl;
+  else
     return false;
-  }
 };
 
 }  // namespace adapter
