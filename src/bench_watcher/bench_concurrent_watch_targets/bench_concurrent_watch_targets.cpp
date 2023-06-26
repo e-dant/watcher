@@ -52,21 +52,21 @@ struct RangePair {
 
 auto show_result(BenchResult const& res) -> void
 {
-  auto const s = ti::duration_cast<ti::seconds>(res.time_taken).count();
-  auto const ms = ti::duration_cast<ti::milliseconds>(res.time_taken).count();
-  auto const us = ti::duration_cast<ti::microseconds>(res.time_taken).count();
-  auto const ns = res.time_taken.count();
+  auto const ss = static_cast<long long>(ti::duration_cast<ti::seconds>(res.time_taken).count());
+  auto const ms = static_cast<long long>(ti::duration_cast<ti::milliseconds>(res.time_taken).count());
+  auto const us = static_cast<long long>(ti::duration_cast<ti::microseconds>(res.time_taken).count());
+  auto const ns = static_cast<long long>(res.time_taken.count());
 
   printf(
     "Watcher count|Event count|Time taken: %i|%i|",
     res.cfg.watcher_count, res.cfg.event_count);
-  s > 0
-    ? printf("%ld s\n", s)
+  ss > 0
+    ? printf("%lld s\n", ss)
     : ms > 0
-      ? printf("%ld ms\n", ms)
+      ? printf("%lld ms\n", ms)
       : us > 0
-        ? printf("%ld us\n", us)
-        : printf("%ld ns\n", ns);
+        ? printf("%lld us\n", us)
+        : printf("%lld ns\n", ns);
 };
 
 template<BenchCfg cfg>
