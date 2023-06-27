@@ -11,19 +11,41 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(snitch)
 
-# [test target definitions]
-set(TEST_PROJECT_NAME                     "wtr.test_watcher")
-set(TEST_CONCURRENT_WATCH_TARGETS_SOURCES "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/test_watcher/test_concurrent_watch_targets/test_concurrent_watch_targets.cpp")
-set(TEST_WATCH_TARGETS_SOURCES            "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/test_watcher/test_watch_targets/test_watch_targets.cpp")
-set(TEST_NEW_DIRECTORIES_SOURCES          "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/test_watcher/test_new_directories/test_new_directories.cpp")
-set(TEST_SIMPLE_SOURCES                   "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/test_watcher/test_simple/test_simple.cpp")
-set(TEST_LINK_LIBRARIES                   "${LINK_LIBRARIES}" "snitch::snitch")
-set(TEST_COMPILE_OPTIONS                  "${COMPILE_OPTIONS}")
-set(TEST_LINK_OPTIONS                     "${LINK_OPTIONS}")
-set(TEST_INCLUDE_PATH                     "${INCLUDE_PATH}")
+function(WTR_ADD_TEST_TARGET TEST_PROJECT_NAME SRCS COMPILE_OPTIONS LINK_OPTIONS INCLUDE_PATH LINK_LIBRARIES)
+  set(RUNTIME_TEST_FILES "${SRCS}")
+  add_executable("${TEST_PROJECT_NAME}" "${SRCS}")
+  set_property(TARGET "${TEST_PROJECT_NAME}" PROPERTY CXX_STANDARD 20)
+  target_compile_options("${TEST_PROJECT_NAME}" PRIVATE "${COMPILE_OPTIONS}")
+  target_link_options("${TEST_PROJECT_NAME}" PRIVATE "${LINK_OPTIONS}")
+  target_include_directories("${TEST_PROJECT_NAME}" PRIVATE "${INCLUDE_PATH}")
+  target_link_libraries("${TEST_PROJECT_NAME}" PRIVATE "${LINK_LIBRARIES}")
+  if(APPLE)
+    set_property(
+      TARGET "${TEST_PROJECT_NAME}"
+      PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.${TEST_PROJECT_NAME}")
+  endif()
+  # install(TARGETS                    "${TEST_PROJECT_NAME}"
+  #         LIBRARY DESTINATION        "${CMAKE_INSTALL_LIBDIR}"
+  #         BUNDLE DESTINATION         "${CMAKE_INSTALL_PREFIX}/bin"
+  #         PUBLIC_HEADER DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}")
+endfunction()
 
-# [test targets]
-include("${TEST_PROJECT_NAME}.test_watch_targets")
-include("${TEST_PROJECT_NAME}.test_concurrent_watch_targets")
-include("${TEST_PROJECT_NAME}.test_new_directories")
-include("${TEST_PROJECT_NAME}.test_simple")
+set(TEST_PROJECT_NAME "test_watcher")
+
+set(TEST_SET
+  "test_concurrent_watch_targets"
+  "test_watch_targets"
+  "test_new_directories"
+  "test_simple")
+list(TRANSFORM TEST_SET PREPEND
+  "${WTR_WATCHER_ROOT_SOURCE_DIR}/src/${TEST_PROJECT_NAME}/")
+list(TRANSFORM TEST_SET APPEND ".cpp")
+
+wtr_add_test_target(
+  "wtr.${TEST_PROJECT_NAME}"
+  "${TEST_SET}"
+  "${COMPILE_OPTIONS}"
+  "${LINK_OPTIONS}"
+  "${INCLUDE_PATH}"
+  "${LINK_LIBRARIES};snitch::snitch")
+
