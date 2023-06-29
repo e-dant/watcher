@@ -85,23 +85,6 @@ SANITIZERS=(
   # 'cfisan'
 )
 
-TESTS=wtr.test_watcher
-# mapfile -t TESTS < <(\
-#   find ../src/test_watcher \
-#     -name 'test_*.cpp' \
-#     -type f \
-#     -print0 \
-#   | sed 's/\.cpp//g' \
-#   | xargs basename)
-
-mapfile -t BENCHES < <(\
-  find ../src/bench_watcher \
-    -name 'bench_*.cpp' \
-    -type f \
-    -print0 \
-  | sed 's/\.cpp//g' \
-  | xargs basename)
-
 # The `build::build` function will append to this list
 # whenever it produces an artifact.
 ARTIFACTS=()
@@ -112,10 +95,18 @@ test -n "$PLATFORM" \
 OUT_DIR="$PWD/out"
 OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
 
+build::to_upper() {
+  echo "$1" | tr '[:lower:]' '[:upper:]'
+}
+
+build::to_lower() {
+  echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 build::get_cmake_system_name_opt_for_platform() {
   if test -n "$1"
   then
-    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    case "$(build::to_lower "$1")" in
       macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
       windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
       linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
@@ -131,7 +122,7 @@ build::get_cmake_generator_opt_for_platform() {
   then
     # we need to use `tr` here because the bash on
     # some github runners reject the ${var,,} syntax
-    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    case "$(build::to_lower "$1")" in
       # We use Make for now because we want this
       # to run in github actions without dependencies.
       macos)   echo "-G 'Xcode'";          return;;
@@ -152,7 +143,7 @@ build::get_cmake_generator_opt_for_platform() {
 build::get_cmake_extra_for_platform() {
   if test -n "$1"
   then
-    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    case "$(build::to_lower "$1")" in
       android)
         echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'"
         return;;
@@ -163,7 +154,7 @@ build::get_cmake_extra_for_platform() {
 build::get_config_name_for_build_type() {
   if test -n "$1"
   then
-    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    case "$(build::to_lower "$1")" in
       release) echo 'Release'; return;;
       debug)   echo 'Debug';   return;;
       *)       echo 'Debug';   return;;
@@ -233,7 +224,7 @@ build::check::sanitizer_allowed_for::ios() {
 build::check::sanitizer_allowed_for::this() {
   sanitizer_query="$1"
 
-  discerned_platform_raw="$(uname | tr '[:upper:]' '[:lower:]')"
+  discerned_platform_raw="$(build::to_lower "$(uname)")"
 
   if test "$discerned_platform_raw" = 'darwin'
   then
@@ -268,7 +259,6 @@ build::build() {
         $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
         $(build::get_cmake_extra_for_platform "$PLATFORM") \
-        -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
         -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
@@ -287,14 +277,14 @@ build::build() {
 
   if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-debug'
   then
-    for S in "${SANITIZERS[@]}"
+    for SAN in "${SANITIZERS[@]}"
     do
-      if build::check::sanitizer_allowed_for::"$PLATFORM" "$S"
+      if build::check::sanitizer_allowed_for::"$PLATFORM" "$SAN"
       then
         echo "$BUILD_SEPERATOR"
 
-        this_out_dir="$OUT_PLATFORM_DIR/debug/$S"
-        this_artifact="$OUT_PLATFORM_DIR/debug/$S/wtr.watcher"
+        this_out_dir="$OUT_PLATFORM_DIR/debug/$SAN"
+        this_artifact="$OUT_PLATFORM_DIR/debug/$SAN/wtr.watcher"
 
         mkdir -p "$this_out_dir"
 
@@ -311,8 +301,7 @@ build::build() {
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-            -DWTR_WATCHER_USE_SINGLE_INCLUDE=ON \
-            -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON")
+            -DWTR_WATCHER_USE_$(build::to_upper "$SAN")=ON")
 
         # echo "$cmake_config_command"
 
@@ -333,11 +322,11 @@ build::build() {
   then
     for S in "${SANITIZERS[@]}"
     do
-      if build::check::sanitizer_allowed_for::"$PLATFORM" "$S"
+      if build::check::sanitizer_allowed_for::"$PLATFORM" "$SAN"
       then
         echo "$BUILD_SEPERATOR"
 
-        this_out_dir="$OUT_PLATFORM_DIR/test/$S"
+        this_out_dir="$OUT_PLATFORM_DIR/test/$SAN"
 
         mkdir -p "$this_out_dir"
 
@@ -354,8 +343,7 @@ build::build() {
             $(build::get_cmake_extra_for_platform "$PLATFORM") \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-            -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
-            -DWTR_WATCHER_USE_$(echo "$S" | tr '[:lower:]' '[:upper:]')=ON \
+            -DWTR_WATCHER_USE_$(build::to_upper "$SAN")=ON \
             -DWTR_WATCHER_USE_TEST=ON")
 
         # echo "$cmake_config_command"
@@ -363,17 +351,14 @@ build::build() {
         eval "$cmake_config_command"
         ok=$((ok + $?))
 
-        for TEST in "${TESTS[@]}"
-        do
-          this_artifact="$OUT_PLATFORM_DIR/test/$S/$TEST"
-          cmake \
-            --build "$this_out_dir" \
-            --config Debug \
-            -j8 \
-            --target "$TEST" \
-            && ARTIFACTS+=("$this_artifact")
-          ok=$((ok + $?))
-        done
+        this_artifact="$OUT_PLATFORM_DIR/test/$SAN/wtr.test_watcher"
+        cmake \
+          --build "$this_out_dir" \
+          --config Debug \
+          -j8 \
+          --target "wtr.test_watcher" \
+          && ARTIFACTS+=("$this_artifact")
+        ok=$((ok + $?))
       fi
     done
   fi
@@ -399,7 +384,6 @@ build::build() {
         $(build::get_cmake_extra_for_platform "$PLATFORM") \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-        -DWTR_WATCHER_USE_SINGLE_INCLUDE=OFF \
         -DWTR_WATCHER_USE_BENCH=ON")
 
     # echo "$cmake_config_command"
@@ -407,17 +391,17 @@ build::build() {
     eval "$cmake_config_command"
     ok=$((ok + $?))
 
-    for BENCH in "${BENCHES[@]}"
-    do
-      this_artifact="$OUT_PLATFORM_DIR/bench/wtr.bench_watcher.$BENCH"
+    #for BENCH in "${BENCHES[@]}"
+    #do
+      this_artifact="$OUT_PLATFORM_DIR/bench/wtr.bench_watcher"
       cmake \
         --build "$this_out_dir" \
         --config Debug \
         -j8 \
-        --target "wtr.bench_watcher.$BENCH" \
+        --target "wtr.bench_watcher" \
         && ARTIFACTS+=("$this_artifact")
       ok=$((ok + $?))
-    done
+    #done
   fi
 
   EC=$ok
@@ -426,88 +410,80 @@ build::build() {
 build::run::test() {
   if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-test
   then
-    for TEST in "${TESTS[@]}"
+    while read -r TEST_PATH
     do
-      while read -r TEST_PATH
-      do
-        if test -x "$TEST_PATH"
-        then
+      if test -x "$TEST_PATH"
+      then
+        # setup test title
 
-          # setup test title
+        test_name="${TEST_PATH##*test/}"
+        test_title="$(echo "[ $test_name ]" | sed 's/wtr.test_watcher.test_//g')"
+        chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
+        for character in $(seq 1 $chars_on_left_side)
+        do test_title="-$test_title"; done
+        # shellcheck disable=SC2034
+        for character in $(seq 1 $chars_on_left_side)
+        do test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
+            && test_title="$test_title-"
+        done
 
-          test_name="${TEST_PATH##*test/}"
-          test_title="$(echo "[ $test_name ]" | sed 's/wtr.test_watcher.test_//g')"
-          chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
-          for character in $(seq 1 $chars_on_left_side)
-          do test_title="-$test_title"; done
-          # shellcheck disable=SC2034
-          for character in $(seq 1 $chars_on_left_side)
-          do test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
-              && test_title="$test_title-"
-          done
+        # show seperators
 
-          # show seperators
+        echo "$TEST_SEPERATOR"
+        echo "$test_title"
 
-          echo "$TEST_SEPERATOR"
-          echo "$test_title"
+        # run test, show & save results
 
-          # run test, show & save results
+        "$TEST_PATH" \
+          | tee "$TEST_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
 
-          "$TEST_PATH" \
-            | tee "$TEST_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-
-        fi
-      done <<< "$(\
-        find "$OUT_PLATFORM_DIR" \
-          -type f \
-          -name "$TEST" \
-          -or -name "$TEST.exe"\
-            2> /dev/null)"
-    done
+      fi
+    done <<< "$(\
+      find "$OUT_PLATFORM_DIR" \
+        -type f \
+        -name "wtr.test_watcher" \
+        -or -name "wtr.test_watcher.exe"\
+          2> /dev/null)"
   fi
 }
 
 build::run::bench() {
   if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-bench
   then
-    for BENCH in "${BENCHES[@]}"
+    while read -r BENCH_PATH
     do
-      while read -r BENCH_PATH
-      do
-        if test -x "$BENCH_PATH"
-        then
+      if test -x "$BENCH_PATH"
+      then
+        # setup bench title
 
-          # setup bench title
+        bench_name="bench/${BENCH_PATH##*bench/}"
+        bench_title="$(echo "[ $bench_name ]" | sed 's/wtr.bench_watcher.bench_//g')"
+        chars_on_left_side=$(($((${#BENCH_SEPERATOR} - ${#bench_title})) / 2))
+        for character in $(seq 1 $chars_on_left_side)
+        do bench_title="-$bench_title"; done
+        # shellcheck disable=SC2034
+        for character in $(seq 1 $chars_on_left_side)
+        do test ${#bench_title} -lt $((${#BENCH_SEPERATOR} - 1)) \
+            && bench_title="$bench_title-"
+        done
 
-          bench_name="bench/${BENCH_PATH##*bench/}"
-          bench_title="$(echo "[ $bench_name ]" | sed 's/wtr.bench_watcher.bench_//g')"
-          chars_on_left_side=$(($((${#BENCH_SEPERATOR} - ${#bench_title})) / 2))
-          for character in $(seq 1 $chars_on_left_side)
-          do bench_title="-$bench_title"; done
-          # shellcheck disable=SC2034
-          for character in $(seq 1 $chars_on_left_side)
-          do test ${#bench_title} -lt $((${#BENCH_SEPERATOR} - 1)) \
-              && bench_title="$bench_title-"
-          done
+        # show seperators
 
-          # show seperators
+        echo "$TEST_SEPERATOR"
+        echo "$bench_title"
 
-          echo "$TEST_SEPERATOR"
-          echo "$bench_title"
+        # run bench, show & save results
 
-          # run bench, show & save results
+        "$BENCH_PATH" \
+          | tee "$BENCH_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
 
-          "$BENCH_PATH" \
-            | tee "$BENCH_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-
-        fi
-      done <<< "$(\
-        find "$OUT_PLATFORM_DIR" \
-          -type f \
-          -name "wtr.bench_watcher.$BENCH" \
-          -or -name "wtr.bench_watcher.$BENCH.exe"\
-            2> /dev/null)"
-    done
+      fi
+    done <<< "$(\
+      find "$OUT_PLATFORM_DIR" \
+        -type f \
+        -name "wtr.bench_watcher" \
+        -or -name "wtr.bench_watcher.exe"\
+          2> /dev/null)"
   fi
 }
 
