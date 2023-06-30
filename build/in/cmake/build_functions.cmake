@@ -26,8 +26,10 @@ function(WTR_ADD_TARGET
     FetchContent_Declare(
       snitch
       GIT_REPOSITORY https://github.com/cschreib/snitch.git
+      # Tuesday, June 29th, 2023 @ v1.1.1
+      GIT_TAG        5ad2fffebf31f3e6d56c2c0ab27bc45d01da2f05
       # Friday, January 20th, 2023 @ v1.0.0
-      GIT_TAG        ea200a0830394f8e0ef732064f0935a77c003bd6
+      # GIT_TAG        ea200a0830394f8e0ef732064f0935a77c003bd6
       # Saturday, January 7th, 2023 @ main
       # GIT_TAG        8165d6c85353f9c302ce05f1c1c47dcfdc6aeb2c
       # Tuesday, December 18th, 2022 @ v0.1.3
