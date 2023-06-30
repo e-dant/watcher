@@ -74,7 +74,7 @@ set(COMPILE_OPTIONS_HIGH_ERR_ASAN "${COMPILE_OPTIONS_HIGH_ERR}"
 set(COMPILE_OPTIONS_HIGH_ERR_MSAN "${COMPILE_OPTIONS_HIGH_ERR}"
   "-fno-omit-frame-pointer" "-fsanitize=memory")
 set(COMPILE_OPTIONS_HIGH_ERR_TSAN "${COMPILE_OPTIONS_HIGH_ERR}"
-  "-fno-omit-frame-pointer" "-fsanitize=memory")
+  "-fno-omit-frame-pointer" "-fsanitize=thread")
 set(COMPILE_OPTIONS_HIGH_ERR_UBSAN "${COMPILE_OPTIONS_HIGH_ERR}"
   "-fno-omit-frame-pointer" "-fsanitize=undefined")
 set(COMPILE_OPTIONS_HIGH_ERR_STACKSAN "${COMPILE_OPTIONS_HIGH_ERR}"
@@ -90,7 +90,7 @@ set(COMPILE_OPTIONS_RELEASE_ASAN "${COMPILE_OPTIONS_RELEASE}"
 set(COMPILE_OPTIONS_RELEASE_MSAN "${COMPILE_OPTIONS_RELEASE}"
   "-fno-omit-frame-pointer" "-fsanitize=memory")
 set(COMPILE_OPTIONS_RELEASE_TSAN "${COMPILE_OPTIONS_RELEASE}"
-  "-fno-omit-frame-pointer" "-fsanitize=memory")
+  "-fno-omit-frame-pointer" "-fsanitize=thread")
 set(COMPILE_OPTIONS_RELEASE_UBSAN "${COMPILE_OPTIONS_RELEASE}"
   "-fno-omit-frame-pointer" "-fsanitize=undefined")
 set(COMPILE_OPTIONS_RELEASE_STACKSAN "${COMPILE_OPTIONS_RELEASE}"
@@ -106,7 +106,7 @@ set(LINK_OPTIONS_ASAN "${LINK_OPTIONS}"
 set(LINK_OPTIONS_MSAN "${LINK_OPTIONS}"
   "-fno-omit-frame-pointer" "-fsanitize=memory")
 set(LINK_OPTIONS_TSAN "${LINK_OPTIONS}"
-  "-fno-omit-frame-pointer" "-fsanitize=memory")
+  "-fno-omit-frame-pointer" "-fsanitize=thread")
 set(LINK_OPTIONS_UBSAN "${LINK_OPTIONS}"
   "-fno-omit-frame-pointer" "-fsanitize=undefined")
 set(LINK_OPTIONS_STACKSAN "${LINK_OPTIONS}"

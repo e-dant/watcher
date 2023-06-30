@@ -20,7 +20,7 @@ include(build_options)
 include(build_constants)
 include(build_functions)
 
-if(WTR_WATCHER_USE_TEST)
+if(WTR_WATCHER_USE_TEST AND NOT WIN32)
   wtr_add_test_target(
     "wtr.${WTR_TEST_WATCHER_PROJECT_NAME}"
     "${COMPILE_OPTIONS_HIGH_ERR}"
@@ -31,10 +31,12 @@ if(WTR_WATCHER_USE_TEST)
     "${COMPILE_OPTIONS_HIGH_ERR_ASAN}"
     "${LINK_OPTIONS_ASAN}")
 
-  wtr_add_test_target(
-    "wtr.${WTR_TEST_WATCHER_PROJECT_NAME}.msan"
-    "${COMPILE_OPTIONS_HIGH_ERR_MSAN}"
-    "${LINK_OPTIONS_MSAN}")
+  if(NOT APPLE)
+    wtr_add_test_target(
+      "wtr.${WTR_TEST_WATCHER_PROJECT_NAME}.msan"
+      "${COMPILE_OPTIONS_HIGH_ERR_MSAN}"
+      "${LINK_OPTIONS_MSAN}")
+  endif()
 
   wtr_add_test_target(
     "wtr.${WTR_TEST_WATCHER_PROJECT_NAME}.tsan"
