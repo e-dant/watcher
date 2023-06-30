@@ -1,15 +1,11 @@
 #pragma once
 
-/* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
+/*  @brief watcher/adapter/darwin
+    The Darwin `FSEvent` adapter. */
+
+#include "detail/wtr/watcher/platform.hpp"
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
-
-/*
-  @brief watcher/adapter/darwin
-
-  The Darwin `FSEvent` adapter.
-*/
 
 /* kFS*
    FS*
@@ -44,7 +40,7 @@
 #include <unordered_set>
 /* event
    callback */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

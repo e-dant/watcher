@@ -10,8 +10,8 @@
 ## Quick Start
 
 ```cpp
-#include "../../include/wtr/watcher.hpp" // Or wherever yours is
 #include <iostream>
+#include "../../include/wtr/watcher.hpp" // Or wherever yours is
 
 // This is the entire API.
 int main()
@@ -131,7 +131,7 @@ A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/
 Copy the `include` directory into your project. Include `watcher` like this:
 
 ```cpp
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 ```
 
 The [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/event.hpp)

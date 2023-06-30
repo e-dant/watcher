@@ -1,31 +1,17 @@
 #pragma once
 
-/* assert */
 #include <cassert>
-/* this_thread */
 #include <thread>
-/* vector */
 #include <vector>
-/* abs */
 #include <cmath>
-/* iota */
 #include <numeric>
-/* ofstream */
 #include <fstream>
-/* string,
-   to_string */
 #include <string>
-/* strcmp */
 #include <cstring>
-/* path,
-   remove,
-   exists */
 #include <filesystem>
-/* mk_events_options */
-#include <test_watcher/constant.hpp>
-/* watch,
-   event */
-#include <wtr/watcher.hpp>
+
+#include "test_watcher/constant.hpp"
+#include "wtr/watcher.hpp"
 
 namespace wtr {
 namespace test_watcher {

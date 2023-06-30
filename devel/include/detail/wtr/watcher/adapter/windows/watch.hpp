@@ -1,12 +1,10 @@
 #pragma once
 
-/*
-  @brief watcher/adapter/windows
+/*  @brief watcher/adapter/windows
+    The Windows `ReadDirectoryChangesW` adapter. */
 
-  The Windows `ReadDirectoryChangesW` adapter.
-*/
-
-#include <detail/wtr/watcher/platform.hpp>
+/* WATER_WATCHER_PLATFORM_* */
+#include "detail/wtr/watcher/platform.hpp"
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
@@ -30,7 +28,7 @@
 #include <thread>
 /* event
    callback */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

@@ -1,22 +1,12 @@
-/*
-   Test Watcher
-   Concurrent Event Targets
-*/
-
-/* REQUIRE,
-   TEST_CASE */
-#include <snitch/snitch.hpp>
-/* event */
-#include <wtr/watcher.hpp>
-/* watch_gather */
-#include <test_watcher/test_watcher.hpp>
-/* get */
 #include <tuple>
-/* cout, endl */
 #include <iostream>
 
+#include "snitch/snitch.hpp"
+#include "wtr/watcher.hpp"
+#include "test_watcher/test_watcher.hpp"
+
 /* Test that files are scanned */
-TEST_CASE("Concurrent Event Targets", "[concurrent_event_targets]")
+TEST_CASE("Concurrent Event Targets", "[test][concurrent][file][dir][watch-target]")
 {
   using namespace ::wtr::watcher;
   using namespace ::wtr::test_watcher;

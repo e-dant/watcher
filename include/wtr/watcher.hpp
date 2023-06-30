@@ -306,12 +306,10 @@ inline auto operator!=(event const& l, event const& r) noexcept -> bool
 } /* namespace watcher */
 } /* namespace wtr   */
 
-/*
-  @brief watcher/adapter/windows
+/*  @brief watcher/adapter/windows
+    The Windows `ReadDirectoryChangesW` adapter. */
 
-  The Windows `ReadDirectoryChangesW` adapter.
-*/
-
+/* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
 
@@ -572,15 +570,11 @@ inline bool watch(std::filesystem::path const& path,
 
 #endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
 
-/* WATER_WATCHER_PLATFORM_* */
+/*  @brief watcher/adapter/darwin
+    The Darwin `FSEvent` adapter. */
+
 
 #if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
-
-/*
-  @brief watcher/adapter/darwin
-
-  The Darwin `FSEvent` adapter.
-*/
 
 /* kFS*
    FS*
@@ -878,7 +872,6 @@ inline bool watch(std::filesystem::path const& path,
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify
     The Linux `fanotify` adapter. */
 
-/*  WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
   && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -1914,11 +1907,8 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 
-/*
-  @brief wtr/detail/wtr/watcher/adapter/linux
-
-  The Linux adapters.
-*/
+/*  @brief wtr/detail/wtr/watcher/adapter/linux
+    The Linux adapters. */
 
 /* WATER_WATCHER_PLATFORM_* */
 
@@ -2006,34 +1996,28 @@ inline bool watch(std::filesystem::path const& path,
           || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
 #endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
 
-/*
-  @brief watcher/adapter/android
-
-  The Android (Linux) `inotify` adapter.
-*/
+/*  @brief watcher/adapter/android
+    The Android (Linux) `inotify` adapter. */
 
 /* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #endif
 
+/*  @brief watcher/adapter/warthog
+    A reasonably dumb adapter that works on any platform.
+
+    This adapter beats `kqueue`, but it doesn't bean recieving
+    filesystem events directly from the OS.
+
+    This is the fallback adapter on platforms that either
+      - Only support `kqueue` (`warthog` beats `kqueue`)
+      - Only support the C++ standard library */
+
 /* WATER_WATCHER_PLATFORM_* */
 
 #if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
   || defined(WATER_WATCHER_USE_WARTHOG)
-
-/*
-  @brief watcher/adapter/warthog
-
-  A reasonably dumb adapter that works on any platform.
-
-  This adapter beats `kqueue`, but it doesn't bean recieving
-  filesystem events directly from the OS.
-
-  This is the fallback adapter on platforms that either
-    - Only support `kqueue` (`warthog` beats `kqueue`)
-    - Only support the C++ standard library
-*/
 
 /* milliseconds */
 #include <chrono>
@@ -2302,22 +2286,11 @@ inline bool watch(std::filesystem::path const& path,
 #endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
           || defined(WATER_WATCHER_USE_WARTHOG) */
 
-/*  path */
 #include <filesystem>
-/*  async
-    future */
 #include <future>
-/*  shared_ptr
-    unique_ptr */
 #include <memory>
-/*  mutex
-    scoped_lock */
 #include <mutex>
-/*  unordered_map */
 #include <unordered_map>
-/*  watch
-    event
-    callback */
 
 namespace detail {
 namespace wtr {

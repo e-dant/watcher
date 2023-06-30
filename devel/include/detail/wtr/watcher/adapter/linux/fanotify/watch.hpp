@@ -3,8 +3,7 @@
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify
     The Linux `fanotify` adapter. */
 
-/*  WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
+#include "detail/wtr/watcher/platform.hpp"
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
   && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -57,7 +56,7 @@
 #include <tuple>
 /*  event
     callback */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

@@ -1,16 +1,10 @@
 #pragma once
 
-/* exists,
-   remove_all,
-   is_regular_file */
 #include <filesystem>
-/* ofstream */
 #include <fstream>
-/* string,
-   to_string */
 #include <string>
-/* event */
-#include <wtr/watcher.hpp>
+
+#include "wtr/watcher.hpp"
 
 namespace wtr {
 namespace test_watcher {

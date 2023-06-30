@@ -1,34 +1,20 @@
 #pragma once
 
-/* milliseconds */
 #include <chrono>
-/* assert */
 #include <cassert>
-/* this_thread::sleep_for */
 #include <thread>
-/* function */
 #include <functional>
-/* watch,
-   event */
-#include <wtr/watcher.hpp>
-/* mutex */
 #include <mutex>
-/* ms_now,
-   ms_duration */
-#include <test_watcher/chrono.hpp>
-/* mk_events */
-#include <test_watcher/event.hpp>
-/* vector */
 #include <vector>
-/* test_store_path */
-#include <test_watcher/constant.hpp>
-/* pair */
 #include <tuple>
-/* move */
 #include <utility>
-/* etc */
 #include <filesystem>
 #include <iostream>
+
+#include "wtr/watcher.hpp"
+#include "test_watcher/chrono.hpp"
+#include "test_watcher/event.hpp"
+#include "test_watcher/constant.hpp"
 
 namespace wtr {
 namespace test_watcher {

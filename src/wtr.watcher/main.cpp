@@ -1,34 +1,14 @@
-/*  std::chrono::* */
 #include <chrono>
-/*  std::strcmp */
 #include <condition_variable>
 #include <cstring>
-/*  std::filesystem::
-      current_path
-      absolute
-      exists
-      path */
 #include <filesystem>
-/*  std::function */
 #include <functional>
-/*  std::cout
-    std::endl */
 #include <iostream>
-/*  std::optional */
 #include <optional>
-/*  std::stoull */
 #include <string>
-/*  std::make_tuple */
 #include <tuple>
-/*  std::this_thread::sleep_for */
 #include <thread>
-/*  wtr::watcher::
-      watch
-      event::
-        event
-        what
-        kind */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 /*  @todo
     [ -fwhat < all rename modify create destroy owner other > = all ]

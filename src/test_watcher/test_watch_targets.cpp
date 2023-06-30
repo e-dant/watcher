@@ -1,23 +1,13 @@
-/*
-   Test Watcher
-   Event Targets
-*/
-
-/* REQUIRE,
-   TEST_CASE */
-#include <snitch/snitch.hpp>
-/* event */
 #include <vector>
-#include <wtr/watcher.hpp>
-/* watch_gather */
-#include <test_watcher/test_watcher.hpp>
-/* get */
 #include <tuple>
-/* cout, endl */
 #include <iostream>
 
+#include "snitch/snitch.hpp"
+#include "wtr/watcher.hpp"
+#include "test_watcher/test_watcher.hpp"
+
 /* Test that files are scanned */
-TEST_CASE("Event Targets", "[event_targets]")
+TEST_CASE("Event Targets", "[test][file][dir][watch-target]")
 {
   using namespace wtr::watcher;
 

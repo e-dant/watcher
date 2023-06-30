@@ -1,37 +1,18 @@
-/*
-   Test Watcher
-   Simple
-*/
-
-/* REQUIRE,
-   TEST_CASE */
-#include <snitch/snitch.hpp>
-/* event */
-#include <wtr/watcher.hpp>
-/* watch_gather */
-#include <test_watcher/test_watcher.hpp>
-/* get */
 #include <tuple>
-/* cout, endl */
 #include <iostream>
-/* async,
-   future,
-   promise */
 #include <future>
-/* vector */
 #include <vector>
-/* string */
 #include <string>
-/* milliseconds */
 #include <chrono>
-/* mutex */
 #include <mutex>
-/* path,
-   create */
 #include <filesystem>
 
+#include "snitch/snitch.hpp"
+#include "wtr/watcher.hpp"
+#include "test_watcher/test_watcher.hpp"
+
 /* Test that files are scanned */
-TEST_CASE("Simple", "[simple]")
+TEST_CASE("Simple", "[test][dir][file][simple]")
 {
   namespace fs = ::std::filesystem;
   using namespace ::wtr::watcher;

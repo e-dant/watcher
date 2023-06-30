@@ -1,22 +1,11 @@
 #pragma once
 
-/*  path */
 #include <filesystem>
-/*  async
-    future */
 #include <future>
-/*  shared_ptr
-    unique_ptr */
 #include <memory>
-/*  mutex
-    scoped_lock */
 #include <mutex>
-/*  unordered_map */
 #include <unordered_map>
-/*  watch
-    event
-    callback */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

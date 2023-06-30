@@ -1,13 +1,10 @@
 #pragma once
 
-/*
-  @brief wtr/detail/wtr/watcher/adapter/linux
-
-  The Linux adapters.
-*/
+/*  @brief wtr/detail/wtr/watcher/adapter/linux
+    The Linux adapters. */
 
 /* WATER_WATCHER_PLATFORM_* */
-#include <detail/wtr/watcher/platform.hpp>
+#include "detail/wtr/watcher/platform.hpp"
 
 #if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
   || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
@@ -21,7 +18,7 @@
    callback
    inotify::watch
    fanotify::watch */
-#include <wtr/watcher.hpp>
+#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

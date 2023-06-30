@@ -1,28 +1,16 @@
-/*  nanoseconds,
-    system_clock,
-    duration_cast */
 #include <algorithm>
 #include <chrono>
 #include <tuple>
-/*  ofstream */
 #include <fstream>
-/*  printf */
 #include <cstdio>
-/*  unique_ptr */
 #include <memory>
-/*  array */
 #include <array>
-/*  vector */
 #include <vector>
-/*  REQUIRE,
-    TEST_CASE */
-#include <snitch/snitch.hpp>
-/*  test_store_path */
-#include <test_watcher/constant.hpp>
-/*  watch,
-    event */
 #include <utility>
-#include <wtr/watcher.hpp>
+
+#include "snitch/snitch.hpp"
+#include "wtr/watcher.hpp"
+#include "test_watcher/constant.hpp"
 
 // clang-format off
 
@@ -141,7 +129,7 @@ constexpr auto bench_range() -> void
 //   fatal error: template instantiation depth exceeds
 //   maximum of <some number, usually around 1k>
 
-TEST_CASE("Bench Concurrent Watch Targets", "[bench_concurrent_watch_targets]")
+TEST_CASE("Bench Concurrent Watch Targets", "[bench][concurrent][file][watch-target]")
 {
   printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
@@ -149,7 +137,7 @@ TEST_CASE("Bench Concurrent Watch Targets", "[bench_concurrent_watch_targets]")
     .event_range={.start=100, .stop=1000, .step=100}}>();
 };
 
-TEST_CASE("Bench Concurrent Watch Targets 2", "[bench_concurrent_watch_targets2]")
+TEST_CASE("Bench Concurrent Watch Targets 2", "[bench][concurrent][file][watch-target]")
 {
   printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
@@ -157,7 +145,7 @@ TEST_CASE("Bench Concurrent Watch Targets 2", "[bench_concurrent_watch_targets2]
     .event_range={.start=100, .stop=100, .step=0}}>();
 };
 
-TEST_CASE("Bench Concurrent Watch Targets 3", "[bench_concurrent_watch_targets3]")
+TEST_CASE("Bench Concurrent Watch Targets 3", "[bench][concurrent][file][watch-target]")
 {
   printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
