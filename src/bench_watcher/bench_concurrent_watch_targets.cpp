@@ -58,7 +58,7 @@ auto show_result(BenchResult const& res) -> void
   auto const ns = static_cast<long long>(res.time_taken.count());
 
   printf(
-    "Watcher count|Event count|Time taken: %i|%i|",
+    "%i|%i|",
     res.cfg.watcher_count, res.cfg.event_count);
   ss > 0
     ? printf("%lld s\n", ss)
@@ -143,6 +143,7 @@ constexpr auto bench_range() -> void
 
 TEST_CASE("Bench Concurrent Watch Targets", "[bench_concurrent_watch_targets]")
 {
+  printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=1000, .step=100}}>();
@@ -150,6 +151,7 @@ TEST_CASE("Bench Concurrent Watch Targets", "[bench_concurrent_watch_targets]")
 
 TEST_CASE("Bench Concurrent Watch Targets 2", "[bench_concurrent_watch_targets2]")
 {
+  printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=30, .step=5},
     .event_range={.start=100, .stop=100, .step=0}}>();
@@ -157,6 +159,7 @@ TEST_CASE("Bench Concurrent Watch Targets 2", "[bench_concurrent_watch_targets2]
 
 TEST_CASE("Bench Concurrent Watch Targets 3", "[bench_concurrent_watch_targets3]")
 {
+  printf("Watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=10000, .step=1000}}>();
