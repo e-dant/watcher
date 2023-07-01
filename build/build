@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 # SC2317 We use eval. These functions aren't unused.
+# shellcheck disable=SC2001
+# SC2001: GH Runners don't always have variable replacement.
 
-if echo "$*" | grep -q -- '--help'
-then
-  echo "
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.." \
+  || return $?
+trap 'cd "$LAST_DIR"' EXIT
+
+HELP="
   Usage
-    $0 [platform = this
+    $0 [--platform= this
       [--no-build-release]
       [--no-build-debug]
       [--no-build-bench]
@@ -19,7 +24,8 @@ then
     ]
 
   Arguments
-    platform:             this, android, ios, windows, linux, macos
+    --platform=PLATFORM:  PLATFORM is one of:
+                          this, android, ios, windows, linux, macos
 
   Options
     --no-build-release:   Skip builds with optimizations
@@ -29,137 +35,91 @@ then
     --no-build:           Skip building everything
     --no-run-bench:       Skip running the benchmarks
     --no-run-test:        Skip running the unit tests
+    --no-run:             Same as --no-run-test --no-run-bench
     --install:            Install the release build
     --clean:              Removes the build/out directory
 
   Summary
     Build the Watcher.
-    This file is a collection of shorthands for CMake invocations.
-    It also keeps the artifacts organized.
+    This file is a collection of shorthands for CMake invocations
+    which eases over some platform-specific configuration.
 "
-  exit 0
-fi
+PLATFORM=this
+BUILD_RELEASE=1
+BUILD_DEBUG=1
+BUILD_BENCH=1
+BUILD_TEST=1
+RUN_BENCH=1
+RUN_TEST=1
+INSTALL=0
+CLEAN=0
+HELP=0
 
-LAST_DIR="$PWD"
-cd "$(dirname "$0")" \
-  || return $?
-THIS_DIR="$PWD"
+OUT_DIR=$PWD/build/out
+OUT_PLATFORM_DIR=$OUT_DIR/$PLATFORM
 
-EC=0
+for arg in "$@"; do case "$arg" in
+  --platform=*)         PLATFORM="${arg#*=}";shift;;
+  --no-build-release)   BUILD_RELEASE=0;;
+  --no-build-debug)     BUILD_DEBUG=0;;
+  --no-build-bench)     BUILD_BENCH=0;;
+  --no-build-test)      BUILD_TEST=0;;
+  --no-build)           BUILD_TEST=0;BUILD_BENCH=0;;
+  --no-run-bench)       RUN_BENCH=0;;
+  --no-run-test)        RUN_TEST=0;;
+  --no-run)             RUN_TEST=0;RUN_BENCH=0;;
+  --install)            INSTALL=1;;
+  --clean)              CLEAN=1;;
+  --help)               HELP=1;;
+esac; done
 
-if echo "$1" | grep -q -- --
-then
-  PLATFORM='this'
-else
-  PLATFORM="$1"
-fi
-
-# @note build/build/build_seperator
-# This is meant to look like the seperators that Catch uses.
-BUILD_SEPERATOR='
-================================[ watcher/build ]=============================='
-
-# @note build/build/*_seperator
-# Alternative for seperating test and bench runs.
-TEST_SEPERATOR='
-================================[ watcher/test ]==============================='
-
-BENCH_SEPERATOR='
-================================[ watcher/bench ]=============================='
-
-# @note build/build/san/address
-# I'm not ready to give up on my trusty asan yet, but I'm close.
-# LLVM's asan on Linux is plaguing me with this bug:
-# https://github.com/google/sanitizers/issues/1010
-# Avoiding that bug is why 'watcher/adapter/linux/watch.hpp' is
-# composed almost entirely of nested closures. Asan is OK with that.
-SANITIZERS=(
-  'nosan'
-  'asan'
-  'tsan'
-  'ubsan'
-  'msan'
-  # 'stacksan'
-  # 'dataflowsan' 
-  # 'kcfisan'
-  # 'cfisan'
-)
-
-# The `build::build` function will append to this list
-# whenever it produces an artifact.
-ARTIFACTS=()
-
-test -n "$PLATFORM" \
-  || PLATFORM='this'
-
-OUT_DIR="$PWD/out"
-OUT_PLATFORM_DIR="$OUT_DIR/$PLATFORM"
-
-build::to_upper() {
-  echo "$1" | tr '[:lower:]' '[:upper:]'
-}
-
-build::to_lower() {
-  echo "$1" | tr '[:upper:]' '[:lower:]'
-}
+# we need to use `tr` here because the bash on
+# some github runners reject the ${var,,} syntax
+build::to_upper() { echo "$1" | tr '[:lower:]' '[:upper:]'; }
+build::to_lower() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
 
 build::get_cmake_system_name_opt_for_platform() {
-  if test -n "$1"
-  then
-    case "$(build::to_lower "$1")" in
-      macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
-      windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
-      linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
-      android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
-      ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
-      *)       echo -n '';                                return;;
-    esac
-  fi
+  if test -n "$1"; then case "$(build::to_lower "$1")" in
+    macos)   echo "-DCMAKE_SYSTEM_NAME='macOS'";        return;;
+    windows) echo "-DCMAKE_SYSTEM_NAME='WindowsStore'"; return;;
+    linux)   echo "-DCMAKE_SYSTEM_NAME='Linux'";        return;;
+    android) echo "-DCMAKE_SYSTEM_NAME='Android'";      return;;
+    ios)     echo "-DCMAKE_SYSTEM_NAME='iOS'";          return;;
+    *)       echo -n '';                                return;;
+  esac; fi
 }
 
 build::get_cmake_generator_opt_for_platform() {
-  if test -n "$1"
-  then
-    # we need to use `tr` here because the bash on
-    # some github runners reject the ${var,,} syntax
-    case "$(build::to_lower "$1")" in
-      # We use Make for now because we want this
-      # to run in github actions without dependencies.
-      macos)   echo "-G 'Xcode'";          return;;
-      windows) echo "-G 'Unix Makefiles'"; return;;
-      linux)   echo "-G 'Unix Makefiles'"; return;;
-      android) echo "-G 'Unix Makefiles'"; return;;
-      ios)     echo "-G 'Xcode'";          return;;
-      *)       echo "-G 'Unix Makefiles'"; return;;
-    esac
-  else
+  if test -n "$1"; then case "$(build::to_lower "$1")" in
+    # We use Make for now because we want this
+    # to run in github actions without dependencies.
+    macos)   echo "-G 'Xcode'";          return;;
+    windows) echo "-G 'Unix Makefiles'"; return;;
+    linux)   echo "-G 'Unix Makefiles'"; return;;
+    android) echo "-G 'Unix Makefiles'"; return;;
+    ios)     echo "-G 'Xcode'";          return;;
+    *)       echo "-G 'Unix Makefiles'"; return;;
+  esac; else
     echo "-G 'Unix Makefiles'"
   fi
 }
 
-# @note build/get_cmake_extra_for_platform
 # We need to pass this in from the command line.
 # Most other platform-specifics are within cmake.
 build::get_cmake_extra_for_platform() {
-  if test -n "$1"
-  then
-    case "$(build::to_lower "$1")" in
-      android)
-        echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'"
-        return;;
-    esac
-  fi
+  if test -n "$1"; then case "$(build::to_lower "$1")" in
+    android)
+      echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'"
+      return;;
+  esac; fi
 }
 
 build::get_config_name_for_build_type() {
-  if test -n "$1"
-  then
-    case "$(build::to_lower "$1")" in
-      release) echo 'Release'; return;;
-      debug)   echo 'Debug';   return;;
-      *)       echo 'Debug';   return;;
-    esac
-  else
+  if test -n "$1"; then case "$(build::to_lower "$1")" in
+    release) echo 'Release'; return;;
+    debug)   echo 'Debug';   return;;
+    *)       echo 'Debug';   return;;
+  esac; else
     echo 'Debug'
   fi
 }
@@ -169,11 +129,7 @@ build::check::sanitizer_allowed_for::macos() {
     'msan'
     # 'tsan'
   )
-
-  if [[ "${denylist[*]}" =~ $1 ]]
-  then return 1
-  else return 0
-  fi
+  if [[ "${denylist[*]}" =~ $1 ]]; then return 1; else return 0; fi
 }
 
 build::check::sanitizer_allowed_for::windows() {
@@ -184,11 +140,7 @@ build::check::sanitizer_allowed_for::windows() {
     'ubsan'
     'msan'
   )
-
-  if [[ "${denylist[*]}" =~ $1 ]]
-  then return 1
-  else return 0
-  fi
+  if [[ "${denylist[*]}" =~ $1 ]]; then return 1; else return 0; fi
 }
 
 build::check::sanitizer_allowed_for::linux() {
@@ -197,11 +149,7 @@ build::check::sanitizer_allowed_for::linux() {
   denylist=(
     'msan'
   )
-
-  if [[ "${denylist[*]}" =~ $1 ]]
-  then return 1
-  else return 0
-  fi
+  if [[ "${denylist[*]}" =~ $1 ]]; then return 1; else return 0; fi
 }
 
 build::check::sanitizer_allowed_for::android() {
@@ -209,11 +157,7 @@ build::check::sanitizer_allowed_for::android() {
     'tsan'
     'msan'
   )
-
-  if [[ "${denylist[*]}" =~ $1 ]]
-  then return 1
-  else return 0
-  fi
+  if [[ "${denylist[*]}" =~ $1 ]]; then return 1; else return 0; fi
 }
 
 build::check::sanitizer_allowed_for::ios() {
@@ -223,312 +167,93 @@ build::check::sanitizer_allowed_for::ios() {
 
 build::check::sanitizer_allowed_for::this() {
   sanitizer_query="$1"
-
   discerned_platform_raw="$(build::to_lower "$(uname)")"
-
-  if test "$discerned_platform_raw" = 'darwin'
-  then
+  if test "$discerned_platform_raw" = 'darwin'; then
     discerned_platform='macos'
-  elif echo "$discerned_platform_raw" | grep -q 'mingw'
-  then
+  elif echo "$discerned_platform_raw" | grep -q 'mingw'; then
     discerned_platform='windows'
   else
     discerned_platform="$discerned_platform_raw"
   fi
-
   eval "build::check::sanitizer_allowed_for::$discerned_platform" "$sanitizer_query"
   return $?
 }
 
+build::help() { if test $HELP -eq 1; then echo "$HELP"; exit 0; fi; }
+
+build::clean() { if test $CLEAN -eq 1; then rm -rf "$OUT_DIR"; exit 0; fi; }
+
 build::build() {
-  local ok=0
-  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-release'
-  then
-    echo "$BUILD_SEPERATOR"
-
-    this_out_dir="$OUT_PLATFORM_DIR/release"
-    this_artifact="$OUT_PLATFORM_DIR/release/wtr.watcher"
-
-    mkdir -p "$this_out_dir"
-
-    # shellcheck disable=2116,2155
-    local cmake_config_command=$(echo " \
-      cmake \
-        -S '$PWD/in' \
-        -B '$this_out_dir' \
-        $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
-        $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
-        $(build::get_cmake_extra_for_platform "$PLATFORM") \
-        -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
-
-    # echo "$cmake_config_command"
-
-    eval "$cmake_config_command"
-    ok=$((ok + $?))
-
-    cmake \
-      --build "$this_out_dir" \
-      --config Release \
-      -j8 \
-      && ARTIFACTS+=("$this_artifact")
-    ok=$((ok + $?))
+  to-on-off() { if test "$1" -gt 0; then echo 'ON'; else echo 'OFF'; fi; }
+  cmd="cmake \
+    -B '$PWD/build/in' \
+    -B '$PWD/build/out/$PLATFORM' \
+    $(build::get_cmake_extra_for_platform "$PLATFORM") \
+    $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
+    $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
+    -DWTR_WATCHER_BUILD_ASAN=ON \
+    -DWTR_WATCHER_BUILD_MSAN=ON \
+    -DWTR_WATCHER_BUILD_UBSAN=ON \
+    -DWTR_WATCHER_BUILD_TSAN=ON \
+    -DWTR_WATCHER_BUILD_RELEASE=$(to-on-off $BUILD_RELEASE) \
+    -DWTR_WATCHER_BUILD_DEBUG=$(to-on-off $BUILD_DEBUG) \
+    -DWTR_WATCHER_BUILD_TEST=$(to-on-off $BUILD_TEST) \
+    -DWTR_WATCHER_BUILD_BENCH=$(to-on-off $BUILD_BENCH) \
+    && cmake \
+      --build '$PWD/build/out/$PLATFORM'"
+  echo "$cmd" | sed 's/  */ /g'
+  if test $((BUILD_TEST + BUILD_BENCH)) -gt 0; then
+    eval "$cmd"
   fi
-
-  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-debug'
-  then
-    for SAN in "${SANITIZERS[@]}"
-    do
-      if build::check::sanitizer_allowed_for::"$PLATFORM" "$SAN"
-      then
-        echo "$BUILD_SEPERATOR"
-
-        this_out_dir="$OUT_PLATFORM_DIR/debug/$SAN"
-        this_artifact="$OUT_PLATFORM_DIR/debug/$SAN/wtr.watcher"
-
-        mkdir -p "$this_out_dir"
-
-        # we need to use `tr` here because the bash on
-        # some github runners reject the ${var^^} syntax
-
-        # shellcheck disable=2116,2155
-        local cmake_config_command=$(echo " \
-          cmake \
-            -S '$PWD/in' \
-            -B '$this_out_dir' \
-            $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
-            $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
-            $(build::get_cmake_extra_for_platform "$PLATFORM") \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-            -DWTR_WATCHER_USE_$(build::to_upper "$SAN")=ON")
-
-        # echo "$cmake_config_command"
-
-        eval "$cmake_config_command"
-        ok=$((ok + $?))
-
-        cmake \
-          --build "$this_out_dir" \
-          --config Debug \
-          -j8 \
-          && ARTIFACTS+=("$this_artifact")
-        ok=$((ok + $?))
-      fi
-    done
-  fi
-
-  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-test'
-  then
-    for S in "${SANITIZERS[@]}"
-    do
-      if build::check::sanitizer_allowed_for::"$PLATFORM" "$SAN"
-      then
-        echo "$BUILD_SEPERATOR"
-
-        this_out_dir="$OUT_PLATFORM_DIR/test/$SAN"
-
-        mkdir -p "$this_out_dir"
-
-        # we need to use `tr` here because the bash on
-        # some github runners reject the ${var^^} syntax
-
-        # shellcheck disable=2116,2155
-        local cmake_config_command=$(echo " \
-          cmake \
-            -S '$PWD/in' \
-            -B '$this_out_dir' \
-            $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
-            $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
-            $(build::get_cmake_extra_for_platform "$PLATFORM") \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-            -DWTR_WATCHER_USE_$(build::to_upper "$SAN")=ON \
-            -DWTR_WATCHER_USE_TEST=ON")
-
-        # echo "$cmake_config_command"
-
-        eval "$cmake_config_command"
-        ok=$((ok + $?))
-
-        this_artifact="$OUT_PLATFORM_DIR/test/$SAN/wtr.test_watcher"
-        cmake \
-          --build "$this_out_dir" \
-          --config Debug \
-          -j8 \
-          --target "wtr.test_watcher" \
-          && ARTIFACTS+=("$this_artifact")
-        ok=$((ok + $?))
-      fi
-    done
-  fi
-
-  if ! echo "$*" | grep -qE -- '--no-build($| )?|--no-build-bench'
-  then
-    echo "$BUILD_SEPERATOR"
-
-    this_out_dir="$OUT_PLATFORM_DIR/bench"
-
-    mkdir -p "$this_out_dir"
-
-    # we need to use `tr` here because the bash on
-    # some github runners reject the ${var^^} syntax
-
-    # shellcheck disable=2116,2155
-    local cmake_config_command=$(echo " \
-      cmake \
-        -S '$PWD/in' \
-        -B '$this_out_dir' \
-        $(build::get_cmake_generator_opt_for_platform "$PLATFORM") \
-        $(build::get_cmake_system_name_opt_for_platform "$PLATFORM") \
-        $(build::get_cmake_extra_for_platform "$PLATFORM") \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DWTR_WATCHER_ROOT_SOURCE_DIR='$PWD/..' \
-        -DWTR_WATCHER_USE_BENCH=ON")
-
-    # echo "$cmake_config_command"
-
-    eval "$cmake_config_command"
-    ok=$((ok + $?))
-
-    #for BENCH in "${BENCHES[@]}"
-    #do
-      this_artifact="$OUT_PLATFORM_DIR/bench/wtr.bench_watcher"
-      cmake \
-        --build "$this_out_dir" \
-        --config Debug \
-        -j8 \
-        --target "wtr.bench_watcher" \
-        && ARTIFACTS+=("$this_artifact")
-      ok=$((ok + $?))
-    #done
-  fi
-
-  EC=$ok
 }
 
 build::run::test() {
-  if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-test
-  then
-    while read -r TEST_PATH
-    do
-      if test -x "$TEST_PATH"
-      then
-        # setup test title
-
-        test_name="${TEST_PATH##*test/}"
-        test_title="$(echo "[ $test_name ]" | sed 's/wtr.test_watcher.test_//g')"
-        chars_on_left_side=$(($((${#TEST_SEPERATOR} - ${#test_title})) / 2))
-        for character in $(seq 1 $chars_on_left_side)
-        do test_title="-$test_title"; done
-        # shellcheck disable=SC2034
-        for character in $(seq 1 $chars_on_left_side)
-        do test ${#test_title} -lt $((${#TEST_SEPERATOR} - 1)) \
-            && test_title="$test_title-"
-        done
-
-        # show seperators
-
-        echo "$TEST_SEPERATOR"
-        echo "$test_title"
-
-        # run test, show & save results
-
+  if test $RUN_TEST -eq 1; then
+    while read -r TEST_PATH; do if test -x "$TEST_PATH"; then
         "$TEST_PATH" \
-          | tee "$TEST_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-
+          | tee "$TEST_PATH.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
       fi
     done <<< "$(\
-      find "$OUT_PLATFORM_DIR" \
+      find "$PWD/build/out/$PLATFORM" \
         -type f \
-        -name "wtr.test_watcher" \
-        -or -name "wtr.test_watcher.exe"\
+        -name "wtr.test_watcher*" \
+        -or -name "wtr.test_watcher*.exe"\
           2> /dev/null)"
   fi
 }
 
 build::run::bench() {
-  if test $EC -eq 0 && ! echo "$*" | grep -q -- --no-run-bench
-  then
-    while read -r BENCH_PATH
-    do
-      if test -x "$BENCH_PATH"
-      then
-        # setup bench title
+  if test $RUN_BENCH -eq 1; then
+    while read -r t; do
+      $t 1>/dev/null "$t.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
+      echo "ran $t, ec: $?"
+    done <<< "$(\
+      find build/out/this -print0 -name 'wtr.test_watcher*' \
+      | xargs -I{} -0 bash -c 'test -f {} && echo {}')"
+  fi
+}
 
-        bench_name="bench/${BENCH_PATH##*bench/}"
-        bench_title="$(echo "[ $bench_name ]" | sed 's/wtr.bench_watcher.bench_//g')"
-        chars_on_left_side=$(($((${#BENCH_SEPERATOR} - ${#bench_title})) / 2))
-        for character in $(seq 1 $chars_on_left_side)
-        do bench_title="-$bench_title"; done
-        # shellcheck disable=SC2034
-        for character in $(seq 1 $chars_on_left_side)
-        do test ${#bench_title} -lt $((${#BENCH_SEPERATOR} - 1)) \
-            && bench_title="$bench_title-"
-        done
-
-        # show seperators
-
-        echo "$TEST_SEPERATOR"
-        echo "$bench_title"
-
-        # run bench, show & save results
-
-        "$BENCH_PATH" \
-          | tee "$BENCH_PATH.result_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-
+build::run::test_and_bench() {
+  # And RUN_$1 -eq 1
+  allowed() {
+    runopt=$(eval echo "\$RUN_$1")
+    re="wtr.$(build::to_lower "$1")_watcher*"
+    [[ -x "$2" && -f "$2" && $runopt -eq 1 && "$2" =~ $re ]]
+  }
+  if test -d build/out; then
+    while read -r t; do
+      if allowed TEST "$t" || allowed BENCH "$t"; then
+        $t 1> "$t.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
+        echo "ran $t, ec: $?"
       fi
     done <<< "$(\
-      find "$OUT_PLATFORM_DIR" \
-        -type f \
-        -name "wtr.bench_watcher" \
-        -or -name "wtr.bench_watcher.exe"\
-          2> /dev/null)"
+      find build/out -print0 -name 'wtr.test_watcher*' -or -name 'wtr.bench_watcher*' \
+      | xargs -I{} -0 bash -c 'test -f {} && echo {}')"
   fi
-}
-
-# @brief build/show/artifacts
-# Shows the artifacts produced.
-# Formats as yaml.
-build::show::artifacts() {
-  if test -n "${ARTIFACTS[*]}"
-  then
-    echo "$BUILD_SEPERATOR"
-    echo 'artifacts:'
-
-    for a in "${ARTIFACTS[@]}"; do
-    echo " - $a"; done
-  fi
-}
-
-# @note build/write/current_artifacts
-# Writes, by date and time, the artifacts,
-# produced in this build invocation only.
-# Links that file to 'build/out/artifacts.txt'.
-build::write::current_artifacts() {
-  latest_artifact_file="$OUT_DIR/artifacts.txt"
-  current_artifact_file="$OUT_DIR/artifacts_$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-
-  test -e "$current_artifact_file" \
-    && rm -rf "$current_artifact_file"
-
-  for a in "${ARTIFACTS[@]}"; do
-  echo "$a" >> "$current_artifact_file"; done
-
-  if ! echo "$*" | grep -q -- --no-build
-  then
-    ln -sf "$current_artifact_file" "$latest_artifact_file"
-  fi
-}
-
-build::clean() {
-  if echo "$*" | grep -q -- --clean
-  then rm -rf "$OUT_DIR"; fi
 }
 
 build::install() {
-  if echo "$*" | grep -q -- --install
-  then
+  if test $INSTALL -eq 1; then
     release_artifact_dir="$OUT_DIR/this/release"
     maybe_sudo="$(test "$(id -u)" = 0 || echo sudo)"
 
@@ -541,14 +266,9 @@ build::install() {
 
 # Other than initializing some variables,
 # nothing is done until right here.
-build::clean "$@" \
-  && build::build "$@" \
-  && build::run::test "$@" \
-  && build::run::bench "$@" \
-  && build::write::current_artifacts "$@" \
-  && build::install "$@"
+build::help "$@" \
+&& build::clean "$@" \
+&& build::build "$@" \
+&& build::run::test_and_bench "$@" \
+&& build::install "$@"
 
-cd "$LAST_DIR" \
-  || exit 1
-
-exit $EC

@@ -1,4 +1,0 @@
-wtr_add_bench_target(
-  "wtr.${WTR_BENCH_WATCHER_PROJECT_NAME}"
-  "${COMPILE_OPTIONS_RELEASE}"
-  "${LINK_OPTIONS}")

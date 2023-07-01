@@ -51,25 +51,37 @@ function(WTR_ADD_TARGET
   endif()
 endfunction()
 
-function(WTR_ADD_TEST_TARGET NAME COPT_SET LOPT_SET)
+function(WTR_ADD_BIN_TARGET NAME SRC_SET COPT_SET LOPT_SET)
+  wtr_add_target(
+    "${NAME}"
+    "OFF" # is test
+    "ON"  # is installable
+    "${SRC_SET}"
+    "${COPT_SET}"
+    "${LOPT_SET}"
+    "${INCLUDE_PATH_SINGLE_HEADER}"
+    "${LINK_LIBRARIES}")
+endfunction()
+
+function(WTR_ADD_TEST_BIN_TARGET NAME SRC_SET CCOPT_SET LOPT_SET)
   wtr_add_target(
     "${NAME}"
     "ON"
     "OFF"
-    "${WTR_TEST_WATCHER_SOURCE_SET}"
-    "${COPT_SET}"
+    "${SRC_SET}"
+    "${CCOPT_SET}"
     "${LOPT_SET}"
     "${INCLUDE_PATH_DEVEL}"
     "${TEST_LINK_LIBRARIES}")
 endfunction()
 
-function(WTR_ADD_BENCH_TARGET NAME COPT_SET LOPT_SET)
+function(WTR_ADD_BENCH_BIN_TARGET NAME SRC_SET CCOPT_SET LOPT_SET)
   wtr_add_target(
     "${NAME}"
     "ON"
     "OFF"
-    "${WTR_BENCH_WATCHER_SOURCE_SET}"
-    "${COPT_SET}"
+    "${SRC_SET}"
+    "${CCOPT_SET}"
     "${LOPT_SET}"
     "${INCLUDE_PATH_DEVEL}"
     "${TEST_LINK_LIBRARIES}")
