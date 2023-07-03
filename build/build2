@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2317
+# shellcheck disable=SC2001
+# SC2317: We use eval. These functions aren't unused.
+# SC2001: GH Runners don't always have variable replacement.
+
+LAST_DIR="$PWD"
+cd "$(dirname "$0")/.." \
+  || return $?
+trap 'cd "$LAST_DIR"' EXIT
+
+just-clean() {
+  cmd="rm -rf '$PWD/build/out'"
+  echo "$cmd"
+  eval "$cmd"
+}
+
+just-help() {
+  echo "
+$0
+  Build the Watcher.
+  This file is a collection of shorthands for CMake invocations
+  which eases over some platform-specific configuration.
+
+Usage:
+  $0 [--help | --clean | [PLATFORM_OPTIONS] [BUILD_OPTIONS] [RUN_OPTIONS]]
+
+Default:
+  $0 --platform-this --build-all --run-all
+
+Platform Options:
+  --platform-android
+  --platform-windows
+  --platform-linux
+  --platform-macos
+  --platform-this     (default)
+  --platform-ios
+  --platform-all
+  --no-platform-android
+  --no-platform-windows
+  --no-platform-linux
+  --no-platform-macos
+  --no-platform-this
+  --no-platform-ios
+  --no-platform
+
+Build Options:
+  --build-release
+  --build-debug
+  --build-bench
+  --build-test
+  --build-all         (default)
+  --no-build-release
+  --no-build-debug
+  --no-build-bench
+  --no-build-test
+  --no-build
+
+Run Options:
+  --run-bench
+  --run-test
+  --run-all           (default)
+  --no-run-bench
+  --no-run-test
+  --no-run-all
+
+Examples:
+  $0 --platform-linux --build-test --run-test
+  $0 --no-run --build-all --platform-all
+  $0 --run-all --no-build --no-platform
+  $0 --build-release --install
+  $0 --run-bench
+  $0 --install
+  $0 --clean
+"
+  exit 0
+}
+
+inargs() {
+  # Nothing is in nothing?
+  [ $# -lt 2 ] && return 1
+  [ $1 == $2 ] && return 0
+  inargs $1 ${@:3}
+}
+
+#
+#  'sh' stands for 'spreadsheet'
+#
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------------- #
+# |                                                                 in                                                                         |         out         | #
+# |--------------------------------------------------------------------------------------------------------------------------------------------|                     | #
+# |                          negative                        |                                         positive                                |                     | #
+# |----------------------------------------------------------|---------------------------------------------------------------------------------|                     | #
+# |              item             |           group          |             item              |         group           |        default        |                     | #
+# |                               |                          |                               |                         |                       |                     | #
+   inargs --no-platform-android $@||inargs --no-platform $@||! { inargs --platform-android $@||inargs --platform-all $@&&                  true;};PLATFORM_ANDROID=$?
+   inargs --no-platform-windows $@||inargs --no-platform $@||! { inargs --platform-windows $@||inargs --platform-all $@&&                  true;};PLATFORM_WINDOWS=$?
+   inargs   --no-platform-linux $@||inargs --no-platform $@||! { inargs   --platform-linux $@||inargs --platform-all $@&&                  true;};  PLATFORM_LINUX=$?
+   inargs   --no-platform-macos $@||inargs --no-platform $@||! { inargs   --platform-macos $@||inargs --platform-all $@&&                  true;};  PLATFORM_MACOS=$?
+   inargs    --no-platform-this $@||inargs --no-platform $@||! { inargs    --platform-this $@||inargs --platform-all $@||! inargs --platform $@;};   PLATFORM_THIS=$?
+   inargs     --no-platform-ios $@||inargs --no-platform $@||! { inargs     --platform-ios $@||inargs --platform-all $@&&                  true;};    PLATFORM_IOS=$?
+   inargs    --no-build-release $@||inargs    --no-build $@||! { inargs    --build-release $@||inargs    --build-all $@||! inargs    --build $@;};   BUILD_RELEASE=$?
+   inargs      --no-build-debug $@||inargs    --no-build $@||! { inargs      --build-debug $@||inargs    --build-all $@||! inargs    --build $@;};     BUILD_DEBUG=$?
+   inargs      --no-build-bench $@||inargs    --no-build $@||! { inargs      --build-bench $@||inargs    --build-all $@||! inargs    --build $@;};     BUILD_BENCH=$?
+   inargs       --no-build-test $@||inargs    --no-build $@||! { inargs       --build-test $@||inargs    --build-all $@||! inargs    --build $@;};      BUILD_TEST=$?
+   inargs        --no-run-bench $@||inargs      --no-run $@||! { inargs        --run-bench $@||inargs      --run-all $@||! inargs      --run $@;};       RUN_BENCH=$?
+   inargs         --no-run-test $@||inargs      --no-run $@||! { inargs         --run-test $@||inargs      --run-all $@||! inargs      --run $@;};        RUN_TEST=$?
+                             false||                  false||! { inargs          --install $@&&                    true&&                  true;};         INSTALL=$?
+                             false||                  false||! { inargs            --clean $@&&                    true&&                  true;};           CLEAN=$?
+                             false||                  false||! { inargs             --help $@&&                    true&&                  true;};            HELP=$?
+                             false||                  false||! { inargs  --inspect-options $@&&                    true&&                  true;}; INSPECT_OPTIONS=$?
+                             false||                  false||! { inargs          --verbose $@&&                    true&&                  true;};         VERBOSE=$?
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------------- #
+
+just-inspect-options() {
+  echo "PLATFORM_ANDROID=$PLATFORM_ANDROID"
+  echo "PLATFORM_WINDOWS=$PLATFORM_WINDOWS"
+  echo "  PLATFORM_LINUX=$PLATFORM_LINUX"
+  echo "  PLATFORM_MACOS=$PLATFORM_MACOS"
+  echo "   PLATFORM_THIS=$PLATFORM_THIS"
+  echo "    PLATFORM_IOS=$PLATFORM_IOS"
+  echo "   BUILD_RELEASE=$BUILD_RELEASE"
+  echo "     BUILD_DEBUG=$BUILD_DEBUG"
+  echo "     BUILD_BENCH=$BUILD_BENCH"
+  echo "      BUILD_TEST=$BUILD_TEST"
+  echo "       RUN_BENCH=$RUN_BENCH"
+  echo "        RUN_TEST=$RUN_TEST"
+  echo "         INSTALL=$INSTALL"
+  echo "           CLEAN=$CLEAN"
+  echo "            HELP=$HELP"
+  exit 0 ; }
+
+# we need to use `tr` here because the bash on
+# some github runners reject the ${var,,} syntax
+to-uppercase() { echo "$1" | tr '[:lower:]' '[:upper:]'; }
+to-lowercase() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
+shellstrip()   { tr '\n' ' ' | sed 's/\r\r/\r/g' | sed 's/  */ /g' ; }
+platforms() {
+  [ $PLATFORM_ANDROID -eq 1 ] && echo 'android'
+  [ $PLATFORM_WINDOWS -eq 1 ] && echo 'windows'
+  [ $PLATFORM_LINUX   -eq 1 ] && echo   'linux'
+  [ $PLATFORM_MACOS   -eq 1 ] && echo   'macos'
+  [ $PLATFORM_THIS    -eq 1 ] && echo    'this'
+  [ $PLATFORM_IOS     -eq 1 ] && echo     'ios'
+  return 0
+}
+platform-out-path-of() {
+  [ -n "$1" ] || return 1
+  case "$1" in
+    android) echo "$PWD/build/out/android";;
+    windows) echo "$PWD/build/out/windows";;
+    linux)   echo  "$PWD/build/out/linux" ;;
+    macos)   echo  "$PWD/build/out/macos" ;;
+    this)    echo   "$PWD/build/out/this" ;;
+    ios)     echo    "$PWD/build/out/ios" ;;
+    *)                           return 1 ;; esac
+}
+out-path()     { echo "$(platform-out-path-of "$1")/$(to-lowercase "$2")"; }
+platform-out-paths() {
+  platforms | while read -r platform
+  do platform-out-path-of "$platform" || return 1
+  done
+}
+infer-sysname() {
+  if [[ -n "$1" && "$1" != this ]]
+  then raw=$1
+  else raw=$(to-lowercase "$(uname)")
+  fi ; case "$raw" in
+    darwin*) echo 'macos'  ;;
+    linux*)  echo 'linux'  ;;
+    mingw*)  echo 'windows';;
+    *)       echo "$raw"   ;; esac
+}
+# Unused, but useful ...
+# bestguess-cmake-generator-of-platform() {
+#   case "$(infer-sysname "$(to-lowercase "$1")")" in
+#     android) echo "-G 'Unix Makefiles'" ;;
+#     windows) echo "-G 'Unix Makefiles'" ;;
+#     linux)   echo "-G 'Unix Makefiles'" ;;
+#     macos)   echo "-G 'Xcode'"          ;;
+#     ios)     echo "-G 'Xcode'"          ;;
+#     *)       echo "-G 'Unix Makefiles'" ;; esac ; }
+cmake-targetsys-of-platform() {
+  case "$(infer-sysname "$(to-lowercase "$1")")" in
+    macos)   echo 'macOS'       ;;
+    windows) echo 'WindowsStore';;
+    linux)   echo 'Linux'       ;;
+    android) echo 'Android'     ;;
+    ios)     echo 'iOS'         ;;
+    *)       return 1           ;; esac
+}
+all-buildcfg-names() {
+  echo Debug
+  echo Release
+}
+all-buildtarget-names() {
+  echo wtr.watcher
+  echo wtr.watcher
+  echo wtr.bench_watcher
+  echo wtr.test_watcher
+}
+# Target configs and names from an argument to this program
+opt-buildcfg-names() {
+  [ $BUILD_DEBUG   -eq 1 ] && echo Debug
+  [ $BUILD_RELEASE -eq 1 ] && echo Release
+}
+opt-buildtarget-names() {
+  [ $BUILD_DEBUG   -eq 1 ] && echo wtr.watcher
+  [ $BUILD_RELEASE -eq 1 ] && echo wtr.watcher
+  [ $BUILD_BENCH   -eq 1 ] && echo wtr.bench_watcher
+  [ $BUILD_TEST    -eq 1 ] && echo wtr.test_watcher
+}
+existing-targets-of-platform() {
+  [ -n "$1" ] || return 1 ; platform=$1
+  all-buildcfg-names \
+  | while read -r buildcfg
+  # find has no equiv of -x
+  do find "$(out-path "$platform" "$buildcfg")" -depth 1 -name 'wtr.*' \
+  | while read -r target
+  do if [[ -x "$target" && -f "$target" ]]
+     then echo "$target"
+     fi
+  done
+  done
+}
+run-for-each-target-pattern-in-path() {
+  [[ -n "$1" && -n "$2" ]] || return 1 ; target_pattern=$1 ; out_path=$2
+  find "$out_path" -depth 1 -name "$target_pattern" \
+  | while read -r target
+  do if test -x "$target"; then
+      echo "running '$target' (from pattern $target_pattern)..."
+      "$target" > "$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
+      echo "ran '$target', ec: $?"
+    fi
+  done
+}
+run-for-each-target-pattern-in-this-platform() {
+  [ -n "$1" ] || return 1
+  target_pattern=$1
+  out_path="$(platform-out-path-of this)"
+  run-for-each-target-pattern-in-path "$target_pattern" "$out_path"
+}
+buildcmd-for-each-platform() {
+  platforms | while read -r platform
+  do opt-buildcfg-names | while read -r cmake_build_type
+    # TODO: while read -r target; do ...
+    do echo "\
+      cmake
+        -S '$PWD'
+        -B '$(out-path "$platform" "$cmake_build_type")'
+        -G 'Unix Makefiles'
+        -DCMAKE_BUILD_TYPE='$cmake_build_type' $(
+        [ "$platform" = Android ] \
+          && echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'")
+        $(targetsysname=$(cmake-targetsys-of-platform "$platform") \
+          && echo "-DCMAKE_SYSTEM_NAME='$targetsysname'")
+      &&
+      cmake
+        --build '$(out-path "$platform" "$cmake_build_type")'
+        --config '$cmake_build_type'
+      ;" | sed -E 's/^  *//g'
+    done
+  done
+}
+build-for-each-platform() {
+  [ $VERBOSE -eq 1 ] && buildcmd-for-each-platform
+  buildcmd-for-each-platform | shellstrip | bash -e
+}
+run-for-each-existing-target-in-platform() {
+  [ $# -eq 2 ] || return 1 ; target_pattern=$1 ; platform=$2
+  [ $VERBOSE -eq 1 ] && echo \
+  "Running targets matching '$target_pattern' in platform '$platform'..."
+
+  existing-targets-of-platform "$platform" \
+  | while read -r target
+    do if echo "$target" | grep -q -- "$target_pattern"
+    then
+      [ $VERBOSE -eq 1 ] && echo "- $target"
+      "$target" | tee "$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
+    fi
+  done
+}
+run-test()  { run-for-each-existing-target-in-platform 'wtr.test_watcher*'  this ; }
+run-bench() { run-for-each-existing-target-in-platform 'wtr.bench_watcher*' this ; }
+
+[ $HELP            -eq 1 ] && just-help
+[ $CLEAN           -eq 1 ] && just-clean
+[ $INSPECT_OPTIONS -eq 1 ] && just-inspect-options
+build-for-each-platform
+[ $RUN_TEST        -eq 1 ] && run-test
+[ $RUN_BENCH       -eq 1 ] && run-bench

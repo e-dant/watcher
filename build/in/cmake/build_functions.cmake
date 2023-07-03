@@ -3,14 +3,14 @@ function(WTR_ADD_TARGET
       IS_TEST
       IS_INSTALLABLE
       SRC_SET
-      COPT_SET
-      LOPT_SET
+      CC_OPT_SET
+      LL_OPT_SET
       INCLUDE_PATH
       LLIB_SET)
   add_executable("${NAME}" "${SRC_SET}")
   set_property(TARGET "${NAME}" PROPERTY CXX_STANDARD "${WTR_WATCHER_CXX_STD}")
-  target_compile_options("${NAME}" PRIVATE "${COPT_SET}")
-  target_link_options("${NAME}" PRIVATE "${LOPT_SET}")
+  target_compile_options("${NAME}" PRIVATE "${CC_OPT_SET}")
+  target_link_options("${NAME}" PRIVATE "${LL_OPT_SET}")
   target_include_directories("${NAME}" PUBLIC "${INCLUDE_PATH}")
   target_link_libraries("${NAME}" PRIVATE "${LLIB_SET}")
 
@@ -51,38 +51,73 @@ function(WTR_ADD_TARGET
   endif()
 endfunction()
 
-function(WTR_ADD_BIN_TARGET NAME SRC_SET COPT_SET LOPT_SET)
+function(WTR_ADD_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
   wtr_add_target(
     "${NAME}"
     "OFF" # is test
     "ON"  # is installable
     "${SRC_SET}"
-    "${COPT_SET}"
-    "${LOPT_SET}"
+    "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
+    "${LINK_OPTIONS};${LL_EXTOPT_SET}"
     "${INCLUDE_PATH_SINGLE_HEADER}"
     "${LINK_LIBRARIES}")
 endfunction()
 
-function(WTR_ADD_TEST_BIN_TARGET NAME SRC_SET CCOPT_SET LOPT_SET)
+function(WTR_ADD_TEST_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
   wtr_add_target(
     "${NAME}"
     "ON"
     "OFF"
     "${SRC_SET}"
-    "${CCOPT_SET}"
-    "${LOPT_SET}"
+    "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
+    "${LINK_OPTIONS};${LL_EXTOPT_SET}"
     "${INCLUDE_PATH_DEVEL}"
-    "${TEST_LINK_LIBRARIES}")
+    "${LINK_LIBRARIES};snitch::snitch")
 endfunction()
 
-function(WTR_ADD_BENCH_BIN_TARGET NAME SRC_SET CCOPT_SET LOPT_SET)
-  wtr_add_target(
+function(WTR_ADD_BENCH_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+  wtr_add_test_bin_target(
     "${NAME}"
-    "ON"
-    "OFF"
     "${SRC_SET}"
-    "${CCOPT_SET}"
-    "${LOPT_SET}"
-    "${INCLUDE_PATH_DEVEL}"
-    "${TEST_LINK_LIBRARIES}")
+    "${CC_EXTOPT_SET}"
+    "${LL_EXTOPT_SET}")
+endfunction()
+
+function(WTR_ADD_AUTOSAN_BIN_TARGET NAME SRC_SET)
+  wtr_add_bin_target("${NAME}" "${SRC_SET}" "" "")
+  foreach(SAN ${SAN_NAMES})
+    if(WTR_WATCHER_ALLOWED_${SAN})
+      wtr_add_bin_target(
+        "${NAME}.${SAN}"
+        "${SRC_SET}"
+        "${CCLL_EXTOPT_SET_${SAN}}"
+        "${CCLL_EXTOPT_SET_${SAN}}")
+    endif()
+  endforeach()
+endfunction()
+
+function(WTR_ADD_AUTOSAN_TEST_BIN_TARGET NAME SRC_SET)
+  wtr_add_test_bin_target("${NAME}" "${SRC_SET}" "" "")
+  foreach(SAN ${SAN_NAMES})
+    if(WTR_WATCHER_ALLOWED_${SAN})
+      wtr_add_test_bin_target(
+        "${NAME}.${SAN}"
+        "${SRC_SET}"
+        "${CCLL_EXTOPT_SET_${SAN}}"
+        "${CCLL_EXTOPT_SET_${SAN}}")
+    endif()
+  endforeach()
+endfunction()
+
+function(WTR_ADD_AUTOSAN_BENCH_BIN_TARGET NAME SRC_SET)
+  wtr_add_bench_bin_target("${NAME}" "${SRC_SET}" "" "")
+  foreach(SAN ${SAN_NAMES})
+    if(WTR_WATCHER_ALLOWED_${SAN})
+      wtr_add_bench_bin_target(
+        "${NAME}.${SAN}"
+        "${SRC_SET}"
+        "${CCLL_EXTOPT_SET_${SAN}}"
+        "${CCLL_EXTOPT_SET_${SAN}}")
+    endif()
+  endforeach()
 endfunction()
