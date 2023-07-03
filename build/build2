@@ -215,7 +215,10 @@ existing-targets-of-platform() {
   all-buildcfg-names \
   | while read -r buildcfg
   # find has no equiv of -x
-  do find "$(out-path "$platform" "$buildcfg")" -depth 1 -name 'wtr.*' \
+  do find \
+    "$(out-path "$platform" "$buildcfg")" \
+    -maxdepth 1 \
+    -name 'wtr.*' \
   | while read -r target
   do if [[ -x "$target" && -f "$target" ]]
      then echo "$target"
@@ -283,9 +286,9 @@ run-for-each-existing-target-in-platform() {
 run-test()  { run-for-each-existing-target-in-platform 'wtr.test_watcher*'  this ; }
 run-bench() { run-for-each-existing-target-in-platform 'wtr.bench_watcher*' this ; }
 
-[ $HELP            -eq 1 ] && just-help
-[ $CLEAN           -eq 1 ] && just-clean
-[ $INSPECT_OPTIONS -eq 1 ] && just-inspect-options
+if [ $HELP            -eq 1 ]; then just-help; fi
+if [ $CLEAN           -eq 1 ]; then just-clean; fi
+if [ $INSPECT_OPTIONS -eq 1 ]; then just-inspect-options; fi
 build-for-each-opt-platform
-[ $RUN_TEST        -eq 1 ] && run-test
-[ $RUN_BENCH       -eq 1 ] && run-bench
+if [ $RUN_TEST        -eq 1 ]; then run-test; fi
+if [ $RUN_BENCH       -eq 1 ]; then run-bench; fi

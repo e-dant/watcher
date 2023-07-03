@@ -62,7 +62,15 @@ auto watch_gather(auto const& /* Title */
       watch_path_list.emplace_back(store_path / std::to_string(i));
 
     auto wps = std::string{};
-    for (auto const& p : watch_path_list) wps += "\"" + p.string() + "\",\n  ";
+    for (auto const& p : watch_path_list) {
+      // Doing this in a more "straightforward"
+      // way has issues with some gcc's builtin memcpy
+      // (within the iostream stdlib headers?)
+      wps.append("\"");
+      wps.append(p.string());
+      wps.append("\",\n  ");
+      // wps += "\"" + p.string() + "\",\n  ";
+    }
 
     std::cout << title << std::endl;
 
