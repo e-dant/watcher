@@ -240,7 +240,7 @@ run-for-each-target-pattern-in-this-platform() {
   out_path="$(platform-out-path-of this)"
   run-for-each-target-pattern-in-path "$target_pattern" "$out_path"
 }
-buildcmd-for-each-platform() {
+buildcmd-for-each-opt-platform() {
   platforms | while read -r platform
   do opt-buildcfg-names | while read -r cmake_build_type
     # TODO: while read -r target; do ...
@@ -262,9 +262,9 @@ buildcmd-for-each-platform() {
     done
   done
 }
-build-for-each-platform() {
-  [ $VERBOSE -eq 1 ] && buildcmd-for-each-platform
-  buildcmd-for-each-platform | shellstrip | bash -e
+build-for-each-opt-platform() {
+  [ $VERBOSE -eq 1 ] && buildcmd-for-each-opt-platform
+  buildcmd-for-each-opt-platform | shellstrip | bash -e
 }
 run-for-each-existing-target-in-platform() {
   [ $# -eq 2 ] || return 1 ; target_pattern=$1 ; platform=$2
@@ -286,6 +286,6 @@ run-bench() { run-for-each-existing-target-in-platform 'wtr.bench_watcher*' this
 [ $HELP            -eq 1 ] && just-help
 [ $CLEAN           -eq 1 ] && just-clean
 [ $INSPECT_OPTIONS -eq 1 ] && just-inspect-options
-build-for-each-platform
+build-for-each-opt-platform
 [ $RUN_TEST        -eq 1 ] && run-test
 [ $RUN_BENCH       -eq 1 ] && run-bench
