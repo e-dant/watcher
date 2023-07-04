@@ -1,5 +1,6 @@
 cmake_policy(SET CMP0048 NEW) # For VERSION in project()
-cmake_minimum_required(VERSION 3.3)
+cmake_policy(SET CMP0069 NEW) # For better IPO support
+cmake_minimum_required(VERSION 3.9)
 
 project(
   wtr.watcher

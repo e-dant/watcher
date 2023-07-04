@@ -51,7 +51,6 @@ fia         --no-run-test || fia      --no-run || ! { fia         --run-test || 
                                                   ! { fia          --install                                           ; };          INSTALL=$?
                                                   ! { fia            --clean                                           ; };            CLEAN=$?
                                                   ! { fia             --help                                           ; };             HELP=$?
-                                                  ! { fia  --inspect-options                                           ; };  INSPECT_OPTIONS=$?
                                                   ! { fia          --verbose                                           ; };          VERBOSE=$?
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -88,7 +87,6 @@ valid-flags() {
   echo -- --no-run-all
   echo -- --clean
   echo -- --help
-  echo -- --inspect-options
   echo -- --verbose
 }
 
@@ -102,7 +100,7 @@ flags-are-valid() {
   done
 }
 
-inspect-options() {
+inspect-all-options() {
   echo "PLATFORM_ANDROID=$PLATFORM_ANDROID"
   echo "PLATFORM_WINDOWS=$PLATFORM_WINDOWS"
   echo "  PLATFORM_LINUX=$PLATFORM_LINUX"
@@ -119,7 +117,15 @@ inspect-options() {
   echo "           CLEAN=$CLEAN"
   echo "            HELP=$HELP"
 }
-just-inspect-options() { inspect-options ; exit 0 ; }
+
+inspect-options() {
+  echo "[$(\
+    to-lowercase \
+    "$(inspect-all-options \
+      | sed 's/.*=0$//' \
+      | shellstrip \
+      | sed 's/=1//g')")]"
+}
 
 help() {
   echo "
@@ -199,16 +205,19 @@ out-path-of() {
   else echo
   fi
 }
+infer-sysname-of() {
+  [ -n "$1" ] || return 1
+  case "$1" in
+    darwin*) echo macos   ;;
+    linux*)  echo linux   ;;
+    mingw*)  echo windows ;;
+    *)       echo "$1"    ;; esac
+}
 infer-sysname() {
   if [[ -n "$1" && "$1" != this ]]
-  then raw=$1
-  else raw=$(to-lowercase "$(uname)")
+  then infer-sysname-of "$1"
+  else infer-sysname-of "$(to-lowercase "$(uname)")"
   fi
-  case "$raw" in
-    darwin*) echo   macos ;;
-    linux*)  echo   linux ;;
-    mingw*)  echo windows ;;
-    *)       echo  "$raw" ;; esac
 }
 # Unused, but useful ...
 # platform-out-paths() {
@@ -278,9 +287,9 @@ all-buildtarget-paths() {
   done
 }
 all-existing-buildtarget-paths() {
-  all-buildtarget-paths | while read -r path
-  do if [ -f "$path" ]
-     then echo "$path"
+  all-buildtarget-paths | while read -r tp
+  do if [ -f "$tp" ]
+     then echo "$tp"
      fi
   done
 }
@@ -297,9 +306,8 @@ opt-buildtargets() {
 }
 existing-targets-of-platform() {
   [ -n "$1" ] || return 1 ; platform=$1
-  all-buildcfgs \
-  | while read -r buildcfg
   # find has no equivalent of -x
+  all-buildcfgs | while read -r buildcfg
   do find \
     "$(out-path-of "$platform" "$buildcfg")" \
     -maxdepth 1 \
@@ -311,85 +319,83 @@ existing-targets-of-platform() {
   done
   done
 }
-run-for-each-target-pattern-in-path() {
-  [[ -n "$1" && -n "$2" ]] || return 1 ; target_pattern=$1 ; out_path=$2
-  find "$out_path" -maxdepth 2 -name "$target_pattern" \
-  | while read -r target
-  do if test -x "$target"
-  then
-      echo "running '$target' (from pattern $target_pattern)..."
-      "$target" > "$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-      echo "ran '$target', ec: $?"
-    fi
-  done
-}
-run-for-each-target-pattern-in-this-platform() {
-  [ -n "$1" ] || return 1
-  target_pattern=$1
-  out_path="$(out-path-of this)"
-  run-for-each-target-pattern-in-path "$target_pattern" "$out_path"
-}
-buildcmd-for-each-opt-platform() {
-  opt-platforms | while read -r platform
-  do opt-buildcfgs | while read -r buildcfg
-    # TODO: while read -r target; do ...
-    do echo "\
-      cmake
-        -S '$PWD'
-        -B '$(out-path-of "$platform" "$buildcfg")'
-        -G 'Unix Makefiles'
-        -DCMAKE_BUILD_TYPE='$buildcfg' $(
-        [ "$platform" = Android ] \
-          && echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'")
-        $(targetsysname=$(cmake-targetsys-of-platform "$platform") \
-          && echo "-DCMAKE_SYSTEM_NAME='$targetsysname'")
-      &&
-      cmake
-        --build '$(out-path-of "$platform" "$buildcfg")'
-        --config '$buildcfg'
-      ;" | sed -E 's/^  *//g'
-    done
-  done
-}
-build-for-each-opt-platform() {
-  [ $VERBOSE -eq 1 ] && buildcmd-for-each-opt-platform
-  buildcmd-for-each-opt-platform | shellstrip | bash -e
-}
-run-matching() {
+existing-matching-targets-in-pathptrn() {
   while read -r full_pathptrn
   do
     target_basepath=$(dirname "$full_pathptrn")
-    target_platform=$(basename "$(dirname "$(dirname "$full_pathptrn")")")
     target_pattern=$(basename "$full_pathptrn")
-    [ $VERBOSE -eq 1 ] && echo \
-    "Running targets matching '$target_pattern' in '$target_basepath'..."
-    existing-targets-of-platform "$target_platform" \
-    | while read -r target_binname
-      do if echo "$target_binname" | grep -q -- "$target_pattern"
-      then
-        [ $VERBOSE -eq 1 ] && echo "- $target_binname"
-        "$target_binname" \
-        | tee "$target_binname.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt"
-      fi
-    done
+    find "$target_basepath" -maxdepth 1 -name "$target_pattern" \
+    | while read -r target_binpath
+      do if test -x "$target_binpath"
+         then echo "$target_binpath"
+         fi
+      done
   done
 }
-run-test()  {
-  all-existing-buildtarget-paths | grep this | grep wtr.test_watcher \
-  | run-matching
+runlog-each() {
+  while read -r target
+  do
+    log_path=$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt
+    [ $VERBOSE -eq 1 ] && echo \
+    "[cfg/bin(log)] $(echo "$target" | sed "s|$(out-path-of this)/||g")($(echo "$log_path" | sed "s|$target||g"))"
+    output=$("$target")
+    ec=$?
+    [ $ec -ne 0 ] && echo "$output"
+    echo "$output" &> "$log_path"
+    echo "ec: $ec" &> "$log_path"
+  done
 }
-run-bench() {
-  all-existing-buildtarget-paths | grep this | grep wtr.bench_watcher \
-  | run-matching
+show-buildcmd-of() {
+  [ $# -eq 2 ] || return 1 ; platform=$1 ; buildcfg=$2
+  echo "\
+    cmake
+      -S '$PWD'
+      -B '$(out-path-of "$platform" "$buildcfg")'
+      -G 'Unix Makefiles'
+      -DCMAKE_BUILD_TYPE='$buildcfg' $(
+      [ "$platform" = Android ] \
+        && echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'")
+      $(targetsysname=$(cmake-targetsys-of-platform "$platform") \
+        && echo "-DCMAKE_SYSTEM_NAME='$targetsysname'")
+    &&
+    cmake
+      --build '$(out-path-of "$platform" "$buildcfg")'
+      --config '$buildcfg'
+    ;" \
+    | sed -E 's/^  *//g'
+}
+opt-show-each-buildcmd() {
+  # TODO: while read -r target; do ...
+     opt-platforms | while read -r platform
+  do opt-buildcfgs | while read -r buildcfg
+  do show-buildcmd-of "$platform" "$buildcfg"
+  done
+  done
+}
+opt-build-each() {
+  [ $VERBOSE -eq 1 ] && opt-show-each-buildcmd
+  opt-show-each-buildcmd | shellstrip | bash -e
+}
+runlog-tests()  {
+  all-existing-buildtarget-paths \
+  | grep -i this/debug/wtr.test_watcher \
+  | existing-matching-targets-in-pathptrn \
+  | runlog-each
+}
+runlog-benches() {
+  all-existing-buildtarget-paths \
+  | grep -i this/release/wtr.bench_watcher \
+  | existing-matching-targets-in-pathptrn \
+  | runlog-each
 }
 
 flags-are-valid || { help ; exit 1 ; }
-if [ $HELP            -eq 1 ]; then just-help; fi
-if [ $CLEAN           -eq 1 ]; then just-clean; fi
-if [ $INSPECT_OPTIONS -eq 1 ]; then just-inspect-options; fi
-if [ $VERBOSE         -eq 1 ]; then inspect-options; fi
-build-for-each-opt-platform
-if [ $RUN_TEST        -eq 1 ]; then run-test; fi
-if [ $RUN_BENCH       -eq 1 ]; then run-bench; fi
+
+[ $VERBOSE   -eq 1 ] && inspect-options
+if [ $HELP   -eq 1 ]; then help   ; exit 0 ; fi
+if [ $CLEAN  -eq 1 ]; then clean || exit 1 ; fi
+opt-build-each                   || exit 1 ;
+[ $RUN_TEST  -eq 1 ] && runlog-tests
+[ $RUN_BENCH -eq 1 ] && runlog-benches
 
 exit 0

@@ -7,25 +7,30 @@ function(WTR_ADD_TARGET
       LL_OPT_SET
       INCLUDE_PATH
       LLIB_SET)
+  include(CheckIPOSupported)
+  include(FetchContent)
+  include(GNUInstallDirs)
   add_executable("${NAME}" "${SRC_SET}")
   set_property(TARGET "${NAME}" PROPERTY CXX_STANDARD "${WTR_WATCHER_CXX_STD}")
   target_compile_options("${NAME}" PRIVATE "${CC_OPT_SET}")
   target_link_options("${NAME}" PRIVATE "${LL_OPT_SET}")
   target_include_directories("${NAME}" PUBLIC "${INCLUDE_PATH}")
   target_link_libraries("${NAME}" PRIVATE "${LLIB_SET}")
-
+  check_ipo_supported(RESULT ipo_supported)
+  if(ipo_supported)
+    set_property(TARGET "${NAME}" PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+  endif()
   if(APPLE)
-    set_property(
-      TARGET "${NAME}"
-      PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.${NAME}")
+  set_property(
+    TARGET "${NAME}"
+    PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.${NAME}")
   endif()
 
   if(IS_TEST)
-    include(CTest)
-    include(FetchContent)
     FetchContent_Declare(
       snitch
       GIT_REPOSITORY https://github.com/cschreib/snitch.git
+      # v1.1.1 Doesn't show time as nice as v1.0.0
       # Tuesday, June 29th, 2023 @ v1.1.1
       GIT_TAG        5ad2fffebf31f3e6d56c2c0ab27bc45d01da2f05
       # Friday, January 20th, 2023 @ v1.0.0
