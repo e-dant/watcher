@@ -2,6 +2,17 @@
 # Ubuntu Workflow
 #
 
+# In the 'Test' step, we could do something like this:
+#   build/out/this/Release/wtr.watcher . -s 5 &
+#   build/out/this/Release/wtr.watcher.asan . -s 5 &
+#   build/out/this/Release/wtr.watcher.ubsan . -s 5 &
+#   build/out/this/Debug/wtr.watcher . -s 5 &
+#   build/out/this/Debug/wtr.watcher.asan . -s 5 &
+#   build/out/this/Debug/wtr.watcher.ubsan . -s 5 &
+#   wait
+# To see if the cli works as intended. But, if they don't finish,
+# that might be a lot of money if I forget to stop the runner...
+
 # https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
 
 name: Ubuntu
@@ -40,17 +51,8 @@ jobs:
       - name: Build
         run: |
           export CXX=$(which ${{matrix.cxx_compiler}})
-          build/build --no-run-test --no-run-bench
+          tool/build --no-run
 
       - name: Test
         run: |
-          build/build --no-build-release --no-build-debug --no-build-test
-          build/out/this/release/wtr.watcher . -s 5 &
-          build/out/this/debug/asan/wtr.watcher . -s 5 &
-          build/out/this/debug/ubsan/wtr.watcher . -s 5 &
-          build/out/this/debug/nosan/wtr.watcher . -s 5 &
-          build/out/this/release/wtr.watcher "$PWD" -s 5 &
-          build/out/this/debug/asan/wtr.watcher "$PWD" -s 5 &
-          build/out/this/debug/ubsan/wtr.watcher "$PWD" -s 5 &
-          build/out/this/debug/nosan/wtr.watcher "$PWD" -s 5 &
-
+          tool/build --no-build
