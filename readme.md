@@ -366,11 +366,14 @@ release version. In the future, it might.
 
 ```
 watcher
+├── flake.nix
+├── flake.lock
 ├── src
-│  ├── wtr.watcher
-│  │  └── main.cpp
-│  └── tiny_watcher
-│     └── main.cpp
+│  └── wtr
+│     ├── watcher
+│     │  └── main.cpp
+│     └── tiny_watcher
+│        └── main.cpp
 ├── include
 │  └── wtr
 │     └── watcher.hpp
@@ -402,7 +405,6 @@ watcher
 │                 └── android
 │                    └── watch.hpp
 └── build
-   ├── build
    ├── out
    └── in
 ```
