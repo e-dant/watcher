@@ -15,8 +15,8 @@ GLOARGS=$@
 
 inargs() {
   # Nothing is in nothing?
-  [ $# -lt 2 ] && return 1
-  [ $1 == $2 ] && return 0
+  [ $# -lt 2    ] && return 1
+  [ "$1" = "$2" ] && return 0
   inargs $1 ${@:3}
 }
 # "Flag in args"
@@ -163,7 +163,7 @@ just-help() { help; exit 0; }
 
 clean() {
   cmd="rm -rf '$PWD/build/out'"
-  [ $VERBOSE -eq 1 ] && echo "$cmd"
+  [ "$VERBOSE" = 1 ] && echo "$cmd"
   eval "$cmd"
 }
 just-clean() { clean; exit 0; }
@@ -173,6 +173,27 @@ just-clean() { clean; exit 0; }
 to-uppercase() { echo "$1"   | tr '[:lower:]' '[:upper:]'          ; }
 to-lowercase() { echo "$1"   | tr '[:upper:]' '[:lower:]'          ; }
 shellstrip()   { tr '\n' ' ' | sed 's/\r\r/\r/g' | sed 's/  */ /g' ; }
+guess-num-lcpu() {
+  if [ "$(uname)" == Linux ]
+  then
+    if [ -f /proc/cpuinfo ]
+    then
+      cat /proc/cpuinfo \
+      | grep 'cpu cores' \
+      | sed -E 's/.*: ([0-9]+)/\1/g' \
+      | while read -r n
+        do tot=$((tot + n))
+        done
+      echo $tot
+    else nproc 2> /dev/null \
+      || echo 1
+    fi
+  elif [ "$(uname)" == Darwin ]
+  then sysctl -n hw.logicalcpu 2> /dev/null \
+    || echo 1
+  else echo 1
+  fi
+}
 all-platforms() {
   echo android
   echo windows
@@ -182,12 +203,12 @@ all-platforms() {
   echo ios
 }
 opt-platforms() {
-  [ $PLATFORM_ANDROID -eq 1 ] && echo android
-  [ $PLATFORM_WINDOWS -eq 1 ] && echo windows
-  [ $PLATFORM_LINUX   -eq 1 ] && echo linux
-  [ $PLATFORM_MACOS   -eq 1 ] && echo macos
-  [ $PLATFORM_THIS    -eq 1 ] && echo this
-  [ $PLATFORM_IOS     -eq 1 ] && echo ios
+  [ "$PLATFORM_ANDROID" = 1 ] && echo android
+  [ "$PLATFORM_WINDOWS" = 1 ] && echo windows
+  [ "$PLATFORM_LINUX"   = 1 ] && echo linux
+  [ "$PLATFORM_MACOS"   = 1 ] && echo macos
+  [ "$PLATFORM_THIS"    = 1 ] && echo this
+  [ "$PLATFORM_IOS"     = 1 ] && echo ios
   return 0
 }
 out-path-of() {
@@ -295,14 +316,14 @@ all-existing-buildtarget-paths() {
 }
 # Target configs and names from an argument to this program
 opt-buildcfgs() {
-  [ $BUILD_DEBUG   -eq 1 ] && echo Debug
-  [ $BUILD_RELEASE -eq 1 ] && echo Release
+  [ "$BUILD_DEBUG"   = 1 ] && echo Debug
+  [ "$BUILD_RELEASE" = 1 ] && echo Release
 }
 opt-buildtargets() {
-  [ $BUILD_DEBUG   -eq 1 ] && echo wtr.watcher
-  [ $BUILD_RELEASE -eq 1 ] && echo wtr.watcher
-  [ $BUILD_BENCH   -eq 1 ] && echo wtr.bench_watcher
-  [ $BUILD_TEST    -eq 1 ] && echo wtr.test_watcher
+  [ "$BUILD_DEBUG"   = 1 ] && echo wtr.watcher
+  [ "$BUILD_RELEASE" = 1 ] && echo wtr.watcher
+  [ "$BUILD_BENCH"   = 1 ] && echo wtr.bench_watcher
+  [ "$BUILD_TEST"    = 1 ] && echo wtr.test_watcher
 }
 existing-targets-of-platform() {
   [ -n "$1" ] || return 1 ; platform=$1
@@ -336,7 +357,7 @@ runlog-each() {
   while read -r target
   do
     log_path=$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt
-    [ $VERBOSE -eq 1 ] && echo \
+    [ "$VERBOSE" = 1 ] && echo \
     "[cfg/bin(log)] $(echo "$target" | sed "s|$(out-path-of this)/||g")($(echo "$log_path" | sed "s|$target||g"))"
     output=$("$target")
     ec=$?
@@ -361,6 +382,7 @@ show-buildcmd-of() {
     cmake
       --build '$(out-path-of "$platform" "$buildcfg")'
       --config '$buildcfg'
+      --parallel $(guess-num-lcpu)
     ;" \
     | sed -E 's/^  *//g'
 }
@@ -373,7 +395,7 @@ opt-show-each-buildcmd() {
   done
 }
 opt-build-each() {
-  [ $VERBOSE -eq 1 ] && opt-show-each-buildcmd
+  [ "$VERBOSE" = 1 ] && opt-show-each-buildcmd
   opt-show-each-buildcmd | shellstrip | bash -e
 }
 runlog-tests()  {
@@ -391,11 +413,11 @@ runlog-benches() {
 
 flags-are-valid || { help ; exit 1 ; }
 
-[ $VERBOSE   -eq 1 ] && inspect-options
-if [ $HELP   -eq 1 ]; then help   ; exit 0 ; fi
-if [ $CLEAN  -eq 1 ]; then clean || exit 1 ; fi
-opt-build-each                   || exit 1 ;
-[ $RUN_TEST  -eq 1 ] && runlog-tests
-[ $RUN_BENCH -eq 1 ] && runlog-benches
+if [ "$VERBOSE" = 1 ]; then inspect-options ; fi
+if [ "$HELP"    = 1 ]; then help   ; exit 0 ; fi
+if [ "$CLEAN"   = 1 ]; then clean || exit 1 ; fi
+opt-build-each                    || exit 1 ;
+[ "$RUN_TEST"   = 1 ] && runlog-tests
+[ "$RUN_BENCH"  = 1 ] && runlog-benches
 
 exit 0
