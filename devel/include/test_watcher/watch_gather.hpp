@@ -7,6 +7,7 @@
 #include <mutex>
 #include <vector>
 #include <tuple>
+#include <memory>
 #include <utility>
 #include <filesystem>
 #include <iostream>
@@ -19,17 +20,6 @@
 namespace wtr {
 namespace test_watcher {
 
-/* @brief
-     - Create a watcher for each `concurrency_level`
-     - For each watcher:
-       - Create event(s)
-       - Kill watcher(s)
-
-   @return
-     pair of expected and recieved events
-
-   @todo
-     Make printing an option */
 auto watch_gather(auto const& /* Title */
                     title = "test",
                   auto const& /* Store Path */
@@ -51,7 +41,7 @@ auto watch_gather(auto const& /* Title */
   auto event_sent_list = std::vector<wtr::watcher::event>{};
   auto watch_path_list = std::vector<std::filesystem::path>{};
 
-  auto lifetimes = std::vector<std::function<bool()>>{};
+  auto lifetimes = std::vector<std::unique_ptr<wtr::watcher::watch>>{};
 
   /* Setup */
   {
@@ -64,8 +54,8 @@ auto watch_gather(auto const& /* Title */
     auto wps = std::string{};
     for (auto const& p : watch_path_list) {
       // Doing this in a more "straightforward"
-      // way has issues with some gcc's builtin memcpy
-      // (within the iostream stdlib headers?)
+      // way has issues with some gcc's (builtin memcpy
+      // within the iostream stdlib headers?)
       wps.append("\"");
       wps.append(p.string());
       wps.append("\",\n  ");
@@ -98,16 +88,18 @@ auto watch_gather(auto const& /* Title */
       assert(std::filesystem::exists(p));
 
       lifetimes.emplace_back(
-        wtr::watcher::watch(p,
-                            [&](wtr::watcher::event const& ev)
-                            {
-                              auto _ = std::scoped_lock{event_recv_list_mtx};
-                              std::cout << ev << std::endl;
-                              auto ok_add = true;
-                              for (auto const& p : watch_path_list)
-                                if (ev.where == p) ok_add = false;
-                              if (ok_add) event_recv_list.emplace_back(ev);
-                            }));
+        std::make_unique<
+          wtr::watcher::watch>(
+            p,
+            [&](wtr::watcher::event const& ev)
+            {
+              auto _ = std::scoped_lock{event_recv_list_mtx};
+              std::cout << ev << std::endl;
+              auto ok_add = true;
+              for (auto const& p : watch_path_list)
+                if (ev.where == p) ok_add = false;
+              if (ok_add) event_recv_list.emplace_back(ev);
+            }));
     }
   }
 
@@ -137,12 +129,6 @@ auto watch_gather(auto const& /* Title */
   /* Wait */
   {
     std::this_thread::sleep_for(pre_stop_watch_delay);
-  }
-
-  /* Stop Watchers */
-  {
-    for (auto& f : lifetimes)
-      if (! f()) assert(false);
   }
 
   /* Show Results */

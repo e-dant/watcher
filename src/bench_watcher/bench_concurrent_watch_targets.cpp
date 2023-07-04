@@ -73,11 +73,11 @@ public:
 
     auto start = ti::system_clock{}.now();
 
-    auto watchers = std::array<std::unique_ptr<ww::Watch>, cfg.watcher_count>{};
+    auto watchers = std::array<std::unique_ptr<ww::watch>, cfg.watcher_count>{};
 
     for (int i = 0; i < cfg.watcher_count; ++i)
       watchers.at(i) = std::move(
-          std::make_unique<ww::Watch>(
+          std::make_unique<ww::watch>(
             tw::test_store_path,
               [](auto) {}
             ));
@@ -129,25 +129,25 @@ constexpr auto bench_range() -> void
 //   fatal error: template instantiation depth exceeds
 //   maximum of <some number, usually around 1k>
 
-TEST_CASE("Bench Concurrent Watch Targets", "[bench][concurrent][file][watch-target]")
+TEST_CASE("Bench Concurrent watch Targets", "[bench][concurrent][file][watch-target]")
 {
-  printf("Watcher count|Event count|Time taken:\n");
+  printf("watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=1000, .step=100}}>();
 };
 
-TEST_CASE("Bench Concurrent Watch Targets 2", "[bench][concurrent][file][watch-target]")
+TEST_CASE("Bench Concurrent watch Targets 2", "[bench][concurrent][file][watch-target]")
 {
-  printf("Watcher count|Event count|Time taken:\n");
+  printf("watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=30, .step=5},
     .event_range={.start=100, .stop=100, .step=0}}>();
 };
 
-TEST_CASE("Bench Concurrent Watch Targets 3", "[bench][concurrent][file][watch-target]")
+TEST_CASE("Bench Concurrent watch Targets 3", "[bench][concurrent][file][watch-target]")
 {
-  printf("Watcher count|Event count|Time taken:\n");
+  printf("watcher count|Event count|Time taken:\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=10000, .step=1000}}>();

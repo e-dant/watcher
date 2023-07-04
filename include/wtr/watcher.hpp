@@ -2404,7 +2404,7 @@ inline namespace watcher {
     That's it.
 
     Happy hacking. */
-class Watch {
+class watch {
 private:
   using Callback = ::wtr::watcher::event::callback;
   using Path = ::std::filesystem::path;
@@ -2417,11 +2417,11 @@ public:
     return ::detail::wtr::watcher::adapter::close(this->fut);
   };
 
-  inline Watch(Path const& path, Callback const& callback) noexcept
+  inline watch(Path const& path, Callback const& callback) noexcept
       : fut{::detail::wtr::watcher::adapter::open(path, callback)}
   {}
 
-  inline ~Watch() noexcept { this->close(); }
+  inline ~watch() noexcept { this->close(); }
 };
 
 inline namespace v0_8 {
@@ -2501,7 +2501,7 @@ struct _ {
             "auto w = watch(p, cb) ; w.close() // or w();")]]
 
 inline auto
-watch(std::filesystem::path const& path,
+watch0(std::filesystem::path const& path,
       event::callback const& callback) noexcept
 {
   using namespace ::detail::wtr::watcher::adapter;

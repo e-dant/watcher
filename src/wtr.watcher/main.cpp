@@ -53,19 +53,20 @@ auto watch_forever_or_expire(
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
 
-    auto const die = wtr::watch(path, callback);
+    {
+      auto watcher = wtr::watch(path, callback);
 
-    std::this_thread::sleep_for(alive_for.value());
+      std::this_thread::sleep_for(alive_for.value());
 
-    auto const dead = die();
+    }
 
     std::cout << "}"
               << "\n,\"milliseconds\":"
               << duration_cast<milliseconds>(system_clock::now() - then).count()
-              << "\n,\"dead\":" << (dead ? "true" : "false") << "\n}}}"
+              << "\n}}}"
               << std::endl;
 
-    return dead;
+    return true;
   };
 
   /*  Watch forever. */
