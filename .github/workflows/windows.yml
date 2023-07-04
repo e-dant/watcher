@@ -55,8 +55,8 @@ jobs:
 
       - name: Build
         run: |
-          bash -c 'tool/build --no-run'
+          bash -c 'tool/build --verbose --no-run'
 
       - name: Test
         run: |
-          bash -c 'tool/build --no-build'
+          bash -c 'tool/build --verbose --no-build'

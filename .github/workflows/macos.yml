@@ -40,8 +40,8 @@ jobs:
       - name: Build
         run: |
           export CXX="$(which "${{matrix.cxx_compiler}}")"
-          tool/build --no-run
+          tool/build --verbose --no-run
 
       - name: Test
         run: |
-          tool/build --no-build
+          tool/build --verbose --no-build
