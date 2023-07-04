@@ -1,17 +1,17 @@
 - given name
 echo watcher
 - given build
-echo build/build
+echo tool/build
 - given run
 echo build/out/this/release/wtr.watcher
 - given bun
 echo eval `tell build`' && eval '`tell run`
 - given dbuild
-echo build/build
+echo tool/build
 - given drun
 echo lldb build/out/this/debug/ubsan/wtr.watcher
 - given dbun
 echo eval `tell dbuild`' && lldb build/out/this/debug/ubsan/wtr.watcher'
 - given clean
-echo 'rm -rf build/out/* build/out/.cache build/out/.ninja_*'
+echo 'rm -rf build/out'
 

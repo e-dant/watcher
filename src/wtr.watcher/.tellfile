@@ -1,7 +1,7 @@
 - given name
 echo watcher program source
 - given build
-echo ../../build/build
+echo ../../tool/build
 - given run
 echo ../../build/out/this/release/wtr.watcher
 

@@ -39,7 +39,7 @@ int main()
   // Closing the watcher is a blocking operation.
   // The watcher is closed when it goes out of scope,
   // but you can manually close it like this:
-  watcher.close();
+  // watcher.close();
 }
 
 ```
@@ -87,8 +87,8 @@ Just use ours and you've got yourself a filesystem watcher which prints
 filesystem events as JSON. Neat. Here's how:
 ```bash
 git clone https://github.com/e-dant/watcher.git && cd watcher # The main branch is the (latest) release branch.
-build/build this --no-build-debug --no-build-test --no-run-test # Build the release version for the host platform.
-build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is a .exe on Windows.)
+tool/build --no-build-test --no-build-bench --no-run-test # Build the release version for the host platform.
+build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
 ```
 
 3. Efficient
@@ -254,7 +254,7 @@ kind of thing.
 #### `build` Script
 
 ```sh
-build/build
+tool/build
 cd build/out/this/release
 
 # watches the current directory forever
@@ -263,11 +263,9 @@ cd build/out/this/release
 ./wtr.watcher 'your/favorite/path' -s 10
 ```
 
-This will take care of:
-  - Building a compiler if one is not found
-  - Linking the `compile_commands.json` file
-    to this project's root
-  - Building the project's debug and release variants
+This will take care of some platform-specifics, building the
+release, debug, and sanitizer variants, and running the unit
+tests and benchmarks.
 
 #### CMake
 
@@ -352,7 +350,7 @@ LL miss rate:          0.0% (        0.0%     +         0.0%  )
 **The user should only ever need to use the file `wtr/watcher.hpp` (and maybe this readme).**
 
 Namespaces and symbols closely follow the directories in the `devel/include` folder.
-Inline namespaces are in directories the the `-` affix.
+Inline namespaces are in directories with the `-` affix.
 
 For example, `wtr::watch` is inside the file `devel/include/wtr/watcher-/watch.hpp`.
 The namespace `watcher` in `wtr::watcher::watch` is anonymous by this convention.
