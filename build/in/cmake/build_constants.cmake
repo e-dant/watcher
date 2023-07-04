@@ -55,7 +55,7 @@ endif()
 set(WTR_WATCHER_SOURCE_SET
   "main") # TODO this should be more clear. We have tons of mains.
 list(TRANSFORM WTR_WATCHER_SOURCE_SET PREPEND
-  "src/wtr.watcher/") # TODO get wtr. out of here
+  "src/wtr/watcher/")
 list(TRANSFORM WTR_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(WTR_TEST_WATCHER_SOURCE_SET
@@ -64,13 +64,13 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "test_new_directories"
   "test_simple")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET PREPEND
-  "src/test_watcher/")
+  "src/wtr/test_watcher/")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(WTR_BENCH_WATCHER_SOURCE_SET
   "bench_concurrent_watch_targets")
 list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET PREPEND
-  "src/bench_watcher/")
+  "src/wtr/bench_watcher/")
 list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(INCLUDE_PATH_SINGLE_HEADER

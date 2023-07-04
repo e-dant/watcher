@@ -48,7 +48,7 @@ int main()
 # Sigh
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
-eval c++ -std=c++2a -O3 src/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
+eval c++ -std=c++2a -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 # Run
 ./watcher
 ```
@@ -122,7 +122,7 @@ is a filesystem.
 The important pieces are the (header-only) library and the (optional) CLI program.
 
 - Library: `include/wtr/watcher.hpp`. Include this to use *Watcher* in your project.
-- Program: `src/wtr.watcher/main.cpp`. Build this to use *Watcher* from the command line.
+- Program: `src/wtr/watcher/main.cpp`. Build this to use *Watcher* from the command line.
 
 A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#namespaces-and-the-directory-tree).
 
@@ -238,7 +238,7 @@ commit, right before writing this paragraph.
 
 Which is pretty cool.
 
-A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/wtr.watcher/main.cpp).
+A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/wtr/watcher/main.cpp).
 
 ## Consume
 
