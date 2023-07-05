@@ -176,7 +176,7 @@ shellstrip()   { tr '\n' ' ' | sed 's/\r\r/\r/g' | sed 's/  */ /g' ; }
 guess-num-lcpu() {
   if [ "$(uname)" == Linux ]
   then
-    if [ -f /proc/cpuinfo ] && grep 'cpu cores' /proc/cpuinfo
+    if [ -f /proc/cpuinfo ] && grep -q 'cpu cores' /proc/cpuinfo
     then
       cat /proc/cpuinfo \
       | grep 'cpu cores' \
@@ -185,7 +185,7 @@ guess-num-lcpu() {
         do tot=$((tot + n))
         done
       echo $tot
-    elif [ -f /proc/cpuinfo ] && grep 'processor' /proc/cpuinfo
+    elif [ -f /proc/cpuinfo ] && grep -q 'processor' /proc/cpuinfo
     then
       cat /proc/cpuinfo \
       | grep 'processor' \
