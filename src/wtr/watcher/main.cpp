@@ -1,3 +1,4 @@
+#include "wtr/watcher.hpp"
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
@@ -6,9 +7,8 @@
 #include <iostream>
 #include <optional>
 #include <string>
-#include <tuple>
 #include <thread>
-#include "wtr/watcher.hpp"
+#include <tuple>
 
 /*  @todo
     [ -fwhat < all rename modify create destroy owner other > = all ]
@@ -57,14 +57,12 @@ auto watch_forever_or_expire(
       auto watcher = wtr::watch(path, callback);
 
       std::this_thread::sleep_for(alive_for.value());
-
     }
 
     std::cout << "}"
               << "\n,\"milliseconds\":"
               << duration_cast<milliseconds>(system_clock::now() - then).count()
-              << "\n}}}"
-              << std::endl;
+              << "\n}}}" << std::endl;
 
     return true;
   };

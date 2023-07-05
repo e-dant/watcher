@@ -1,11 +1,11 @@
 #pragma once
 
+#include "wtr/watcher.hpp"
 #include <filesystem>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

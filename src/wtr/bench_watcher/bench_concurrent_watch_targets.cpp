@@ -1,16 +1,15 @@
-#include <algorithm>
-#include <chrono>
-#include <tuple>
-#include <fstream>
-#include <cstdio>
-#include <memory>
-#include <array>
-#include <vector>
-#include <utility>
-
 #include "snitch/snitch.hpp"
-#include "wtr/watcher.hpp"
 #include "test_watcher/constant.hpp"
+#include "wtr/watcher.hpp"
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdio>
+#include <fstream>
+#include <memory>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 // clang-format off
 

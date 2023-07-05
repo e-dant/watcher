@@ -1,7 +1,7 @@
 #pragma once
 
-#include <chrono>     /* milliseconds */
-#include <filesystem> /* current_path, operator/ */
+#include <chrono>
+#include <filesystem>
 
 namespace wtr {
 namespace test_watcher {

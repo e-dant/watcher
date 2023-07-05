@@ -1,17 +1,17 @@
 #pragma once
 
-#include <cassert>
-#include <thread>
-#include <vector>
-#include <cmath>
-#include <numeric>
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <filesystem>
-
+#include "snitch/snitch.hpp"
 #include "test_watcher/constant.hpp"
 #include "wtr/watcher.hpp"
+#include <cmath>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <string>
+#include <thread>
+#include <vector>
 
 namespace wtr {
 namespace test_watcher {
@@ -35,8 +35,8 @@ auto mk_events(std::filesystem::path const& base_path,
 
   /* - The path count must be even
      - The path count must be greater than 1 */
-  assert(path_count % 2 == 0);
-  assert(path_count > 1);
+  REQUIRE(path_count % 2 == 0);
+  REQUIRE(path_count > 1);
 
   std::vector<int> path_indices(path_count);
 
@@ -49,37 +49,22 @@ auto mk_events(std::filesystem::path const& base_path,
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
-      auto ev = event{path, event::what::create, event::kind::file};
-      event_list->push_back(ev);
-      std::ofstream{path}; /* NOLINT */
-      auto has = false;
-      for (auto& i : *event_list)
-        if (i == ev) has = true;
-      if (! has) assert(has);
-      assert(std::filesystem::exists(path));
+      event_list->push_back(
+        wtr::event{path, wtr::event::what::create, wtr::event::kind::file});
+      auto _ = std::ofstream{path};
     }
     else {
-      auto ev = event{path, event::what::destroy, event::kind::file};
-      event_list->push_back(ev);
+      event_list->push_back(
+        wtr::event{path, wtr::event::what::destroy, wtr::event::kind::file});
       std::filesystem::remove(path);
-      auto has = false;
-      for (auto& i : *event_list)
-        if (i == ev) has = true;
-      if (! has) assert(has);
-      assert(! std::filesystem::exists(path));
     }
   }
 
-  if (options & mk_events_die_after) {
-    auto ev = event{std::string("s/self/die@").append(base_path.string()),
-                    event::what::destroy,
-                    event::kind::watcher};
-    event_list->push_back(ev);
-    auto has = false;
-    for (auto& i : *event_list)
-      if (i == ev) has = true;
-    if (! has) assert(has);
-  }
+  if (options & mk_events_die_after)
+    event_list->push_back(
+      wtr::event{std::string("s/self/die@").append(base_path.string()),
+                 wtr::event::what::destroy,
+                 wtr::event::kind::watcher});
 }
 
 inline auto mk_revents(auto const& watch_path,
@@ -91,6 +76,47 @@ inline auto mk_revents(auto const& watch_path,
                    path_count,
                    event_list,
                    options |= mk_events_reverse);
+}
+
+inline auto check_event_lists_eq(auto const& event_sent_list,
+                                 auto const& event_recv_list)
+{
+  auto const max_i = event_sent_list.size() > event_recv_list.size()
+                     ? event_recv_list.size()
+                     : event_sent_list.size();
+  for (size_t i = 0; i < max_i; ++i) {
+    if (event_sent_list[i].kind != wtr::watcher::event::kind::watcher) {
+      if (event_sent_list[i].where != event_recv_list[i].where)
+        std::cerr << "Bad .where field... (" << event_sent_list[i].where
+                  << " vs " << event_recv_list[i].where << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i] << "\n";
+      if (event_sent_list[i].what != event_recv_list[i].what)
+        std::cerr << "Bad .what field... (" << event_sent_list[i].what << " vs "
+                  << event_recv_list[i].what << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i] << "\n";
+      if (event_sent_list[i].kind != event_recv_list[i].kind)
+        std::cerr << "Bad .kind field... (" << event_sent_list[i].kind << " vs "
+                  << event_recv_list[i].kind << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i] << "\n";
+      CHECK(event_sent_list[i].where == event_recv_list[i].where);
+      CHECK(event_sent_list[i].what == event_recv_list[i].what);
+      CHECK(event_sent_list[i].kind == event_recv_list[i].kind);
+    }
+  }
+
+  std::cerr << "Last event in sent list: " << event_sent_list.back() << "\n";
+  std::cerr << "Last event in recv list: " << event_recv_list.back() << "\n";
+
+  CHECK(event_sent_list.size() == event_recv_list.size());
+}
+
+inline auto check_event_lists_eq(auto const& lists)
+{
+  auto [event_sent_list, event_recv_list] = lists;
+  check_event_lists_eq(event_sent_list, event_recv_list);
 }
 
 } /* namespace test_watcher */

@@ -1,21 +1,21 @@
-#include <tuple>
-#include <iostream>
-#include <future>
-#include <thread>
-#include <vector>
-#include <string>
-#include <chrono>
-#include <mutex>
-#include <filesystem>
-
 #include "snitch/snitch.hpp"
-#include "wtr/watcher.hpp"
 #include "test_watcher/test_watcher.hpp"
+#include "wtr/watcher.hpp"
+#include <chrono>
+#include <filesystem>
+#include <future>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <vector>
 
 /* Test that files are scanned */
 TEST_CASE("New Directories", "[test][dir][watch-target]")
 {
   namespace fs = ::std::filesystem;
+  using namespace ::std::chrono_literals;
   using namespace ::wtr::watcher;
   using namespace ::wtr::test_watcher;
 
@@ -42,7 +42,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
      This sleep is hiding a bug on darwin which picks
      up events slightly before we start watching. I'm
      ok with that bit of wiggle-room. */
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(100ms);
 
   event_sent_list.push_back(
     {std::string("s/self/live@").append(base_store_path.string()),
@@ -60,14 +60,14 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
   /* @todo
      This sleep is hiding a bug on Linux which begins
      watching very slightly after we ask it to. */
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(10ms);
 
   for (auto const& p : new_store_path_list) {
     fs::create_directory(p);
     event_sent_list.push_back(event{p, event::what::create, event::kind::dir});
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(10ms);
 
   for (int i = 0; i < path_count; i++) {
     for (auto const& p : store_path_list) {
@@ -83,7 +83,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
          we're processing batches of events -- or it could
          be on the kernel's end... just dropping events.
          We should investigate and fix it if we can. */
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(10ms);
 
       auto const new_file_path = new_dir_path / "file.txt";
       std::ofstream{new_file_path}; /* NOLINT */
@@ -91,11 +91,11 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
       event_sent_list.push_back(
         event{new_file_path, event::what::create, event::kind::file});
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(10ms);
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(10ms);
 
   event_sent_list.push_back(
     {std::string("s/self/die@").append(base_store_path.string()),
@@ -109,26 +109,5 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
   fs::remove_all(base_store_path);
   REQUIRE(! fs::exists(base_store_path));
 
-  auto const max_i = event_sent_list.size() > event_recv_list.size()
-                     ? event_recv_list.size()
-                     : event_sent_list.size();
-  for (size_t i = 0; i < max_i; ++i) {
-    if (event_sent_list[i].kind != event::kind::watcher) {
-      if (event_sent_list[i].where != event_recv_list[i].where)
-        std::cout << "[ where ] [ " << i << " ] sent "
-                  << event_sent_list[i].where << ", but received "
-                  << event_recv_list[i].where << "\n";
-      if (event_sent_list[i].what != event_recv_list[i].what)
-        std::cout << "[ what ] [ " << i << " ] sent " << event_sent_list[i].what
-                  << ", but received " << event_recv_list[i].what << "\n";
-      if (event_sent_list[i].kind != event_recv_list[i].kind)
-        std::cout << "[ kind ] [ " << i << " ] sent " << event_sent_list[i].kind
-                  << ", but received " << event_recv_list[i].kind << "\n";
-      REQUIRE(event_sent_list[i].where == event_recv_list[i].where);
-      REQUIRE(event_sent_list[i].what == event_recv_list[i].what);
-      REQUIRE(event_sent_list[i].kind == event_recv_list[i].kind);
-    }
-  }
-
-  REQUIRE(event_sent_list.size() == event_recv_list.size());
+  check_event_lists_eq(event_sent_list, event_recv_list);
 };

@@ -1,6 +1,5 @@
 #pragma once
 
-/* system_clock::now, milliseconds */
 #include <chrono>
 
 namespace wtr {

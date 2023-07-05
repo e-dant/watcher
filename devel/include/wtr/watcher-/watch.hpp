@@ -154,7 +154,7 @@ struct _ {
 
 inline auto
 watch0(std::filesystem::path const& path,
-      event::callback const& callback) noexcept
+       event::callback const& callback) noexcept
 {
   using namespace ::detail::wtr::watcher::adapter;
 
