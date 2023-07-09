@@ -178,16 +178,18 @@ guess-num-lcpu() {
   then
     if [ -f /proc/cpuinfo ] && grep -q 'cpu cores' /proc/cpuinfo
     then
-      grep 'cpu cores' /proc/cpuinfo \
+      cat /proc/cpuinfo \
+      | grep 'cpu cores' \
       | sed -E 's/.*: ([0-9]+)/\1/g' \
       | while read -r n
-        do
-          for _ in $(seq 1 "$n")
-          do echo .
-          done | wc -l
+        do tot=$((tot + n))
         done
+      echo $tot
     elif [ -f /proc/cpuinfo ] && grep -q 'processor' /proc/cpuinfo
-    then grep -c 'processor' /proc/cpuinfo
+    then
+      cat /proc/cpuinfo \
+      | grep 'processor' \
+      | wc -l
     else nproc 2> /dev/null \
       || echo 1
     fi
@@ -365,8 +367,8 @@ runlog-each() {
     output=$("$target")
     ec=$?
     [ $ec -ne 0 ] && echo "$output"
-    echo "$output" > "$log_path" 2>&1
-    echo "ec: $ec" > "$log_path" 2>&1
+    echo "$output" &> "$log_path"
+    echo "ec: $ec" &> "$log_path"
   done
 }
 show-buildcmd-of() {

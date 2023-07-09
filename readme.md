@@ -270,7 +270,7 @@ tests and benchmarks.
 #### CMake
 
 ```sh
-cmake -S build/in -B build/out
+cmake -S . -B build/out
 cmake --build build/out --config Release
 cd build/out
 

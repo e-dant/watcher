@@ -2,6 +2,8 @@
 
 ## 0.9.0
 
+### API (0.9.0)
+
 The API is now RAII-safe.
 
 This hadn't been part of the API for a long time because I had been exploring
@@ -12,6 +14,57 @@ could write a separate C-style API for them to use.
 This is a minor release because it affects the API. Current users shouldn't
 notice the API change, though. Manually closing the watcher is still just fine,
 which is how it had been done before.
+
+### Build (0.9.0)
+
+The relative source and module paths seem to work inconsistently on Windows
+and Nix (flakes). The CMake files used to live around
+the `build/in` and `build/in/cmake` directories. For now, it seems easiest to
+leave them in the project's root directory. If you had been building like this:
+
+`cmake -S build/in -B build/out ...`
+
+You should build like this now:
+
+`cmake -S . -B build/out ...`
+
+The sanitizer build don't live in subdirectories. They live alongside the other
+binaries, affixed with the sanitizer name.
+
+The unit test and bench targets aren't broken up by their test name. All the unit
+tests have a single target. The benches have another target.
+
+A build directory which previously looked like this:
+
+```
+build/out/this:
+    nosan:
+        wtr.watcher
+        wtr.test_watcher.<test name>
+        wtr.bench_watcher.<bench name>
+        <other binaries ...>
+    asan:
+        wtr.watcher
+        <other binaries ...>
+    <other sanitizers ...>
+```
+
+Will now look like this:
+
+```
+build/out/this:
+    wtr.watcher
+    wtr.test_watcher
+    wtr.bench_watcher
+    wtr.watcher.<sanitizer name>
+    wtr.test_watcher.<sanitizer name>
+    wtr.bench_watcher.<sanitizer name>
+```
+
+Multi-configuration build systems will still break up all of the targets into
+subdirectories by their build-configuration name. Those build systems are typical
+of IDEs. The configuration names are typically `Debug`, `Release`, `MinSizeRel`
+and `RelWithDebInfo`. (That behavior hasn't changed.)
 
 ## 0.8.8
 
