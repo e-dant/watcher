@@ -21,7 +21,7 @@
               pname = "wtr-watcher";
               version = "0.8.8";
               src = self;
-              nativeBuildInputs = [ cmake ];
+              nativeBuildInputs = [ cmake cacert git ]; # cacert and git for cmake fetchcontent
               buildPhase = ''
                 cmake \
                   --build . \
