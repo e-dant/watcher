@@ -17,10 +17,12 @@ which is how it had been done before.
 
 ### Build (0.9.0)
 
-The relative source and module paths seem to work inconsistently on Windows
-and Nix (flakes). The CMake files used to live around
-the `build/in` and `build/in/cmake` directories. For now, it seems easiest to
-leave them in the project's root directory. If you had been building like this:
+The relative source and module paths seem to behave oddly on Windows and Nix
+(flakes). The CMake files used to live around the `build/in` and
+`build/in/cmake` directories. For now, it seems easiest to leave them in the
+project's root directory.
+
+If you had been building like this:
 
 `cmake -S build/in -B build/out ...`
 
