@@ -379,7 +379,7 @@ show-buildcmd-of() {
       -B '$(out-path-of "$platform" "$buildcfg")'
       -G 'Unix Makefiles'
       -DCMAKE_BUILD_TYPE='$buildcfg' $(
-      [ "$platform" = Android ] \
+      [ "$platform" = android ] \
         && echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'")
       $(targetsysname=$(cmake-targetsys-of-platform "$platform") \
         && echo "-DCMAKE_SYSTEM_NAME='$targetsysname'")
