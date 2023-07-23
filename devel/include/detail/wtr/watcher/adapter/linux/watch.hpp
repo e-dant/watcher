@@ -3,13 +3,12 @@
 /*  @brief wtr/detail/wtr/watcher/adapter/linux
     The Linux adapters. */
 
-/* WATER_WATCHER_PLATFORM_* */
-#include "detail/wtr/watcher/platform.hpp"
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-  || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
-
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 /* function */
 #include <functional>
 /* geteuid */
@@ -48,37 +47,31 @@ namespace adapter {
   `inotify`, then we will use `fanotify` if the user is
   (effectively) root.
 
-  If we can only use `fanotify` or `inotify`, then we'll
-  use them. We only use `inotify` on Android.
+  We can use `fanotify` (and `inotify`, too) on a kernel
+  version 5.9.0 or greater.
 
-  There should never be a system that can use `fanotify`,
-  but not `inotify`. It's just here for completeness.
+  If we can only use `inotify`, then we'll just use that.
+  We only use `inotify` on Android and on kernel versions
+  less than 5.9.0 and greater than/equal to 2.7.0.
+
+  Below 2.7.0, you can use the `warthog` adapter by defining
+  `WATER_WATCHER_USE_WARTHOG` at some point during the build
+  or before including 'wtr/watcher.hpp'.
 */
 
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  return
-
-#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY) \
-  && defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
-
-    geteuid() == 0 ? fanotify::watch(path, callback, is_living)
-                   : inotify::watch(path, callback, is_living);
-
-#elif defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY)
-
-    fanotify::watch(path, callback, is_living);
-
-#elif defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
-
-    inotify::watch(path, callback, is_living);
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
+  && ! defined(__ANDROID_API__)
+  return geteuid() == 0 ? fanotify::watch(path, callback, is_living)
+                        : inotify::watch(path, callback, is_living);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) \
+  || defined(__ANDROID_API__)
+  return inotify::watch(path, callback, is_living);
 #else
-
-#error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7"
-
+#error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
 }
 
@@ -87,6 +80,4 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
+#endif

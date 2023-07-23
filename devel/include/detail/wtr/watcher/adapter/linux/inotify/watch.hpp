@@ -3,14 +3,14 @@
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify
     The Linux `inotify` adapter. */
 
-/*  WATER_WATCHER_PLATFORM_* */
-#include "detail/wtr/watcher/platform.hpp"
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-  || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 
-#define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
 /*  EPOLL*
     epoll_ctl
@@ -173,9 +173,9 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
   };
 
   int watch_fd
-#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if defined(__ANDROID_API__)
     = inotify_init();
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
+#else
     = inotify_init1(in_init_opt);
 #endif
 
@@ -183,9 +183,9 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
     epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
 
     int event_fd
-#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if defined(__ANDROID_API__)
       = epoll_create(event_wait_queue_max);
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
+#else
       = epoll_create1(EPOLL_CLOEXEC);
 #endif
 
@@ -404,6 +404,5 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+#endif
+#endif

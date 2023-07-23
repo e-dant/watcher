@@ -3,9 +3,7 @@
 /*  @brief watcher/adapter/darwin
     The Darwin `FSEvent` adapter. */
 
-#include "detail/wtr/watcher/platform.hpp"
-
-#if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
+#if defined(__APPLE__)
 
 /* kFS*
    FS*
@@ -299,4 +297,4 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr   */
 } /* namespace detail */
 
-#endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
+#endif

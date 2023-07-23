@@ -3,10 +3,7 @@
 /*  @brief watcher/adapter/windows
     The Windows `ReadDirectoryChangesW` adapter. */
 
-/* WATER_WATCHER_PLATFORM_* */
-#include "detail/wtr/watcher/platform.hpp"
-
-#if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
+#if defined(_WIN32)
 
 /* ReadDirectoryChangesW
    CreateIoCompletionPort
@@ -259,9 +256,9 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace wtr
+} /* namespace adapter */
+} /* namespace watcher */
+} /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
+#endif

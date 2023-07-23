@@ -3,13 +3,14 @@
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify
     The Linux `fanotify` adapter. */
 
-#include "detail/wtr/watcher/platform.hpp"
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-  && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 
-#define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) || defined(__ANDROID_API__)
 
 /*  O_* */
 #include <fcntl.h>
@@ -622,14 +623,13 @@ inline bool watch(std::filesystem::path const& path,
 // clang-format off
 // returning tuples is confusing clang format
 
-}  // namespace fanotify
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace wtr
-}  // namespace detail
+}  /* namespace fanotify */
+}  /* namespace adapter */
+}  /* namespace watcher */
+}  /* namespace wtr */
+}  /* namespace detail */
 
 // clang-format on
 
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-          && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+#endif
+#endif

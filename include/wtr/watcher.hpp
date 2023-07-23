@@ -1,109 +1,6 @@
 #ifndef W973564ED9F278A21F3E12037288412FBAF175F889
 #define W973564ED9F278A21F3E12037288412FBAF175F889
 
-namespace detail {
-namespace wtr {
-namespace watcher {
-
-enum class platform_type {
-  /* Linux */
-  linux_kernel,
-  linux_kernel_unknown,
-
-  /* Android */
-  android,
-
-  /* Darwin */
-  mac_catalyst,
-  mac_os,
-  mac_ios,
-  mac_unknown,
-
-  /* Windows */
-  windows,
-
-  /* Unkown */
-  unknown,
-};
-
-/* clang-format off */
-
-inline constexpr platform_type platform
-
-/* linux */
-# if defined(__linux__) && !defined(__ANDROID_API__)
-#  define WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY TRUE
-
-/* LINUX_VERSION_CODE
-   KERNEL_VERSION */
-#  include <linux/version.h>
-
-/* linux >= 5.9.0 */
-#  if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
-#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0
-#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN FALSE
-#  endif
-/* linux >= 2.7.0 */
-#  if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)
-    = platform_type::linux_kernel;
-#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0
-#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN FALSE
-/* linux unknown */
-#  else
-    = platform_type::linux_kernel_unknown;
-#   define WATER_WATCHER_PLATFORM_LINUX_KERNEL_UNKNOWN TRUE
-#  endif
-
-/* android */
-# elif defined(__ANDROID_API__)
-    = platform_type::android;
-#  define WATER_WATCHER_PLATFORM_ANDROID_ANY TRUE
-#  define WATER_WATCHER_PLATFORM_ANDROID_UNKNOWN TRUE
-
-/* apple */
-# elif defined(__APPLE__)
-#  define WATER_WATCHER_PLATFORM_MAC_ANY TRUE
-
-/* TARGET_OS_* */
-#  include <TargetConditionals.h>
-
-/* apple mac catalyst */
-#  if defined(TARGET_OS_MACCATALYST)
-    = platform_type::mac_catalyst;
-#  define WATER_WATCHER_PLATFORM_MAC_CATALYST TRUE
-/* apple macos, osx */
-#  elif defined(TARGET_OS_MAC)
-    = platform_type::mac_os;
-#  define WATER_WATCHER_PLATFORM_MAC_OS TRUE
-/* apple ios */
-#  elif defined(TARGET_OS_IOS)
-    = platform_type::mac_ios;
-#  define WATER_WATCHER_PLATFORM_MAC_IOS TRUE
-/* apple unknown */
-#  else
-    = platform_type::mac_unknown;
-#  define WATER_WATCHER_PLATFORM_MAC_UNKNOWN TRUE
-#  endif /* apple target */
-
-/* windows */
-# elif defined(WIN32) || defined(_WIN32)
-    = platform_type::windows;
-#  define WATER_WATCHER_PLATFORM_WINDOWS_ANY TRUE
-#  define WATER_WATCHER_PLATFORM_WINDOWS_UNKNOWN TRUE
-
-/* unknown */
-# else
-# warning "host platform is unknown"
-    = platform_type::unknown;
-#  define WATER_WATCHER_PLATFORM_UNKNOWN TRUE
-# endif
-
-/* clang-format on */
-
-} /* namespace watcher */
-} /* namespace wtr   */
-} /* namespace detail */
-
 /* std::basic_ostream */
 #include <ios>
 /* std::chrono::system_clock::now
@@ -309,9 +206,7 @@ inline auto operator!=(event const& l, event const& r) noexcept -> bool
 /*  @brief watcher/adapter/windows
     The Windows `ReadDirectoryChangesW` adapter. */
 
-/* WATER_WATCHER_PLATFORM_* */
-
-#if defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY)
+#if defined(_WIN32)
 
 /* ReadDirectoryChangesW
    CreateIoCompletionPort
@@ -563,18 +458,17 @@ inline bool watch(std::filesystem::path const& path,
   }
 }
 
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace wtr
+} /* namespace adapter */
+} /* namespace watcher */
+} /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_WINDOWS_ANY) */
+#endif
 
 /*  @brief watcher/adapter/darwin
     The Darwin `FSEvent` adapter. */
 
-
-#if defined(WATER_WATCHER_PLATFORM_MAC_ANY)
+#if defined(__APPLE__)
 
 /* kFS*
    FS*
@@ -867,17 +761,19 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr   */
 } /* namespace detail */
 
-#endif /* if defined(WATER_WATCHER_PLATFORM_MAC_ANY) */
+#endif
 
 /*  @brief wtr/watcher/<d>/adapter/linux/fanotify
     The Linux `fanotify` adapter. */
 
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-  && ! defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 
-#define WATER_WATCHER_ADAPTER_LINUX_FANOTIFY
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) || defined(__ANDROID_API__)
 
 /*  O_* */
 #include <fcntl.h>
@@ -1489,28 +1385,28 @@ inline bool watch(std::filesystem::path const& path,
 // clang-format off
 // returning tuples is confusing clang format
 
-}  // namespace fanotify
-}  // namespace adapter
-}  // namespace watcher
-}  // namespace wtr
-}  // namespace detail
+}  /* namespace fanotify */
+}  /* namespace adapter */
+}  /* namespace watcher */
+}  /* namespace wtr */
+}  /* namespace detail */
 
 // clang-format on
 
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_5_9_0) \
-          && !defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+#endif
+#endif
 
 /*  @brief wtr/watcher/<d>/adapter/linux/inotify
     The Linux `inotify` adapter. */
 
-/*  WATER_WATCHER_PLATFORM_* */
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-  || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 
-#define WATER_WATCHER_ADAPTER_LINUX_INOTIFY
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
 /*  EPOLL*
     epoll_ctl
@@ -1672,9 +1568,9 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
   };
 
   int watch_fd
-#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if defined(__ANDROID_API__)
     = inotify_init();
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
+#else
     = inotify_init1(in_init_opt);
 #endif
 
@@ -1682,9 +1578,9 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
     epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
 
     int event_fd
-#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
+#if defined(__ANDROID_API__)
       = epoll_create(event_wait_queue_max);
-#elif defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_ANY)
+#else
       = epoll_create1(EPOLL_CLOEXEC);
 #endif
 
@@ -1903,19 +1799,18 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
+#endif
+#endif
 
 /*  @brief wtr/detail/wtr/watcher/adapter/linux
     The Linux adapters. */
 
-/* WATER_WATCHER_PLATFORM_* */
+#if (defined(__linux__) || defined(__ANDROID_API__)) \
+  && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#if defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-  || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
-#if ! defined(WATER_WATCHER_USE_WARTHOG)
-
+/* LINUX_VERSION_CODE
+   KERNEL_VERSION */
+#include <linux/version.h>
 /* function */
 #include <functional>
 /* geteuid */
@@ -1953,37 +1848,31 @@ namespace adapter {
   `inotify`, then we will use `fanotify` if the user is
   (effectively) root.
 
-  If we can only use `fanotify` or `inotify`, then we'll
-  use them. We only use `inotify` on Android.
+  We can use `fanotify` (and `inotify`, too) on a kernel
+  version 5.9.0 or greater.
 
-  There should never be a system that can use `fanotify`,
-  but not `inotify`. It's just here for completeness.
+  If we can only use `inotify`, then we'll just use that.
+  We only use `inotify` on Android and on kernel versions
+  less than 5.9.0 and greater than/equal to 2.7.0.
+
+  Below 2.7.0, you can use the `warthog` adapter by defining
+  `WATER_WATCHER_USE_WARTHOG` at some point during the build
+  or before including 'wtr/watcher.hpp'.
 */
 
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
 {
-  return
-
-#if defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY) \
-  && defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
-
-    geteuid() == 0 ? fanotify::watch(path, callback, is_living)
-                   : inotify::watch(path, callback, is_living);
-
-#elif defined(WATER_WATCHER_ADAPTER_LINUX_FANOTIFY)
-
-    fanotify::watch(path, callback, is_living);
-
-#elif defined(WATER_WATCHER_ADAPTER_LINUX_INOTIFY)
-
-    inotify::watch(path, callback, is_living);
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
+  && ! defined(__ANDROID_API__)
+  return geteuid() == 0 ? fanotify::watch(path, callback, is_living)
+                        : inotify::watch(path, callback, is_living);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) \
+  || defined(__ANDROID_API__)
+  return inotify::watch(path, callback, is_living);
 #else
-
-#error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7"
-
+#error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
 }
 
@@ -1992,32 +1881,17 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_LINUX_KERNEL_GTE_2_7_0) \
-          || defined(WATER_WATCHER_PLATFORM_ANDROID_ANY) */
-#endif /* !defined(WATER_WATCHER_USE_WARTHOG) */
-
-/*  @brief watcher/adapter/android
-    The Android (Linux) `inotify` adapter. */
-
-/* WATER_WATCHER_PLATFORM_* */
-
-#if defined(WATER_WATCHER_PLATFORM_ANDROID_ANY)
 #endif
 
 /*  @brief watcher/adapter/warthog
-    A reasonably dumb adapter that works on any platform.
-
-    This adapter beats `kqueue`, but it doesn't bean recieving
-    filesystem events directly from the OS.
+    A sturdy, universal adapter.
 
     This is the fallback adapter on platforms that either
       - Only support `kqueue` (`warthog` beats `kqueue`)
       - Only support the C++ standard library */
 
-/* WATER_WATCHER_PLATFORM_* */
-
-#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-  || defined(WATER_WATCHER_USE_WARTHOG)
+#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
+  && ! defined(_WIN32)
 
 /* milliseconds */
 #include <chrono>
@@ -2283,8 +2157,7 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-          || defined(WATER_WATCHER_USE_WARTHOG) */
+#endif
 
 #include <filesystem>
 #include <future>
@@ -2502,7 +2375,7 @@ struct _ {
 
 inline auto
 watch0(std::filesystem::path const& path,
-      event::callback const& callback) noexcept
+       event::callback const& callback) noexcept
 {
   using namespace ::detail::wtr::watcher::adapter;
 

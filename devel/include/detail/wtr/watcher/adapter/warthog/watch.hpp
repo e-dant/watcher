@@ -1,20 +1,14 @@
 #pragma once
 
 /*  @brief watcher/adapter/warthog
-    A reasonably dumb adapter that works on any platform.
-
-    This adapter beats `kqueue`, but it doesn't bean recieving
-    filesystem events directly from the OS.
+    A sturdy, universal adapter.
 
     This is the fallback adapter on platforms that either
       - Only support `kqueue` (`warthog` beats `kqueue`)
       - Only support the C++ standard library */
 
-/* WATER_WATCHER_PLATFORM_* */
-#include "detail/wtr/watcher/platform.hpp"
-
-#if defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-  || defined(WATER_WATCHER_USE_WARTHOG)
+#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
+  && ! defined(_WIN32)
 
 /* milliseconds */
 #include <chrono>
@@ -281,5 +275,4 @@ inline bool watch(std::filesystem::path const& path,
 } /* namespace wtr */
 } /* namespace detail */
 
-#endif /* defined(WATER_WATCHER_PLATFORM_UNKNOWN) \
-          || defined(WATER_WATCHER_USE_WARTHOG) */
+#endif
