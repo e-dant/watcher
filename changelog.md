@@ -9,11 +9,25 @@ The API is now RAII-safe.
 This hadn't been part of the API for a long time because I had been exploring
 bindings to other languages. I had some concerns about an instance of the
 watcher being destroyed across an FFI boundary. If those bindings are made, we
-could write a separate C-style API for them to use.
+could write a separate C-style API for them to use. Manually closing the watcher
+is still just fine, which is how it had been done before.
 
-This is a minor release because it affects the API. Current users shouldn't
-notice the API change, though. Manually closing the watcher is still just fine,
-which is how it had been done before.
+**All programs should still work as-is.**
+
+### Etc (0.9.0)
+
+Removed `platform.hpp` as not needed. Platform definitions aren't complicated
+enough to have a separate header for.
+
+Made the comment style more consistent. Removed the `@brief` comment sections
+and normalized most comments to look like this:
+
+```
+/*  This is a
+    multi-line
+    comment. */
+/*  This is a single-line comment. */
+```
 
 ### Build (0.9.0)
 
