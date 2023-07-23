@@ -1,30 +1,12 @@
 #pragma once
 
-/*  @brief watcher/adapter/windows
-    The Windows `ReadDirectoryChangesW` adapter. */
-
 #if defined(_WIN32)
 
-/* ReadDirectoryChangesW
-   CreateIoCompletionPort
-   CreateFileW
-   CreateEventW
-   GetQueuedCompletionStatus
-   ResetEvent
-   GetLastError
-   WideCharToMultiByte */
 #include <windows.h>
-/* milliseconds */
 #include <chrono>
-/* path */
 #include <filesystem>
-/* string
-   wstring */
 #include <string>
-/* this_thread::sleep_for */
 #include <thread>
-/* event
-   callback */
 #include "wtr/watcher.hpp"
 
 namespace detail {
@@ -36,11 +18,11 @@ namespace {
 inline constexpr auto delay_ms = std::chrono::milliseconds(16);
 inline constexpr auto delay_ms_dw = static_cast<DWORD>(delay_ms.count());
 inline constexpr auto has_delay = delay_ms > std::chrono::milliseconds(0);
-/* I think the default page size in Windows is 64kb,
-   so 65536 might also work well. */
+/*  I think the default page size in Windows is 64kb,
+    so 65536 might also work well. */
 inline constexpr auto event_buf_len_max = 8192;
 
-/* Hold resources necessary to recieve and send filesystem events. */
+/*  Hold resources necessary to recieve and send filesystem events. */
 class watch_event_proxy {
 public:
   bool is_valid{true};
@@ -206,11 +188,10 @@ do_event_send(watch_event_proxy& w,
 
 }  // namespace
 
-/* while living
-   watch for events
-   return when dead
-   true if no errors */
-
+/*  while living
+    watch for events
+    return when dead
+    true if no errors */
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept

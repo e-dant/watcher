@@ -1,62 +1,27 @@
 #pragma once
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify
-    The Linux `fanotify` adapter. */
-
 #if (defined(__linux__) || defined(__ANDROID_API__)) \
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-/* LINUX_VERSION_CODE
-   KERNEL_VERSION */
 #include <linux/version.h>
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) || defined(__ANDROID_API__)
 
-/*  O_* */
 #include <fcntl.h>
-/*  EPOLL*
-    epoll_ctl
-    epoll_wait
-    epoll_event
-    epoll_create1 */
 #include <sys/epoll.h>
-/*  FAN_*
-    fanotify_mark
-    fanotify_init
-    fanotify_event_metadata */
 #include <sys/fanotify.h>
-/*  open
-    close
-    readlink */
 #include <unistd.h>
-/*  errno */
 #include <cerrno>
-/*  PATH_MAX */
 #include <climits>
-/*  snprintf */
 #include <cstdio>
-/*  strerror */
 #include <cstring>
-/*  path
-    is_directory
-    directory_options
-    recursive_directory_iterator */
 #include <filesystem>
-/*  function */
 #include <functional>
-/*  optional */
 #include <optional>
-/*  error_code */
 #include <system_error>
-/*  unordered_map */
 #include <unordered_map>
-/*  unordered_set */
 #include <unordered_set>
-/*  tuple
-    make_tuple */
 #include <tuple>
-/*  event
-    callback */
 #include "wtr/watcher.hpp"
 
 namespace detail {
@@ -65,19 +30,16 @@ namespace watcher {
 namespace adapter {
 namespace fanotify {
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/constants
-    - delay
+/*  - delay
       The delay, in milliseconds, while `epoll_wait` will
       'sleep' for until we are woken up. We usually check
       if we're still alive at that point.
-
     - event_wait_queue_max
       Number of events allowed to be given to recv
       (returned by `epoll_wait`). Any number between 1
       and some large number should be fine. We don't
       lose events if we 'miss' them, the events are
       still waiting in the next call to `epoll_wait`.
-
     - event_buf_len:
       For our event buffer, 4096 is a typical page size
       and sufficiently large to hold a great many events.
@@ -93,7 +55,6 @@ namespace fanotify {
             * (3 * sizeof(fanotify_event_metadata)));
       But that's a lot of flourish for 72 bytes that won't
       be meaningful.
-
     - fan_init_flags:
       Post-event reporting, non-blocking IO and unlimited
       marks. We need sudo mode for the unlimited marks.
@@ -101,7 +62,6 @@ namespace fanotify {
           FAN_CLASS_PRE_CONTENT
           | FAN_UNLIMITED_QUEUE
           | FAN_UNLIMITED_MARKS
-
     - fan_init_opt_flags:
       Read-only, non-blocking, and close-on-exec. */
 inline constexpr auto delay_ms = 16;
@@ -112,17 +72,16 @@ inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
                                      | FAN_UNLIMITED_MARKS;
 inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/types
-   - mark_set_type
-       A set of file descriptors for fanotify resources.
-   - system_resources
-       An object holding:
-         - An fanotify file descriptor
-         - An epoll file descriptor
-         - An epoll configuration
-         - A set of watch marks (as returned by fanotify_mark)
-         - A map of (sub)path handles to filesystem paths (names)
-         - A boolean: whether or not the resources are valid */
+/*  - mark_set_type
+        A set of file descriptors for fanotify resources.
+    - system_resources
+        An object holding:
+          - An fanotify file descriptor
+          - An epoll file descriptor
+          - An epoll configuration
+          - A set of watch marks (as returned by fanotify_mark)
+          - A map of (sub)path handles to filesystem paths (names)
+          - A boolean: whether or not the resources are valid */
 using mark_set_type = std::unordered_set<int>;
 
 struct system_resources {
@@ -183,9 +142,8 @@ inline auto unmark(std::filesystem::path const& full_path,
   return unmark(full_path, sr.watch_fd, sr.mark_set);
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/open_system_resources
-   Produces a `system_resources` with the file descriptors from
-   `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
+/*  Produces a `system_resources` with the file descriptors from
+    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
 open_system_resources(std::filesystem::path const& path,
                       ::wtr::watcher::event::callback const& callback) noexcept
@@ -220,7 +178,7 @@ open_system_resources(std::filesystem::path const& path,
   {
     using diter = fs::recursive_directory_iterator;
 
-    /* Follow symlinks, ignore paths which we don't have permissions for. */
+    /*  Follow symlinks, ignore paths which we don't have permissions for. */
     static constexpr auto dopt =
       fs::directory_options::skip_permission_denied
       & fs::directory_options::follow_directory_symlink;
@@ -253,11 +211,12 @@ open_system_resources(std::filesystem::path const& path,
 
       int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
-      /* @note We could make the epoll and fanotify file descriptors
-         non-blocking with `fcntl`. It's not clear if we can do this
-         from their `*_init` calls. */
-      /* fcntl(watch_fd, F_SETFL, O_NONBLOCK); */
-      /* fcntl(event_fd, F_SETFL, O_NONBLOCK); */
+      /*  @note We could make the epoll and fanotify file descriptors
+          non-blocking with `fcntl`. It's not clear if we can do this
+          from their `*_init` calls.
+
+          fcntl(watch_fd, F_SETFL, O_NONBLOCK);
+          fcntl(event_fd, F_SETFL, O_NONBLOCK); */
 
       if (event_fd >= 0)
         if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
@@ -280,16 +239,12 @@ open_system_resources(std::filesystem::path const& path,
     return do_error("e/sys/fanotify_init", watch_fd);
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/close_system_resources
-   Close the file descriptors `watch_fd` and `event_fd`. */
 inline auto close_system_resources(system_resources&& sr) noexcept -> bool
 {
   return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 };
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/promote
-    Promotes an event's metadata to a full path.
-
+/*  "Promotes" an event's metadata to a full path.
     The shenanigans we do here depend on this event being
     `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
     some info about the directory and the directory entry
@@ -300,26 +255,19 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
     name of the directory entry.
     TLDR: We need information for the full path of the event,
     information which is only reported inside this `if`.
-
     From the kernel:
       Variable size struct for
       dir file handle + child file handle + name
-
       [ Omitting definition of `fanotify_info` here ]
-
       (struct fanotify_fh) dir_fh starts at
       buf[0]
-
       (optional) dir2_fh starts at
       buf[dir_fh_totlen]
-
       (optional) file_fh starts at
       buf[dir_fh_totlen + dir2_fh_totlen]
-
       name starts at
       buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
       ...
-
     The kernel guarentees that there is a null-terminated
     character string to the event's directory entry
     after the file handle to the directory.
@@ -364,7 +312,7 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
 
   auto kind = mtd->mask & FAN_ONDIR ? ev::kind::dir : ev::kind::file;
 
-  /* We can get a path name, so get that and use it */
+  /*  We can get a path name, so get that and use it */
   char path_buf[PATH_MAX];
   int fd = open_by_handle_at(AT_FDCWD,
                              dir_fh,
@@ -377,9 +325,9 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
     close(fd);
 
     if (dirname_len > 0) {
-      /* Put the directory name in the path accumulator.
-         Passing `dirname_len` has the effect of putting
-         the event's filename in the path buffer as well. */
+      /*  Put the directory name in the path accumulator.
+          Passing `dirname_len` has the effect of putting
+          the event's filename in the path buffer as well. */
       path_buf[dirname_len] = '\0';
       path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
@@ -439,9 +387,7 @@ check_and_update(std::tuple<bool,
       kind);
   };
 
-/*  @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/send
-    Send events to the user.
-
+/*  Send events to the user.
     This is the important part.
     Most of the other code is
     a layer of translation
@@ -458,23 +404,22 @@ send(std::tuple<bool,
   return ok ? (callback({path, what, kind}), ok) : ok;
 };
 
-/* @brief wtr/watcher/<d>/adapter/linux/fanotify/<a>/fns/recv
-   Reads through available (fanotify) filesystem events.
-   Discerns their path and type.
-   Calls the callback.
-   Returns false on eventful errors.
-   @note
-   The `metadata->fd` field contains either a file
-   descriptor or the value `FAN_NOFD`. File descriptors
-   are always greater than 0. `FAN_NOFD` represents an
-   event queue overflow for `fanotify` listeners which
-   are _not_ monitoring file handles, such as mount
-   monitors. The file handle is in the metadata when an
-   `fanotify` listener is monitoring events by their
-   file handles.
-   The `metadata->vers` field may differ between kernel
-   versions, so we check it against what we have been
-   compiled with. */
+/*  Reads through available (fanotify) filesystem events.
+    Discerns their path and type.
+    Calls the callback.
+    Returns false on eventful errors.
+    @note
+    The `metadata->fd` field contains either a file
+    descriptor or the value `FAN_NOFD`. File descriptors
+    are always greater than 0. `FAN_NOFD` represents an
+    event queue overflow for `fanotify` listeners which
+    are _not_ monitoring file handles, such as mount
+    monitors. The file handle is in the metadata when an
+    `fanotify` listener is monitoring events by their
+    file handles.
+    The `metadata->vers` field may differ between kernel
+    versions, so we check it against what we have been
+    compiled with. */
 inline auto recv(system_resources& sr,
                  std::filesystem::path const& base_path,
                  ::wtr::watcher::event::callback const& callback) noexcept
@@ -491,7 +436,7 @@ inline auto recv(system_resources& sr,
             false);
   };
 
-  /* Read some events. */
+  /*  Read some events. */
   alignas(fanotify_event_metadata) char event_buf[event_buf_len];
   auto event_read = read(sr.watch_fd, event_buf, sizeof(event_buf));
 
@@ -500,7 +445,7 @@ inline auto recv(system_resources& sr,
           : errno == EAGAIN ? state::none
                             : state::err) {
     case state::ok : {
-      /* Loop over everything in the event buffer. */
+      /*  Loop over everything in the event buffer. */
       for (auto* mtd = (fanotify_event_metadata const*)event_buf;
            FAN_EVENT_OK(mtd, event_read);
            mtd = FAN_EVENT_NEXT(mtd, event_read))
@@ -510,7 +455,7 @@ inline auto recv(system_resources& sr,
               if (((fanotify_event_info_fid*)(mtd + 1))->hdr.info_type
                   == FAN_EVENT_INFO_TYPE_DFID_NAME) [[likely]]
 
-                /* Send the events we receive. */
+                /*  Send the events we receive. */
                 return send(check_and_update(promote(mtd), sr), callback);
 
               else
@@ -528,25 +473,10 @@ inline auto recv(system_resources& sr,
     case state::err : return do_error("e/sys/read"); break;
   }
 
-  /* Unreachable */
+  /*  Unreachable */
   return false;
 };
 
-/*  @brief wtr/watcher/<d>/adapter/watch
-    Monitors `path` for changes.
-    Invokes `callback` with an `event` when they happen.
-    `watch` stops when asked to or irrecoverable errors occur.
-    All events, including errors, are passed to `callback`.
-
-    @param path
-    A filesystem path to watch for events.
-
-    @param callback
-    A function to invoke with an `event` object
-    when the files being watched change.
-
-    @param is_living
-    A function to decide whether we're dead. */
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
@@ -582,11 +512,11 @@ inline bool watch(std::filesystem::path const& path,
             false);
   };
 
-  /*  While living, with
+  /*  While:
       - System resources for fanotify and epoll
       - An event list for receiving epoll events
-
-      Do
+      - We're alive
+      Do:
       - Await filesystem events
       - Invoke `callback` on errors and events */
 

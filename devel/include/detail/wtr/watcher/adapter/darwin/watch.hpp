@@ -1,43 +1,19 @@
 #pragma once
 
-/*  @brief watcher/adapter/darwin
-    The Darwin `FSEvent` adapter. */
-
 #if defined(__APPLE__)
 
-/* kFS*
-   FS*
-   CF*
-   dispatch_queue* */
 #include <CoreServices/CoreServices.h>
-/* milliseconds */
 #include <chrono>
-/* function */
 #include <functional>
-/* path */
 #include <filesystem>
-/* numeric_limits */
 #include <limits>
-/* mt19937
-   random_device
-   uniform_int_distribution */
 #include <random>
-/* string
-   to_string */
 #include <string>
-/* sleep_for */
 #include <thread>
-/* tuple
-   make_tuple */
 #include <tuple>
-/* vector */
 #include <vector>
-/* snprintf */
 #include <cstdio>
-/* unordered_set */
 #include <unordered_set>
-/* event
-   callback */
 #include "wtr/watcher.hpp"
 
 namespace detail {
@@ -58,10 +34,10 @@ inline constexpr auto has_delay = delay_ms.count() > 0;
 
 inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
 
-/* We could OR `event_stream_flags` with `kFSEventStreamCreateFlagNoDefer` if we
-   want less "sleepy" time after a period of no filesystem events. But we're
-   talking about saving a maximum latency of `delay_ms` after some period of
-   inactivity -- very small. (Not sure what the inactivity period is.) */
+/*  We could OR `event_stream_flags` with `kFSEventStreamCreateFlagNoDefer`
+    if we want less "sleepy" time after a period of no filesystem events.
+    But we're talking about saving a maximum latency of `delay_ms` after
+    some period of inactivity -- very small. */
 inline constexpr unsigned event_stream_flags =
   kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
   | kFSEventStreamCreateFlagUseCFTypes;
@@ -80,10 +56,10 @@ event_stream_open(std::filesystem::path const& path,
 
   auto funcptr_context =
     FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
-  /* Creating this untyped array of strings is unavoidable.
-     `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
-     `CFArrayCreate` takes the address of a string and `FSEventStreamCreate` the
-     address of an array (of strings). There might be some UB around here. */
+  /*  Creating this untyped array of strings is unavoidable.
+      `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
+      `CFArrayCreate` takes the address of a string and `FSEventStreamCreate`
+      the address of an array (of strings). */
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
   CFArrayRef path_array = CFArrayCreate(nullptr,
@@ -91,12 +67,12 @@ event_stream_open(std::filesystem::path const& path,
                                         path_array_size,
                                         &kCFTypeArrayCallBacks);
 
-  /* The event queue name doesn't seem to need to be unique.
-     We try to make a unique name anyway, just in case.
-     The event queue name will be:
-       = "wtr" + [0, 28) character number
-     And will always be a string between 5 and 32-characters long:
-       = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
+  /*  The event queue name doesn't seem to need to be unique.
+      We try to make a unique name anyway, just in case.
+      The event queue name will be:
+        = "wtr" + [0, 28) character number
+      And will always be a string between 5 and 32-characters long:
+        = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
   char queue_name[3 + 28 + 1]{};
   std::mt19937 gen(std::random_device{}());
   std::snprintf(queue_name,
@@ -106,8 +82,8 @@ event_stream_open(std::filesystem::path const& path,
                   0,
                   std::numeric_limits<size_t>::max())(gen));
 
-  /* Request a file event stream for `path` from the kernel
-     which invokes `funcptr` with `funcptr_context` on events. */
+  /*  Request a file event stream for `path` from the kernel
+      which invokes `funcptr` with `funcptr_context` on events. */
   FSEventStreamRef stream = FSEventStreamCreate(
     nullptr,           /* Custom allocator, optional */
     funcptr,           /* A callable to invoke on changes */
@@ -118,7 +94,7 @@ event_stream_open(std::filesystem::path const& path,
     event_stream_flags /* The event stream flags */
   );
 
-  /* Request a (very) high priority queue. */
+  /*  Request a (very) high priority queue. */
   dispatch_queue_t queue = dispatch_queue_create(
     queue_name,
     dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
@@ -132,16 +108,15 @@ event_stream_open(std::filesystem::path const& path,
   return std::make_tuple(stream, queue);
 }
 
-/* @note
-   The functions we use to close the stream and queue take `_Nonnull`
-   parameters, so we should be able to take `const&` for our arguments.
-   We don't because it would be misleading. `stream` and `queue` are
-   eventually null (and always invalid) after the calls we make here.
-
-   @note
-   Assuming macOS > 10.8 or iOS > 6.0, we don't need to check for null on the
-   dispatch queue after we release it:
-     https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
+/*  @note
+    The functions we use to close the stream and queue take `_Nonnull`
+    parameters, so we should be able to take `const&` for our arguments.
+    We don't because it would be misleading. `stream` and `queue` are
+    eventually null (and always invalid) after the calls we make here.
+    @note
+    Assuming macOS > 10.8 or iOS > 6.0, we don't need to check for null on the
+    dispatch queue after we release it:
+      https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
 */
 inline bool event_stream_close(
   std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept
@@ -189,21 +164,21 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
   return cstr ? fs::path{cstr} : fs::path{};
 }
 
-/* @note
-   Sometimes events are batched together and re-sent
-   (despite having already been sent).
-   Example:
-     [first batch of events from the os]
-     file 'a' created
-     -> create event for 'a' is sent
-     [some tiny delay, 1 ms or so]
-     [second batch of events from the os]
-     file 'a' destroyed
-     -> create event for 'a' is sent
-     -> destroy event for 'a' is sent
-   So, we filter out duplicate events when they're sent
-   in a batch. We do this by storing and pruning the
-   set of paths which we've seen created. */
+/*  @note
+    Sometimes events are batched together and re-sent
+    (despite having already been sent).
+    Example:
+      [first batch of events from the os]
+      file 'a' created
+      -> create event for 'a' is sent
+      [some tiny delay, 1 ms or so]
+      [second batch of events from the os]
+      file 'a' destroyed
+      -> create event for 'a' is sent
+      -> destroy event for 'a' is sent
+    So, we filter out duplicate events when they're sent
+    in a batch. We do this by storing and pruning the
+    set of paths which we've seen created. */
 inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                        void* arg_ptr,            /* Arguments passed to us */
                        unsigned long recv_count, /* Event count */
@@ -223,12 +198,12 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
       auto path = path_from_event_at(recv_paths, i);
 
       if (! path.empty()) {
-        /* `path` has no hash function, so we use a string. */
+        /*  `path` has no hash function, so we use a string. */
         auto path_str = path.string();
 
         decltype(*recv_flags) flag = recv_flags[i];
 
-        /* A single path won't have different "kinds". */
+        /*  A single path won't have different "kinds". */
         auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
                : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
                : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
@@ -236,8 +211,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
                  ? evk::hard_link
                  : evk::other;
 
-        /* More than one thing might have happened to the same path.
-           (Which is why we use non-exclusive `if`s.) */
+        /*  More than one thing might have happened to the same path.
+            (Which is why we use non-exclusive `if`s.) */
         if (flag & kFSEventStreamEventFlagItemCreated) {
           if (seen_created->find(path_str) == seen_created->end()) {
             seen_created->emplace(path_str);

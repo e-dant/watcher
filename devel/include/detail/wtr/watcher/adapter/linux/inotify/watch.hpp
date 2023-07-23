@@ -1,52 +1,21 @@
 #pragma once
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify
-    The Linux `inotify` adapter. */
-
 #if (defined(__linux__) || defined(__ANDROID_API__)) \
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-/* LINUX_VERSION_CODE
-   KERNEL_VERSION */
 #include <linux/version.h>
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
-/*  EPOLL*
-    epoll_ctl
-    epoll_wait
-    epoll_event
-    epoll_create
-    epoll_create1 */
 #include <sys/epoll.h>
-/*  IN_*
-    inotify_init
-    inotify_init1
-    inotify_event
-    inotify_add_watch */
 #include <sys/inotify.h>
-/* open
-   read
-   close */
 #include <unistd.h>
-/*  path
-    is_directory
-    directory_options
-    recursive_directory_iterator */
 #include <filesystem>
-/*  function */
 #include <functional>
-/*  tuple
-    make_tuple */
 #include <tuple>
-/*  error_code */
 #include <system_error>
-/*  unordered_map */
 #include <unordered_map>
-/*  memcpy */
 #include <cstring>
-/*  event
-    callback */
 #include "wtr/watcher.hpp"
 
 namespace detail {
@@ -55,8 +24,7 @@ namespace watcher {
 namespace adapter {
 namespace inotify {
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/constants
-    - delay
+/*  - delay
         The delay, in milliseconds, while `epoll_wait` will
         'sleep' for until we are woken up. We usually check
         if we're still alive at that point.
@@ -86,8 +54,7 @@ inline constexpr auto in_init_opt = IN_NONBLOCK;
 inline constexpr auto in_watch_opt =
   IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_Q_OVERFLOW;
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/types
-    - path_map_type
+/*  - path_map_type
         An alias for a map of file descriptors to paths.
     - sys_resource_type
         An object representing an inotify file descriptor,
@@ -102,8 +69,7 @@ struct sys_resource_type {
   epoll_event event_conf;
 };
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_path_map_create
-    If the path given is a directory
+/*  If the path given is a directory
       - find all directories above the base path given.
       - ignore nonexistent directories.
       - return a map of watch descriptors -> directories.
@@ -119,7 +85,7 @@ inline auto path_map(std::filesystem::path const& base_path,
   using diter = fs::recursive_directory_iterator;
   using dopt = fs::directory_options;
 
-  /* Follow symlinks, ignore paths which we don't have permissions for. */
+  /*  Follow symlinks, ignore paths which we don't have permissions for. */
   static constexpr auto fs_dir_opt =
     dopt::skip_permission_denied & dopt::follow_directory_symlink;
 
@@ -150,8 +116,7 @@ inline auto path_map(std::filesystem::path const& base_path,
   return pm;
 };
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/system_unfold
-    Produces a `sys_resource_type` with the file descriptors from
+/*  Produces a `sys_resource_type` with the file descriptors from
     `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
 system_unfold(::wtr::watcher::event::callback const& callback) noexcept
@@ -204,19 +169,15 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/system_fold
-    Close the file descriptors `watch_fd` and `event_fd`. */
 inline auto system_fold(sys_resource_type& sr) noexcept -> bool
 {
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
 
-/*  @brief wtr/watcher/<d>/adapter/linux/inotify/<a>/fns/do_event_recv
-    Reads through available (inotify) filesystem events.
+/*  Reads through available (inotify) filesystem events.
     Discerns their path and type.
     Calls the callback.
     Returns false on eventful errors.
-
     @todo
     Return new directories when they appear,
     Consider running and returning `find_dirs` from here.
@@ -235,17 +196,13 @@ do_event_recv(int watch_fd,
 
   /*  While inotify has events pending, read them.
       There might be several events from a single read.
-
       Three possible states:
        - eventful: there are events to read
        - eventless: there are no events to read
        - error: there was an error reading events
-
       The EAGAIN "error" means there is nothing
       to read. We count that as 'eventless'.
-
       Forward events and errors to the user.
-
       Return when eventless. */
 
 recurse:
@@ -257,7 +214,7 @@ recurse:
           : errno == EAGAIN ? state::eventless
                             : state::error) {
     case state::eventful : {
-      /* Loop over all events in the buffer. */
+      /*  Loop over all events in the buffer. */
       auto this_event = (inotify_event*)buf;
       while (this_event < (inotify_event*)(buf + read_len)) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
@@ -295,8 +252,8 @@ recurse:
 
         this_event += sizeof(inotify_event);
       }
-      /* Same as `return do_event_recv(..., buf)`.
-         Our stopping condition is `eventless` or `error`. */
+      /*  Same as `return do_event_recv(..., buf)`.
+          Our stopping condition is `eventless` or `error`. */
       goto recurse;
     }
 
@@ -309,25 +266,10 @@ recurse:
     case state::eventless : return true;
   }
 
-  /* Unreachable */
+  /*  Unreachable */
   return false;
 }
 
-/*  @brief wtr/watcher/<d>/adapter/watch
-    Monitors `path` for changes.
-    Invokes `callback` with an `event` when they happen.
-    `watch` stops when asked to or irrecoverable errors occur.
-    All events, including errors, are passed to `callback`.
-
-    @param path
-    A filesystem path to watch for events.
-
-    @param callback
-    A function to invoke with an `event` object
-    when the files being watched change.
-
-    @param is_living
-    A function to decide whether we're dead. */
 inline bool watch(std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
                   std::function<bool()> const& is_living) noexcept
@@ -349,14 +291,14 @@ inline bool watch(std::filesystem::path const& path,
     return false;
   };
 
-  /*  While living, with
+  /*  While:
       - A lifetime the user hasn't ended
       - A historical map of watch descriptors
         to long paths (for event reporting)
       - System resources for inotify and epoll
       - An event buffer for events from epoll
-
-      Do
+      - We're alive
+      Do:
       - Await filesystem events
       - Invoke `callback` on errors and events */
 
