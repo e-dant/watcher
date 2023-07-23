@@ -2,19 +2,19 @@
 
 #if defined(__APPLE__)
 
-#include <CoreServices/CoreServices.h>
+#include "wtr/watcher.hpp"
 #include <chrono>
-#include <functional>
+#include <CoreServices/CoreServices.h>
+#include <cstdio>
 #include <filesystem>
+#include <functional>
 #include <limits>
 #include <random>
 #include <string>
 #include <thread>
 #include <tuple>
-#include <vector>
-#include <cstdio>
 #include <unordered_set>
-#include "wtr/watcher.hpp"
+#include <vector>
 
 namespace detail {
 namespace wtr {

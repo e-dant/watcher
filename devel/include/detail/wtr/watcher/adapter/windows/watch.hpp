@@ -2,12 +2,12 @@
 
 #if defined(_WIN32)
 
-#include <windows.h>
+#include "wtr/watcher.hpp"
 #include <chrono>
 #include <filesystem>
 #include <string>
 #include <thread>
-#include "wtr/watcher.hpp"
+#include <windows.h>
 
 namespace detail {
 namespace wtr {

@@ -9,14 +9,14 @@
 #if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
   && ! defined(_WIN32)
 
+#include "wtr/watcher.hpp"
 #include <chrono>
-#include <string>
 #include <filesystem>
 #include <functional>
+#include <string>
 #include <system_error>
 #include <thread>
 #include <unordered_map>
-#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

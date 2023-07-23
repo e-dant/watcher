@@ -7,22 +7,22 @@
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) || defined(__ANDROID_API__)
 
-#include <fcntl.h>
-#include <sys/epoll.h>
-#include <sys/fanotify.h>
-#include <unistd.h>
+#include "wtr/watcher.hpp"
 #include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <sys/epoll.h>
+#include <sys/fanotify.h>
 #include <system_error>
+#include <tuple>
+#include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
-#include <tuple>
-#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

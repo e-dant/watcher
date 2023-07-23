@@ -7,16 +7,16 @@
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
-#include <sys/epoll.h>
-#include <sys/inotify.h>
-#include <unistd.h>
+#include "wtr/watcher.hpp"
+#include <cstring>
 #include <filesystem>
 #include <functional>
-#include <tuple>
+#include <sys/epoll.h>
+#include <sys/inotify.h>
 #include <system_error>
+#include <tuple>
+#include <unistd.h>
 #include <unordered_map>
-#include <cstring>
-#include "wtr/watcher.hpp"
 
 namespace detail {
 namespace wtr {

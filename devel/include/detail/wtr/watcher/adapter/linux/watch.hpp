@@ -3,10 +3,10 @@
 #if (defined(__linux__) || defined(__ANDROID_API__)) \
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#include <linux/version.h>
-#include <functional>
-#include <unistd.h>
 #include "wtr/watcher.hpp"
+#include <functional>
+#include <linux/version.h>
+#include <unistd.h>
 
 namespace detail {
 namespace wtr {
