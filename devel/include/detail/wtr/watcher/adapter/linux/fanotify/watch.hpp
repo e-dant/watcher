@@ -5,7 +5,8 @@
 
 #include <linux/version.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) || defined(__ANDROID_API__)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
+  && ! defined(__ANDROID_API__)
 
 #include "wtr/watcher.hpp"
 #include <cerrno>
