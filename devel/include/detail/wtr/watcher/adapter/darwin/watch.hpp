@@ -23,122 +23,18 @@ namespace adapter {
 namespace {
 
 struct argptr_type {
-  ::wtr::watcher::event::callback const& callback;
-  std::unordered_set<std::string>* seen_created_paths;
+  using pathset = ::std::unordered_set<::std::string>;
+  ::wtr::watcher::event::callback const callback{};
+  ::std::shared_ptr<pathset> seen_created_paths{new pathset{}};
 };
 
-inline constexpr auto delay_ms = std::chrono::milliseconds(16);
-inline constexpr auto delay_s =
-  std::chrono::duration_cast<std::chrono::seconds>(delay_ms);
-inline constexpr auto has_delay = delay_ms.count() > 0;
+struct sysres_type {
+  FSEventStreamRef stream{};
+  argptr_type argptr{};
+};
 
-inline constexpr auto time_flag = kFSEventStreamEventIdSinceNow;
-
-/*  We could OR `event_stream_flags` with `kFSEventStreamCreateFlagNoDefer`
-    if we want less "sleepy" time after a period of no filesystem events.
-    But we're talking about saving a maximum latency of `delay_ms` after
-    some period of inactivity -- very small. */
-inline constexpr unsigned event_stream_flags =
-  kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
-  | kFSEventStreamCreateFlagUseCFTypes;
-
-inline constexpr unsigned kFSEventStreamEventFlagItemIsAnyHardLink =
-  kFSEventStreamEventFlagItemIsHardlink
-  | kFSEventStreamEventFlagItemIsLastHardlink;
-
-inline std::tuple<FSEventStreamRef, dispatch_queue_t>
-event_stream_open(std::filesystem::path const& path,
-                  FSEventStreamCallback funcptr,
-                  argptr_type const& funcptr_args) noexcept
-{
-  static constexpr CFIndex path_array_size = 1;
-  static constexpr auto queue_priority = -10;
-
-  auto funcptr_context =
-    FSEventStreamContext{0, (void*)&funcptr_args, nullptr, nullptr, nullptr};
-  /*  Creating this untyped array of strings is unavoidable.
-      `path_cfstring` and `path_cfarray_cfstring` must be temporaries because
-      `CFArrayCreate` takes the address of a string and `FSEventStreamCreate`
-      the address of an array (of strings). */
-  void const* path_cfstring =
-    CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
-  CFArrayRef path_array = CFArrayCreate(nullptr,
-                                        &path_cfstring,
-                                        path_array_size,
-                                        &kCFTypeArrayCallBacks);
-
-  /*  The event queue name doesn't seem to need to be unique.
-      We try to make a unique name anyway, just in case.
-      The event queue name will be:
-        = "wtr" + [0, 28) character number
-      And will always be a string between 5 and 32-characters long:
-        = 3 (prefix) + [1, 28] (digits) + 1 (null char from snprintf) */
-  char queue_name[3 + 28 + 1]{};
-  std::mt19937 gen(std::random_device{}());
-  std::snprintf(queue_name,
-                sizeof(queue_name),
-                "wtr%zu",
-                std::uniform_int_distribution<size_t>(
-                  0,
-                  std::numeric_limits<size_t>::max())(gen));
-
-  /*  Request a file event stream for `path` from the kernel
-      which invokes `funcptr` with `funcptr_context` on events. */
-  FSEventStreamRef stream = FSEventStreamCreate(
-    nullptr,           /* Custom allocator, optional */
-    funcptr,           /* A callable to invoke on changes */
-    &funcptr_context,  /* The callable's arguments (context). */
-    path_array,        /* The path we were asked to watch */
-    time_flag,         /* The time "since when" we receive events */
-    delay_s.count(),   /* The time between scans after inactivity */
-    event_stream_flags /* The event stream flags */
-  );
-
-  /*  Request a (very) high priority queue. */
-  dispatch_queue_t queue = dispatch_queue_create(
-    queue_name,
-    dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
-                                            QOS_CLASS_USER_INITIATED,
-                                            queue_priority));
-
-  FSEventStreamSetDispatchQueue(stream, queue);
-
-  FSEventStreamStart(stream);
-
-  return std::make_tuple(stream, queue);
-}
-
-/*  @note
-    The functions we use to close the stream and queue take `_Nonnull`
-    parameters, so we should be able to take `const&` for our arguments.
-    We don't because it would be misleading. `stream` and `queue` are
-    eventually null (and always invalid) after the calls we make here.
-    @note
-    Assuming macOS > 10.8 or iOS > 6.0, we don't need to check for null on the
-    dispatch queue after we release it:
-      https://developer.apple.com/documentation/dispatch/1496328-dispatch_release
-*/
-inline bool event_stream_close(
-  std::tuple<FSEventStreamRef, dispatch_queue_t>&& resources) noexcept
-{
-  auto [stream, queue] = resources;
-  if (stream) {
-    FSEventStreamStop(stream);
-    FSEventStreamInvalidate(stream);
-    FSEventStreamRelease(stream);
-    if (queue) {
-      dispatch_release(queue);
-      return true;
-    }
-    else
-      return false;
-  }
-  else
-    return false;
-}
-
-inline std::filesystem::path path_from_event_at(void* event_recv_paths,
-                                                unsigned long i) noexcept
+inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
+  -> ::std::filesystem::path
 {
   /*  We make a path from a C string...
       In an array, in a dictionary...
@@ -164,8 +60,7 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
   return cstr ? fs::path{cstr} : fs::path{};
 }
 
-/*  @note
-    Sometimes events are batched together and re-sent
+/*  Sometimes events are batched together and re-sent
     (despite having already been sent).
     Example:
       [first batch of events from the os]
@@ -179,20 +74,24 @@ inline std::filesystem::path path_from_event_at(void* event_recv_paths,
     So, we filter out duplicate events when they're sent
     in a batch. We do this by storing and pruning the
     set of paths which we've seen created. */
-inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
-                       void* arg_ptr,            /* Arguments passed to us */
-                       unsigned long recv_count, /* Event count */
-                       void* recv_paths,         /* Paths with events */
-                       unsigned int const* recv_flags, /* Event flags */
-                       FSEventStreamEventId const*     /* event stream id */
-                       ) noexcept
+inline auto event_recv(ConstFSEventStreamRef,    /*  `ConstFS..` is important */
+                       void* argptr,             /*  Arguments passed to us */
+                       unsigned long recv_count, /*  Event count */
+                       void* recv_paths,         /*  Paths with events */
+                       unsigned int const* recv_flags, /*  Event flags */
+                       FSEventStreamEventId const*     /*  event stream id */
+                       ) noexcept -> void
 {
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
 
-  if (arg_ptr && recv_paths) {
+  static constexpr unsigned any_hard_link =
+    kFSEventStreamEventFlagItemIsHardlink
+    | kFSEventStreamEventFlagItemIsLastHardlink;
 
-    auto [callback, seen_created] = *static_cast<argptr_type*>(arg_ptr);
+  if (argptr && recv_paths) {
+
+    auto [callback, seen_created] = *static_cast<argptr_type*>(argptr);
 
     for (unsigned long i = 0; i < recv_count; i++) {
       auto path = path_from_event_at(recv_paths, i);
@@ -207,9 +106,8 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
         auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
                : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
                : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
-               : flag & kFSEventStreamEventFlagItemIsAnyHardLink
-                 ? evk::hard_link
-                 : evk::other;
+               : flag & any_hard_link                        ? evk::hard_link
+                                                             : evk::other;
 
         /*  More than one thing might have happened to the same path.
             (Which is why we use non-exclusive `if`s.) */
@@ -237,6 +135,120 @@ inline void event_recv(ConstFSEventStreamRef,    /* `ConstFS..` is important */
   }
 }
 
+/*  Make sure that event_recv has the same type as, or is
+    convertible to, an FSEventStreamCallback. We don't use
+    `is_same_v()` here because `event_recv` is `noexcept`.
+    Side note: Is an exception qualifier *really* part of
+    the type? Or, is it a "kind"? Something else?
+    We want this assertion for nice compiler errors. */
+static_assert(FSEventStreamCallback{event_recv} == event_recv);
+
+inline auto
+event_stream_open(::std::filesystem::path const& path,
+                  ::wtr::watcher::event::callback const& callback) noexcept
+  -> std::shared_ptr<sysres_type>
+{
+  using namespace std::chrono_literals;
+  using std::chrono::duration_cast, std::chrono::seconds;
+
+  auto sysres =
+    std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
+
+  auto context = FSEventStreamContext{
+    /*  FSEvents.h: "Currently the only valid value is zero." */
+    0,
+    /*  The "actual" context; our "argument pointer". This must
+        be alive until we clear the event stream. */
+    static_cast<void*>(&sysres->argptr),
+    /*  An optional "retention" callback. We don't need this
+        because we manage `argptr`'s lifetime ourselves */
+    nullptr,
+    /*  An optional "release" callback, not needed for the
+        same reasons as the retention callback */
+    nullptr,
+    /*  An optional string for debugging purposes */
+    nullptr};
+
+  void const* path_cfstring =
+    CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
+  CFArrayRef path_array = CFArrayCreate(
+    /*  A custom allocator is optional */
+    nullptr,
+    /*  Data: A pointer-to-pointer of (in our case) strings */
+    &path_cfstring,
+    /*  We're just storing one path here */
+    1,
+    /*  A predefined structure which is "appropriate for use when
+        the values in a CFArray are all CFTypes" (CFArray.h) */
+    &kCFTypeArrayCallBacks);
+
+  /*  If we want less "sleepy" time after a period of time
+      without receiving filesystem events, we could OR like:
+      `event_stream_flags | kFSEventStreamCreateFlagNoDefer`.
+      We're talking about saving a maximum latency of `delay_s`
+      after some period of inactivity, which is not likely to
+      be noticeable. I'm not sure what Darwin sets the "period
+      of inactivity" to, and I'm not sure it matters. */
+  static constexpr unsigned event_stream_flags =
+    kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
+    | kFSEventStreamCreateFlagUseCFTypes;
+
+  /*  Request a filesystem event stream for `path` from the kernel.
+      The event stream will call `event_recv` with `context`
+      and some details about each filesystem event the kernel sees
+      for the paths in `path_array`. */
+  FSEventStreamRef stream = FSEventStreamCreate(
+    /*  A custom allocator is optional */
+    nullptr,
+    /*  A callable to invoke on changes */
+    &event_recv,
+    /*  The callable's arguments (context) */
+    &context,
+    /*  The path(s) we were asked to watch */
+    path_array,
+    /*  The time "since when" we receive events */
+    kFSEventStreamEventIdSinceNow,
+    /*  The time between scans *after inactivity* */
+    duration_cast<seconds>(16ms).count(),
+    /*  The event stream flags */
+    event_stream_flags);
+
+  FSEventStreamSetDispatchQueue(
+    stream,
+    /*  We don't need to retain, maintain or release this dispatch
+        queue. It's a global system queue, and it outlives us. */
+    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+
+  FSEventStreamStart(stream);
+
+  sysres->stream = stream;
+
+  return sysres;
+}
+
+inline auto
+event_stream_close(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
+{
+  if (sysres->stream) {
+    /*  `FSEventStreamInvalidate()` only needs to be called if
+        we scheduled via `FSEventStreamScheduleWithRunLoop()`.
+        That scheduling function is deprecated (as of macOS 13).
+        Calling `FSEventStreamInvalidate()` fails an assertion
+        and produces a warning in the console. However, calling
+        `FSEventStreamRelease()` without first invalidating via
+        `FSEventStreamInvalidate()` *also* fails an assertions,
+        and produces a warning. I'm not sure what the right call
+        to make here is. */
+    FSEventStreamStop(sysres->stream);
+    // ?? FSEventStreamInvalidate(sysres->stream);
+    FSEventStreamRelease(sysres->stream);
+    sysres->stream = nullptr;
+    return true;
+  }
+  else
+    return false;
+}
+
 } /* namespace */
 
 inline bool watch(std::filesystem::path const& path,
@@ -247,16 +259,11 @@ inline bool watch(std::filesystem::path const& path,
   using evw = enum ::wtr::watcher::event::what;
   using std::this_thread::sleep_for;
 
-  auto seen_created_paths = std::unordered_set<std::string>{};
-  auto event_recv_argptr = argptr_type{callback, &seen_created_paths};
+  sysres = event_stream_open(path, callback)
 
-  auto stream_resources =
-    event_stream_open(path, event_recv, event_recv_argptr);
+    while (is_living()) sleep_for(delay_ms);
 
-  while (is_living())
-    if constexpr (has_delay) sleep_for(delay_ms);
-
-  auto died_ok = event_stream_close(std::move(stream_resources));
+  auto died_ok = event_stream_close(std::move(sysres));
 
   if (died_ok)
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
@@ -267,9 +274,9 @@ inline bool watch(std::filesystem::path const& path,
   return died_ok;
 }
 
-} /* namespace adapter */
-} /* namespace watcher */
-} /* namespace wtr   */
-} /* namespace detail */
+} /*  namespace adapter */
+} /*  namespace watcher */
+} /*  namespace wtr   */
+} /*  namespace detail */
 
 #endif
