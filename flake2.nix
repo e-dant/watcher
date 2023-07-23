@@ -1,34 +1,39 @@
 {
   description =
     "Filesystem watcher. Works anywhere. Simple, efficient and friendly.";
-  inputs =
-  { nixpkgs = { url = "github:nixos/nixpkgs/nixos-unstable"; };
+  inputs = {
+    nixpkgs = { url = "github:nixos/nixpkgs/nixos-unstable"; };
     flake-utils = { url = "github:numtide/flake-utils"; };
   };
-  outputs =
-  { self
-  , nixpkgs
-  , flake-utils
-  , ...
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    ...
   }:
-    flake-utils.lib.eachDefaultSystem
-    ( system:
+    flake-utils.lib.eachDefaultSystem(
+      system:
         let
           pkgs = import nixpkgs { inherit system; };
-          # CMake to build; cacert and git for CMake's fetchcontent
-          build_deps = (with pkgs; [ cmake cacert git ]);
-          # Darwin needs some help to use FSEvents, dispatch, etc.
-          maybe_sys_deps = (
-            with pkgs;
-            lib.optionals stdenv.isDarwin([darwin.apple_sdk.frameworks.CoreServices])
-          );
+          lib = pkgs.lib;
+          darwin = import nixpkgs.nixosModules.config.darwin {
+            config = {};
+          };
+          stdenv = pkgs.stdenv;
           wtr-watcher = (
             with pkgs;
+            pkgs ++
+            lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
+     Cocoa
+     CoreServices
+   ])
+   ;
             stdenv.mkDerivation {
               pname = "wtr-watcher";
               version = "0.8.8";
               src = self;
-              nativeBuildInputs = build_deps ++ maybe_sys_deps;
+              # cacert and git for cmake fetchcontent
+              nativeBuildInputs = [ cmake cacert git ];
               buildPhase = ''
                 cmake \
                   --build . \
@@ -38,9 +43,7 @@
               '';
               installPhase = ''
                 mkdir -p "$out/bin" \
-                && mv wtr.watcher "$out/bin/wtr-watcher" \
-                && mkdir -p "$out/include" \
-                && mv ../include/wtr "$out/include/wtr" \
+                && mv wtr.watcher "$out/bin/wtr-watcher"
               '';
             }
           );
