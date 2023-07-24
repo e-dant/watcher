@@ -251,9 +251,17 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
 
 /*  Keeping this here, away from the `while (is_living()) ...`
     loop, because I'm thinking about moving all the lifetime
-    management up a few layer or two. Maybe the user-facing
-    `watch` class can take over the sleep timer, thread handle,
-    and destruction. Maybe we don't even need an adapter layer.
+    management up a layer or two. Maybe the user-facing `watch`
+    class can take over the sleep timer, threading, and closing
+    the system's resources. Maybe we don't even need an adapter
+    layer... Just a way to expose a concistent and non-blocking
+    kernel API.
+
+    The sleep timer and threading are probably unnecessary,
+    anyway. Maybe there's some stop token or something more
+    asio-like that we can use instead of the sleep/`is_living()`
+    loop. Instead of threading, we should just become part of an
+    `io_context` and let `asio` handle the runtime.
 
     I'm also thinking of ways use `asio` in this project. The
     `awaitable` coroutines look like they might fit. Might need
