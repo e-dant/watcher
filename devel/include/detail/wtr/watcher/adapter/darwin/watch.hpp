@@ -144,7 +144,7 @@ inline auto event_recv(ConstFSEventStreamRef,    /*  `ConstFS..` is important */
 static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
 inline auto
-event_stream_open(::std::filesystem::path const& path,
+open_event_stream(::std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback) noexcept
   -> std::shared_ptr<sysres_type>
 {
@@ -227,7 +227,7 @@ event_stream_open(::std::filesystem::path const& path,
 }
 
 inline auto
-event_stream_close(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
+close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
 {
   if (sysres->stream) {
     /*  `FSEventStreamInvalidate()` only needs to be called if
@@ -249,29 +249,42 @@ event_stream_close(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     return false;
 }
 
+/*  Keeping this here, away from the `while (is_living()) ...`
+    loop, because I'm thinking about moving all the lifetime
+    management up a few layer or two. Maybe the user-facing
+    `watch` class can take over the sleep timer, thread handle,
+    and destruction. Maybe we don't even need an adapter layer.
+
+    I'm also thinking of ways use `asio` in this project. The
+    `awaitable` coroutines look like they might fit. Might need
+    to rip out the `callback` param. This is a relatively small
+    project, so there isn't *too* much work to do. (Last words?) */
+inline auto open_watch(::std::filesystem::path const& path,
+                       ::wtr::watcher::event::callback const& callback) noexcept
+{
+  return [sysres = open_event_stream(path, callback)]() noexcept -> bool
+  { return close_event_stream(std::move(sysres)); };
+}
+
 } /* namespace */
 
-inline bool watch(std::filesystem::path const& path,
+inline auto watch(::std::filesystem::path const& path,
                   ::wtr::watcher::event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
+                  ::std::function<bool()> const& is_living) noexcept -> bool
 {
+  using namespace ::std::chrono_literals;
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
-  using std::this_thread::sleep_for;
+  using ::std::this_thread::sleep_for;
 
-  sysres = event_stream_open(path, callback)
-
-    while (is_living()) sleep_for(delay_ms);
-
-  auto died_ok = event_stream_close(std::move(sysres));
-
-  if (died_ok)
+  auto close_watch = open_watch(path, callback);
+  while (is_living()) sleep_for(16ms);
+  auto ok = close_watch();
+  if (ok)
     callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-
   else
     callback({"e/self/die@" + path.string(), evw::destroy, evk::watcher});
-
-  return died_ok;
+  return ok;
 }
 
 } /*  namespace adapter */
