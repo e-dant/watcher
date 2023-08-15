@@ -48,7 +48,7 @@ int main()
 # Sigh
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
-eval c++ -std=c++2a -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
+eval c++ -std=c++17 -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 # Run
 ./watcher
 ```
