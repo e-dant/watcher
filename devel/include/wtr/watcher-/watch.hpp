@@ -1,24 +1,16 @@
 #pragma once
 
-/*  path */
-#include <filesystem>
-/*  function */
-#include <functional>
-/*  is_nothrow_invocable */
-#include <type_traits>
-/*  convertible_to */
-#include <concepts>
-/*  event
-    callback
-    adapter */
 #include "wtr/watcher.hpp"
+#include <atomic>
+#include <filesystem>
+#include <functional>
+#include <future>
+#include <memory>
 
 namespace wtr {
 inline namespace watcher {
 
-/*  @brief wtr/watcher/watch
-
-    An asynchronous filesystem watcher.
+/*  An asynchronous filesystem watcher.
 
     Begins watching when constructed.
 
@@ -34,22 +26,23 @@ inline namespace watcher {
       Something (such as a closure) to be called when events
       occur in the path being watched.
 
-    This is an adaptor "switch" that chooses the ideal adaptor
-    for the host platform.
+    This is an adaptor "switch" that chooses the ideal
+   adaptor for the host platform.
 
-    Every adapter monitors `path` for changes and invokes the
-    `callback` with an `event` object when they occur.
+    Every adapter monitors `path` for changes and invokes
+   the `callback` with an `event` object when they occur.
 
-    There are two things the user needs: `watch` and `event`.
+    There are two things the user needs: `watch` and
+   `event`.
 
     Typical use looks something like this:
 
     auto w = watch(".", [](event const& e) {
       std::cout
-        << "where: " << e.where << "\n"
-        << "kind: "  << e.kind  << "\n"
-        << "what: "  << e.what  << "\n"
-        << "when: "  << e.when  << "\n"
+        << "path_name:   " << e.path_name   << "\n"
+        << "path_type:   " << e.path_type   << "\n"
+        << "effect_type: " << e.effect_type << "\n"
+        << "effect_time: " << e.effect_time << "\n"
         << std::endl;
     };
 
@@ -58,110 +51,54 @@ inline namespace watcher {
     Happy hacking. */
 class watch {
 private:
-  using Callback = ::wtr::watcher::event::callback;
-  using Path = ::std::filesystem::path;
-  using Fut = ::detail::wtr::watcher::adapter::future::shared;
-  Fut fut{};
+  std::filesystem::path const path{};
+  event::callback const callback{};
+  mutable std::atomic<bool> is_open{true};
+  std::future<bool> future{};
 
-public:
-  inline auto close() const noexcept -> bool
+  inline auto open() const noexcept
   {
-    return ::detail::wtr::watcher::adapter::close(this->fut);
+    this->callback(
+      {"s/self/live@" + this->path.string(),
+       event::effect_type::create,
+       event::path_type::watcher});
+    return std::async(
+      std::launch::async,
+      [this]() noexcept -> bool
+      {
+        return ::detail::wtr::watcher::adapter::watch(
+          this->path,
+          this->callback,
+          this->is_open);
+      });
   };
 
-  inline watch(Path const& path, Callback const& callback) noexcept
-      : fut{::detail::wtr::watcher::adapter::open(path, callback)}
+public:
+  inline auto close() noexcept -> bool
+  {
+    if (this->is_open) {
+      this->is_open = false;
+      auto ok = this->future.get();
+      this->callback(
+        {(ok ? "s/self/die@" : "e/self/die@") + this->path.string(),
+         event::effect_type::destroy,
+         event::path_type::watcher});
+      return ok;
+    }
+    else
+      return false;
+  };
+
+  inline watch(
+    std::filesystem::path const& path,
+    event::callback const& callback) noexcept
+      : path{path}
+      , callback{callback}
+      , future{this->open()}
   {}
 
   inline ~watch() noexcept { this->close(); }
 };
 
-inline namespace v0_8 {
-
-/*  Contains a way to stop an instance of `watch()`.
-    This is the structure that we return from there.
-    It is intended to allow the `watch(args).close()`
-    syntax as well as an anonymous `watch(args)()`.
-    We define it up here so that editors can suggest
-    and complete the `.close()` function. Also because
-    we can't template a type inside a function.
-
-    This thing is similar to an unnamed function object
-    containing a named method. */
-
-template<class Fn>
-struct _ {
-  static_assert(
-    std::is_nothrow_invocable_v<Fn>
-    and std::is_same_v<std::invoke_result_t<Fn>, bool>);
-  Fn const close{};
-
-  inline auto operator()() const noexcept -> bool { return this->close(); };
-
-  inline constexpr _(Fn&& fn) noexcept
-      : close{std::forward<Fn>(fn)} {};
-
-  inline ~_() = default;
-};
-
-/*  @brief wtr/watcher/watch
-
-    Returns an asyncronous filesystem watcher as a function
-    object. Calling the function object with `()` or `.close()`
-    will stop the watcher.
-
-    Closing the watcher is the only blocking operation.
-
-    @param path:
-      The root path to watch for filesystem events.
-
-    @param living_cb (optional):
-      Something (such as a closure) to be called when events
-      occur in the path being watched.
-
-    This is an adaptor "switch" that chooses the ideal adaptor
-    for the host platform.
-
-    Every adapter monitors `path` for changes and invokes the
-    `callback` with an `event` object when they occur.
-
-    There are two things the user needs:
-      - The `watch` function
-      - The `event` object
-
-    The watch function returns a function to stop its watcher.
-
-    Typical use looks like this:
-
-    auto w = watch(".", [](event const& e) {
-      std::cout
-        << "where: " << e.where << "\n"
-        << "kind: "  << e.kind  << "\n"
-        << "what: "  << e.what  << "\n"
-        << "when: "  << e.when  << "\n"
-        << std::endl;
-    };
-    auto dead = w.close(); // w() also works
-
-    That's it.
-
-    Happy hacking. */
-
-[[nodiscard("Returns a way to stop this watcher, for example: "
-            "auto w = watch(p, cb) ; w.close() // or w();")]]
-
-inline auto
-watch0(
-  std::filesystem::path const& path,
-  event::callback const& callback) noexcept
-{
-  using namespace ::detail::wtr::watcher::adapter;
-
-  return _{[adapter{open(path, callback)}]() noexcept -> bool {
-    return close(adapter);
-  }};
-};
-
-} /* namespace v0_8 */
-} /* namespace watcher */
-} /* namespace wtr   */
+} /*  namespace watcher */
+} /*  namespace wtr   */

@@ -1,23 +1,22 @@
 #pragma once
 
-/* std::basic_ostream */
-#include <ios>
-/* std::chrono::system_clock::now
-   std::chrono::duration_cast
-   std::chrono::system_clock
-   std::chrono::nanoseconds
-   std::chrono::time_point */
+#include <array>
+#include <bit>
+#include <cassert>
+#include <charconv>
 #include <chrono>
-/* std::filesystem::path */
 #include <filesystem>
-/* std::function */
 #include <functional>
+#include <ios>
+#include <limits>
+#include <string>
+#include <string_view>
+#include <type_traits>
 
 namespace wtr {
 inline namespace watcher {
 
-/*  @brief watcher/event
-    There are only three things the user needs:
+/*  There are only three things the user needs:
       - The `die` function
       - The `watch` function
       - The `event` object
@@ -52,154 +51,294 @@ inline namespace watcher {
 struct event {
 
 private:
-  /* I like these names. Very human.
-     'what happen'
-     'event kind' */
-  using path_type = std::filesystem::path;
-  using ns = std::chrono::nanoseconds;
-  using clock = std::chrono::system_clock;
-  using time_point = std::chrono::time_point<clock>;
+  /*  I like these names. Very human. */
+  using Nanos = std::chrono::nanoseconds;
+  using Clock = std::chrono::system_clock;
+  using TimePoint = std::chrono::time_point<Clock>;
 
 public:
-  /*  @brief watcher/event/callback
-      Ensure the adapters can recieve events
+  /*  Ensure the user's callback can recieve events
       and will return nothing. */
   using callback = std::function<void(event const&)>;
 
-  /*  @brief wtr/watcher/event/what
-      A structure intended to represent
-      what has happened to some path
-      at the moment of some affecting event. */
-  enum class what {
-    /* The essentials */
+  /*  Represents "what happened" to a path. */
+  enum class effect_type {
     rename,
     modify,
     create,
     destroy,
-    /* The attributes */
     owner,
-    /* Catch-all */
     other,
   };
 
-  /*  @brief wtr/watcher/event/kind
-      The essential kinds of paths. */
-  enum class kind {
-    /* The essentials */
+  /*  The essential types of paths. */
+  enum class path_type {
     dir,
     file,
     hard_link,
     sym_link,
-    /* The specials */
     watcher,
-    /* Catch-all */
     other,
   };
 
-  path_type const where{};
+  std::filesystem::path const path_name{};
 
-  enum what const what {};
+  enum effect_type const effect_type {};
 
-  enum kind const kind {};
+  enum path_type const path_type {};
 
-  long long const when{
-    std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch())
-      .count()};
+  long long const effect_time{std::chrono::duration_cast<Nanos>(
+                                TimePoint{Clock::now()}.time_since_epoch())
+                                .count()};
 
-  event(
-    std::filesystem::path const& where,
-    enum what const& what,
-    enum kind const& kind) noexcept
-      : where{where}
-      , what{what}
-      , kind{kind} {};
+  inline event(
+    std::filesystem::path const& path_name,
+    enum effect_type const& effect_type,
+    enum path_type const& path_type) noexcept
+      : path_name{path_name}
+      , effect_type{effect_type}
+      , path_type{path_type} {};
 
-  ~event() noexcept = default;
-};
+  inline ~event() noexcept = default;
 
-/*  @brief wtr/watcher/event/<<
-    Streams out a `what` value. */
-template<class Char, class CharTraits>
-inline constexpr auto operator<<(
-  std::basic_ostream<Char, CharTraits>& os,
-  enum event::what const& w) noexcept -> std::basic_ostream<Char, CharTraits>&
-{
-  /* clang-format off */
-  switch (w) {
-    case event::what::rename  : return os << "\"rename\"";
-    case event::what::modify  : return os << "\"modify\"";
-    case event::what::create  : return os << "\"create\"";
-    case event::what::destroy : return os << "\"destroy\"";
-    case event::what::owner   : return os << "\"owner\"";
-    case event::what::other   : return os << "\"other\"";
-    default                   : return os << "\"other\"";
+  /*  An equality comparison for all the fields in this object.
+      Includes the `effect_time`, which might not be wanted,
+      because the `effect_time` is typically (not always) unique. */
+  inline friend auto
+  operator==(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
+  {
+    return l.path_name == r.path_name and l.effect_time == r.effect_time
+       and l.path_type == r.path_type and l.effect_type == r.effect_type;
   }
-  /* clang-format on */
-};
 
-/*  @brief wtr/watcher/event/<<
-    Streams out a `kind` value. */
-template<class Char, class CharTraits>
-inline constexpr auto operator<<(
-  std::basic_ostream<Char, CharTraits>& os,
-  enum event::kind const& k) noexcept -> std::basic_ostream<Char, CharTraits>&
-{
-  /* clang-format off */
-  switch (k) {
-    case event::kind::dir       : return os << "\"dir\"";
-    case event::kind::file      : return os << "\"file\"";
-    case event::kind::hard_link : return os << "\"hard_link\"";
-    case event::kind::sym_link  : return os << "\"sym_link\"";
-    case event::kind::watcher   : return os << "\"watcher\"";
-    case event::kind::other     : return os << "\"other\"";
-    default                     : return os << "\"other\"";
+  inline friend auto
+  operator!=(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
+  {
+    return not (l == r);
   }
-  /* clang-format on */
 };
 
-/*  @brief wtr/watcher/event/<<
-    Streams out `where`, `what` and `kind`.
+} /*  namespace watcher */
+
+// clang-format off
+
+namespace {
+
+#define wtr_effect_type_to_str_lit(Char, from, Lit) \
+  switch (from) { \
+    case ::wtr::event::effect_type::rename  : return Lit"rename"; \
+    case ::wtr::event::effect_type::modify  : return Lit"modify"; \
+    case ::wtr::event::effect_type::create  : return Lit"create"; \
+    case ::wtr::event::effect_type::destroy : return Lit"destroy"; \
+    case ::wtr::event::effect_type::owner   : return Lit"owner"; \
+    case ::wtr::event::effect_type::other   : return Lit"other"; \
+    default                                 : return Lit"other"; \
+  }
+
+#define wtr_path_type_to_str_lit(Char, from, Lit) \
+  switch (from) { \
+    case ::wtr::event::path_type::dir       : return Lit"dir"; \
+    case ::wtr::event::path_type::file      : return Lit"file"; \
+    case ::wtr::event::path_type::hard_link : return Lit"hard_link"; \
+    case ::wtr::event::path_type::sym_link  : return Lit"sym_link"; \
+    case ::wtr::event::path_type::watcher   : return Lit"watcher"; \
+    case ::wtr::event::path_type::other     : return Lit"other"; \
+    default                                 : return Lit"other"; \
+  }
+
+#define wtr_event_to_str_cls_as_json(Char, from, Lit) \
+  using Cls = std::basic_string<Char>; \
+  auto&& effect_time = Lit"\"" + to<Cls>(from.effect_time) + Lit"\""; \
+  auto&& effect_type = Lit"\"" + to<Cls>(from.effect_type) + Lit"\""; \
+  auto&& path_name =   Lit"\"" + to<Cls>(from.path_name)   + Lit"\""; \
+  auto&& path_type =   Lit"\"" + to<Cls>(from.path_type)   + Lit"\""; \
+  return {                         effect_time + Lit":{" \
+         + Lit"\"effect_type\":" + effect_type + Lit","  \
+         + Lit"\"path_name\":"   + path_name   + Lit","  \
+         + Lit"\"path_type\":"   + path_type   + Lit"}"  \
+         };
+
+/* template<class T> */
+/* concept SaneNarrowCharSize = requires{ */
+/*   requires(sizeof(char) */
+/*         == sizeof(signed char) */
+/*         == sizeof(unsigned char) */
+/*         == sizeof(char8_t)); // Redundant? */
+/* }; */
+/* template<class T> */
+/* concept NarrowChar = requires{ */
+/*   requires(SaneNarrowCharSize<T>); */
+/*   requires(std::is_same_v<T, char> */
+/*         or std::is_same_v<T, signed char> */
+/*         or std::is_same_v<T, unsigned char> */
+/*         or std::is_same_v<T, char8_t>); */
+/* }; */
+/* template<class T> */
+/* concept WideChar = requires{ */
+/*   requires(std::is_same_v<T, wchar_t> */
+/*         or std::is_same_v<T, char16_t> */
+/*         or std::is_same_v<T, char32_t>); */
+/* }; */
+/* template<class T> */
+/* concept Char = requires{ */
+/*   requires(NarrowChar<T> */
+/*         or WideChar<T>); */
+/* }; */
+
+/*  For types larger than char and/or char8_t, we can just cast
+    each element in our `char` buffer to an `unsigned char`, and
+    then zero-extend the elements to any of `wchar_t`, `char16_t`
+    and/or `char32_t`.
+    We can use something like `format_to(chararray, "{}", from)`
+    when library support is more common. */
+template<class Char>
+inline auto num_to_str(long long from) noexcept -> std::basic_string<Char> {
+  static_assert(std::is_integral_v<decltype(from)>);
+  static constexpr bool is_sys_sane_narrow_char_size = (
+      sizeof(char)
+      == sizeof(signed char)
+      == sizeof(unsigned char)
+      /* == sizeof(char8_t) // Redundant? */
+  );
+  static constexpr bool is_narrow_char = (
+    is_sys_sane_narrow_char_size
+    && (   std::is_same_v<Char, char>
+        || std::is_same_v<Char, signed char>
+        || std::is_same_v<Char, unsigned char>
+        /* || std::is_same_v<Char, char8_t> */
+    )
+  );
+  static constexpr bool is_wide_char = (
+       std::is_same_v<Char, wchar_t>
+    || std::is_same_v<Char, char16_t>
+    || std::is_same_v<Char, char32_t>
+  );
+  static_assert(is_narrow_char or is_wide_char);
+
+  static constexpr auto buflen = std::numeric_limits<decltype(from)>::digits10 + 1;
+  auto buf = std::array<char, buflen>{0};
+  auto [_, ec] = std::to_chars(buf.data(), buf.data() + buf.size(), from);
+  if (ec != std::errc{}) {
+    return {};
+  }
+  else if constexpr (is_narrow_char) {
+    return {reinterpret_cast<Char const*>(buf.data()), buflen};
+  }
+  else if constexpr (is_wide_char) {
+    auto xbuf = std::array<Char, buflen>{0};
+    for (std::size_t i = 0; i < buflen; ++i)
+      xbuf[i] = static_cast<Char>(static_cast<unsigned char>(buf[i]));
+    return {xbuf.data(), buflen};
+  }
+};
+
+} /*  namespace */
+
+/*  We use function templates, as opposed to class templates with an
+    overloaded () operator, so that we can avoid the extra () or {}
+    when (needlessly) "constructing" the class and to make extending
+    the templates once or more for the same type (a-la parameterize the
+    return type *and* the arguments) possible.
+
+    The `template<template<class...> class... Ts> auto to(auto) noexcept`
+    is just for the user. It allows specialization outside of this file,
+    and has no effect within this file (it does not guide deduction here).
+
+    Some downsides:
+    `std::hash` takes the class template approach. That's a (well?) known
+    api. It's not ideal that we miss out on a user's existing familiarity
+    with that pattern.
+    We need to "declare" a function template before "defining" it:
+    `template<class T> auto to(OurTypeOrConcept) -> T` must come before
+    the `template<> auto to(...) -> T { ... }`. I'm not sure why class
+    templates can get away without declaring a template like that, or
+    why we need to do that at all.
+    Another downside to the function templates is that we need to "declare"
+    function templates before "defining" them. That's not exactly intuitive
+    to me, I'm fuzzy on why that is, and users probably shouldn't need to
+    remember that whenever they specialize this template.
+    We need to declare a template before defining it:
+    `template<class T> auto to(OurTypeOrConcept) -> T` must come before
+    the `template<> auto to(...) -> T { ... }`. I'm not sure why class
+    templates can get away without declaring a template like that, or
+    why we need to do that at all.
+
+    Beware of linker errors when using a concept as an argument type.
+    AFAICT This is something that can't be done, or I haven't figured out
+    how just yet.
+
+    The upsides to function templates are:
+    - We get to a concise api, `to<Type>(from_thing)`
+    - The user can further specialize the function templates, i.e. We can
+      have a specialization `to<string>(type_in_file_a)` and, somewhere else,
+      `to<string>(type_in_file_b)` as well. Class templates cannot do that. */
+
+template<class T, class... Ts> auto to(T) noexcept -> decltype(auto);
+
+template<class T> auto to (long long                                from) noexcept -> T ;
+template<class T> auto to (decltype(::wtr::event::effect_time)      from) noexcept -> T ;
+template<class T> auto to (enum     ::wtr::event::effect_type       from) noexcept -> T ;
+template<class T> auto to (decltype(::wtr::event::path_name) const& from) noexcept -> T ;
+template<class T> auto to (enum     ::wtr::event::path_type         from) noexcept -> T ;
+template<class T> auto to (         ::wtr::event             const& from) noexcept -> T ;
+
+template<> inline constexpr auto to<std::basic_string_view<char>>   (enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string_view<char>    { wtr_effect_type_to_str_lit(  char,    from,   ""          );  }
+template<> inline constexpr auto to<std::basic_string_view<char>>   (enum     ::wtr::event::path_type         from) noexcept -> std::basic_string_view<char>    { wtr_path_type_to_str_lit(    char,    from,   ""          );  }
+template<> inline           auto to<std::basic_string     <char>>   (decltype(::wtr::event::path_name) const& from) noexcept -> std::basic_string<char>         { return {                     from.string()                };  }
+template<> inline           auto to<std::basic_string     <char>>   (enum     ::wtr::event::path_type         from) noexcept -> std::basic_string<char>         { wtr_path_type_to_str_lit(    char,    from,   ""          );  }
+template<> inline           auto to<std::basic_string     <char>>   (decltype(::wtr::event::effect_time)      from) noexcept -> std::basic_string<char>         { return num_to_str           <char>(   from                );  }
+template<> inline           auto to<std::basic_string     <char>>   (enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string<char>         { wtr_effect_type_to_str_lit(  char,    from,   ""          );  }
+template<> inline           auto to<std::basic_string     <char>>   (         ::wtr::event             const& from) noexcept -> std::basic_string<char>         { wtr_event_to_str_cls_as_json(char,    from,   ""          );  }
+template<> inline constexpr auto to<std::basic_string_view<wchar_t>>(enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string_view<wchar_t> { wtr_effect_type_to_str_lit(  wchar_t, from,  L""          );  }
+template<> inline constexpr auto to<std::basic_string_view<wchar_t>>(enum     ::wtr::event::path_type         from) noexcept -> std::basic_string_view<wchar_t> { wtr_path_type_to_str_lit(    wchar_t, from,  L""          );  }
+template<> inline           auto to<std::basic_string     <wchar_t>>(enum     ::wtr::event::path_type         from) noexcept -> std::basic_string<wchar_t>      { wtr_path_type_to_str_lit(    wchar_t, from,  L""          );  }
+template<> inline           auto to<std::basic_string     <wchar_t>>(decltype(::wtr::event::path_name) const& from) noexcept -> std::basic_string<wchar_t>      { return {                     from.wstring()               };  }
+template<> inline           auto to<std::basic_string     <wchar_t>>(decltype(::wtr::event::effect_time)      from) noexcept -> std::basic_string<wchar_t>      { return num_to_str           <wchar_t>(from                );  }
+template<> inline           auto to<std::basic_string     <wchar_t>>(enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string<wchar_t>      { wtr_effect_type_to_str_lit(  wchar_t, from,  L""          );  }
+template<> inline           auto to<std::basic_string     <wchar_t>>(         ::wtr::event             const& from) noexcept -> std::basic_string<wchar_t>      { wtr_event_to_str_cls_as_json(wchar_t, from,  L""          );  }
+/*
+template<> inline constexpr auto to<std::basic_string_view<char8_t>>(enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string_view<char8_t> { wtr_effect_type_to_str_lit(  char8_t, from, u8""          );  }
+template<> inline constexpr auto to<std::basic_string_view<char8_t>>(enum     ::wtr::event::path_type         from) noexcept -> std::basic_string_view<char8_t> { wtr_path_type_to_str_lit(    char8_t, from, u8""          );  }
+template<> inline           auto to<std::basic_string     <char8_t>>(enum     ::wtr::event::path_type         from) noexcept -> std::basic_string<char8_t>      { wtr_path_type_to_str_lit(    char8_t, from, u8""          );  }
+template<> inline           auto to<std::basic_string     <char8_t>>(decltype(::wtr::event::path_name) const& from) noexcept -> std::basic_string<char8_t>      { return {                     from.u8string()              };  }
+template<> inline           auto to<std::basic_string     <char8_t>>(decltype(::wtr::event::effect_time)      from) noexcept -> std::basic_string<char8_t>      { return num_to_str           <char8_t>(from                );  }
+template<> inline           auto to<std::basic_string     <char8_t>>(enum     ::wtr::event::effect_type       from) noexcept -> std::basic_string<char8_t>      { wtr_effect_type_to_str_lit(  char8_t, from, u8""          );  }
+template<> inline           auto to<std::basic_string     <char8_t>>(         ::wtr::event             const& from) noexcept -> std::basic_string<char8_t>      { wtr_event_to_str_cls_as_json(char8_t, from, u8""          );  }
+*/
+
+#undef wtr_effect_type_to_str_lit
+#undef wtr_path_type_to_str_lit
+#undef wtr_event_to_str_cls_as_json
+
+template<class Char, class Traits>
+inline auto operator<<(
+  std::basic_ostream<Char, Traits>& into,
+  enum ::wtr::event::effect_type from) noexcept
+-> std::basic_ostream<Char, Traits>&
+{ return into << to<std::basic_string<Char, Traits>>(from); };
+
+template<class Char, class Traits>
+inline auto operator<<(
+  std::basic_ostream<Char, Traits>& into,
+  enum ::wtr::event::path_type from) noexcept
+-> std::basic_ostream<Char, Traits>&
+{ return into << to<std::basic_string<Char, Traits>>(from); };
+
+/*  Streams out `path_name`, `effect_type` and `path_type`.
     Formats the stream as a json object.
     Looks like this (without line breaks)
       "1678046920675963000":{
-       "where":"/some_file.txt",
-       "what":"create",
-       "kind":"file"
+       "effect_type":"create",
+       "path_name":"/some_file.txt",
+       "path_type":"file"
       } */
-template<class Char, class CharTraits>
-inline constexpr auto
-operator<<(std::basic_ostream<Char, CharTraits>& os, event const& ev) noexcept
-  -> std::basic_ostream<Char, CharTraits>&
-{
-  /* clang-format off */
-    return os << '"' << ev.when
-              << "\":{\"where\":" << ev.where
-              <<    ",\"what\":"  << ev.what
-              <<    ",\"kind\":"  << ev.kind  << '}';
-  /* clang-format on */
-};
+template<class Char, class Traits>
+inline auto operator<<(
+  std::basic_ostream<Char, Traits>& into,
+  ::wtr::event const& from) noexcept
+-> std::basic_ostream<Char, Traits>&
+{ return into << to<std::basic_string<Char, Traits>>(from); };
 
-/*  @brief wtr/watcher/event/==
-    A "strict" comparison of an event's `when`,
-    `where`, `what` and `kind` values.
-    Keep in mind that this compares `when`,
-    which might not be desireable. */
-inline auto operator==(event const& l, event const& r) noexcept -> bool
-{
-  /* clang-format off */
-  return l.where == r.where
-      && l.what  == r.what
-      && l.kind  == r.kind
-      && l.when  == r.when;
-  /* clang-format on */
-};
+// clang-format on
 
-/*  @brief wtr/watcher/event/!=
-    Not == */
-inline auto operator!=(event const& l, event const& r) noexcept -> bool
-{
-  return ! (l == r);
-};
-
-} /* namespace watcher */
-} /* namespace wtr   */
+} /*  namespace wtr   */

@@ -155,7 +155,7 @@ inline auto open_system_resources(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback) noexcept -> system_resources
 {
-  namespace fs = ::std::filesystem;
+  namespace fs = std::filesystem;
   using ev = ::wtr::watcher::event;
 
   auto do_error = [&path, &callback](
@@ -165,8 +165,8 @@ inline auto open_system_resources(
   {
     callback(
       {std::string{msg} + "(" + std::strerror(errno) + ")@" + path.string(),
-       ev::what::other,
-       ev::kind::watcher});
+       ev::effect_type::other,
+       ev::path_type::watcher});
 
     return system_resources{
       .valid = false,
@@ -185,7 +185,6 @@ inline auto open_system_resources(
   {
     using diter = fs::recursive_directory_iterator;
 
-    /*  Follow symlinks, ignore paths which we don't have permissions for. */
     static constexpr auto dopt =
       fs::directory_options::skip_permission_denied
       & fs::directory_options::follow_directory_symlink;
@@ -204,8 +203,8 @@ inline auto open_system_resources(
                 callback(
                   {"w/sys/not_watched@" + base_path.string() + "@"
                      + dir.path().string(),
-                   ev::what::other,
-                   ev::kind::watcher});
+                   ev::effect_type::other,
+                   ev::path_type::watcher});
     } catch (...) {}
 
     return pmc;
@@ -219,9 +218,9 @@ inline auto open_system_resources(
 
       int event_fd = epoll_create1(EPOLL_CLOEXEC);
 
-      /*  @note We could make the epoll and fanotify file descriptors
-          non-blocking with `fcntl`. It's not clear if we can do this
-          from their `*_init` calls.
+      /*  @note We could make the epoll and fanotify file
+          descriptors non-blocking with `fcntl`. It's not
+          clear if we can do this from their `*_init` calls.
 
           fcntl(watch_fd, F_SETFL, O_NONBLOCK);
           fcntl(event_fd, F_SETFL, O_NONBLOCK); */
@@ -261,40 +260,44 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
     a file descriptor to the directory (which we use
     `readlink` on) and a character string representing the
     name of the directory entry.
-    TLDR: We need information for the full path of the event,
-    information which is only reported inside this `if`.
+    TLDR: We need information for the full path of the
+    event, information which is only reported inside this
+    `if`.
     From the kernel:
-      Variable size struct for
-      dir file handle + child file handle + name
-      [ Omitting definition of `fanotify_info` here ]
-      (struct fanotify_fh) dir_fh starts at
-      buf[0]
-      (optional) dir2_fh starts at
-      buf[dir_fh_totlen]
-      (optional) file_fh starts at
-      buf[dir_fh_totlen + dir2_fh_totlen]
+    Variable size struct for
+    dir file handle + child file handle + name
+    [ Omitting definition of `fanotify_info` here ]
+    (struct fanotify_fh)
+      dir_fh starts at
+        buf[0] (optional)
+      dir2_fh starts at
+        buf[dir_fh_totlen] (optional)
+      file_fh starts at
+        buf[dir_fh_totlen+dir2_fh_totlen]
       name starts at
-      buf[dir_fh_totlen + dir2_fh_totlen + file_fh_totlen]
+        buf[dir_fh_totlen+dir2_fh_totlen+file_fh_totlen]
       ...
     The kernel guarentees that there is a null-terminated
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
 // clang-format off
-// note at the end of file re. clang format
+/*  note at the end of file re. clang format */
 inline auto promote(fanotify_event_metadata const* mtd) noexcept
-  -> std::tuple<bool,
-                std::filesystem::path,
-                enum ::wtr::watcher::event::what,
-                enum ::wtr::watcher::event::kind>
+-> std::tuple<
+  bool,
+  std::filesystem::path,
+  enum ::wtr::watcher::event::effect_type,
+  enum ::wtr::watcher::event::path_type>
 {
-  namespace fs = ::std::filesystem;
+  namespace fs = std::filesystem;
   using ev = ::wtr::watcher::event;
 
-  auto path_imbue = [](char* path_accum,
-                       fanotify_event_info_fid const* dfid_info,
-                       file_handle* dir_fh,
-                       ssize_t dir_name_len = 0) noexcept -> void
+  auto path_imbue = [](
+                      char* path_accum,
+                      fanotify_event_info_fid const* dfid_info,
+                      file_handle* dir_fh,
+                      ssize_t dir_name_len = 0) noexcept -> void
   {
     char* name_info = (char*)(dfid_info + 1);
     char* file_name = static_cast<char*>(
@@ -302,59 +305,55 @@ inline auto promote(fanotify_event_metadata const* mtd) noexcept
       + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
 
     if (file_name && std::strcmp(file_name, ".") != 0)
-      std::snprintf(path_accum + dir_name_len,
-                    PATH_MAX - dir_name_len,
-                    "/%s",
-                    file_name);
+      std::snprintf(
+        path_accum + dir_name_len,
+        PATH_MAX - dir_name_len,
+        "/%s",
+        file_name);
   };
 
   auto dir_fid_info = ((fanotify_event_info_fid const*)(mtd + 1));
 
   auto dir_fh = (file_handle*)(dir_fid_info->handle);
 
-  auto what = mtd->mask & FAN_CREATE ? ev::what::create
-            : mtd->mask & FAN_DELETE ? ev::what::destroy
-            : mtd->mask & FAN_MODIFY ? ev::what::modify
-            : mtd->mask & FAN_MOVE   ? ev::what::rename
-                                     : ev::what::other;
+  auto effect_type = mtd->mask & FAN_CREATE ? ev::effect_type::create
+            : mtd->mask & FAN_DELETE ? ev::effect_type::destroy
+            : mtd->mask & FAN_MODIFY ? ev::effect_type::modify
+            : mtd->mask & FAN_MOVE   ? ev::effect_type::rename
+                                     : ev::effect_type::other;
 
-  auto kind = mtd->mask & FAN_ONDIR ? ev::kind::dir : ev::kind::file;
+  auto path_type = mtd->mask & FAN_ONDIR ? ev::path_type::dir : ev::path_type::file;
 
   /*  We can get a path name, so get that and use it */
   char path_buf[PATH_MAX];
-  int fd = open_by_handle_at(AT_FDCWD,
-                             dir_fh,
-                             O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
-  if (fd > 0) {
+  int fd = open_by_handle_at(
+    AT_FDCWD,
+    dir_fh,
+    O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
+  if (fd > 0){
     char fs_proc_path[128];
     std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
     ssize_t dirname_len =
       readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
     close(fd);
 
-    if (dirname_len > 0) {
+    if (dirname_len > 0){
       /*  Put the directory name in the path accumulator.
           Passing `dirname_len` has the effect of putting
           the event's filename in the path buffer as well. */
       path_buf[dirname_len] = '\0';
       path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
 
-      return std::make_tuple(true,
-                             fs::path{std::move(path_buf)},
-                             what,
-                             kind);
-    }
+      return std::make_tuple(true, fs::path{std::move(path_buf)}, effect_type, path_type);}
 
     else
-      return std::make_tuple(false, fs::path{}, what, kind);
+      return std::make_tuple(false, fs::path{}, effect_type, path_type);
   }
+
   else {
     path_imbue(path_buf, dir_fid_info, dir_fh);
 
-    return std::make_tuple(true,
-                           fs::path{std::move(path_buf)},
-                           what,
-                           kind);
+    return std::make_tuple(true, fs::path{std::move(path_buf)}, effect_type, path_type);
   }
 };
 
@@ -364,27 +363,27 @@ inline auto check_and_update(
   std::tuple<
     bool,
     std::filesystem::path,
-    enum ::wtr::watcher::event::what,
-    enum ::wtr::watcher::event::kind> const& r,
+    enum ::wtr::watcher::event::effect_type,
+    enum ::wtr::watcher::event::path_type> const& r,
   system_resources& sr) noexcept
   -> std::tuple<
     bool,
     std::filesystem::path,
-    enum ::wtr::watcher::event::what,
-    enum ::wtr::watcher::event::kind> {
+    enum ::wtr::watcher::event::effect_type,
+    enum ::wtr::watcher::event::path_type> {
     using ev = ::wtr::watcher::event;
 
-    auto [valid, path, what, kind] = r;
+    auto [valid, path, effect_type, path_type] = r;
 
     return std::make_tuple(
 
       valid
 
-        ? kind == ev::kind::dir
+        ? path_type == ev::path_type::dir
 
-          ? what == ev::what::create  ? mark(path, sr)
-          : what == ev::what::destroy ? unmark(path, sr)
-                                      : true
+          ? effect_type == ev::effect_type::create  ? mark(path, sr)
+          : effect_type == ev::effect_type::destroy ? unmark(path, sr)
+                                                    : true
 
           : true
 
@@ -392,9 +391,9 @@ inline auto check_and_update(
 
       path,
 
-      what,
+      effect_type,
 
-      kind);
+      path_type);
   };
 
 /*  Send events to the user.
@@ -406,13 +405,13 @@ inline auto send(
   std::tuple<
     bool,
     std::filesystem::path,
-    enum ::wtr::watcher::event::what,
-    enum ::wtr::watcher::event::kind> const& from_kernel,
+    enum ::wtr::watcher::event::effect_type,
+    enum ::wtr::watcher::event::path_type> const& from_kernel,
   ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
-  auto [ok, path, what, kind] = from_kernel;
+  auto [ok, path, effect_type, path_type] = from_kernel;
 
-  return ok ? (callback({path, what, kind}), ok) : ok;
+  return ok ? (callback({path, effect_type, path_type}), ok) : ok;
 };
 
 /*  Reads through available (fanotify) filesystem events.
@@ -429,7 +428,7 @@ inline auto send(
     `fanotify` listener is monitoring events by their
     file handles.
     The `metadata->vers` field may differ between kernel
-    versions, so we check it against what we have been
+    versions, so we check it against the version we were
     compiled with. */
 inline auto recv(
   system_resources& sr,
@@ -444,8 +443,8 @@ inline auto recv(
     return (
       callback(
         {std::string{msg} + "@" + base_path.string(),
-         ::wtr::watcher::event::what::other,
-         ::wtr::watcher::event::kind::watcher}),
+         ::wtr::watcher::event::effect_type::other,
+         ::wtr::watcher::event::path_type::watcher}),
       false);
   };
 
@@ -491,45 +490,22 @@ inline auto recv(
   return false;
 };
 
-inline bool watch(
+inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::function<bool()> const& is_living) noexcept
+  std::atomic_bool& is_living) noexcept -> bool
 {
   using ev = ::wtr::watcher::event;
 
-  auto done = [&path, &callback](system_resources&& sr) noexcept -> bool
-  {
-    return
-
-      close_system_resources(std::move(sr))
-
-        ? (
-          callback(
-            {"s/self/die@" + path.string(),
-             ev::what::other,
-             ev::kind::watcher}),
-          true)
-
-        : (
-          callback(
-            {"e/self/die@" + path.string(),
-             ev::what::other,
-             ev::kind::watcher}),
-          false);
-  };
-
-  auto do_error = [&path,
-                   &callback,
-                   &done](system_resources&& sr, char const* const msg) -> bool
+  auto do_error = [&path, &callback](auto& f, char const* const msg) -> bool
   {
     return (
       callback(
         {std::string{msg} + "@" + path.string(),
-         ev::what::other,
-         ev::kind::watcher}),
+         ev::effect_type::other,
+         ev::path_type::watcher}),
 
-      done(std::move(sr)),
+      f(),
 
       false);
   };
@@ -544,10 +520,12 @@ inline bool watch(
 
   auto sr = open_system_resources(path, callback);
 
+  auto close = [&sr]() { system_fold(sr); };
+
   epoll_event event_recv_list[event_wait_queue_max];
 
   if (sr.valid) [[likely]] {
-    while (is_living()) [[likely]]
+    while (is_living) [[likely]]
 
     {
       int event_count = epoll_wait(
@@ -556,31 +534,31 @@ inline bool watch(
         event_wait_queue_max,
         delay_ms);
       if (event_count < 0)
-        return do_error(std::move(sr), "e/sys/epoll_wait");
+        return do_error(close, "e/sys/epoll_wait");
 
       else if (event_count > 0) [[likely]]
         for (int n = 0; n < event_count; n++)
           if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-            if (is_living()) [[likely]]
+            if (is_living) [[likely]]
               if (! recv(sr, path, callback)) [[unlikely]]
-                return do_error(std::move(sr), "e/self/event_recv");
+                return do_error(close, "e/self/event_recv");
     }
 
-    return done(std::move(sr));
+    return close();
   }
 
   else
-    return do_error(std::move(sr), "e/self/sys_resource");
+    return do_error(close, "e/self/sys_resource");
 };
 
 // clang-format off
-// returning tuples is confusing clang format
+/*  returning tuples is confusing clang format */
 
-}  /* namespace fanotify */
-}  /* namespace adapter */
-}  /* namespace watcher */
-}  /* namespace wtr */
-}  /* namespace detail */
+} /*  namespace fanotify */
+} /*  namespace adapter */
+} /*  namespace watcher */
+} /*  namespace wtr */
+} /*  namespace detail */
 
 // clang-format on
 

@@ -24,16 +24,12 @@ namespace watcher {
 namespace adapter {
 namespace {
 
-/* clang-format off */
+inline constexpr std::filesystem::directory_options scan_dir_options =
+  std::filesystem::directory_options::skip_permission_denied
+  & std::filesystem::directory_options::follow_directory_symlink;
 
-inline constexpr std::filesystem::directory_options
-  scan_dir_options = 
-    std::filesystem::directory_options::skip_permission_denied 
-    & std::filesystem::directory_options::follow_directory_symlink;
-
-using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_type>;
-
-/* clang-format on */
+using bucket_type =
+  std::unordered_map<std::string, std::filesystem::file_time_type>;
 
 /*  - Scans `path` for changes.
     - Updates our bucket to match the changes.
@@ -60,28 +56,35 @@ inline bool scan(
       /*  grabbing the file's last write time */
       auto const& timestamp = last_write_time(file, ec);
       if (ec) {
-        /*  the file changed while we were looking at it. so, we call the
-            closure, indicating destruction, and remove it from the bucket. */
-        send_event(event{file, event::what::destroy, event::kind::file});
+        /*  the file changed while we were looking at it.
+            so, we call the closure, indicating destruction,
+            and remove it from the bucket. */
+        send_event(
+          event{file, event::effect_type::destroy, event::path_type::file});
         if (bucket.contains(file)) bucket.erase(file);
       }
       /*  if it's not in our bucket, */
       else if (! bucket.contains(file)) {
-        /*  we put it in there and call the closure, indicating creation. */
+        /*  we put it in there and call the closure,
+            indicating creation. */
         bucket[file] = timestamp;
-        send_event(event{file, event::what::create, event::kind::file});
+        send_event(
+          event{file, event::effect_type::create, event::path_type::file});
       }
       /*  otherwise, it is already in our bucket. */
       else {
         /*  we update the file's last write time, */
         if (bucket[file] != timestamp) {
           bucket[file] = timestamp;
-          /*  and call the closure on them, indicating modification */
-          send_event(event{file, event::what::modify, event::kind::file});
+          /*  and call the closure on them,
+              indicating modification */
+          send_event(
+            event{file, event::effect_type::modify, event::path_type::file});
         }
       }
       return true;
-    } /*  if the path doesn't exist, we nudge the callee with `false` */
+    } /*  if the path doesn't exist, we nudge the callee
+          with `false` */
     else
       return false;
   };
@@ -174,17 +177,18 @@ inline bool tend_bucket(
       exists(bucket_it->first)
         /*  if so, move on. */
         ? std::advance(bucket_it, 1)
-        /*  if not, call the closure, indicating destruction,
+        /*  if not, call the closure,
+            indicating destruction,
             and remove it from our bucket. */
         : [&]()
       {
         send_event(event{
           bucket_it->first,
-          event::what::destroy,
-          is_regular_file(path) ? event::kind::file
-          : is_directory(path)  ? event::kind::dir
-          : is_symlink(path)    ? event::kind::sym_link
-                                : event::kind::other});
+          event::effect_type::destroy,
+          is_regular_file(path) ? event::path_type::file
+          : is_directory(path)  ? event::path_type::dir
+          : is_symlink(path)    ? event::path_type::sym_link
+                                : event::path_type::other});
         /*  bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();
@@ -200,10 +204,10 @@ inline bool tend_bucket(
 
 } /* namespace */
 
-inline bool watch(
+inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::function<bool()> const& is_living) noexcept
+  std::atomic_bool& is_living) noexcept -> bool
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
@@ -220,12 +224,9 @@ inline bool watch(
 
   static constexpr auto delay_ms = 16;
 
-  while (is_living()) {
+  while (is_living) {
     if (
       ! tend_bucket(path, callback, bucket) || ! scan(path, callback, bucket)) {
-      callback(
-        {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
-
       return false;
     }
     else {
@@ -233,14 +234,12 @@ inline bool watch(
     }
   }
 
-  callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-
   return true;
 }
 
-} /* namespace adapter */
-} /* namespace watcher */
-} /* namespace wtr */
-} /* namespace detail */
+} /*  namespace adapter */
+} /*  namespace watcher */
+} /*  namespace wtr */
+} /*  namespace detail */
 
 #endif

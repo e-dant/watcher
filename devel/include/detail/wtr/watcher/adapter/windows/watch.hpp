@@ -77,19 +77,19 @@ public:
   }
 };
 
-inline bool is_valid(watch_event_proxy& w) noexcept
+inline auto is_valid(watch_event_proxy& w) noexcept -> bool
 {
   return w.is_valid && w.event_buf != nullptr;
 }
 
-inline bool has_event(watch_event_proxy& w) noexcept
+inline auto has_event(watch_event_proxy& w) noexcept -> bool
 {
   return w.event_buf_len_ready != 0;
 }
 
-inline bool do_event_recv(
+inline auto do_event_recv(
   watch_event_proxy& w,
-  ::wtr::watcher::event::callback const& callback) noexcept
+  ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 
@@ -121,23 +121,23 @@ inline bool do_event_recv(
         w.is_valid = false;
         callback(
           {"e/sys/read/pending",
-           ::wtr::event::what::other,
-           ::wtr::event::kind::watcher});
+           ::wtr::event::effect_type::other,
+           ::wtr::event::path_type::watcher});
         break;
       default :
         callback(
           {"e/sys/read",
-           ::wtr::event::what::other,
-           ::wtr::event::kind::watcher});
+           ::wtr::event::effect_type::other,
+           ::wtr::event::path_type::watcher});
         break;
     }
     return false;
   }
 }
 
-inline bool do_event_send(
+inline auto do_event_send(
   watch_event_proxy& w,
-  ::wtr::watcher::event::callback const& callback) noexcept
+  ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 
@@ -147,32 +147,35 @@ inline bool do_event_send(
     while (buf + sizeof(FILE_NOTIFY_INFORMATION)
            <= buf + w.event_buf_len_ready) {
       if (buf->FileNameLength % 2 == 0) {
-        auto where =
+        auto path_name =
           w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
 
-        auto what = [&buf]() noexcept
+        auto effect_type = [&buf]() noexcept
         {
           switch (buf->Action) {
-            case FILE_ACTION_MODIFIED : return event::what::modify;
-            case FILE_ACTION_ADDED : return event::what::create;
-            case FILE_ACTION_REMOVED : return event::what::destroy;
-            case FILE_ACTION_RENAMED_OLD_NAME : return event::what::rename;
-            case FILE_ACTION_RENAMED_NEW_NAME : return event::what::rename;
-            default : return event::what::other;
+            case FILE_ACTION_MODIFIED : return event::effect_type::modify;
+            case FILE_ACTION_ADDED : return event::effect_type::create;
+            case FILE_ACTION_REMOVED : return event::effect_type::destroy;
+            case FILE_ACTION_RENAMED_OLD_NAME :
+              return event::effect_type::rename;
+            case FILE_ACTION_RENAMED_NEW_NAME :
+              return event::effect_type::rename;
+            default : return event::effect_type::other;
           }
         }();
 
-        auto kind = [&where]()
+        auto path_type = [&path_name]()
         {
           try {
-            return std::filesystem::is_directory(where) ? event::kind::dir
-                                                        : event::kind::file;
+            return std::filesystem::is_directory(path_name)
+                   ? event::path_type::dir
+                   : event::path_type::file;
           } catch (...) {
-            return event::kind::other;
+            return event::path_type::other;
           }
         }();
 
-        callback({where, what, kind});
+        callback({path_name, effect_type, path_type});
 
         if (buf->NextEntryOffset == 0)
           break;
@@ -195,10 +198,10 @@ inline bool do_event_send(
     watch for events
     return when dead
     true if no errors */
-inline bool watch(
+inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::function<bool()> const& is_living) noexcept
+  std::atomic_bool& is_living) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 
@@ -209,7 +212,7 @@ inline bool watch(
 
     while (is_valid(w) && has_event(w)) { do_event_send(w, callback); }
 
-    while (is_living()) {
+    while (is_living) {
       ULONG_PTR completion_key{0};
       LPOVERLAPPED overlap{nullptr};
 
@@ -228,25 +231,16 @@ inline bool watch(
       }
     }
 
-    callback(
-      {"s/self/die@" + path.string(),
-       ::wtr::event::what::destroy,
-       ::wtr::event::kind::watcher});
-
     return true;
   }
   else {
-    callback(
-      {"s/self/die@" + path.string(),
-       ::wtr::event::what::destroy,
-       ::wtr::event::kind::watcher});
     return false;
   }
 }
 
-} /* namespace adapter */
-} /* namespace watcher */
-} /* namespace wtr */
-} /* namespace detail */
+} /*  namespace adapter */
+} /*  namespace watcher */
+} /*  namespace wtr */
+} /*  namespace detail */
 
 #endif

@@ -11,23 +11,21 @@
 
 ```cpp
 #include <iostream>
-#include "../../include/wtr/watcher.hpp" // Or wherever yours is
+#include "wtr/watcher.hpp" // Or wherever yours is
 
 // This is the entire API.
 int main()
 {
   // The watcher will call this function on every event.
   // This function can block (depending on what you do in it).
-  auto cb = [](wtr::event const& e)
+  auto cb = [](wtr::event const& ev)
   {
-    std::cout << "{\"" << e.when << "\":["
-              << e.where << "," << e.kind << "," << e.what
+    std::cout << "{\"" << ev.effect_time << "\":["
+              << ev.effect_type "," << ev.path_type << "," << ev.path_name
               << "]}," << std::endl;
-    // You can also just stream like this:
-    // std::cout << e << "," << std::endl;
-
-    // And you can unfold the event like this:
-    // auto [where, kind, what, when] = e;
+    // If you don't need special formatting, this works:
+    // std::cout << ev << "," << std::endl;
+    // Wide-strings works as well.
   };
 
   // Watch the current directory asynchronously.
@@ -36,10 +34,7 @@ int main()
   // Do some work. (We'll just wait for a newline.)
   std::cin.get();
 
-  // Closing the watcher is a blocking operation.
-  // The watcher is closed when it goes out of scope,
-  // but you can manually close it like this:
-  // watcher.close();
+  // The watcher closes itself around here.
 }
 
 ```
@@ -74,7 +69,6 @@ lines, more than half of which is documentation and tests, were written to be
 as easily as the API is used:
 ```cpp
 auto w = watch(path, [](event ev) { cout << ev; });
-w.close();
 ```
 ```sh
 wtr.watcher ~
@@ -151,17 +145,7 @@ Closing the watcher is dependant on there *being* a watch:
 Typical use looks like this:
 
 ```cpp
-// Object-like style
-
-auto lifetime = watch(".", [](auto e){cout << e;});
-
-lifetime.close();
-
-// Function-like style
-
-auto die = watch(".", [](auto e){cout << e;});
-
-die();
+auto watcher = watch(path, [](event ev) { cout << ev; });
 ```
 
 `watch` will happily continue watching until you stop
@@ -175,22 +159,22 @@ filesystem events to the (user-supplied) callback
 given to `watch`.
 
 The `event` object will contain the:
-  - `where`, which is an absolute path to the event.
-  - `kind`, the kind of path. One of:
+  - `path_name`, which is an absolute path to the event.
+  - `path_type`, the type of path. One of:
     - `dir`
     - `file`
     - `hard_link`
     - `sym_link`
     - `watcher`
     - `other`
-  - `what`, the type of event. One of:
+  - `effect_type`, "what happened". One of:
     - `rename`
     - `modify`
     - `create`
     - `destroy`
     - `owner`
     - `other`
-  - `when`, the time of the event in nanoseconds since epoch.
+  - `effect_time`, the time of the event in nanoseconds since epoch.
 
 The `watcher` type is special.
 
@@ -203,8 +187,8 @@ The last event will always be a `destroy` event from the watcher.
 You can parse it like this:
 
 ```cpp
-  auto is_last = ev.kind == kind::watcher
-              && ev.what == what::destroy;
+  auto is_last = ev.path_type == path_type::watcher
+              && ev.effect_type == effect_type::destroy;
 ```
 
 Happy hacking.
@@ -219,19 +203,19 @@ commit, right before writing this paragraph.
 ```json
 {
   "1666393024210001000": {
-    "where": "./watcher/.git/logs/HEAD",
-    "what": "modify",
-    "kind": "file"
+    "path_name": "./watcher/.git/logs/HEAD",
+    "effect_type": "modify",
+    "path_type": "file"
   },
   "1666393024210026000": {
-    "where": "./watcher/.git/logs/refs/heads/next",
-    "what": "modify",
-    "kind": "file"
+    "path_name": "./watcher/.git/logs/refs/heads/next",
+    "effect_type": "modify",
+    "path_type": "file"
   },
   "1666393024210032000": {
-    "where": "./watcher/.git/refs/heads/next.lock",
-    "what": "create",
-    "kind": "other"
+    "path_name": "./watcher/.git/refs/heads/next.lock",
+    "effect_type": "create",
+    "path_type": "other"
   }
 }
 ```
@@ -281,6 +265,50 @@ cd build/out
 ```
 
 ## Notes
+
+### Minimum C++ Version
+
+For the header-only library and the tiny-watcher,
+C++17 and up should be fine.
+
+We might use C++20 coroutines someday.
+
+### Safety and C++
+
+I was comfortable with C++ when I first wrote
+this. I later rewrote this project in Rust as
+an experiment. There are benefits and drawbacks
+to Rust. Some things were a bit safer to express,
+other things were definitely not. The necessity
+of doing pointer math on some variably-sized
+opaque types from the kernel, for example, is not
+safer to express in Rust. Other things are safer,
+but this project doesn't benefit much from them.
+
+Rust really shines in usability and expression.
+
+I'm not sure if there is a language that can
+"just" make the majority of the code in this
+project safe by definition.
+
+The guts of this project (the adapters) talk
+to the kernel. They are bound to use unsafe,
+ill-typed, caveat-rich system-level interfaces.
+
+The public API is just around 100 lines, is
+well-typed, well-tested, and human-verifiable.
+Not much happens there.
+
+Creating an FFI by exposing the adapters with
+a C ABI might be worthwhile. Most languages
+should be able to hook into that.
+
+The safety of the platform adapters necessarily
+depends on each platform's documentation for
+their interfaces. Like with all system-level
+interfaces, as long as we ensure the correct
+pre-and-post-conditions, and those conditions
+are well-defined, we should be fine.
 
 ### Limitations
 
@@ -389,7 +417,6 @@ watcher
 │           └── watcher
 │              ├── platform.hpp
 │              └── adapter
-│                 ├── adapter.hpp
 │                 ├── windows
 │                 │  └── watch.hpp
 │                 ├── warthog

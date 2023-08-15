@@ -42,23 +42,23 @@ from `fswatch`, could be used:
    this group is the important one.
    See note [Extra Event Flags] */
 
-/* clang-format off */
-inline constexpr std::array<flag_what_pair_type, flag_what_pair_count>
-    flag_what_pair{
-      flag_what_pair_type(kFSEventStreamEventFlagItemCreated,        event::what::create),
-      flag_what_pair_type(kFSEventStreamEventFlagItemModified,       event::what::modify),
-      flag_what_pair_type(kFSEventStreamEventFlagItemRemoved,        event::what::destroy),
-      flag_what_pair_type(kFSEventStreamEventFlagItemRenamed,        event::what::rename),
+// clang-format off
+inline constexpr std::array<flag_effect_pair_type, flag_effect_pair_count>
+    flag_effect_pair{
+      flag_effect_pair_type(kFSEventStreamEventFlagItemCreated,        event::effect_type::create),
+      flag_effect_pair_type(kFSEventStreamEventFlagItemModified,       event::effect_type::modify),
+      flag_effect_pair_type(kFSEventStreamEventFlagItemRemoved,        event::effect_type::destroy),
+      flag_effect_pair_type(kFSEventStreamEventFlagItemRenamed,        event::effect_type::rename),
     };
-inline constexpr std::array<flag_kind_pair_type, flag_kind_pair_count>
-    flag_kind_pair{
-      flag_kind_pair_type(kFSEventStreamEventFlagItemIsDir,          event::kind::dir),
-      flag_kind_pair_type(kFSEventStreamEventFlagItemIsFile,         event::kind::file),
-      flag_kind_pair_type(kFSEventStreamEventFlagItemIsSymlink,      event::kind::sym_link),
-      flag_kind_pair_type(kFSEventStreamEventFlagItemIsHardlink,     event::kind::hard_link),
-      flag_kind_pair_type(kFSEventStreamEventFlagItemIsLastHardlink, event::kind::hard_link),
+inline constexpr std::array<flag_path_type_map_type, flag_to_path_type_count>
+    flag_path_type_map{
+      flag_path_type_map_type(kFSEventStreamEventFlagItemIsDir,          event::path_type::dir),
+      flag_path_type_map_type(kFSEventStreamEventFlagItemIsFile,         event::path_type::file),
+      flag_path_type_map_type(kFSEventStreamEventFlagItemIsSymlink,      event::path_type::sym_link),
+      flag_path_type_map_type(kFSEventStreamEventFlagItemIsHardlink,     event::path_type::hard_link),
+      flag_path_type_map_type(kFSEventStreamEventFlagItemIsLastHardlink, event::path_type::hard_link),
     };
-/* clang-format on */
+// clang-format on
 ```
 
 ## Extra Event Flags
@@ -67,33 +67,33 @@ inline constexpr std::array<flag_kind_pair_type, flag_kind_pair_count>
     // path information, i.e. whether the path is a file, directory, etc.
     // we can get this info much more easily later on in `wtr/watcher/event`.
 
-    flag_pair(kFSEventStreamEventFlagItemIsDir,          event::what::dir),
-    flag_pair(kFSEventStreamEventFlagItemIsFile,         event::what::file),
-    flag_pair(kFSEventStreamEventFlagItemIsSymlink,      event::what::sym_link),
-    flag_pair(kFSEventStreamEventFlagItemIsHardlink,     event::what::hard_link),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::hard_link),
+    flag_effect_map(kFSEventStreamEventFlagItemIsDir,          event::effect_type::dir),
+    flag_effect_map(kFSEventStreamEventFlagItemIsFile,         event::effect_type::file),
+    flag_effect_map(kFSEventStreamEventFlagItemIsSymlink,      event::effect_type::sym_link),
+    flag_effect_map(kFSEventStreamEventFlagItemIsHardlink,     event::effect_type::hard_link),
+    flag_effect_map(kFSEventStreamEventFlagItemIsLastHardlink, event::effect_type::hard_link),
 
     // path attribute events, such as the owner and some xattr data.
     // will be worthwhile soon to implement these.
     // @todo this.
-    flag_pair(kFSEventStreamEventFlagItemXattrMod,       event::what::other),
-    flag_pair(kFSEventStreamEventFlagOwnEvent,           event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemInodeMetaMod,   event::what::other),
+    flag_effect_map(kFSEventStreamEventFlagItemXattrMod,       event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagOwnEvent,           event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagItemFinderInfoMod,  event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagItemInodeMetaMod,   event::effect_type::other),
 
     // some edge-cases which may be interesting later on.
-    flag_pair(kFSEventStreamEventFlagNone,               event::what::other),
-    flag_pair(kFSEventStreamEventFlagMustScanSubDirs,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagUserDropped,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagKernelDropped,      event::what::other),
-    flag_pair(kFSEventStreamEventFlagEventIdsWrapped,    event::what::other),
-    flag_pair(kFSEventStreamEventFlagHistoryDone,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagRootChanged,        event::what::other),
-    flag_pair(kFSEventStreamEventFlagMount,              event::what::other),
-    flag_pair(kFSEventStreamEventFlagUnmount,            event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemFinderInfoMod,  event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemIsLastHardlink, event::what::other),
-    flag_pair(kFSEventStreamEventFlagItemCloned,         event::what::other),
+    flag_effect_map(kFSEventStreamEventFlagNone,               event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagMustScanSubDirs,    event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagUserDropped,        event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagKernelDropped,      event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagEventIdsWrapped,    event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagHistoryDone,        event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagRootChanged,        event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagMount,              event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagUnmount,            event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagItemFinderInfoMod,  event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagItemIsLastHardlink, event::effect_type::other),
+    flag_effect_map(kFSEventStreamEventFlagItemCloned,         event::effect_type::other),
 
     // for debugging, it may be useful to print everything.
     if (flag_recv & kFSEventStreamEventFlagMount)

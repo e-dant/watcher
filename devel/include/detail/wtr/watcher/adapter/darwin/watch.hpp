@@ -3,11 +3,11 @@
 #if defined(__APPLE__)
 
 #include "wtr/watcher.hpp"
+#include <atomic>
 #include <chrono>
 #include <CoreServices/CoreServices.h>
 #include <cstdio>
 #include <filesystem>
-#include <functional>
 #include <limits>
 #include <random>
 #include <string>
@@ -23,9 +23,9 @@ namespace adapter {
 namespace {
 
 struct argptr_type {
-  using pathset = ::std::unordered_set<::std::string>;
+  using pathset = std::unordered_set<std::string>;
   ::wtr::watcher::event::callback const callback{};
-  ::std::shared_ptr<pathset> seen_created_paths{new pathset{}};
+  std::shared_ptr<pathset> seen_created_paths{new pathset{}};
 };
 
 struct sysres_type {
@@ -34,7 +34,7 @@ struct sysres_type {
 };
 
 inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
-  -> ::std::filesystem::path
+  -> std::filesystem::path
 {
   /*  We make a path from a C string...
       In an array, in a dictionary...
@@ -83,8 +83,8 @@ inline auto event_recv(
   FSEventStreamEventId const*     /*  event stream id */
   ) noexcept -> void
 {
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
+  using evk = enum ::wtr::watcher::event::path_type;
+  using evw = enum ::wtr::watcher::event::effect_type;
 
   static constexpr unsigned any_hard_link =
     kFSEventStreamEventFlagItemIsHardlink
@@ -103,15 +103,15 @@ inline auto event_recv(
 
         decltype(*recv_flags) flag = recv_flags[i];
 
-        /*  A single path won't have different "kinds". */
+        /*  A single path won't have different "types". */
         auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
                : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
                : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
                : flag & any_hard_link                        ? evk::hard_link
                                                              : evk::other;
 
-        /*  More than one thing might have happened to the same path.
-            (Which is why we use non-exclusive `if`s.) */
+        /*  More than one thing might have happened to the
+            same path. (Which is why we use non-exclusive `if`s.) */
         if (flag & kFSEventStreamEventFlagItemCreated) {
           if (seen_created->find(path_str) == seen_created->end()) {
             seen_created->emplace(path_str);
@@ -140,12 +140,12 @@ inline auto event_recv(
     convertible to, an FSEventStreamCallback. We don't use
     `is_same_v()` here because `event_recv` is `noexcept`.
     Side note: Is an exception qualifier *really* part of
-    the type? Or, is it a "kind"? Something else?
+    the type? Or, is it a "path_type"? Something else?
     We want this assertion for nice compiler errors. */
 static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
 inline auto open_event_stream(
-  ::std::filesystem::path const& path,
+  std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback) noexcept
   -> std::shared_ptr<sysres_type>
 {
@@ -156,18 +156,19 @@ inline auto open_event_stream(
     std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
 
   auto context = FSEventStreamContext{
-    /*  FSEvents.h: "Currently the only valid value is zero." */
+    /*  FSEvents.h:
+        "Currently the only valid value is zero." */
     0,
-    /*  The "actual" context; our "argument pointer". This must
-        be alive until we clear the event stream. */
+    /*  The "actual" context; our "argument pointer".
+        This must be alive until we clear the event stream. */
     static_cast<void*>(&sysres->argptr),
     /*  An optional "retention" callback. We don't need this
-        because we manage `argptr`'s lifetime ourselves */
+        because we manage `argptr`'s lifetime ourselves. */
     nullptr,
-    /*  An optional "release" callback, not needed for the
-        same reasons as the retention callback */
+    /*  An optional "release" callback, not needed for the same
+        reasons as the retention callback. */
     nullptr,
-    /*  An optional string for debugging purposes */
+    /*  An optional string for debugging purposes. */
     nullptr};
 
   void const* path_cfstring =
@@ -179,8 +180,8 @@ inline auto open_event_stream(
     &path_cfstring,
     /*  We're just storing one path here */
     1,
-    /*  A predefined structure which is "appropriate for use when
-        the values in a CFArray are all CFTypes" (CFArray.h) */
+    /*  A predefined structure which is "appropriate for use
+        when the values in a CFArray are all CFTypes" (CFArray.h) */
     &kCFTypeArrayCallBacks);
 
   /*  If we want less "sleepy" time after a period of time
@@ -194,10 +195,10 @@ inline auto open_event_stream(
     kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
     | kFSEventStreamCreateFlagUseCFTypes;
 
-  /*  Request a filesystem event stream for `path` from the kernel.
-      The event stream will call `event_recv` with `context`
-      and some details about each filesystem event the kernel sees
-      for the paths in `path_array`. */
+  /*  Request a filesystem event stream for `path` from the
+      kernel. The event stream will call `event_recv` with
+      `context` and some details about each filesystem event
+      the kernel sees for the paths in `path_array`. */
   FSEventStreamRef stream = FSEventStreamCreate(
     /*  A custom allocator is optional */
     nullptr,
@@ -216,8 +217,9 @@ inline auto open_event_stream(
 
   FSEventStreamSetDispatchQueue(
     stream,
-    /*  We don't need to retain, maintain or release this dispatch
-        queue. It's a global system queue, and it outlives us. */
+    /*  We don't need to retain, maintain or release this
+        dispatch queue. It's a global system queue, and it
+        outlives us. */
     dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 
   FSEventStreamStart(stream);
@@ -231,17 +233,17 @@ inline auto
 close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
 {
   if (sysres->stream) {
-    /*  `FSEventStreamInvalidate()` only needs to be called if
-        we scheduled via `FSEventStreamScheduleWithRunLoop()`.
+    /*  `FSEventStreamInvalidate()` only needs to be called
+        if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
         That scheduling function is deprecated (as of macOS 13).
         Calling `FSEventStreamInvalidate()` fails an assertion
         and produces a warning in the console. However, calling
         `FSEventStreamRelease()` without first invalidating via
-        `FSEventStreamInvalidate()` *also* fails an assertions,
+        `FSEventStreamInvalidate()` *also* fails an assertion,
         and produces a warning. I'm not sure what the right call
         to make here is. */
     FSEventStreamStop(sysres->stream);
-    // ?? FSEventStreamInvalidate(sysres->stream);
+    /*  ?? FSEventStreamInvalidate(sysres->stream); */
     FSEventStreamRelease(sysres->stream);
     sysres->stream = nullptr;
     return true;
@@ -250,52 +252,54 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     return false;
 }
 
-/*  Keeping this here, away from the `while (is_living()) ...`
-    loop, because I'm thinking about moving all the lifetime
-    management up a layer or two. Maybe the user-facing `watch`
-    class can take over the sleep timer, threading, and closing
-    the system's resources. Maybe we don't even need an adapter
-    layer... Just a way to expose a concistent and non-blocking
-    kernel API.
+/*  Keeping this here, away from the `while (is_living())
+    ...` loop, because I'm thinking about moving all the
+    lifetime management up a layer or two. Maybe the
+    user-facing `watch` class can take over the sleep timer,
+    threading, and closing the system's resources. Maybe we
+    don't even need an adapter layer... Just a way to expose
+    a concistent and non-blocking kernel API.
 
     The sleep timer and threading are probably unnecessary,
     anyway. Maybe there's some stop token or something more
-    asio-like that we can use instead of the sleep/`is_living()`
-    loop. Instead of threading, we should just become part of an
-    `io_context` and let `asio` handle the runtime.
+    asio-like that we can use instead of the
+    sleep/`is_living()` loop. Instead of threading, we should
+    just become part of an `io_context` and let `asio` handle
+    the runtime.
 
-    I'm also thinking of ways use `asio` in this project. The
-    `awaitable` coroutines look like they might fit. Might need
-    to rip out the `callback` param. This is a relatively small
-    project, so there isn't *too* much work to do. (Last words?) */
+    I'm also thinking of ways use `asio` in this project.
+    The `awaitable` coroutines look like they might fit.
+    Might need to rip out the `callback` param. This is a
+    relatively small project, so there isn't *too* much work
+    to do. (Last words?) */
+/*
 inline auto open_watch(
-  ::std::filesystem::path const& path,
+  std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback) noexcept
 {
   return [sysres = open_event_stream(path, callback)]() noexcept -> bool
   { return close_event_stream(std::move(sysres)); };
 }
+*/
 
-} /* namespace */
+inline auto block_while(std::atomic_bool& b)
+{
+  using namespace std::chrono_literals;
+  using std::this_thread::sleep_for;
+
+  while (b) sleep_for(16ms);
+}
+
+} /*  namespace */
 
 inline auto watch(
-  ::std::filesystem::path const& path,
+  std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  ::std::function<bool()> const& is_living) noexcept -> bool
+  std::atomic_bool& is_living) noexcept -> bool
 {
-  using namespace ::std::chrono_literals;
-  using evk = enum ::wtr::watcher::event::kind;
-  using evw = enum ::wtr::watcher::event::what;
-  using ::std::this_thread::sleep_for;
-
-  auto close_watch = open_watch(path, callback);
-  while (is_living()) sleep_for(16ms);
-  auto ok = close_watch();
-  if (ok)
-    callback({"s/self/die@" + path.string(), evw::destroy, evk::watcher});
-  else
-    callback({"e/self/die@" + path.string(), evw::destroy, evk::watcher});
-  return ok;
+  auto&& sysres = open_event_stream(path, callback);
+  block_while(is_living);
+  return close_event_stream(std::move(sysres));
 }
 
 } /*  namespace adapter */
