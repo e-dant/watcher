@@ -16,6 +16,8 @@ is still just fine, which is how it had been done before.
 
 ### Etc (0.9.0)
 
+This library (and all the programs in `src/*`) work with C++17 and up.
+
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
