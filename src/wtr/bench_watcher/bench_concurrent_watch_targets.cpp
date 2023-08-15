@@ -13,7 +13,7 @@
 
 // clang-format off
 
-namespace ti = ::std::chrono;
+namespace ti = std::chrono;
 
 struct BenchCfg {
   int watcher_count;
@@ -61,9 +61,8 @@ class Bench{
 public:
   auto concurrent_watchers() -> BenchResult
   {
-    namespace ww = ::wtr::watcher;
-    namespace tw = ::wtr::test_watcher;
-    namespace fs = ::std::filesystem;
+    namespace tw = wtr::test_watcher;
+    namespace fs = std::filesystem;
 
     static unsigned nth = 0;
 
@@ -72,11 +71,11 @@ public:
 
     auto start = ti::system_clock{}.now();
 
-    auto watchers = std::array<std::unique_ptr<ww::watch>, cfg.watcher_count>{};
+    auto watchers = std::array<std::unique_ptr<wtr::watch>, cfg.watcher_count>{};
 
     for (int i = 0; i < cfg.watcher_count; ++i)
       watchers.at(i) = std::move(
-          std::make_unique<ww::watch>(
+          std::make_unique<wtr::watch>(
             tw::test_store_path,
               [](auto) {}
             ));
@@ -124,13 +123,26 @@ constexpr auto bench_range() -> void
   }
 };
 
-// Beware of:
-//   fatal error: template instantiation depth exceeds
-//   maximum of <some number, usually around 1k>
+/*  We bench 1..30 watchers on directories with 100..1k events with a
+    callback that prints events to stdout.
+    These benchmarks should be bound by how fast we can create events
+    and write to stdout.
+    We want to offload most of the unrelated work onto compile-time
+    computations so that we can accurately measure a "common" watcher
+    path/callback setup. Things like:
+      Allocating, storing and resizing vectors of watchers.
+      Complicated iteration logic.
+    We use some fancy templates for that, but beware of this (fatal)
+    compiler error when testing many watchers or events:
+      template instantiation depth exceeds <some number around 1k>
+    We bench 1 to 30 watchers on directories with 100 to 1k events.
+    The callback prints the events to stdout. These benchmarks should
+    ideally be bound by how fast we can create the events and perform
+    i/o to stdout. */
 
 TEST_CASE("Bench Concurrent watch Targets", "[bench][concurrent][file][watch-target]")
 {
-  printf("watcher count|Event count|Time taken:\n");
+  printf("Watcher Count|Event Count|Time Taken\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=1000, .step=100}}>();
@@ -138,7 +150,7 @@ TEST_CASE("Bench Concurrent watch Targets", "[bench][concurrent][file][watch-tar
 
 TEST_CASE("Bench Concurrent watch Targets 2", "[bench][concurrent][file][watch-target]")
 {
-  printf("watcher count|Event count|Time taken:\n");
+  printf("Watcher Count|Event Count|Time Taken\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=30, .step=5},
     .event_range={.start=100, .stop=100, .step=0}}>();
@@ -146,7 +158,7 @@ TEST_CASE("Bench Concurrent watch Targets 2", "[bench][concurrent][file][watch-t
 
 TEST_CASE("Bench Concurrent watch Targets 3", "[bench][concurrent][file][watch-target]")
 {
-  printf("watcher count|Event count|Time taken:\n");
+  printf("Watcher Count|Event Count|Time Taken\n");
   bench_range<RangePair{
     .watcher_range={.start=1, .stop=1, .step=0},
     .event_range={.start=100, .stop=10000, .step=1000}}>();
