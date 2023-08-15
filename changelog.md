@@ -84,6 +84,10 @@ subdirectories by their build-configuration name. Those build systems are typica
 of IDEs. The configuration names are typically `Debug`, `Release`, `MinSizeRel`
 and `RelWithDebInfo`. (That behavior hasn't changed.)
 
+Otherwise, the Nix flake was brushed up a bit to better support CMake's
+`FetchContent` feature and Darwin's system libraries, and the `tool/build` script
+checks for a `build` directory before (re)generating CMake files in it.
+
 ## 0.8.8
 
 Fixed some build errors on g++ 10.2.1 around `using shorthand = big_long::enum_name;` syntax.
