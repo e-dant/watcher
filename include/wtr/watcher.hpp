@@ -2098,9 +2098,9 @@ inline namespace v0_8 {
     containing a named method. */
 
 template<class Fn>
-requires(std::is_nothrow_invocable_v<Fn>
-         and std::is_same_v<std::invoke_result_t<Fn>, bool>)
 struct _ {
+  static_assert(std::is_nothrow_invocable_v<Fn>
+            and std::is_same_v<std::invoke_result_t<Fn>, bool>);
   Fn const close{};
 
   inline constexpr auto operator()() const noexcept -> bool
