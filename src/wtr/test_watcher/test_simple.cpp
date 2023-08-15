@@ -42,13 +42,14 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
      event::what::create,
      event::kind::watcher});
 
-  auto watcher = watch(store_path,
-                       [](event const& ev)
-                       {
-                         auto _ = std::scoped_lock{event_recv_list_mtx};
-                         std::cout << ev << std::endl;
-                         event_recv_list.push_back(ev);
-                       });
+  auto watcher = watch(
+    store_path,
+    [](event const& ev)
+    {
+      auto _ = std::scoped_lock{event_recv_list_mtx};
+      std::cout << ev << std::endl;
+      event_recv_list.push_back(ev);
+    });
 
   std::this_thread::sleep_for(10ms);
 

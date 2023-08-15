@@ -19,10 +19,11 @@
 namespace wtr {
 namespace test_watcher {
 
-auto watch_gather(auto const& title = "test",
-                  auto const& store_path = test_store_path / "tmp_store",
-                  int const path_count = 10,
-                  int const concurrency_level = 1)
+auto watch_gather(
+  auto const& title = "test",
+  auto const& store_path = test_store_path / "tmp_store",
+  int const path_count = 10,
+  int const concurrency_level = 1)
 {
   namespace fs = ::std::filesystem;
   using namespace ::std::chrono_literals;
@@ -81,19 +82,19 @@ auto watch_gather(auto const& title = "test",
     /* Create Filesystem Events */
     {
       for (auto const& p : watch_path_list)
-        event_sent_list.emplace_back(
-          wtr::event{std::string("s/self/live@").append(p.string()),
-                     wtr::event::what::create,
-                     wtr::event::kind::watcher});
+        event_sent_list.emplace_back(wtr::event{
+          std::string("s/self/live@").append(p.string()),
+          wtr::event::what::create,
+          wtr::event::kind::watcher});
       for (auto const& p : watch_path_list)
         mk_events(p, path_count, &event_sent_list);
       for (auto const& p : watch_path_list)
         if (! fs::exists(p)) assert(fs::exists(p));
       for (auto const& p : watch_path_list)
-        event_sent_list.emplace_back(
-          wtr::event{std::string("s/self/die@").append(p.string()),
-                     wtr::event::what::destroy,
-                     wtr::event::kind::watcher});
+        event_sent_list.emplace_back(wtr::event{
+          std::string("s/self/die@").append(p.string()),
+          wtr::event::what::destroy,
+          wtr::event::kind::watcher});
     }
 
     std::this_thread::sleep_for(10ms);

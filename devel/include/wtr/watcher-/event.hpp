@@ -106,12 +106,13 @@ public:
     std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch())
       .count()};
 
-  event(std::filesystem::path const& where,
-        enum what const& what,
-        enum kind const& kind) noexcept
-      : where{where},
-        what{what},
-        kind{kind} {};
+  event(
+    std::filesystem::path const& where,
+    enum what const& what,
+    enum kind const& kind) noexcept
+      : where{where}
+      , what{what}
+      , kind{kind} {};
 
   ~event() noexcept = default;
 };
@@ -119,9 +120,9 @@ public:
 /*  @brief wtr/watcher/event/<<
     Streams out a `what` value. */
 template<class Char, class CharTraits>
-inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                 enum event::what const& w) noexcept
-  -> std::basic_ostream<Char, CharTraits>&
+inline constexpr auto operator<<(
+  std::basic_ostream<Char, CharTraits>& os,
+  enum event::what const& w) noexcept -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */
   switch (w) {
@@ -139,9 +140,9 @@ inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
 /*  @brief wtr/watcher/event/<<
     Streams out a `kind` value. */
 template<class Char, class CharTraits>
-inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                 enum event::kind const& k) noexcept
-  -> std::basic_ostream<Char, CharTraits>&
+inline constexpr auto operator<<(
+  std::basic_ostream<Char, CharTraits>& os,
+  enum event::kind const& k) noexcept -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */
   switch (k) {
@@ -166,8 +167,8 @@ inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
        "kind":"file"
       } */
 template<class Char, class CharTraits>
-inline constexpr auto operator<<(std::basic_ostream<Char, CharTraits>& os,
-                                 event const& ev) noexcept
+inline constexpr auto
+operator<<(std::basic_ostream<Char, CharTraits>& os, event const& ev) noexcept
   -> std::basic_ostream<Char, CharTraits>&
 {
   /* clang-format off */

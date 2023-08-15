@@ -48,24 +48,25 @@ public:
   {
     memcpy(path_name, path.c_str(), path.string().size());
 
-    path_handle =
-      CreateFileW(path.c_str(),
-                  FILE_LIST_DIRECTORY,
-                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                  nullptr,
-                  OPEN_EXISTING,
-                  FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                  nullptr);
+    path_handle = CreateFileW(
+      path.c_str(),
+      FILE_LIST_DIRECTORY,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      nullptr,
+      OPEN_EXISTING,
+      FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+      nullptr);
 
     if (path_handle)
       event_completion_token =
         CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 
     if (event_completion_token)
-      is_valid = CreateIoCompletionPort(path_handle,
-                                        event_completion_token,
-                                        (ULONG_PTR)path_handle,
-                                        1)
+      is_valid = CreateIoCompletionPort(
+                   path_handle,
+                   event_completion_token,
+                   (ULONG_PTR)path_handle,
+                   1)
               && ResetEvent(event_token);
   }
 
@@ -86,9 +87,9 @@ inline bool has_event(watch_event_proxy& w) noexcept
   return w.event_buf_len_ready != 0;
 }
 
-inline bool
-do_event_recv(watch_event_proxy& w,
-              ::wtr::watcher::event::callback const& callback) noexcept
+inline bool do_event_recv(
+  watch_event_proxy& w,
+  ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace ::wtr::watcher;
 
@@ -118,23 +119,25 @@ do_event_recv(watch_event_proxy& w,
       case ERROR_IO_PENDING :
         w.event_buf_len_ready = 0;
         w.is_valid = false;
-        callback({"e/sys/read/pending",
-                  ::wtr::event::what::other,
-                  ::wtr::event::kind::watcher});
+        callback(
+          {"e/sys/read/pending",
+           ::wtr::event::what::other,
+           ::wtr::event::kind::watcher});
         break;
       default :
-        callback({"e/sys/read",
-                  ::wtr::event::what::other,
-                  ::wtr::event::kind::watcher});
+        callback(
+          {"e/sys/read",
+           ::wtr::event::what::other,
+           ::wtr::event::kind::watcher});
         break;
     }
     return false;
   }
 }
 
-inline bool
-do_event_send(watch_event_proxy& w,
-              ::wtr::watcher::event::callback const& callback) noexcept
+inline bool do_event_send(
+  watch_event_proxy& w,
+  ::wtr::watcher::event::callback const& callback) noexcept
 {
   using namespace ::wtr::watcher;
 
@@ -192,9 +195,10 @@ do_event_send(watch_event_proxy& w,
     watch for events
     return when dead
     true if no errors */
-inline bool watch(std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
+inline bool watch(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  std::function<bool()> const& is_living) noexcept
 {
   using namespace ::wtr::watcher;
 
@@ -209,11 +213,12 @@ inline bool watch(std::filesystem::path const& path,
       ULONG_PTR completion_key{0};
       LPOVERLAPPED overlap{nullptr};
 
-      bool complete = GetQueuedCompletionStatus(w.event_completion_token,
-                                                &w.event_buf_len_ready,
-                                                &completion_key,
-                                                &overlap,
-                                                delay_ms_dw);
+      bool complete = GetQueuedCompletionStatus(
+        w.event_completion_token,
+        &w.event_buf_len_ready,
+        &completion_key,
+        &overlap,
+        delay_ms_dw);
 
       if (complete && overlap) {
         while (is_valid(w) && has_event(w)) {
@@ -223,16 +228,18 @@ inline bool watch(std::filesystem::path const& path,
       }
     }
 
-    callback({"s/self/die@" + path.string(),
-              ::wtr::event::what::destroy,
-              ::wtr::event::kind::watcher});
+    callback(
+      {"s/self/die@" + path.string(),
+       ::wtr::event::what::destroy,
+       ::wtr::event::kind::watcher});
 
     return true;
   }
   else {
-    callback({"s/self/die@" + path.string(),
-              ::wtr::event::what::destroy,
-              ::wtr::event::kind::watcher});
+    callback(
+      {"s/self/die@" + path.string(),
+       ::wtr::event::what::destroy,
+       ::wtr::event::kind::watcher});
     return false;
   }
 }

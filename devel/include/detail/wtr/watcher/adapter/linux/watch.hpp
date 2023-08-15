@@ -25,9 +25,10 @@ namespace adapter {
     `WATER_WATCHER_USE_WARTHOG` at some point during the build
     or before including 'wtr/watcher.hpp'. */
 
-inline bool watch(std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
+inline bool watch(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  std::function<bool()> const& is_living) noexcept
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
   && ! defined(__ANDROID_API__)

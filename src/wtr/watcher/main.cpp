@@ -41,12 +41,13 @@ inline constexpr auto usage =
 
 auto watch_forever_or_expire(
   std::optional<std::chrono::nanoseconds const> const& alive_for)
-  -> std::function<bool(std::filesystem::path const&,
-                        wtr::event::callback const&)>
+  -> std::function<
+    bool(std::filesystem::path const&, wtr::event::callback const&)>
 {
   /*  Watch for some time, `alive_for`. */
-  auto expire = [alive_for](std::filesystem::path const& path,
-                            wtr::event::callback const& callback)
+  auto expire = [alive_for](
+                  std::filesystem::path const& path,
+                  wtr::event::callback const& callback)
   {
     using namespace std::chrono;
 
@@ -160,10 +161,11 @@ auto from_cmdline(int const argc, char const** const argv)
       return std::nullopt;
   };
 
-  return std::make_tuple(given_or_current_path(argc, argv),
-                         show_json,
-                         maybe_time(argc, argv),
-                         maybe_help());
+  return std::make_tuple(
+    given_or_current_path(argc, argv),
+    show_json,
+    maybe_time(argc, argv),
+    maybe_help());
 };
 
 /*  Watch a path for some time.

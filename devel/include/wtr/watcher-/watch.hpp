@@ -91,8 +91,9 @@ inline namespace v0_8 {
 
 template<class Fn>
 struct _ {
-  static_assert(std::is_nothrow_invocable_v<Fn>
-                and std::is_same_v<std::invoke_result_t<Fn>, bool>);
+  static_assert(
+    std::is_nothrow_invocable_v<Fn>
+    and std::is_same_v<std::invoke_result_t<Fn>, bool>);
   Fn const close{};
 
   inline auto operator()() const noexcept -> bool { return this->close(); };
@@ -150,13 +151,15 @@ struct _ {
             "auto w = watch(p, cb) ; w.close() // or w();")]]
 
 inline auto
-watch0(std::filesystem::path const& path,
-       event::callback const& callback) noexcept
+watch0(
+  std::filesystem::path const& path,
+  event::callback const& callback) noexcept
 {
   using namespace ::detail::wtr::watcher::adapter;
 
-  return _{[adapter{open(path, callback)}]() noexcept -> bool
-           { return close(adapter); }};
+  return _{[adapter{open(path, callback)}]() noexcept -> bool {
+    return close(adapter);
+  }};
 };
 
 } /* namespace v0_8 */

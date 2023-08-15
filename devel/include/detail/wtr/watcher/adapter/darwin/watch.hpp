@@ -49,13 +49,13 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
 
   namespace fs = std::filesystem;
 
-  auto cstr =
-    CFStringGetCStringPtr(static_cast<CFStringRef>(CFDictionaryGetValue(
-                            static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
-                              static_cast<CFArrayRef>(event_recv_paths),
-                              static_cast<CFIndex>(i))),
-                            kFSEventStreamEventExtendedDataPathKey)),
-                          kCFStringEncodingUTF8);
+  auto cstr = CFStringGetCStringPtr(
+    static_cast<CFStringRef>(CFDictionaryGetValue(
+      static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
+        static_cast<CFArrayRef>(event_recv_paths),
+        static_cast<CFIndex>(i))),
+      kFSEventStreamEventExtendedDataPathKey)),
+    kCFStringEncodingUTF8);
 
   return cstr ? fs::path{cstr} : fs::path{};
 }
@@ -74,13 +74,14 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
     So, we filter out duplicate events when they're sent
     in a batch. We do this by storing and pruning the
     set of paths which we've seen created. */
-inline auto event_recv(ConstFSEventStreamRef,    /*  `ConstFS..` is important */
-                       void* argptr,             /*  Arguments passed to us */
-                       unsigned long recv_count, /*  Event count */
-                       void* recv_paths,         /*  Paths with events */
-                       unsigned int const* recv_flags, /*  Event flags */
-                       FSEventStreamEventId const*     /*  event stream id */
-                       ) noexcept -> void
+inline auto event_recv(
+  ConstFSEventStreamRef,          /*  `ConstFS..` is important */
+  void* argptr,                   /*  Arguments passed to us */
+  unsigned long recv_count,       /*  Event count */
+  void* recv_paths,               /*  Paths with events */
+  unsigned int const* recv_flags, /*  Event flags */
+  FSEventStreamEventId const*     /*  event stream id */
+  ) noexcept -> void
 {
   using evk = enum ::wtr::watcher::event::kind;
   using evw = enum ::wtr::watcher::event::what;
@@ -143,9 +144,9 @@ inline auto event_recv(ConstFSEventStreamRef,    /*  `ConstFS..` is important */
     We want this assertion for nice compiler errors. */
 static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
-inline auto
-open_event_stream(::std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback) noexcept
+inline auto open_event_stream(
+  ::std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback) noexcept
   -> std::shared_ptr<sysres_type>
 {
   using namespace std::chrono_literals;
@@ -267,8 +268,9 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     `awaitable` coroutines look like they might fit. Might need
     to rip out the `callback` param. This is a relatively small
     project, so there isn't *too* much work to do. (Last words?) */
-inline auto open_watch(::std::filesystem::path const& path,
-                       ::wtr::watcher::event::callback const& callback) noexcept
+inline auto open_watch(
+  ::std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback) noexcept
 {
   return [sysres = open_event_stream(path, callback)]() noexcept -> bool
   { return close_event_stream(std::move(sysres)); };
@@ -276,9 +278,10 @@ inline auto open_watch(::std::filesystem::path const& path,
 
 } /* namespace */
 
-inline auto watch(::std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback,
-                  ::std::function<bool()> const& is_living) noexcept -> bool
+inline auto watch(
+  ::std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  ::std::function<bool()> const& is_living) noexcept -> bool
 {
   using namespace ::std::chrono_literals;
   using evk = enum ::wtr::watcher::event::kind;

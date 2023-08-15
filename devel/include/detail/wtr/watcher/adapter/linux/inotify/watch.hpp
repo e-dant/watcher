@@ -76,9 +76,10 @@ struct sys_resource_type {
     If `path` is a file
       - return it as the only value in a map.
       - the watch descriptor key should always be 1. */
-inline auto path_map(std::filesystem::path const& base_path,
-                     ::wtr::watcher::event::callback const& callback,
-                     sys_resource_type const& sr) noexcept -> path_map_type
+inline auto path_map(
+  std::filesystem::path const& base_path,
+  ::wtr::watcher::event::callback const& callback,
+  sys_resource_type const& sr) noexcept -> path_map_type
 {
   namespace fs = ::std::filesystem;
   using ev = ::wtr::watcher::event;
@@ -107,10 +108,11 @@ inline auto path_map(std::filesystem::path const& base_path,
           for (auto dir : diter(base_path, fs_dir_opt))
             if (fs::is_directory(dir))
               if (! do_mark(dir.path()))
-                callback({"w/sys/not_watched@" + base_path.string() + "@"
-                            + dir.path().string(),
-                          ev::what::other,
-                          ev::kind::watcher});
+                callback(
+                  {"w/sys/not_watched@" + base_path.string() + "@"
+                     + dir.path().string(),
+                   ev::what::other,
+                   ev::kind::watcher});
   } catch (...) {}
 
   return pm;
@@ -122,13 +124,15 @@ inline auto
 system_unfold(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
-  auto do_error = [&callback](char const* const msg,
-                              int watch_fd,
-                              int event_fd = -1) noexcept -> sys_resource_type
+  auto do_error = [&callback](
+                    char const* const msg,
+                    int watch_fd,
+                    int event_fd = -1) noexcept -> sys_resource_type
   {
-    callback({msg,
-              ::wtr::watcher::event::what::other,
-              ::wtr::watcher::event::kind::watcher});
+    callback(
+      {msg,
+       ::wtr::watcher::event::what::other,
+       ::wtr::watcher::event::kind::watcher});
     return sys_resource_type{
       .valid = false,
       .watch_fd = watch_fd,
@@ -156,10 +160,11 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
 
     if (event_fd >= 0)
       if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
-        return sys_resource_type{.valid = true,
-                                 .watch_fd = watch_fd,
-                                 .event_fd = event_fd,
-                                 .event_conf = event_conf};
+        return sys_resource_type{
+          .valid = true,
+          .watch_fd = watch_fd,
+          .event_fd = event_fd,
+          .event_conf = event_conf};
       else
         return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
     else
@@ -182,11 +187,11 @@ inline auto system_fold(sys_resource_type& sr) noexcept -> bool
     Return new directories when they appear,
     Consider running and returning `find_dirs` from here.
     Remove destroyed watches. */
-inline auto
-do_event_recv(int watch_fd,
-              path_map_type& pm,
-              std::filesystem::path const& base_path,
-              ::wtr::watcher::event::callback const& callback) noexcept -> bool
+inline auto do_event_recv(
+  int watch_fd,
+  path_map_type& pm,
+  std::filesystem::path const& base_path,
+  ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   namespace fs = ::std::filesystem;
 
@@ -235,20 +240,23 @@ recurse:
 
           callback({path, what, kind});
 
-          if (kind == ::wtr::watcher::event::kind::dir
-              && what == ::wtr::watcher::event::what::create)
+          if (
+            kind == ::wtr::watcher::event::kind::dir
+            && what == ::wtr::watcher::event::what::create)
             pm[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] = path;
 
-          else if (kind == ::wtr::watcher::event::kind::dir
-                   && what == ::wtr::watcher::event::what::destroy) {
+          else if (
+            kind == ::wtr::watcher::event::kind::dir
+            && what == ::wtr::watcher::event::what::destroy) {
             inotify_rm_watch(watch_fd, this_event->wd);
             pm.erase(this_event->wd);
           }
         }
         else
-          callback({"e/self/overflow@" + base_path.string(),
-                    ::wtr::watcher::event::what::other,
-                    ::wtr::watcher::event::kind::watcher});
+          callback(
+            {"e/self/overflow@" + base_path.string(),
+             ::wtr::watcher::event::what::other,
+             ::wtr::watcher::event::kind::watcher});
 
         this_event += sizeof(inotify_event);
       }
@@ -258,9 +266,10 @@ recurse:
     }
 
     case state::error :
-      callback({"e/sys/read@" + base_path.string(),
-                ::wtr::watcher::event::what::other,
-                ::wtr::watcher::event::kind::watcher});
+      callback(
+        {"e/sys/read@" + base_path.string(),
+         ::wtr::watcher::event::what::other,
+         ::wtr::watcher::event::kind::watcher});
       return false;
 
     case state::eventless : return true;
@@ -270,9 +279,10 @@ recurse:
   return false;
 }
 
-inline bool watch(std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
+inline bool watch(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  std::function<bool()> const& is_living) noexcept
 {
   using ev = ::wtr::watcher::event;
 
@@ -314,10 +324,11 @@ inline bool watch(std::filesystem::path const& path,
       while (is_living()) [[likely]]
 
       {
-        int event_count = epoll_wait(sr.event_fd,
-                                     event_recv_list,
-                                     event_wait_queue_max,
-                                     delay_ms);
+        int event_count = epoll_wait(
+          sr.event_fd,
+          event_recv_list,
+          event_wait_queue_max,
+          delay_ms);
 
         if (event_count < 0)
           return do_error(system_fold(sr), "e/sys/epoll_wait@");

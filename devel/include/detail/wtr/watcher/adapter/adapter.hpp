@@ -20,27 +20,30 @@ struct future {
   bool closed{false};
 };
 
-inline auto open(std::filesystem::path const& path,
-                 ::wtr::watcher::event::callback const& callback) noexcept
-  -> future::shared
+inline auto open(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback) noexcept -> future::shared
 {
   auto fut = std::make_shared<future>();
 
-  callback({"s/self/live@" + path.string(),
-            ::wtr::watcher::event::what::create,
-            ::wtr::watcher::event::kind::watcher});
+  callback(
+    {"s/self/live@" + path.string(),
+     ::wtr::watcher::event::what::create,
+     ::wtr::watcher::event::kind::watcher});
 
-  fut->work = std::async(std::launch::async,
-                         [path, callback, fut]() noexcept -> bool
-                         {
-                           return watch(path,
-                                        callback,
-                                        [fut]() noexcept -> bool
-                                        {
-                                          auto _ = std::scoped_lock{fut->lk};
-                                          return ! fut->closed;
-                                        });
-                         });
+  fut->work = std::async(
+    std::launch::async,
+    [path, callback, fut]() noexcept -> bool
+    {
+      return watch(
+        path,
+        callback,
+        [fut]() noexcept -> bool
+        {
+          auto _ = std::scoped_lock{fut->lk};
+          return ! fut->closed;
+        });
+    });
 
   return fut;
 };

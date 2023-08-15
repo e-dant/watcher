@@ -49,13 +49,14 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
      event::what::create,
      event::kind::watcher});
 
-  auto lifetime = watch(base_store_path,
-                        [&](event const& ev)
-                        {
-                          auto _ = std::scoped_lock{event_recv_list_mtx};
-                          std::cout << ev << std::endl;
-                          event_recv_list.push_back(ev);
-                        });
+  auto lifetime = watch(
+    base_store_path,
+    [&](event const& ev)
+    {
+      auto _ = std::scoped_lock{event_recv_list_mtx};
+      std::cout << ev << std::endl;
+      event_recv_list.push_back(ev);
+    });
 
   /* @todo
      This sleep is hiding a bug on Linux which begins

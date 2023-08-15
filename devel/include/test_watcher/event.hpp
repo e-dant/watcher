@@ -25,10 +25,11 @@ inline bool str_eq(char const* a, char const* b)
    Mirror what the Watcher should see
    Half are creation events
    Half are destruction */
-auto mk_events(std::filesystem::path const& base_path,
-               auto const& path_count,
-               std::vector<wtr::watcher::event>* event_list,
-               unsigned long options = mk_events_options) -> void
+auto mk_events(
+  std::filesystem::path const& base_path,
+  auto const& path_count,
+  std::vector<wtr::watcher::event>* event_list,
+  unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
   using std::iota, std::abs, std::filesystem::exists;
@@ -61,25 +62,27 @@ auto mk_events(std::filesystem::path const& base_path,
   }
 
   if (options & mk_events_die_after)
-    event_list->push_back(
-      wtr::event{std::string("s/self/die@").append(base_path.string()),
-                 wtr::event::what::destroy,
-                 wtr::event::kind::watcher});
+    event_list->push_back(wtr::event{
+      std::string("s/self/die@").append(base_path.string()),
+      wtr::event::what::destroy,
+      wtr::event::kind::watcher});
 }
 
-inline auto mk_revents(auto const& watch_path,
-                       auto const& path_count,
-                       auto const& event_list,
-                       unsigned long options = mk_events_options)
+inline auto mk_revents(
+  auto const& watch_path,
+  auto const& path_count,
+  auto const& event_list,
+  unsigned long options = mk_events_options)
 {
-  return mk_events(watch_path,
-                   path_count,
-                   event_list,
-                   options |= mk_events_reverse);
+  return mk_events(
+    watch_path,
+    path_count,
+    event_list,
+    options |= mk_events_reverse);
 }
 
-inline auto check_event_lists_eq(auto const& event_sent_list,
-                                 auto const& event_recv_list)
+inline auto
+check_event_lists_eq(auto const& event_sent_list, auto const& event_recv_list)
 {
   auto const max_i = event_sent_list.size() > event_recv_list.size()
                      ? event_recv_list.size()

@@ -39,16 +39,17 @@ using bucket_type = std::unordered_map<std::string, std::filesystem::file_time_t
     - Updates our bucket to match the changes.
     - Calls `send_event` when changes happen.
     - Returns false if the file tree cannot be scanned. */
-inline bool scan(std::filesystem::path const& path,
-                 auto const& send_event,
-                 bucket_type& bucket) noexcept
+inline bool scan(
+  std::filesystem::path const& path,
+  auto const& send_event,
+  bucket_type& bucket) noexcept
 {
   /*  - Scans a (single) file for changes.
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the file cannot be scanned. */
-  auto const& scan_file = [&](std::filesystem::path const& file,
-                              auto const& send_event) -> bool
+  auto const& scan_file =
+    [&](std::filesystem::path const& file, auto const& send_event) -> bool
   {
     using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
@@ -89,8 +90,8 @@ inline bool scan(std::filesystem::path const& path,
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the directory cannot be scanned. */
-  auto const& scan_directory = [&](std::filesystem::path const& dir,
-                                   auto const& send_event) -> bool
+  auto const& scan_directory =
+    [&](std::filesystem::path const& dir, auto const& send_event) -> bool
   {
     using std::filesystem::recursive_directory_iterator,
       std::filesystem::is_directory;
@@ -118,9 +119,10 @@ inline bool scan(std::filesystem::path const& path,
 
 /*  If the bucket is empty, try to populate it.
     otherwise, prune it. */
-inline bool tend_bucket(std::filesystem::path const& path,
-                        auto const& send_event,
-                        bucket_type& bucket) noexcept
+inline bool tend_bucket(
+  std::filesystem::path const& path,
+  auto const& send_event,
+  bucket_type& bucket) noexcept
 {
   /*  Creates a file map, the "bucket", from `path`. */
   auto const& populate = [&](std::filesystem::path const& path) -> bool
@@ -158,8 +160,8 @@ inline bool tend_bucket(std::filesystem::path const& path,
   };
 
   /*  Removes files which no longer exist from our bucket. */
-  auto const& prune = [&](std::filesystem::path const& path,
-                          auto const& send_event) -> bool
+  auto const& prune =
+    [&](std::filesystem::path const& path, auto const& send_event) -> bool
   {
     using namespace ::wtr::watcher;
     using std::filesystem::exists, std::filesystem::is_regular_file,
@@ -176,12 +178,13 @@ inline bool tend_bucket(std::filesystem::path const& path,
             and remove it from our bucket. */
         : [&]()
       {
-        send_event(event{bucket_it->first,
-                         event::what::destroy,
-                         is_regular_file(path) ? event::kind::file
-                         : is_directory(path)  ? event::kind::dir
-                         : is_symlink(path)    ? event::kind::sym_link
-                                               : event::kind::other});
+        send_event(event{
+          bucket_it->first,
+          event::what::destroy,
+          is_regular_file(path) ? event::kind::file
+          : is_directory(path)  ? event::kind::dir
+          : is_symlink(path)    ? event::kind::sym_link
+                                : event::kind::other});
         /*  bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();
@@ -197,9 +200,10 @@ inline bool tend_bucket(std::filesystem::path const& path,
 
 } /* namespace */
 
-inline bool watch(std::filesystem::path const& path,
-                  ::wtr::watcher::event::callback const& callback,
-                  std::function<bool()> const& is_living) noexcept
+inline bool watch(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  std::function<bool()> const& is_living) noexcept
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
@@ -217,8 +221,8 @@ inline bool watch(std::filesystem::path const& path,
   static constexpr auto delay_ms = 16;
 
   while (is_living()) {
-    if (! tend_bucket(path, callback, bucket)
-        || ! scan(path, callback, bucket)) {
+    if (
+      ! tend_bucket(path, callback, bucket) || ! scan(path, callback, bucket)) {
       callback(
         {"e/self/die/bad_fs@" + path.string(), evw::destroy, evk::watcher});
 
