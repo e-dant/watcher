@@ -5,14 +5,21 @@
 ### API (0.9.0)
 
 The API is now RAII-safe.
-
 This hadn't been part of the API for a long time because I had been exploring
 bindings to other languages. I had some concerns about an instance of the
 watcher being destroyed across an FFI boundary. If those bindings are made, we
 could write a separate C-style API for them to use. Manually closing the watcher
 is still just fine, which is how it had been done before.
+**All existing programs should work as-is.**
 
-**All programs should still work as-is.**
+The `event` structure's field names were changed up a bit:
+
+| old   | new         |
+|-------|-------------|
+| where | path_name   |
+| kind  | path_type   |
+| when  | effect_time |
+| what  | effect_type |
 
 ### Etc (0.9.0)
 
