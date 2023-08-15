@@ -16,7 +16,14 @@
         let
           pkgs = import nixpkgs { inherit system; };
           # CMake to build; cacert and git for CMake's fetchcontent
-          build_deps = (with pkgs; [ cmake cacert git ]);
+          build_deps = (
+            with pkgs;
+            [ cacert  # For github.com
+              clang   # For building
+              cmake   # For building
+              git     # For cmake fetchcontent
+              python3 # Optional; For snitch testing framework
+            ]);
           # Darwin needs some help to use FSEvents, dispatch, etc.
           maybe_sys_deps = (
             with pkgs;
@@ -26,7 +33,7 @@
             with pkgs;
             stdenv.mkDerivation {
               pname = "wtr-watcher";
-              version = "0.8.8";
+              version = "0.8.8"; # hook: tool/release
               src = self;
               nativeBuildInputs = build_deps ++ maybe_sys_deps;
               buildPhase = ''
@@ -37,10 +44,10 @@
                   -j8
               '';
               installPhase = ''
-                mkdir -p "$out/bin" \
-                && mv wtr.watcher "$out/bin/wtr-watcher" \
-                && mkdir -p "$out/include" \
-                && mv ../include/wtr "$out/include/wtr" \
+                mkdir -p "$out/bin"
+                mkdir -p "$out/include"
+                mv wtr.watcher "$out/bin/wtr-watcher"
+                mv ../include/wtr "$out/include/wtr"
               '';
             }
           );
