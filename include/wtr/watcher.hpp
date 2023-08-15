@@ -2103,7 +2103,7 @@ struct _ {
             and std::is_same_v<std::invoke_result_t<Fn>, bool>);
   Fn const close{};
 
-  inline constexpr auto operator()() const noexcept -> bool
+  inline auto operator()() const noexcept -> bool
   {
     return this->close();
   };
@@ -2111,7 +2111,7 @@ struct _ {
   inline constexpr _(Fn&& fn) noexcept
       : close{std::forward<Fn>(fn)} {};
 
-  inline constexpr ~_() = default;
+  inline ~_() = default;
 };
 
 /*  @brief wtr/watcher/watch
