@@ -1,5 +1,5 @@
 AccessModifierOffset: -2
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
 AlignArrayOfStructures: Right
 # AlignConsecutiveAssignments: None
 AlignConsecutiveBitFields:
@@ -57,7 +57,7 @@ BraceWrapping:
   SplitEmptyNamespace: false
 BreakBeforeConceptDeclarations: Always
 BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeColon
 BreakStringLiterals: true
 ColumnLimit: 80
@@ -67,7 +67,7 @@ ContinuationIndentWidth: 2
 Cpp11BracedListStyle: true
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: Always
-FixNamespaceComments: true
+FixNamespaceComments: false
 IncludeBlocks: Merge
 # IncludeCategories regex [maybe useful for tool/hone]
 IndentAccessModifiers: false
@@ -89,6 +89,8 @@ IndentWidth: 2
 # LineEnding: LF
 NamespaceIndentation: None
 PackConstructorInitializers: Never
+PenaltyBreakOpenParenthesis: 0
+PenaltyBreakBeforeFirstCallParameter: 0
 PointerAlignment: Left
 QualifierAlignment: Custom
 # [bad docs? 'friend' does not work]
