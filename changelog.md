@@ -18,6 +18,8 @@ is still just fine, which is how it had been done before.
 
 This library (and all the programs in `src/*`) work with C++17 and up.
 
+The clang-format file avoids some oddities around namespaces and line breaks.
+
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
