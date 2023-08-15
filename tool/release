@@ -1,9 +1,11 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC2317
+# SC2317: We use eval, things are used.
 
 # boilerplate
 THIS="$(basename "$0")" # 'release'
 LAST_DIR="$PWD"
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 LAST_BRANCH="$(git branch --show-current)"
 
 # htor: human version to regular expression
@@ -19,7 +21,7 @@ release::htor() {
 }
 
 release::show() {
-  local PART="$(release::htor "$1")"
+  PART="$(release::htor "$1")"
   git tag --list \
     | sort -r \
     | head -n 1 \
@@ -28,7 +30,7 @@ release::show() {
 
 release::show::part() {
   test $# -ne 1 && return 1
-  local PART="$(release::htor "$1")"
+  PART="$(release::htor "$1")"
   git tag --list \
     | sort -r \
     | head -n 1 \
@@ -36,7 +38,7 @@ release::show::part() {
 }
 
 release::show::all() {
-  local PART="$(release::htor full)"
+  PART="$(release::htor full)"
   git tag --list \
     | sort -r \
     | sed -E "s|release/([0-9]+)\.([0-9]+)\.([0-9]+)|$PART|g"
@@ -45,9 +47,9 @@ release::show::all() {
 release::show::advance() {
   test $# -ne 1 && return 1
 
-  local MAJ=$(release::show::part maj)
-  local MIN=$(release::show::part min)
-  local MIC=$(release::show::part mic)
+  MAJ=$(release::show::part maj)
+  MIN=$(release::show::part min)
+  MIC=$(release::show::part mic)
 
   case "$1" in
     maj|major)  echo "$((MAJ + 1)).0.0";;
@@ -55,6 +57,11 @@ release::show::advance() {
     mic|micro)  echo "$MAJ.$MIN.$((MIC + 1))";;
     *)          return 1;;
   esac
+}
+
+files-with-versions() {
+  echo 'CMakeLists.txt
+flake.nix'
 }
 
 release::create() {
@@ -65,12 +72,17 @@ release::create() {
       || git checkout next
 
     echo "$SEMVER" > .version
+    git add '.version'
 
-    sed \
-      -E -e "s|( +)([0-9]+\.[0-9]+\.[0-9]+)( # hook: tool/release)|\1$SEMVER\3|" \
-      -i -- 'CMakeLists.txt'
+    files-with-versions \
+    | while read -r f
+      do
+        sed \
+          -E -e "s|( +)([0-9]+\.[0-9]+\.[0-9]+)(.+# hook: tool/release)|\1$SEMVER\3|" \
+          -i -- "$f"
+        git add "$f"
+      done
 
-    git add '.version' 'CMakeLists.txt'
     git commit -m "release: $SEMVER"
     git push
 
