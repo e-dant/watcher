@@ -104,7 +104,8 @@ public:
   enum kind const kind {};
 
   long long const when{
-    std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch()).count()};
+    std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch())
+      .count()};
 
   event(std::filesystem::path const& where,
         enum what const& what,
@@ -2100,13 +2101,10 @@ inline namespace v0_8 {
 template<class Fn>
 struct _ {
   static_assert(std::is_nothrow_invocable_v<Fn>
-            and std::is_same_v<std::invoke_result_t<Fn>, bool>);
+                and std::is_same_v<std::invoke_result_t<Fn>, bool>);
   Fn const close{};
 
-  inline auto operator()() const noexcept -> bool
-  {
-    return this->close();
-  };
+  inline auto operator()() const noexcept -> bool { return this->close(); };
 
   inline constexpr _(Fn&& fn) noexcept
       : close{std::forward<Fn>(fn)} {};

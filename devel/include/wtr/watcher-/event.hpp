@@ -103,7 +103,8 @@ public:
   enum kind const kind {};
 
   long long const when{
-    std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch()).count()};
+    std::chrono::duration_cast<ns>(time_point{clock::now()}.time_since_epoch())
+      .count()};
 
   event(std::filesystem::path const& where,
         enum what const& what,
