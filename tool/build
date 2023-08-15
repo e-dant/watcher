@@ -313,11 +313,12 @@ all-buildtarget-paths() {
   done
 }
 all-existing-buildtarget-paths() {
-  all-buildtarget-paths | while read -r tp
-  do if [ -f "$tp" ]
-     then echo "$tp"
-     fi
-  done
+    all-buildtarget-paths \
+  | while read -r tp
+    do if [ -f "$tp" ]
+       then echo "$tp"
+       fi
+    done
 }
 # Target configs and names from an argument to this program
 opt-buildcfgs() {
@@ -332,31 +333,30 @@ opt-buildtargets() {
 }
 existing-targets-of-platform() {
   [ -n "$1" ] || return 1 ; platform=$1
+  opo() { out-path-of "$platform" "$1" ; }
   # find has no equivalent of -x
-  all-buildcfgs | while read -r buildcfg
-  do find \
-    "$(out-path-of "$platform" "$buildcfg")" \
-    -maxdepth 1 \
-    -name 'wtr.*' \
+    all-buildcfgs \
+  | while read -r buildcfg
+    do find "$(opo "$buildcfg")" -maxdepth 1 -name 'wtr.*' \
   | while read -r target
-  do if [[ -x "$target" && -f "$target" ]]
-     then echo "$target"
-     fi
-  done
-  done
+    do if [[ -x "$target" && -f "$target" ]]
+       then echo "$target"
+       fi
+    done
+    done
 }
 existing-matching-targets-in-pathptrn() {
-  while read -r full_pathptrn
-  do
+    while read -r full_pathptrn
+    do
     target_basepath=$(dirname "$full_pathptrn")
     target_pattern=$(basename "$full_pathptrn")
     find "$target_basepath" -maxdepth 1 -name "$target_pattern" \
-    | while read -r target_binpath
-      do if test -x "$target_binpath"
-         then echo "$target_binpath"
-         fi
-      done
-  done
+  | while read -r target_binpath
+    do if test -x "$target_binpath"
+       then echo "$target_binpath"
+       fi
+    done
+    done
 }
 runlog-each() {
   while read -r target
@@ -374,7 +374,8 @@ runlog-each() {
 show-buildcmd-of() {
   [ $# -eq 2 ] || return 1 ; platform=$1 ; buildcfg=$2
   echo "\
-    cmake
+    [ ! -d '$(out-path-of "$platform" "$buildcfg")' ]
+    && cmake
       -S '$PWD'
       -B '$(out-path-of "$platform" "$buildcfg")'
       -G 'Unix Makefiles'
@@ -383,7 +384,7 @@ show-buildcmd-of() {
         && echo "-DCMAKE_ANDROID_NDK='$ANDROID_NDK_HOME'")
       $(targetsysname=$(cmake-targetsys-of-platform "$platform") \
         && echo "-DCMAKE_SYSTEM_NAME='$targetsysname'")
-    &&
+    ;
     cmake
       --build '$(out-path-of "$platform" "$buildcfg")'
       --config '$buildcfg'
@@ -392,7 +393,6 @@ show-buildcmd-of() {
     | sed -E 's/^  *//g'
 }
 opt-show-each-buildcmd() {
-  # TODO: while read -r target; do ...
      opt-platforms | while read -r platform
   do opt-buildcfgs | while read -r buildcfg
   do show-buildcmd-of "$platform" "$buildcfg"
@@ -404,16 +404,20 @@ opt-build-each() {
   opt-show-each-buildcmd | shellstrip | bash -e
 }
 runlog-tests()  {
-  all-existing-buildtarget-paths \
+    all-existing-buildtarget-paths \
   | grep -i this/debug/wtr.test_watcher \
   | existing-matching-targets-in-pathptrn \
-  | runlog-each
+  | while read -r target
+    do "$target"
+    done
 }
 runlog-benches() {
-  all-existing-buildtarget-paths \
+    all-existing-buildtarget-paths \
   | grep -i this/release/wtr.bench_watcher \
   | existing-matching-targets-in-pathptrn \
-  | runlog-each
+  | while read -r target
+    do "$target"
+    done
 }
 
 flags-are-valid || { help ; exit 1 ; }
