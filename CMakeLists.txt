@@ -27,7 +27,7 @@ option(WTR_WATCHER_BUILD_MSAN  "Create a target for the memory sanitizer"       
 option(WTR_WATCHER_BUILD_TSAN  "Create a target for the thread sanitizer"             ON)
 option(WTR_WATCHER_BUILD_UBSAN "Create a target for the undefined behavior sanitizer" ON)
 
-set(WTR_WATCHER_CXX_STD 20)
+set(WTR_WATCHER_CXX_STD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
