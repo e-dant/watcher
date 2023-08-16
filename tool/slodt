@@ -7,7 +7,12 @@ cd "$(dirname "$0")/.." \
 if which cloc &> /dev/null \
   && which jq &> /dev/null
 then
-  cloc src/test_watcher devel/include/test_watcher --json \
+  cloc \
+    src/wtr/test_watcher \
+    devel/include/test_watcher \
+    src/wtr/bench_watcher \
+    devel/include/bench_watcher \
+    --json \
     | jq '."Markdown"."code" + ."C/C++ Header"."comment" + ."C++"."comment"'
 else
   echo please install cloc and jq
