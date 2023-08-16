@@ -175,9 +175,9 @@ open_system_resources(::wtr::watcher::event::callback const& callback) noexcept
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
-inline auto close_system_resources(sys_resource_type& sr) noexcept -> bool
+inline auto close_system_resources(sys_resource_type&& sr) noexcept -> bool
 {
-  return ! (close(sr.watch_fd) && close(sr.event_fd));
+  return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 }
 
 /*  Reads through available (inotify) filesystem events.
