@@ -370,8 +370,6 @@ LL miss rate:          0.0% (        0.0%     +         0.0%  )
 
 ### Namespaces and the Directory Tree
 
-**The user should only ever need to use the file `wtr/watcher.hpp` (and maybe this readme).**
-
 Namespaces and symbols closely follow the directories in the `devel/include` folder.
 Inline namespaces are in directories with the `-` affix.
 
@@ -400,35 +398,29 @@ watcher
 ├── include
 │  └── wtr
 │     └── watcher.hpp
-├── devel
-│  └── include
-│     ├── wtr
-│     │  ├── watcher.hpp
-│     │  └── watcher-
-│     │     ├── watch.hpp
-│     │     └── event.hpp
-│     └── detail
-│        └── wtr
-│           └── watcher
-│              ├── platform.hpp
-│              └── adapter
-│                 ├── windows
-│                 │  └── watch.hpp
-│                 ├── warthog
-│                 │  └── watch.hpp
-│                 ├── linux
-│                 │  ├── watch.hpp
-│                 │  ├── inotify
-│                 │  │  └── watch.hpp
-│                 │  └── fanotify
-│                 │     └── watch.hpp
-│                 ├── darwin
-│                 │  └── watch.hpp
-│                 └── android
-│                    └── watch.hpp
-└── build
-   ├── out
-   └── in
+└── devel
+   └── include
+      ├── wtr
+      │  ├── watcher.hpp
+      │  └── watcher-
+      │     ├── watch.hpp
+      │     └── event.hpp
+      └── detail
+         └── wtr
+            └── watcher
+               └── adapter
+                  ├── windows
+                  │  └── watch.hpp
+                  ├── warthog
+                  │  └── watch.hpp
+                  ├── linux
+                  │  ├── watch.hpp
+                  │  ├── inotify
+                  │  │  └── watch.hpp
+                  │  └── fanotify
+                  │     └── watch.hpp
+                  └── darwin
+                     └── watch.hpp
 ```
 
 > You can run [`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree) to view this tree locally.
