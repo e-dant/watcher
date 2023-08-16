@@ -1195,7 +1195,8 @@ inline auto watch(
                 return do_error(close, "e/self/event_recv");
     }
 
-    return close();
+    close();
+    return;
   }
 
   else
