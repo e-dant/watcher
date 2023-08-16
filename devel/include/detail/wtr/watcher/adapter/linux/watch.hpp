@@ -4,6 +4,7 @@
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
 #include "wtr/watcher.hpp"
+#include <atomic>
 #include <functional>
 #include <linux/version.h>
 #include <unistd.h>
