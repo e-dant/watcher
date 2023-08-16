@@ -16,7 +16,6 @@ bindings to other languages. I had some concerns about an instance of the
 watcher being destroyed across an FFI boundary. If those bindings are made, we
 could write a separate C-style API for them to use. Manually closing the watcher
 is still just fine, which is how it had been done before.
-**All existing programs should work as-is.**
 
 The `event` structure's field names were changed up a bit:
 
