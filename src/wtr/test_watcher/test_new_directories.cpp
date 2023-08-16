@@ -14,17 +14,14 @@
 /* Test that files are scanned */
 TEST_CASE("New Directories", "[test][dir][watch-target]")
 {
-  namespace fs = ::std::filesystem;
-  using namespace ::std::chrono_literals;
-  using namespace ::wtr::watcher;
-  using namespace ::wtr::test_watcher;
+  namespace fs = std::filesystem;
+  using namespace std::chrono_literals;
+  using namespace wtr::watcher;
+  using namespace wtr::test_watcher;
 
   static constexpr auto path_count = 10;
   static constexpr auto title = "New Directories";
-  static auto event_recv_list = std::vector<event>{};
-  static auto event_recv_list_mtx = std::mutex{};
-  static auto event_sent_list = std::vector<event>{};
-  static auto watch_path_list = std::vector<fs::path>{};
+  static auto env_verbose = std::getenv("VERBOSE") != nullptr;
   auto const base_store_path = test_store_path;
   auto const store_path_first = base_store_path / "new_directories_first_store";
   auto const store_path_second =
@@ -33,6 +30,10 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
     std::vector<fs::path>{base_store_path, store_path_first, store_path_second};
   auto const new_store_path_list =
     std::vector<fs::path>{store_path_first, store_path_second};
+  auto event_recv_list = std::vector<event>{};
+  auto event_recv_list_mtx = std::mutex{};
+  auto event_sent_list = std::vector<event>{};
+  auto watch_path_list = std::vector<fs::path>{};
 
   std::cout << title << std::endl;
 
@@ -46,15 +47,15 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   event_sent_list.push_back(
     {std::string("s/self/live@").append(base_store_path.string()),
-     event::what::create,
-     event::kind::watcher});
+     event::effect_type::create,
+     event::path_type::watcher});
 
   auto lifetime = watch(
     base_store_path,
     [&](event const& ev)
     {
       auto _ = std::scoped_lock{event_recv_list_mtx};
-      std::cout << ev << std::endl;
+      if (env_verbose) std::cout << ev << std::endl;
       event_recv_list.push_back(ev);
     });
 
@@ -65,7 +66,8 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   for (auto const& p : new_store_path_list) {
     fs::create_directory(p);
-    event_sent_list.push_back(event{p, event::what::create, event::kind::dir});
+    event_sent_list.push_back(
+      event{p, event::effect_type::create, event::path_type::dir});
   }
 
   std::this_thread::sleep_for(10ms);
@@ -76,7 +78,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
       fs::create_directory(new_dir_path);
       REQUIRE(fs::exists(new_dir_path));
       event_sent_list.push_back(
-        event{new_dir_path, event::what::create, event::kind::dir});
+        event{new_dir_path, event::effect_type::create, event::path_type::dir});
 
       /* @todo
          This sleep is hiding a bug for the Linux adapters.
@@ -89,8 +91,10 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
       auto const new_file_path = new_dir_path / "file.txt";
       std::ofstream{new_file_path}; /* NOLINT */
       REQUIRE(fs::exists(new_file_path));
-      event_sent_list.push_back(
-        event{new_file_path, event::what::create, event::kind::file});
+      event_sent_list.push_back(event{
+        new_file_path,
+        event::effect_type::create,
+        event::path_type::file});
 
       std::this_thread::sleep_for(10ms);
     }
@@ -100,8 +104,8 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   event_sent_list.push_back(
     {std::string("s/self/die@").append(base_store_path.string()),
-     event::what::destroy,
-     event::kind::watcher});
+     event::effect_type::destroy,
+     event::path_type::watcher});
 
   auto dead = lifetime.close();
 

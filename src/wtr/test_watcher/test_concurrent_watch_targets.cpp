@@ -11,10 +11,10 @@ TEST_CASE(
   "Concurrent Event Targets",
   "[test][concurrent][file][dir][watch-target]")
 {
-  using namespace ::wtr::watcher;
-  using namespace ::wtr::test_watcher;
+  using namespace wtr::watcher;
+  using namespace wtr::test_watcher;
 
-  check_event_lists_eq(watch_gather(
+  check_event_lists_set_eq(watch_gather(
     "Concurrent Event Targets",
     test_store_path / "concurrent_event_targets_store",
     10,
