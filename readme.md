@@ -21,7 +21,7 @@ int main()
   auto cb = [](wtr::event const& ev)
   {
     std::cout << "{\"" << ev.effect_time << "\":["
-              << ev.effect_type "," << ev.path_type << "," << ev.path_name
+              << ev.effect_type << "," << ev.path_type << "," << ev.path_name
               << "]}," << std::endl;
     // If you don't need special formatting, this works:
     // std::cout << ev << "," << std::endl;
