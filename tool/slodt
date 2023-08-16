@@ -11,7 +11,6 @@ then
     src/wtr/test_watcher \
     devel/include/test_watcher \
     src/wtr/bench_watcher \
-    devel/include/bench_watcher \
     --json \
     | jq '."Markdown"."code" + ."C/C++ Header"."comment" + ."C++"."comment"'
 else
