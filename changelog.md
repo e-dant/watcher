@@ -30,6 +30,12 @@ The clang-format file avoids some oddities around namespaces and line breaks.
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
+Removed `adapter.hpp` as not needed. The (minor) functionality it provided
+was moved into `watch.hpp`.
+
+The benchmarking programs are more clear about what they're benchmarking, and how.
+They're still not *really* a benchmark suite, more of a performance regression test.
+
 Made the comment style more consistent. Removed the `@brief` comment sections
 and normalized most comments to look like this:
 
