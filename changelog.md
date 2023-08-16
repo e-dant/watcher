@@ -2,6 +2,12 @@
 
 ## 0.9.0
 
+
+### Cli (0.9.0)
+
+The watcher now runs forever when no timeout is passed in, just as it says.
+(That's a bugfix.)
+
 ### API (0.9.0)
 
 The API is now RAII-safe.
