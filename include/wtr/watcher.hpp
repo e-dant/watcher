@@ -660,6 +660,7 @@ inline auto watch(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
   && ! defined(__ANDROID_API__)
 
+#include <atomic>
 #include <cerrno>
 #include <climits>
 #include <cstdio>

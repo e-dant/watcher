@@ -9,6 +9,7 @@
   && ! defined(__ANDROID_API__)
 
 #include "wtr/watcher.hpp"
+#include <atomic>
 #include <cerrno>
 #include <climits>
 #include <cstdio>
