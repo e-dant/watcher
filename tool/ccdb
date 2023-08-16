@@ -104,8 +104,8 @@ echo "[
 },
 {
   \"directory\": \"${PWD}/build/out/this/release\",
-  \"command\": \"${COMPILER_CXX} -O3 -Wall -Wextra -Werror -std=${STD_FLAG} -I${PWD}/devel/include ${SYS_INCLUDE_FLAGS} -o CMakeFiles/wtr.watcher.dir${PWD}/src/wtr.watcher/main.cpp.o -c ${PWD}/src/wtr.watcher/main.cpp\",
-  \"file\": \"${PWD}/src/wtr.watcher/main.cpp\"
+  \"command\": \"${COMPILER_CXX} -O3 -Wall -Wextra -Werror -std=${STD_FLAG} -I${PWD}/devel/include ${SYS_INCLUDE_FLAGS} -o CMakeFiles/wtr.watcher.dir${PWD}/src/wtr/watcher/main.cpp.o -c ${PWD}/src/wtr/watcher/main.cpp\",
+  \"file\": \"${PWD}/src/wtr/watcher/main.cpp\"
 }
 ]"
 

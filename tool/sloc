@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.." \
 if which cloc &> /dev/null \
   && which jq &> /dev/null
 then
-  cloc readme.md src/wtr.watcher devel/include/detail/wtr/watcher devel/include/wtr --json \
+  cloc readme.md src/wtr/watcher devel/include/detail/wtr/watcher devel/include/wtr --json \
     | jq '."C/C++ Header"."code" + ."C++"."code"'
 else
   echo please install cloc and jq
