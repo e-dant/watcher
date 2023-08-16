@@ -36,6 +36,10 @@ was moved into `watch.hpp`.
 The benchmarking programs are more clear about what they're benchmarking, and how.
 They're still not *really* a benchmark suite, more of a performance regression test.
 
+The concurrent watcher tests compare the *set* of events they receive against
+the *set* of events we expect. Comparing the *order* of the events in those
+tests was always a bit wrong, and the tests occasionally told us something was amiss.
+
 Made the comment style more consistent. Removed the `@brief` comment sections
 and normalized most comments to look like this:
 
