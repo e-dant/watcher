@@ -191,22 +191,22 @@ namespace {
     then zero-extend the elements to any of `wchar_t`, `char16_t`
     and/or `char32_t`.
     We can use something like `format_to(chararray, "{}", from)`
-    when library support is more common. */
+    when library support is more common.
+    If we support C++20 later on, we should parameterize `from`
+    as `std::integral auto from` and add `char8_t` to the list
+    of allowed narrow character types. */
 template<class Char>
 inline auto num_to_str(long long from) noexcept -> std::basic_string<Char> {
   static_assert(std::is_integral_v<decltype(from)>);
-  static constexpr bool is_sys_sane_narrow_char_size = (
-      sizeof(char)
-      == sizeof(signed char)
-      == sizeof(unsigned char)
-      /* == sizeof(char8_t) // Redundant? */
-  );
+  static constexpr bool is_sys_sane_narrow_char_size =
+      (sizeof(char) == sizeof(signed char))
+      and (sizeof(char) == sizeof(unsigned char))
+  ;
   static constexpr bool is_narrow_char = (
     is_sys_sane_narrow_char_size
-    && (   std::is_same_v<Char, char>
+    and (  std::is_same_v<Char, char>
         || std::is_same_v<Char, signed char>
         || std::is_same_v<Char, unsigned char>
-        /* || std::is_same_v<Char, char8_t> */
     )
   );
   static constexpr bool is_wide_char = (
