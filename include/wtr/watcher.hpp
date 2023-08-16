@@ -1171,7 +1171,7 @@ inline auto watch(
 
   auto sr = open_system_resources(path, callback);
 
-  auto close = [&sr]() { system_fold(sr); };
+  auto close = [&sr]() { close_system_resources(sr); };
 
   epoll_event event_recv_list[event_wait_queue_max];
 
@@ -1195,8 +1195,7 @@ inline auto watch(
                 return do_error(close, "e/self/event_recv");
     }
 
-    close();
-    return;
+    return close();
   }
 
   else
