@@ -1171,7 +1171,7 @@ inline auto watch(
 
   auto sr = open_system_resources(path, callback);
 
-  auto close = [&sr]() { close_system_resources(sr); };
+  auto close = [&sr]() { close_system_resources(std::move(sr)); };
 
   epoll_event event_recv_list[event_wait_queue_max];
 
