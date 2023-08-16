@@ -1171,7 +1171,8 @@ inline auto watch(
 
   auto sr = open_system_resources(path, callback);
 
-  auto close = [&sr]() { close_system_resources(std::move(sr)); };
+  auto close = [&sr]() -> bool
+  { return close_system_resources(std::move(sr)); };
 
   epoll_event event_recv_list[event_wait_queue_max];
 
@@ -1337,7 +1338,7 @@ inline auto path_map(
 /*  Produces a `sys_resource_type` with the file descriptors from
     `inotify_init` and `epoll_create`. Invokes `callback` on errors. */
 inline auto
-system_unfold(::wtr::watcher::event::callback const& callback) noexcept
+open_system_resources(::wtr::watcher::event::callback const& callback) noexcept
   -> sys_resource_type
 {
   auto do_error = [&callback](
@@ -1390,7 +1391,7 @@ system_unfold(::wtr::watcher::event::callback const& callback) noexcept
     return do_error("e/sys/inotify_init", watch_fd);
 }
 
-inline auto system_fold(sys_resource_type& sr) noexcept -> bool
+inline auto close_system_resources(sys_resource_type& sr) noexcept -> bool
 {
   return ! (close(sr.watch_fd) && close(sr.event_fd));
 }
@@ -1523,13 +1524,14 @@ inline auto watch(
       - Await filesystem events
       - Invoke `callback` on errors and events */
 
-  sys_resource_type sr = system_unfold(callback);
+  auto sr = open_system_resources(callback);
 
   epoll_event event_recv_list[event_wait_queue_max];
 
   auto pm = path_map(path, callback, sr);
 
-  auto close = [&sr]() { system_fold(sr); };
+  auto close = [&sr]() -> bool
+  { return close_system_resources(std::move(sr)); };
 
   if (sr.valid) [[likely]]
 
