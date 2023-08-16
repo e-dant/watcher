@@ -3,6 +3,7 @@
 #if defined(_WIN32)
 
 #include "wtr/watcher.hpp"
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <string>

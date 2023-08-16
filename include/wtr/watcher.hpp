@@ -1622,6 +1622,7 @@ inline auto watch(
 
 #if defined(_WIN32)
 
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <string>
