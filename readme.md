@@ -140,8 +140,6 @@ There are two things the user needs:
 callback, with is a function-like thing. Passing `watch`
 a character array and a lambda would work well.
 
-Closing the watcher is dependant on there *being* a watch:
-`watch()` returns a *unique* way for you to close it.
 Typical use looks like this:
 
 ```cpp
@@ -150,9 +148,6 @@ auto watcher = watch(path, [](event ev) { cout << ev; });
 
 `watch` will happily continue watching until you stop
 it or it hits an unrecoverable error.
-
-`event` is an object used to pass information about
-filesystem events to `watch`.
 
 The `event` object is used to pass information about
 filesystem events to the (user-supplied) callback
