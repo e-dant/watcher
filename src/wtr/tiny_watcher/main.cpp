@@ -6,15 +6,14 @@ int main()
 {
   // The watcher will call this function on every event.
   // This function can block (depending on what you do in it).
-  auto cb = [](wtr::event const& e)
+  auto cb = [](wtr::event const& ev)
   {
-    std::cout << "{\"" << e.when << "\":[" << e.where << "," << e.kind << ","
-              << e.what << "]}," << std::endl;
-    // You can also just stream like this:
-    // std::cout << e << "," << std::endl;
-
-    // And you can unfold the event like this:
-    // auto [where, kind, what, when] = e;
+    std::cout << "{\"" << ev.effect_time << "\":["
+              << ev.effect_type << "," << ev.path_type << "," << ev.path_name
+              << "]}," << std::endl;
+    // If you don't need special formatting, this works:
+    // std::cout << ev << "," << std::endl;
+    // Wide-strings works as well.
   };
 
   // Watch the current directory asynchronously.
@@ -23,8 +22,5 @@ int main()
   // Do some work. (We'll just wait for a newline.)
   std::cin.get();
 
-  // Closing the watcher is a blocking operation.
-  // The watcher is closed when it goes out of scope,
-  // but you can manually close it like this:
-  watcher.close();
+  // The watcher closes itself around here.
 }
