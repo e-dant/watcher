@@ -11,10 +11,15 @@
 #include <tuple>
 
 /*  @todo
-    [ -fwhat < all rename modify create destroy owner other > = all ]
-    [ -fkind < all dir file hard_link sym_link watcher other > = all ] */
+    [ -filter-effect-type
+      < all rename modify create destroy owner other > = all
+    ]
+    [ -filter-path-type
+      < all dir file hard_link sym_link watcher other > = all
+    ] */
 inline constexpr auto usage =
-  "wtr.watcher [ -h | --help ] [ PATH = . [ -UNIT < TIME > ]\n"
+  "wtr.watcher [ -h | --help ] [ PATH = . [ -UNIT < TIME > "
+  "]\n"
   "\n"
   "  PATH\n"
   "    Any path. Relative or absolute.\n"
@@ -44,21 +49,22 @@ auto watch_forever_or_expire(
   -> std::function<
     bool(std::filesystem::path const&, wtr::event::callback const&)>
 {
-  /*  Watch for some time, `alive_for`. */
-  auto expire = [alive_for](
-                  std::filesystem::path const& path,
-                  wtr::event::callback const& callback)
+  return [alive_for](
+           std::filesystem::path const& path,
+           wtr::event::callback const& callback)
   {
     using namespace std::chrono;
 
     auto const then = system_clock::now();
     std::cout << R"({"wtr":{"watcher":{"stream":{)" << std::endl;
 
-    {
-      auto watcher = wtr::watch(path, callback);
+    auto watcher = wtr::watch(path, callback);
 
+    if (alive_for.has_value())
       std::this_thread::sleep_for(alive_for.value());
-    }
+
+    else
+      std::cin.get();
 
     std::cout << "}"
               << "\n,\"milliseconds\":"
@@ -67,26 +73,6 @@ auto watch_forever_or_expire(
 
     return true;
   };
-
-  /*  Watch forever. */
-  auto forever =
-    [](std::filesystem::path const& path, wtr::event::callback const& callback)
-  {
-    (void)wtr::watch(path, callback);
-
-    /*  Wait forever. */
-    auto m = std::mutex{};
-    auto lk = std::unique_lock<std::mutex>{m};
-    std::condition_variable{}.wait(lk, [] { return false; });
-
-    return true;
-  };
-
-  if (alive_for.has_value())
-    return expire;
-
-  else
-    return forever;
 };
 
 auto from_cmdline(int const argc, char const** const argv)
@@ -115,10 +101,11 @@ auto from_cmdline(int const argc, char const** const argv)
       For manual parsing, see the file watcher/event.hpp. */
   wtr::event::callback show_json = [](wtr::event const& ev) noexcept
   {
-    auto comma_or_nothing = ev.kind == wtr::event::kind::watcher
-                             && ev.what == wtr::event::what::destroy
-                            ? ""
-                            : ",";
+    auto comma_or_nothing =
+      ev.path_type == wtr::event::path_type::watcher
+          && ev.effect_type == wtr::event::effect_type::destroy
+        ? ""
+        : ",";
 
     std::cout << ev << comma_or_nothing << std::endl;
   };
@@ -146,8 +133,9 @@ auto from_cmdline(int const argc, char const** const argv)
       // clang-format on
     }();
 
-    return given_or_zero_time > 0ns ? std::make_optional(given_or_zero_time)
-                                    : std::nullopt;
+    return given_or_zero_time.count() > 0
+           ? std::make_optional(given_or_zero_time)
+           : std::nullopt;
   };
 
   auto maybe_help = [&]() -> std::optional<std::function<int()>>
