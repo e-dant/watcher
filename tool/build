@@ -407,7 +407,6 @@ opt-build-each() {
   opt-show-each-buildcmd | shellstrip | bash -e
 }
 runlog-tests()  {
-  all-existing-buildtarget-paths
     all-existing-buildtarget-paths \
   | grep -i this/debug/wtr.test_watcher \
   | existing-matching-targets-in-pathptrn \
@@ -417,7 +416,6 @@ runlog-tests()  {
     done
 }
 runlog-benches() {
-  all-existing-buildtarget-paths
     all-existing-buildtarget-paths \
   | grep -i this/release/wtr.bench_watcher \
   | existing-matching-targets-in-pathptrn \
