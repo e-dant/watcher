@@ -59,6 +59,7 @@ jobs:
 
       - name: Test
         run: |
+          export VERBOSE=1
           tool/build --verbose --no-build
           echo Trying with sudo for fanotify
           sudo tool/build --verbose --no-build
