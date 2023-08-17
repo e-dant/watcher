@@ -60,3 +60,5 @@ jobs:
       - name: Test
         run: |
           tool/build --verbose --no-build
+          echo Trying with sudo for fanotify
+          sudo tool/build --verbose --no-build
