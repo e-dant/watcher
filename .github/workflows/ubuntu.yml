@@ -29,7 +29,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-20.04
           - ubuntu-22.04
           - ubuntu-latest
         cxx_compiler:
@@ -55,7 +54,6 @@ jobs:
 
       - name: Build
         run: |
-          find . -type f -maxdepth 100
           export CXX=$(which ${{matrix.cxx_compiler}})
           tool/build --verbose --no-run
 
