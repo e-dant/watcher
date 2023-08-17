@@ -55,6 +55,7 @@ jobs:
 
       - name: Build
         run: |
+          find . -type f -maxdepth 100
           export CXX=$(which ${{matrix.cxx_compiler}})
           tool/build --verbose --no-run
 
