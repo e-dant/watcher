@@ -28,12 +28,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-20.04
+          - ubuntu-22.04
+          - ubuntu-latest
         cxx_compiler:
           - clang++
+          - g++
         install_location:
           - .local
 
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci ubuntu]')"
 
     steps:
