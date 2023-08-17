@@ -59,4 +59,6 @@ jobs:
 
       - name: Test
         run: |
+          ls -al build/out
+          find build -type f -maxdepth 100
           bash -c 'tool/build --verbose --no-build'
