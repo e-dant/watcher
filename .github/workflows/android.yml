@@ -17,6 +17,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        android_ndk_revision:
+          - r25b
+          - r24
+          - r23
+          - r22b
+          - r21e
+          - r20b
+          - r19c
+          - r18b
+          - r17c
         install_location:
           - .local
 
@@ -39,7 +49,7 @@ jobs:
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r25b
+          ndk-version: ${{matrix.android_ndk_revision}}
           # Always add to path. Otherwise,
           # the wrong standard headers are found.
           add-to-path: true
