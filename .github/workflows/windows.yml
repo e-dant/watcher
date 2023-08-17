@@ -61,5 +61,5 @@ jobs:
         run: |
           bash -c ls -al build/out
           bash -c find build -type f -maxdepth 100
-          bach -c echo testing
+          bash -c echo testing
           bash -c 'tool/build --verbose --no-build'
