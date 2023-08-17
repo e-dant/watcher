@@ -17,6 +17,26 @@ watcher being destroyed across an FFI boundary. If those bindings are made, we
 could write a separate C-style API for them to use. Manually closing the watcher
 is still just fine, which is how it had been done before.
 
+The `wtr::watch` API should still be intact for construction. There will be some
+differences in how the objects are stored:
+
+Before we, might spell "some watchers, in a vector" like this:
+
+```cpp
+auto lifetimes = std::vector<std::function<bool()>>{};
+// Or `invoke_result_t<wtr::watch("", [](auto){});`
+```
+
+We can spell it like this now:
+
+```cpp
+auto lifetimes = std::vector<std::unique_ptr<wtr::watch>>{};
+// ^ More normal
+```
+
+Destroying the watchers with the associated `.close()` function is still valid,
+but is not typically necessary.
+
 The `event` structure's field names were changed up a bit:
 
 | old   | new         |
