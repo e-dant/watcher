@@ -254,11 +254,15 @@ function(wtr_add_autosan_bin_target NAME SRC_SET)
     "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_bin_target(
+      wtr_add_target(
         "${NAME}.${SAN}"
+        "OFF" # is test
+        "OFF"  # is installable
         "${SRC_SET}"
-        "${CCLL_EXTOPT_SET_${SAN}}"
-        "${CCLL_EXTOPT_SET_${SAN}}")
+        "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${INCLUDE_PATH_SINGLE_HEADER}"
+        "${LINK_LIBRARIES}")
     endif()
   endforeach()
 endfunction()
