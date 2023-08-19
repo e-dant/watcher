@@ -203,11 +203,9 @@ function(WTR_ADD_TARGET
       # GIT_TAG        c0b6ac4efe4019e4846e8967fe21de864b0cc1ed
     )
     FetchContent_MakeAvailable(snitch)
-    # set(RUNTIME_TEST_FILES "${SRC_SET}") # For Snitch
   endif()
 
   if(IS_INSTALLABLE)
-    include(GNUInstallDirs)
     install(
       TARGETS                   "${NAME}"
       LIBRARY DESTINATION       "${CMAKE_INSTALL_LIBDIR}"
@@ -216,7 +214,7 @@ function(WTR_ADD_TARGET
   endif()
 endfunction()
 
-function(WTR_ADD_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+function(wtr_add_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
   wtr_add_target(
     "${NAME}"
     "OFF" # is test
@@ -228,7 +226,7 @@ function(WTR_ADD_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
     "${LINK_LIBRARIES}")
 endfunction()
 
-function(WTR_ADD_TEST_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+function(wtr_add_test_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
   wtr_add_target(
     "${NAME}"
     "ON"
@@ -240,7 +238,7 @@ function(WTR_ADD_TEST_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
     "${LINK_LIBRARIES};snitch::snitch")
 endfunction()
 
-function(WTR_ADD_BENCH_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+function(wtr_add_bench_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
   wtr_add_test_bin_target(
     "${NAME}"
     "${SRC_SET}"
@@ -248,8 +246,12 @@ function(WTR_ADD_BENCH_BIN_TARGET NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
     "${LL_EXTOPT_SET}")
 endfunction()
 
-function(WTR_ADD_AUTOSAN_BIN_TARGET NAME SRC_SET)
-  wtr_add_bin_target("${NAME}" "${SRC_SET}" "" "")
+function(wtr_add_autosan_bin_target NAME SRC_SET)
+  wtr_add_bin_target(
+    "${NAME}"
+    "${SRC_SET}"
+    ""
+    "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
       wtr_add_bin_target(
@@ -261,7 +263,7 @@ function(WTR_ADD_AUTOSAN_BIN_TARGET NAME SRC_SET)
   endforeach()
 endfunction()
 
-function(WTR_ADD_AUTOSAN_TEST_BIN_TARGET NAME SRC_SET)
+function(wtr_add_autosan_test_bin_target NAME SRC_SET)
   wtr_add_test_bin_target("${NAME}" "${SRC_SET}" "" "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
@@ -274,7 +276,7 @@ function(WTR_ADD_AUTOSAN_TEST_BIN_TARGET NAME SRC_SET)
   endforeach()
 endfunction()
 
-function(WTR_ADD_AUTOSAN_BENCH_BIN_TARGET NAME SRC_SET)
+function(wtr_add_autosan_bench_bin_target NAME SRC_SET)
   wtr_add_bench_bin_target("${NAME}" "${SRC_SET}" "" "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
