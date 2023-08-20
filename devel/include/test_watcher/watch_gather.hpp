@@ -68,6 +68,15 @@ auto watch_gather(
 
         auto cb = [&](wtr::event const& ev)
         {
+#ifdef WIN32
+      /*  Windows counts all events in a directory as *also*
+          `modify` events *on* the directory. So, we ignore
+          those for consistency with the other tests. */
+      if (
+        ev.path_type == wtr::event::path_type::dir
+        && ev.effect_type == wtr::event::effect_type::modify)
+        return;
+#endif
           auto _ = std::scoped_lock{event_recv_list_mtx};
           if (env_verbose) std::cout << ev << std::endl;
           for (auto const& p : watch_path_list)
@@ -79,6 +88,7 @@ auto watch_gather(
       }
     }
 
+    /*  See the note in the readme about ready state */
     std::this_thread::sleep_for(16ms);
 
     /*  Create Filesystem Events */
@@ -99,6 +109,7 @@ auto watch_gather(
           wtr::event::path_type::watcher});
     }
 
+    /*  And give the watchers some room to await the events */
     std::this_thread::sleep_for(16ms);
   }
 

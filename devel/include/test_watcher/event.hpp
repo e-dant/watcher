@@ -72,6 +72,7 @@ inline auto mk_events(
   unsigned long options = mk_events_options) -> void
 {
   using namespace wtr::watcher;
+  using namespace std::chrono_literals;
   using std::iota, std::abs, std::filesystem::exists;
 
   /* - The path count must be even
@@ -87,7 +88,7 @@ inline auto mk_events(
     iota(path_indices.begin(), path_indices.end(), -path_count / 2);
 
   for (auto& i : path_indices) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(16ms);
     auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
       event_list->push_back(wtr::event{
