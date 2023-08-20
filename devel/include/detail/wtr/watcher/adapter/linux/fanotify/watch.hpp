@@ -457,7 +457,7 @@ inline auto recv(
           : event_read == 0 ? state::none
           : errno == EAGAIN ? state::none
                             : state::err) {
-    case state::ok : {
+    case state::ok :
       /*  Loop over everything in the event buffer. */
       for (auto* mtd = (fanotify_event_metadata const*)event_buf;
            FAN_EVENT_OK(mtd, event_read);
@@ -470,7 +470,7 @@ inline auto recv(
                 == FAN_EVENT_INFO_TYPE_DFID_NAME) [[likely]]
 
                 /*  Send the events we receive. */
-                return send(check_and_update(promote(mtd), sr), callback);
+                send(check_and_update(promote(mtd), sr), callback);
 
               else
                 return ! do_error("w/self/event_info");
@@ -480,7 +480,10 @@ inline auto recv(
             return do_error("e/sys/kernel_version");
         else
           return do_error("e/sys/wrong_event_fd");
-    } break;
+
+      return true;
+
+      break;
 
     case state::none : return true; break;
 
