@@ -23,7 +23,8 @@
               cmake   # For building
               git     # For cmake fetchcontent
               python3 # Optional; For snitch testing framework
-            ]);
+            ]
+          );
           # Darwin needs some help to use FSEvents, dispatch, etc.
           maybe_sys_deps = (
             with pkgs;
@@ -36,18 +37,15 @@
               version = "0.8.8"; # hook: tool/release
               src = self;
               nativeBuildInputs = build_deps ++ maybe_sys_deps;
-              buildPhase = ''
-                cmake \
-                  --build . \
-                  --target wtr.watcher \
-                  --config Release \
-                  -j8
-              '';
+              # build phase should maybe also run unit tests? no...
+              # I think we should make a test target to this flake
+              buildPhase = "cmake --build . --target wtr.watcher --config Release -j3";
               installPhase = ''
-                mkdir -p "$out/bin"
-                mkdir -p "$out/include"
-                mv wtr.watcher "$out/bin"
-                mv ../include/wtr "$out/include/wtr"
+                cmake --install . --prefix "$out" --config Release --component bin
+                cmake --install . --prefix "$out" --config Release --component include
+                echo 'checking installation paths...'
+                ls "$out/bin"
+                ls "$out/include/wtr"
               '';
             }
           );

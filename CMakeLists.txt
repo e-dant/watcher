@@ -207,10 +207,13 @@ function(WTR_ADD_TARGET
 
   if(IS_INSTALLABLE)
     install(
-      TARGETS                   "${NAME}"
-      LIBRARY DESTINATION       "${CMAKE_INSTALL_LIBDIR}"
-      BUNDLE DESTINATION        "${CMAKE_INSTALL_PREFIX}/bin"
-      PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/${NAME}"
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
+      COMPONENT "bin")
+    install(
+      FILES "${INCLUDE_PATH_SINGLE_HEADER}/wtr/watcher.hpp"
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr"
+      COMPONENT "include")
   endif()
 endfunction()
 
