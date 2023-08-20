@@ -55,6 +55,9 @@ things differently in Nix if we want to.
 
 The clang-format file avoids some oddities around namespaces and line breaks.
 
+Fixed a bug on the linux adapters which would skip events if they were delivered
+in a batch, such as on very closely timed events.
+
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
