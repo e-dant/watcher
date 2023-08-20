@@ -420,8 +420,7 @@ runlog-benches() {
   | grep -i this/release/wtr.bench_watcher \
   | existing-matching-targets-in-pathptrn \
   | while read -r target
-    do echo "$target"
-       "$target"
+    do "$target"
     done
 }
 
