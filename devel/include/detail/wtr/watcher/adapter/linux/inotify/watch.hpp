@@ -211,8 +211,6 @@ inline auto do_event_recv(
       Forward events and errors to the user.
       Return when eventless. */
 
-recurse:
-
   ssize_t read_len = read(watch_fd, buf, event_buf_len);
 
   switch (read_len > 0      ? state::eventful
@@ -261,11 +259,10 @@ recurse:
              ::wtr::watcher::event::effect_type::other,
              ::wtr::watcher::event::path_type::watcher});
 
-        this_event += sizeof(inotify_event);
+        this_event = (inotify_event*)((char*)this_event + this_event->len);
+        this_event = (inotify_event*)((char*)this_event + sizeof(inotify_event));
       }
-      /*  Same as `return do_event_recv(..., buf)`.
-          Our stopping condition is `eventless` or `error`. */
-      goto recurse;
+      return true;
     }
 
     case state::error :
