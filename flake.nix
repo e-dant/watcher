@@ -29,10 +29,10 @@
             with pkgs;
             lib.optionals stdenv.isDarwin([darwin.apple_sdk.frameworks.CoreServices])
           );
-          wtr-watcher = (
+          watcher = (
             with pkgs;
             stdenv.mkDerivation {
-              pname = "wtr-watcher";
+              pname = "watcher";
               version = "0.8.8"; # hook: tool/release
               src = self;
               nativeBuildInputs = build_deps ++ maybe_sys_deps;
@@ -46,16 +46,16 @@
               installPhase = ''
                 mkdir -p "$out/bin"
                 mkdir -p "$out/include"
-                mv wtr.watcher "$out/bin/wtr-watcher"
+                mv wtr.watcher "$out/bin"
                 mv ../include/wtr "$out/include/wtr"
               '';
             }
           );
         in rec {
           defaultApp = flake-utils.lib.mkApp { drv = defaultPackage; };
-          defaultPackage = wtr-watcher;
+          defaultPackage = watcher;
           devShell = pkgs.mkShell {
-            buildInputs = [ wtr-watcher ];
+            buildInputs = [ watcher ];
           };
         }
     );
