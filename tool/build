@@ -361,19 +361,6 @@ existing-matching-targets-in-pathptrn() {
     done
     done
 }
-runlog-each() {
-  while read -r target
-  do
-    log_path=$target.result.$(date +"d%Y.%m.%d_t%H.%M.%S").txt
-    [ "$VERBOSE" = 1 ] && echo \
-    "[cfg/bin(log)] $(echo "$target" | sed "s|$(out-path-of this)/||g")($(echo "$log_path" | sed "s|$target||g"))"
-    output=$("$target")
-    ec=$?
-    [ $ec -ne 0 ] && echo "$output"
-    echo "$output" &> "$log_path"
-    echo "ec: $ec" &> "$log_path"
-  done
-}
 show-buildcmd-of() {
   [ $# -eq 2 ] || return 1 ; platform=$1 ; buildcfg=$2
   echo "\
