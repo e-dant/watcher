@@ -55,8 +55,11 @@ things differently in Nix if we want to.
 
 The clang-format file avoids some oddities around namespaces and line breaks.
 
-Fixed a bug on the Linux `inotify` adapter which would skip events if they were
-delivered in a batch from a call to `read()`, such as on very closely timed events.
+Fixed up the Linux adapters. There was a case, when `inotify` events were delivered
+in a batch from a call to `read()`, such as on very closely timed events, where
+we would skip over the rest of the buffer. There was a similar case, on the
+`fanotify` adapter, where we mistakenly returned early after the first event in the
+case of batched events from a call to `read()`.
 
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
