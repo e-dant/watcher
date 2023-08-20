@@ -260,7 +260,8 @@ inline auto do_event_recv(
              ::wtr::watcher::event::path_type::watcher});
 
         this_event = (inotify_event*)((char*)this_event + this_event->len);
-        this_event = (inotify_event*)((char*)this_event + sizeof(inotify_event));
+        this_event =
+          (inotify_event*)((char*)this_event + sizeof(inotify_event));
       }
       return true;
     }
