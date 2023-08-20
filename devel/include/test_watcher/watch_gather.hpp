@@ -55,9 +55,9 @@ auto watch_gather(
 
 #ifdef __APPLE__
     /*  Darwin might pick up events beforehand if we don't
-       sleep this off. I think this is technically a bug,
-       but a good kind of bug. At least, not detrimental to
-       the user. */
+        sleep this off. I think this is technically a bug,
+        but a good kind of bug. At least, not detrimental to
+        the user. */
     std::this_thread::sleep_for(100ms);
 #endif
 
@@ -79,7 +79,7 @@ auto watch_gather(
       }
     }
 
-    std::this_thread::sleep_for(10ms);
+    std::this_thread::sleep_for(16ms);
 
     /*  Create Filesystem Events */
     {
@@ -99,7 +99,7 @@ auto watch_gather(
           wtr::event::path_type::watcher});
     }
 
-    std::this_thread::sleep_for(10ms);
+    std::this_thread::sleep_for(16ms);
   }
 
   /*  Clean */
