@@ -420,4 +420,10 @@ opt-build-each                    || exit 1 ;
 [ "$RUN_TEST"   = 1 ] && runlog-tests
 [ "$RUN_BENCH"  = 1 ] && runlog-benches
 
+if [ "$VERBOSE" = 1 ]; then
+  opt-platforms | while read -r platform
+  do existing-targets-of-platform "$platform"
+  done
+fi
+
 exit 0
