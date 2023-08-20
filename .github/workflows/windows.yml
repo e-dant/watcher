@@ -59,6 +59,6 @@ jobs:
 
       - name: Test
         run: |
-          bash -c build/out/this/Debug/wtr.test_watcher.exe
-          bash -c build/out/this/Release/wtr.test_watcher.exe
-          bash -c build/out/this/Release/wtr.bench_watcher.exe
+          bash -c 'VERBOSE=1 build/out/this/Debug/wtr.test_watcher.exe'
+          bash -c 'VERBOSE=1 build/out/this/Release/wtr.test_watcher.exe'
+          bash -c 'VERBOSE=1 build/out/this/Release/wtr.bench_watcher.exe'
