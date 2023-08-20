@@ -50,6 +50,9 @@ The `event` structure's field names were changed up a bit:
 
 This library (and all the programs in `src/*`) work with C++17 and up.
 
+The Nix package was renamed from `wtr-watcher` to `watcher`. We can namespace
+things differently in Nix if we want to.
+
 The clang-format file avoids some oddities around namespaces and line breaks.
 
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
