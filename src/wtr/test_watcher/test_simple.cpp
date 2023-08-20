@@ -32,10 +32,9 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   fs::create_directories(store_path);
   REQUIRE(fs::exists(store_path));
 
-  /* @todo
-     This sleep is hiding a bug on darwin which picks
-     up events slightly before we start watching. I'm
-     ok with that bit of wiggle-room. */
+  /*  This sleep is hiding a bug on darwin which picks
+      up events slightly before we start watching. I'm
+      ok with that bit of wiggle-room. */
   std::this_thread::sleep_for(10ms);
 
   event_sent_list.push_back(
@@ -47,12 +46,22 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
     store_path,
     [&event_recv_list_mtx, &event_recv_list](event const& ev)
     {
+#ifdef WIN32
+      /*  Windows counts all events in a directory as *also*
+          `modify` events *on* the directory. So, we ignore
+          those for consistency with the other tests. */
+      if (
+        ev.path_type == wtr::event::path_type::dir
+        && ev.effect_type == wtr::event::effect_type::modify)
+        return;
+#endif
       auto _ = std::scoped_lock{event_recv_list_mtx};
       if (env_verbose) std::cout << ev << std::endl;
       event_recv_list.push_back(ev);
     });
 
-  std::this_thread::sleep_for(10ms);
+  /*  See the note in the readme about the ready state */
+  std::this_thread::sleep_for(16ms);
 
   for (int i = 0; i < path_count; ++i) {
     auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
@@ -69,8 +78,6 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
 
     event_sent_list.push_back(
       {new_file_path, event::effect_type::create, event::path_type::file});
-
-    std::this_thread::sleep_for(10ms);
   }
 
   event_sent_list.push_back(
@@ -82,6 +89,11 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
 
   REQUIRE(fs::remove_all(test_store_path) > 0u);
   REQUIRE(fs::exists(test_store_path) == false);
+
+  if (env_verbose) {
+    std::cout << "event_sent_list:" << std::endl;
+    for (auto const& ev : event_sent_list) std::cout << ev << std::endl;
+  }
 
   check_event_lists_eq(event_sent_list, event_recv_list);
 };
