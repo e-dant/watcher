@@ -80,11 +80,16 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
       {new_file_path, event::effect_type::create, event::path_type::file});
   }
 
+  /*  And give the watchers some room to await the events */
+  std::this_thread::sleep_for(16ms);
+
   event_sent_list.push_back(
     {std::string("s/self/die@").append(store_path.string()),
      event::effect_type::destroy,
      event::path_type::watcher});
 
+  /*  @todo This close operation should probably try to flush
+      any pending events out there... Can we do that? */
   REQUIRE(watcher.close() == true);
 
   REQUIRE(fs::remove_all(test_store_path) > 0u);
