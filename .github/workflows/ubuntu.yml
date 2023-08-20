@@ -57,9 +57,12 @@ jobs:
           export CXX=$(which ${{matrix.cxx_compiler}})
           tool/build --verbose --no-run
 
-      - name: Test
+      - name: Test for inotify
         run: |
           export VERBOSE=1
           tool/build --verbose --no-build
-          echo Trying with sudo for fanotify
+
+      - name: Sudo test for fanotify
+        run: |
+          export VERBOSE=1
           sudo tool/build --verbose --no-build
