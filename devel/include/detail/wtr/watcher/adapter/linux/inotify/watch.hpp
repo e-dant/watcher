@@ -219,13 +219,6 @@ inline auto do_event_recv(
       false);
   };
 
-  auto next_event = [](auto* this_event) noexcept -> void
-  {
-    auto cev = (char*)(this_event);
-    this_event = (inotify_event*)(cev + this_event->len);
-    this_event = (inotify_event*)(cev + sizeof(inotify_event));
-  };
-
   static constexpr auto event_count_upper_lim =
     event_buf_len / sizeof(inotify_event);
 
@@ -243,9 +236,9 @@ inline auto do_event_recv(
 
   switch (read_state) {
     case read_state::eventful : {
-      for (auto* this_event = (inotify_event*)(event_buf);
-           this_event < (inotify_event*)(event_buf + read_len);
-           next_event(this_event)) {
+      auto* this_event = (inotify_event*)(event_buf);
+      auto const* const last_event = (inotify_event*)(event_buf + read_len);
+      while (this_event < last_event) {
         enum class event_state {
           eventful,
           e_count,
@@ -288,23 +281,24 @@ inline auto do_event_recv(
 
             callback({path_name, effect_type, path_type});  // <- Magic happens
 
-            break;
-          }
+          } break;
+
           case event_state::e_count : return do_error("e/sys/bad_count");
+
           case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
         }
+
+        this_event = (inotify_event*)((char*)this_event + this_event->len);
+        this_event =
+          (inotify_event*)((char*)this_event + sizeof(inotify_event));
       }
+
       return true;
-
-      case read_state::eventless : return true;
-
-      case read_state::error :
-        callback(
-          {"e/sys/read@" + base_path.string(),
-           ::wtr::watcher::event::effect_type::other,
-           ::wtr::watcher::event::path_type::watcher});
-        return false;
     }
+
+    case read_state::eventless : return true;
+
+    case read_state::error : return do_error("e/sys/read");
   }
 
   assert(! "Unreachable");
