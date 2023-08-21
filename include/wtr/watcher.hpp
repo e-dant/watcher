@@ -661,6 +661,7 @@ inline auto watch(
   && ! defined(__ANDROID_API__)
 
 #include <atomic>
+#include <cassert>
 #include <cerrno>
 #include <climits>
 #include <cstdio>
@@ -1087,7 +1088,13 @@ inline auto recv(
   std::filesystem::path const& base_path,
   ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
-  enum class state { ok, none, err };
+  /*  Read some events into a buffer.
+      Send valid events to the user's callback.
+      Send a diagnostic to the user on warnings and errors.
+      Return false on errors. True otherwise. */
+
+  static constexpr size_t event_count_upper_lim =
+    event_buf_len / sizeof(fanotify_event_metadata);
 
   auto do_error = [&base_path,
                    &callback](char const* const msg) noexcept -> bool
@@ -1100,48 +1107,57 @@ inline auto recv(
       false);
   };
 
-  /*  Read some events. */
+  unsigned event_count = 0;
   alignas(fanotify_event_metadata) char event_buf[event_buf_len];
-  auto event_read = read(sr.watch_fd, event_buf, sizeof(event_buf));
+  auto read_len = read(sr.watch_fd, event_buf, sizeof(event_buf));
+  enum class read_state {
+    eventful,
+    eventless,
+    e_read
+  } read_state = read_len > 0    ? read_state::eventful
+               : read_len == 0   ? read_state::eventless
+               : errno == EAGAIN ? read_state::eventless
+                                 : read_state::e_read;
 
-  switch (event_read > 0    ? state::ok
-          : event_read == 0 ? state::none
-          : errno == EAGAIN ? state::none
-                            : state::err) {
-    case state::ok :
-      /*  Loop over everything in the event buffer. */
+  switch (read_state) {
+    case read_state::eventful :
       for (auto* mtd = (fanotify_event_metadata const*)event_buf;
-           FAN_EVENT_OK(mtd, event_read);
-           mtd = FAN_EVENT_NEXT(mtd, event_read))
-        if (mtd->fd == FAN_NOFD) [[likely]]
-          if (mtd->vers == FANOTIFY_METADATA_VERSION) [[likely]]
-            if (! (mtd->mask & FAN_Q_OVERFLOW)) [[likely]]
-              if (
-                ((fanotify_event_info_fid*)(mtd + 1))->hdr.info_type
-                == FAN_EVENT_INFO_TYPE_DFID_NAME) [[likely]]
-
-                /*  Send the events we receive. */
-                send(check_and_update(promote(mtd), sr), callback);
-
-              else
-                return ! do_error("w/self/event_info");
-            else
-              return do_error("e/sys/overflow");
-          else
-            return do_error("e/sys/kernel_version");
-        else
-          return do_error("e/sys/wrong_event_fd");
-
+           FAN_EVENT_OK(mtd, read_len);
+           mtd = FAN_EVENT_NEXT(mtd, read_len)) {
+        auto hifty = ((fanotify_event_info_fid*)(mtd + 1))->hdr.info_type;
+        enum class event_state {
+          eventful,
+          e_version,
+          e_count,
+          w_fd,
+          w_q_overflow,
+          w_info_type
+        } event_state =
+          mtd->vers != FANOTIFY_METADATA_VERSION   ? event_state::e_version
+          : event_count++ > event_count_upper_lim  ? event_state::e_count
+          : mtd->fd != FAN_NOFD                    ? event_state::w_fd
+          : mtd->mask & FAN_Q_OVERFLOW             ? event_state::w_q_overflow
+          : hifty != FAN_EVENT_INFO_TYPE_DFID_NAME ? event_state::w_info_type
+                                                   : event_state::eventful;
+        switch (event_state) {
+          case event_state::eventful :
+            send(check_and_update(promote(mtd), sr), callback);
+            break;
+          case event_state::e_version : return do_error("e/sys/kernel_version");
+          case event_state::e_count : return do_error("e/self/bad_count");
+          case event_state::w_fd : return ! do_error("w/sys/bad_fd");
+          case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
+          case event_state::w_info_type : return ! do_error("w/self/bad_info");
+        }
+      }
       return true;
 
-      break;
+    case read_state::eventless : return true;
 
-    case state::none : return true; break;
-
-    case state::err : return do_error("e/sys/read"); break;
+    case read_state::e_read : return do_error("e/sys/read");
   }
 
-  /*  Unreachable */
+  assert(! "Unreachable");
   return false;
 };
 
