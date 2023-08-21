@@ -95,7 +95,8 @@ tool::hone() {
     if echo "$*" | grep -q -- --help
     then echo "$USAGE"; fi
   else
-    echo "$USAGE"
+    if echo "$*" | grep -q -- --header-content-amalgam
+    then echo "$HEADER_CONTENT_AMALGAM"; fi
   fi
 
   cd "$LAST_DIR" || return 1
