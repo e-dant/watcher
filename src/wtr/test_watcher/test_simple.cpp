@@ -61,7 +61,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
     });
 
   /*  See the note in the readme about the ready state */
-  std::this_thread::sleep_for(16ms);
+  std::this_thread::sleep_for(100ms);
 
   for (int i = 0; i < path_count; ++i) {
     auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
