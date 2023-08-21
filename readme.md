@@ -82,13 +82,13 @@ filesystem events as JSON. Neat. Here's how:
 ```bash
 git clone https://github.com/e-dant/watcher.git && cd watcher # The main branch is the (latest) release branch.
 tool/build --no-build-test --no-build-bench --no-run-test # Build the release version for the host platform.
-build/out/this/release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
+build/out/this/Release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
 ```
 
 3. Efficient
 > In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
 *Watcher* uses a near-zero amount of resources and makes
-[efficienct use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
+[efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 
 4. Safe
 > We run this project through
@@ -234,7 +234,7 @@ kind of thing.
 
 ```sh
 tool/build
-cd build/out/this/release
+cd build/out/this/Release
 
 # watches the current directory forever
 ./wtr.watcher
