@@ -61,6 +61,8 @@ we would skip over the rest of the buffer. There was a similar case, on the
 `fanotify` adapter, where we mistakenly returned early after the first event in the
 case of batched events from a call to `read()`.
 
+Added a failsafe to the Linux adapters which prevents a hypothetically infinite loop.
+
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
