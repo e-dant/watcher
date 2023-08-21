@@ -8,6 +8,7 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
 #include "wtr/watcher.hpp"
+#include <cassert>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -207,141 +208,173 @@ inline auto do_event_recv(
 {
   namespace fs = std::filesystem;
 
-  alignas(inotify_event) char buf[event_buf_len];
-  ssize_t read_len = read(watch_fd, buf, event_buf_len);
-  enum class read_state { eventful, eventless, error };
-
-  switch (read_len > 0      ? read_state::eventful
-          : read_len == 0   ? read_state::eventless
-          : errno == EAGAIN ? read_state::eventless
-                            : read_state::error) {
-    case read_state::eventful : {
-      auto this_event = (inotify_event*)buf;
-      while (this_event < (inotify_event*)(buf + read_len)) {
-        if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
-          auto path =
-            pm.find(this_event->wd)->second / fs::path(this_event->name);
-
-          auto path_type = this_event->mask & IN_ISDIR
-                           ? ::wtr::watcher::event::path_type::dir
-                           : ::wtr::watcher::event::path_type::file;
-
-          auto effect_type = this_event->mask & IN_CREATE
-                             ? ::wtr::watcher::event::effect_type::create
-                           : this_event->mask & IN_DELETE
-                             ? ::wtr::watcher::event::effect_type::destroy
-                           : this_event->mask & IN_MOVE
-                             ? ::wtr::watcher::event::effect_type::rename
-                           : this_event->mask & IN_MODIFY
-                             ? ::wtr::watcher::event::effect_type::modify
-                             : ::wtr::watcher::event::effect_type::other;
-
-          callback({path, effect_type, path_type});
-
-          if (
-            path_type == ::wtr::watcher::event::path_type::dir
-            && effect_type == ::wtr::watcher::event::effect_type::create)
-            pm[inotify_add_watch(watch_fd, path.c_str(), in_watch_opt)] = path;
-
-          else if (
-            path_type == ::wtr::watcher::event::path_type::dir
-            && effect_type == ::wtr::watcher::event::effect_type::destroy) {
-            inotify_rm_watch(watch_fd, this_event->wd);
-            pm.erase(this_event->wd);
-          }
-        }
-        else
-          callback(
-            {"e/self/overflow@" + base_path.string(),
-             ::wtr::watcher::event::effect_type::other,
-             ::wtr::watcher::event::path_type::watcher});
-
-        this_event = (inotify_event*)((char*)this_event + this_event->len);
-        this_event =
-          (inotify_event*)((char*)this_event + sizeof(inotify_event));
-      }
-      return true;
-    }
-
-    case read_state::error :
-      callback(
-        {"e/sys/read@" + base_path.string(),
-         ::wtr::watcher::event::effect_type::other,
-         ::wtr::watcher::event::path_type::watcher});
-      return false;
-
-    case read_state::eventless : return true;
-  }
-
-  /*  Unreachable */
-  return false;
-}
-
-inline auto watch(
-  std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
-{
-  using ev = ::wtr::watcher::event;
-
-  auto do_error = [&path, &callback](auto& f, std::string&& msg) -> bool
+  auto do_error = [&base_path,
+                   &callback](char const* const msg) noexcept -> bool
   {
-    callback(
-      {msg + path.string(), ev::effect_type::other, ev::path_type::watcher});
-    f();
-    return false;
+    return (
+      callback(
+        {std::string{msg} + "@" + base_path.string(),
+         ::wtr::watcher::event::effect_type::other,
+         ::wtr::watcher::event::path_type::watcher}),
+      false);
   };
 
-  /*  While:
-      - A lifetime the user hasn't ended
-      - A historical map of watch descriptors
-        to long paths (for event reporting)
-      - System resources for inotify and epoll
-      - An event buffer for events from epoll
-      - We're alive
-      Do:
-      - Await filesystem events
-      - Invoke `callback` on errors and events */
+  auto next_event = [](auto* this_event) noexcept -> void
+  {
+    auto cev = static_cast<char*>(this_event);
+    this_event = static_cast<inotify_event*>(cev + this_event->len);
+    this_event = static_cast<inotify_event*>(cev + sizeof(inotify_event));
+  };
 
-  auto sr = open_system_resources(callback);
+  static constexpr auto event_count_upper_lim =
+    event_buf_len / sizeof(inotify_event);
 
-  epoll_event event_recv_list[event_wait_queue_max];
+  alignas(inotify_event) char event_buf[event_buf_len];
+  auto read_len = read(watch_fd, event_buf, sizeof(event_buf));
+  enum class read_state {
+    eventful,
+    eventless,
+    error
+  } read_state = read_len > 0    ? read_state::eventful
+               : read_len == 0   ? read_state::eventless
+               : errno == EAGAIN ? read_state::eventless
+                                 : read_state::error;
 
-  auto pm = path_map(path, callback, sr);
+  switch (read_state) {
+    case read_state::eventful : {
+      for (auto* this_event = static_cast<inotify_event*>(event_buf);
+           this_event < static_cast<inotify_event*>(event_buf + read_len);
+           next_event(this_event)) {
+        enum class event_state {
+          eventful,
+          e_count,
+          w_q_overflow
+        } event_state = event_count++ > event_count_upper_lim
+                        ? event_state::e_count
+                        : this_event->mask & IN_Q_OVERFLOW
+                        ? event_state::w_q_overflow;
+        switch (event_state) {
+          case event_state::eventful : {
+            auto path_name =
+              pm.find(this_event->wd)->second / fs::path{this_event->name};
 
-  auto close = [&sr]() -> bool
-  { return close_system_resources(std::move(sr)); };
+            auto path_type = this_event->mask & IN_ISDIR
+                             ? ::wtr::watcher::event::path_type::dir
+                             : ::wtr::watcher::event::path_type::file;
 
-  if (sr.valid) [[likely]]
+            auto effect_type = this_event->mask & IN_CREATE
+                               ? ::wtr::watcher::event::effect_type::create
+                             : this_event->mask & IN_DELETE
+                               ? ::wtr::watcher::event::effect_type::destroy
+                             : this_event->mask & IN_MOVE
+                               ? ::wtr::watcher::event::effect_type::rename
+                             : this_event->mask & IN_MODIFY
+                               ? ::wtr::watcher::event::effect_type::modify
+                               : ::wtr::watcher::event::effect_type::other;
 
-    if (pm.size() > 0) [[likely]] {
-      while (is_living) [[likely]]
+            if (
+              path_type == ::wtr::watcher::event::path_type::dir
+              && effect_type == ::wtr::watcher::event::effect_type::create)
+              pm[inotify_add_watch(watch_fd, path_name.c_str(), in_watch_opt)] =
+                path;
 
-      {
-        int event_count = epoll_wait(
-          sr.event_fd,
-          event_recv_list,
-          event_wait_queue_max,
-          delay_ms);
+            else if (
+              path_type == ::wtr::watcher::event::path_type::dir
+              && effect_type == ::wtr::watcher::event::effect_type::destroy) {
+              inotify_rm_watch(watch_fd, this_event->wd);
+              pm.erase(this_event->wd);
+            }
 
-        if (event_count < 0)
-          return do_error(close, "e/sys/epoll_wait@");
+            callback({path_name, effect_type, path_type});
 
-        else if (event_count > 0) [[likely]]
-          for (int n = 0; n < event_count; n++)
-            if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-              if (! do_event_recv(sr.watch_fd, pm, path, callback)) [[unlikely]]
-                return do_error(close, "e/self/event_recv@");
+            break;
+          }
+          case event_state::e_count : return do_error("e/sys/bad_count");
+          case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
+        }
+        return true;
       }
 
-      return close();
-    }
-    else
-      return do_error(close, "e/self/path_map@");
+      case read_state::eventless : return true;
 
-  else
-    return do_error(close, "e/self/sys_resource@");
-}
+      case read_state::error :
+        callback(
+          {"e/sys/read@" + base_path.string(),
+           ::wtr::watcher::event::effect_type::other,
+           ::wtr::watcher::event::path_type::watcher});
+        return false;
+    }
+
+      assert(! "Unreachable");
+      return false;
+  }
+
+  inline auto watch(
+    std::filesystem::path const& path,
+    ::wtr::watcher::event::callback const& callback,
+    std::atomic_bool& is_living) noexcept -> bool
+  {
+    using ev = ::wtr::watcher::event;
+
+    auto do_error = [&path, &callback](auto& f, std::string&& msg) -> bool
+    {
+      callback(
+        {msg + path.string(), ev::effect_type::other, ev::path_type::watcher});
+      f();
+      return false;
+    };
+
+    /*  While:
+        - A lifetime the user hasn't ended
+        - A historical map of watch descriptors
+          to long paths (for event reporting)
+        - System resources for inotify and epoll
+        - An event buffer for events from epoll
+        - We're alive
+        Do:
+        - Await filesystem events
+        - Invoke `callback` on errors and events */
+
+    auto sr = open_system_resources(callback);
+
+    epoll_event event_recv_list[event_wait_queue_max];
+
+    auto pm = path_map(path, callback, sr);
+
+    auto close = [&sr]() -> bool
+    { return close_system_resources(std::move(sr)); };
+
+    if (sr.valid) [[likely]]
+
+      if (pm.size() > 0) [[likely]] {
+        while (is_living) [[likely]]
+
+        {
+          int event_count = epoll_wait(
+            sr.event_fd,
+            event_recv_list,
+            event_wait_queue_max,
+            delay_ms);
+
+          if (event_count < 0)
+            return do_error(close, "e/sys/epoll_wait@");
+
+          else if (event_count > 0) [[likely]]
+            for (int n = 0; n < event_count; n++)
+              if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
+                if (! do_event_recv(sr.watch_fd, pm, path, callback))
+                  [[unlikely]]
+                  return do_error(close, "e/self/event_recv@");
+        }
+
+        return close();
+      }
+      else
+        return do_error(close, "e/self/path_map@");
+
+    else
+      return do_error(close, "e/self/sys_resource@");
+  }
 
 } /* namespace inotify */
 } /* namespace adapter */

@@ -442,7 +442,10 @@ inline auto recv(
       Send a diagnostic to the user on warnings and errors.
       Return false on errors. True otherwise. */
 
-  static constexpr size_t event_count_upper_lim =
+  using event_metadata = fanotify_event_metadata;
+  using event_info_fid = fanotify_event_info_fid;
+
+  static constexpr auto event_count_upper_lim =
     event_buf_len / sizeof(fanotify_event_metadata);
 
   auto do_error = [&base_path,
@@ -470,10 +473,10 @@ inline auto recv(
 
   switch (read_state) {
     case read_state::eventful :
-      for (auto* mtd = (fanotify_event_metadata const*)event_buf;
+      for (auto* mtd = static_cast<event_metadata*>(event_buf);
            FAN_EVENT_OK(mtd, read_len);
            mtd = FAN_EVENT_NEXT(mtd, read_len)) {
-        auto hifty = ((fanotify_event_info_fid*)(mtd + 1))->hdr.info_type;
+        auto hifty = static_cast<event_info_fid*>(mtd + 1)->hdr.info_type;
         enum class event_state {
           eventful,
           e_version,
@@ -493,10 +496,10 @@ inline auto recv(
             send(check_and_update(promote(mtd), sr), callback);
             break;
           case event_state::e_version : return do_error("e/sys/kernel_version");
-          case event_state::e_count : return do_error("e/self/bad_count");
+          case event_state::e_count : return do_error("e/sys/bad_count");
           case event_state::w_fd : return ! do_error("w/sys/bad_fd");
           case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
-          case event_state::w_info_type : return ! do_error("w/self/bad_info");
+          case event_state::w_info_type : return ! do_error("w/sys/bad_info");
         }
       }
       return true;
