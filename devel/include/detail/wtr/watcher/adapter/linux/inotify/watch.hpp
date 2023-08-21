@@ -221,14 +221,15 @@ inline auto do_event_recv(
 
   auto next_event = [](auto* this_event) noexcept -> void
   {
-    auto cev = static_cast<char*>(this_event);
-    this_event = static_cast<inotify_event*>(cev + this_event->len);
-    this_event = static_cast<inotify_event*>(cev + sizeof(inotify_event));
+    auto cev = (char*)(this_event);
+    this_event = (inotify_event*)(cev + this_event->len);
+    this_event = (inotify_event*)(cev + sizeof(inotify_event));
   };
 
   static constexpr auto event_count_upper_lim =
     event_buf_len / sizeof(inotify_event);
 
+  unsigned event_count = 0;
   alignas(inotify_event) char event_buf[event_buf_len];
   auto read_len = read(watch_fd, event_buf, sizeof(event_buf));
   enum class read_state {
@@ -242,17 +243,17 @@ inline auto do_event_recv(
 
   switch (read_state) {
     case read_state::eventful : {
-      for (auto* this_event = static_cast<inotify_event*>(event_buf);
-           this_event < static_cast<inotify_event*>(event_buf + read_len);
+      for (auto* this_event = (inotify_event*)(event_buf);
+           this_event < (inotify_event*)(event_buf + read_len);
            next_event(this_event)) {
         enum class event_state {
           eventful,
           e_count,
           w_q_overflow
-        } event_state = event_count++ > event_count_upper_lim
-                        ? event_state::e_count
-                        : this_event->mask & IN_Q_OVERFLOW
-                        ? event_state::w_q_overflow;
+        } event_state =
+          event_count++ > event_count_upper_lim ? event_state::e_count
+          : this_event->mask & IN_Q_OVERFLOW    ? event_state::w_q_overflow
+                                                : event_state::eventful;
         switch (event_state) {
           case event_state::eventful : {
             auto path_name =
@@ -276,7 +277,7 @@ inline auto do_event_recv(
               path_type == ::wtr::watcher::event::path_type::dir
               && effect_type == ::wtr::watcher::event::effect_type::create)
               pm[inotify_add_watch(watch_fd, path_name.c_str(), in_watch_opt)] =
-                path;
+                path_name;
 
             else if (
               path_type == ::wtr::watcher::event::path_type::dir
@@ -285,15 +286,15 @@ inline auto do_event_recv(
               pm.erase(this_event->wd);
             }
 
-            callback({path_name, effect_type, path_type});
+            callback({path_name, effect_type, path_type});  // <- Magic happens
 
             break;
           }
           case event_state::e_count : return do_error("e/sys/bad_count");
           case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
         }
-        return true;
       }
+      return true;
 
       case read_state::eventless : return true;
 
@@ -304,77 +305,77 @@ inline auto do_event_recv(
            ::wtr::watcher::event::path_type::watcher});
         return false;
     }
-
-      assert(! "Unreachable");
-      return false;
   }
 
-  inline auto watch(
-    std::filesystem::path const& path,
-    ::wtr::watcher::event::callback const& callback,
-    std::atomic_bool& is_living) noexcept -> bool
+  assert(! "Unreachable");
+  return false;
+}
+
+inline auto watch(
+  std::filesystem::path const& path,
+  ::wtr::watcher::event::callback const& callback,
+  std::atomic_bool& is_living) noexcept -> bool
+{
+  using ev = ::wtr::watcher::event;
+
+  auto do_error = [&path, &callback](auto& f, std::string&& msg) -> bool
   {
-    using ev = ::wtr::watcher::event;
+    callback(
+      {msg + path.string(), ev::effect_type::other, ev::path_type::watcher});
+    f();
+    return false;
+  };
 
-    auto do_error = [&path, &callback](auto& f, std::string&& msg) -> bool
-    {
-      callback(
-        {msg + path.string(), ev::effect_type::other, ev::path_type::watcher});
-      f();
-      return false;
-    };
+  /*  While:
+      - A lifetime the user hasn't ended
+      - A historical map of watch descriptors
+        to long paths (for event reporting)
+      - System resources for inotify and epoll
+      - An event buffer for events from epoll
+      - We're alive
+      Do:
+      - Await filesystem events
+      - Invoke `callback` on errors and events */
 
-    /*  While:
-        - A lifetime the user hasn't ended
-        - A historical map of watch descriptors
-          to long paths (for event reporting)
-        - System resources for inotify and epoll
-        - An event buffer for events from epoll
-        - We're alive
-        Do:
-        - Await filesystem events
-        - Invoke `callback` on errors and events */
+  auto sr = open_system_resources(callback);
 
-    auto sr = open_system_resources(callback);
+  epoll_event event_recv_list[event_wait_queue_max];
 
-    epoll_event event_recv_list[event_wait_queue_max];
+  auto pm = path_map(path, callback, sr);
 
-    auto pm = path_map(path, callback, sr);
+  auto close = [&sr]() -> bool
+  { return close_system_resources(std::move(sr)); };
 
-    auto close = [&sr]() -> bool
-    { return close_system_resources(std::move(sr)); };
+  if (sr.valid) [[likely]]
 
-    if (sr.valid) [[likely]]
+    if (pm.size() > 0) [[likely]] {
+      while (is_living) [[likely]]
 
-      if (pm.size() > 0) [[likely]] {
-        while (is_living) [[likely]]
+      {
+        int event_count = epoll_wait(
+          sr.event_fd,
+          event_recv_list,
+          event_wait_queue_max,
+          delay_ms);
 
-        {
-          int event_count = epoll_wait(
-            sr.event_fd,
-            event_recv_list,
-            event_wait_queue_max,
-            delay_ms);
+        if (event_count < 0)
+          return do_error(close, "e/sys/epoll_wait@");
 
-          if (event_count < 0)
-            return do_error(close, "e/sys/epoll_wait@");
-
-          else if (event_count > 0) [[likely]]
-            for (int n = 0; n < event_count; n++)
-              if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-                if (! do_event_recv(sr.watch_fd, pm, path, callback))
-                  [[unlikely]]
-                  return do_error(close, "e/self/event_recv@");
-        }
-
-        return close();
+        else if (event_count > 0) [[likely]]
+          for (int n = 0; n < event_count; n++)
+            if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
+              if (! do_event_recv(sr.watch_fd, pm, path, callback)) [[unlikely]]
+                return do_error(close, "e/self/event_recv@");
       }
-      else
-        return do_error(close, "e/self/path_map@");
 
+      return close();
+    }
     else
-      return do_error(close, "e/self/sys_resource@");
-  }
+      return do_error(close, "e/self/path_map@");
+
+  else
+    return do_error(close, "e/self/sys_resource@");
+}
 
 } /* namespace inotify */
 } /* namespace adapter */

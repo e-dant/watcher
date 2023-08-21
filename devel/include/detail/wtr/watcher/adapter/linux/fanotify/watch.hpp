@@ -473,10 +473,10 @@ inline auto recv(
 
   switch (read_state) {
     case read_state::eventful :
-      for (auto* mtd = static_cast<event_metadata*>(event_buf);
+      for (auto* mtd = (event_metadata*)(event_buf);
            FAN_EVENT_OK(mtd, read_len);
            mtd = FAN_EVENT_NEXT(mtd, read_len)) {
-        auto hifty = static_cast<event_info_fid*>(mtd + 1)->hdr.info_type;
+        auto hifty = ((event_info_fid const*)(mtd + 1))->hdr.info_type;
         enum class event_state {
           eventful,
           e_version,
