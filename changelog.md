@@ -63,6 +63,13 @@ case of batched events from a call to `read()`.
 
 Added a failsafe to the Linux adapters which prevents a hypothetically infinite loop.
 
+For the Linux `inotify` adapter, within the event receive/parse/send loop, the calls
+to `inotify_[add,rm]_watch` were moved from immediately *after* sending the event along
+to a user's callback to immediately *before* that callback. Timing is important in that
+loop. If we received a `create` or `destroy` event on a directory, we need to be sure
+to mark it before events (including self-destruction events) happen on that directory.
+The window can be small.
+
 Removed `platform.hpp` as not needed. Platform definitions aren't complicated
 enough to have a separate header for.
 
