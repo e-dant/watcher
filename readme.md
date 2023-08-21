@@ -63,7 +63,7 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> These [3549](https://github.com/e-dant/watcher/blob/release/tool/sl)
+> These [3561](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines, more than half of which is documentation and tests, were written to be
 [read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp)
 as easily as the API is used:
