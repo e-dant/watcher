@@ -1417,11 +1417,22 @@ inline auto close_system_resources(sys_resource_type&& sr) noexcept -> bool
 }
 
 /*  Reads through available (inotify) filesystem events.
-    Discerns their path and type.
-    Calls the callback.
-    Returns false on eventful errors.
+    There might be several events from a single read.
+    Three possible states:
+     - eventful: there are events to read
+     - eventless: there are no events to read
+     - error: there was an error reading events
+    The EAGAIN "error" means there is nothing
+    to read. We count that as 'eventless'.
+    Discerns each event's full path and type.
+    Looks for the full path in `pm`, our map of
+    watch descriptors to directory paths.
+    Updates the path map, adding the directories
+    with `create` events and removing the ones
+    with `destroy` events.
+    Forward events and errors to the user.
+    Return when eventless.
     @todo
-    Return new directories when they appear,
     Consider running and returning `find_dirs` from here.
     Remove destroyed watches. */
 inline auto do_event_recv(
@@ -1433,28 +1444,14 @@ inline auto do_event_recv(
   namespace fs = std::filesystem;
 
   alignas(inotify_event) char buf[event_buf_len];
-
-  enum class state { eventful, eventless, error };
-
-  /*  While inotify has events pending, read them.
-      There might be several events from a single read.
-      Three possible states:
-       - eventful: there are events to read
-       - eventless: there are no events to read
-       - error: there was an error reading events
-      The EAGAIN "error" means there is nothing
-      to read. We count that as 'eventless'.
-      Forward events and errors to the user.
-      Return when eventless. */
-
   ssize_t read_len = read(watch_fd, buf, event_buf_len);
+  enum class read_state { eventful, eventless, error };
 
-  switch (read_len > 0      ? state::eventful
-          : read_len == 0   ? state::eventless
-          : errno == EAGAIN ? state::eventless
-                            : state::error) {
-    case state::eventful : {
-      /*  Loop over all events in the buffer. */
+  switch (read_len > 0      ? read_state::eventful
+          : read_len == 0   ? read_state::eventless
+          : errno == EAGAIN ? read_state::eventless
+                            : read_state::error) {
+    case read_state::eventful : {
       auto this_event = (inotify_event*)buf;
       while (this_event < (inotify_event*)(buf + read_len)) {
         if (! (this_event->mask & IN_Q_OVERFLOW)) [[likely]] {
@@ -1502,14 +1499,14 @@ inline auto do_event_recv(
       return true;
     }
 
-    case state::error :
+    case read_state::error :
       callback(
         {"e/sys/read@" + base_path.string(),
          ::wtr::watcher::event::effect_type::other,
          ::wtr::watcher::event::path_type::watcher});
       return false;
 
-    case state::eventless : return true;
+    case read_state::eventless : return true;
   }
 
   /*  Unreachable */
