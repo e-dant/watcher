@@ -1247,6 +1247,7 @@ inline auto watch(
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 7, 0)) || defined(__ANDROID_API__)
 
+#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <filesystem>
