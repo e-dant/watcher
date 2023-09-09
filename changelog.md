@@ -6,6 +6,8 @@ Replaced usage of "alternative operators" -- `and`, `or`, `not` -- with their
 "traditional" counterparts -- `&&`, `||`, `!`. This fixes compilation issues
 on MSVC.
 
+Android's CI pipeline uses just the latest five NDKs.
+
 ## 0.9.0
 
 ### Cli (0.9.0)
