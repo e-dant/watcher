@@ -1,7 +1,12 @@
 # Changelog
 
-## 0.9.0
+## 0.9.1
 
+Replaced usage of "alternative operators" -- `and`, `or`, `not` -- with their
+"traditional" counterparts -- `&&`, `||`, `!`. This fixes compilation issues
+on MSVC.
+
+## 0.9.0
 
 ### Cli (0.9.0)
 
