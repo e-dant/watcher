@@ -107,14 +107,14 @@ public:
   inline friend auto
   operator==(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
   {
-    return l.path_name == r.path_name and l.effect_time == r.effect_time
-       and l.path_type == r.path_type and l.effect_type == r.effect_type;
+    return l.path_name == r.path_name && l.effect_time == r.effect_time
+        && l.path_type == r.path_type && l.effect_type == r.effect_type;
   }
 
   inline friend auto
   operator!=(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
   {
-    return not (l == r);
+    return ! (l == r);
   }
 };
 
@@ -199,13 +199,13 @@ inline auto num_to_str(long long from) noexcept -> std::basic_string<Char> {
   static_assert(std::is_integral_v<decltype(from)>);
   static constexpr bool is_sys_sane_narrow_char_size =
       (sizeof(char) == sizeof(signed char))
-      and (sizeof(char) == sizeof(unsigned char))
+      && (sizeof(char) == sizeof(unsigned char))
   ;
   static constexpr bool is_narrow_char = (
     is_sys_sane_narrow_char_size
-    and (  std::is_same_v<Char, char>
-        || std::is_same_v<Char, signed char>
-        || std::is_same_v<Char, unsigned char>
+    && (  std::is_same_v<Char, char>
+       || std::is_same_v<Char, signed char>
+       || std::is_same_v<Char, unsigned char>
     )
   );
   static constexpr bool is_wide_char = (
@@ -213,7 +213,7 @@ inline auto num_to_str(long long from) noexcept -> std::basic_string<Char> {
     || std::is_same_v<Char, char16_t>
     || std::is_same_v<Char, char32_t>
   );
-  static_assert(is_narrow_char or is_wide_char);
+  static_assert(is_narrow_char || is_wide_char);
 
   static constexpr auto buflen = std::numeric_limits<decltype(from)>::digits10 + 1;
   auto buf = std::array<char, buflen>{0};
