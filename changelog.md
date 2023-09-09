@@ -8,6 +8,8 @@ on MSVC.
 
 Android's CI pipeline uses just the latest five NDKs.
 
+Fixed automatic (semantic) version bumping in `flake.nix` from `tool/release`.
+
 ## 0.9.0
 
 ### Cli (0.9.0)
