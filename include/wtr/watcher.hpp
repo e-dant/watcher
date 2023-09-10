@@ -159,33 +159,6 @@ namespace {
          + Lit"\"path_type\":"   + path_type   + Lit"}"  \
          };
 
-/* template<class T> */
-/* concept SaneNarrowCharSize = requires{ */
-/*   requires(sizeof(char) */
-/*         == sizeof(signed char) */
-/*         == sizeof(unsigned char) */
-/*         == sizeof(char8_t)); // Redundant? */
-/* }; */
-/* template<class T> */
-/* concept NarrowChar = requires{ */
-/*   requires(SaneNarrowCharSize<T>); */
-/*   requires(std::is_same_v<T, char> */
-/*         or std::is_same_v<T, signed char> */
-/*         or std::is_same_v<T, unsigned char> */
-/*         or std::is_same_v<T, char8_t>); */
-/* }; */
-/* template<class T> */
-/* concept WideChar = requires{ */
-/*   requires(std::is_same_v<T, wchar_t> */
-/*         or std::is_same_v<T, char16_t> */
-/*         or std::is_same_v<T, char32_t>); */
-/* }; */
-/* template<class T> */
-/* concept Char = requires{ */
-/*   requires(NarrowChar<T> */
-/*         or WideChar<T>); */
-/* }; */
-
 /*  For types larger than char and/or char8_t, we can just cast
     each element in our `char` buffer to an `unsigned char`, and
     then zero-extend the elements to any of `wchar_t`, `char16_t`
