@@ -158,10 +158,10 @@ message(STATUS "Supported sanitizers on ${CMAKE_SYSTEM}/${CMAKE_CXX_COMPILER_ID}
 # Functions
 #
 
-function(WTR_ADD_TARGET
+function(wtr_add_bin_target
       NAME
+      BIN_COMPONENT_NAME
       IS_TEST
-      IS_INSTALLABLE
       SRC_SET
       CC_OPT_SET
       LL_OPT_SET
@@ -205,23 +205,35 @@ function(WTR_ADD_TARGET
     FetchContent_MakeAvailable(snitch)
   endif()
 
-  if(IS_INSTALLABLE)
+  if(BIN_COMPONENT_NAME)
     install(
       FILES "${CMAKE_CURRENT_BINARY_DIR}/${NAME}"
       DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
-      COMPONENT "bin")
-    install(
-      FILES "${INCLUDE_PATH_SINGLE_HEADER}/wtr/watcher.hpp"
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr"
-      COMPONENT "include")
+      COMPONENT "${BIN_COMPONENT_NAME}")
   endif()
 endfunction()
 
-function(wtr_add_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
-  wtr_add_target(
+function(wtr_add_hdr_target NAME INCLPATH HDR_NAME)
+  include(GNUInstallDirs)
+  add_library(
     "${NAME}"
+    INTERFACE
+    "${INCLPATH}/wtr/${HDR_NAME}")
+  target_include_directories(
+    "${NAME}"
+    INTERFACE
+    "${INCLPATH}")
+  install(
+    FILES "${INCLPATH}/wtr/${HDR_NAME}"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr"
+    COMPONENT "include")
+endfunction()
+
+function(wtr_add_rel_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+  wtr_add_bin_target(
+    "${NAME}"
+    "bin"
     "OFF" # is test
-    "ON"  # is installable
     "${SRC_SET}"
     "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
     "${LINK_OPTIONS};${LL_EXTOPT_SET}"
@@ -230,10 +242,10 @@ function(wtr_add_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
 endfunction()
 
 function(wtr_add_test_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
-  wtr_add_target(
+  wtr_add_bin_target(
     "${NAME}"
-    "ON"
-    "OFF"
+    "test-bin"
+    "ON"  # is test
     "${SRC_SET}"
     "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
     "${LINK_OPTIONS};${LL_EXTOPT_SET}"
@@ -250,17 +262,13 @@ function(wtr_add_bench_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
 endfunction()
 
 function(wtr_add_autosan_bin_target NAME SRC_SET)
-  wtr_add_bin_target(
-    "${NAME}"
-    "${SRC_SET}"
-    ""
-    "")
+  wtr_add_rel_bin_target("${NAME}" "${SRC_SET}" "" "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_target(
+      wtr_add_bin_target(
         "${NAME}.${SAN}"
+        "san-bin"
         "OFF" # is test
-        "OFF"  # is installable
         "${SRC_SET}"
         "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
@@ -274,11 +282,15 @@ function(wtr_add_autosan_test_bin_target NAME SRC_SET)
   wtr_add_test_bin_target("${NAME}" "${SRC_SET}" "" "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_test_bin_target(
+      wtr_add_bin_target(
         "${NAME}.${SAN}"
+        "test-bin"
+        "ON" # is test
         "${SRC_SET}"
-        "${CCLL_EXTOPT_SET_${SAN}}"
-        "${CCLL_EXTOPT_SET_${SAN}}")
+        "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${INCLUDE_PATH_DEVEL}"
+        "${LINK_LIBRARIES};snitch::snitch")
     endif()
   endforeach()
 endfunction()
@@ -287,11 +299,15 @@ function(wtr_add_autosan_bench_bin_target NAME SRC_SET)
   wtr_add_bench_bin_target("${NAME}" "${SRC_SET}" "" "")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_bench_bin_target(
+      wtr_add_bin_target(
         "${NAME}.${SAN}"
+        "test-bin"
+        "ON"  # is test
         "${SRC_SET}"
-        "${CCLL_EXTOPT_SET_${SAN}}"
-        "${CCLL_EXTOPT_SET_${SAN}}")
+        "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+        "${INCLUDE_PATH_DEVEL}"
+        "${LINK_LIBRARIES};snitch::snitch")
     endif()
   endforeach()
 endfunction()
@@ -299,6 +315,11 @@ endfunction()
 #
 # Actual work
 #
+
+wtr_add_hdr_target(
+  "wtr.hdr_watcher"
+  "${INCLUDE_PATH_SINGLE_HEADER}"
+  "watcher.hpp")
 
 wtr_add_autosan_bin_target(
   "wtr.watcher"
