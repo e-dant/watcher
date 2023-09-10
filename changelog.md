@@ -10,6 +10,12 @@ Android's CI pipeline uses just the latest five NDKs.
 
 Fixed automatic (semantic) version bumping in `flake.nix` from `tool/release`.
 
+Added the `test-bin` and `san-bin` components, for our sanitized variants and
+executable test targets, and a "proper" header-only library target, `wtr.hdr_watcher`,
+to the CMake build file.
+
+@toge: Add missing `<atomic>` include on the Linux/inotify adapter.
+
 ## 0.9.0
 
 ### Cli (0.9.0)
