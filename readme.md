@@ -81,8 +81,9 @@ Just use ours and you've got yourself a filesystem watcher which prints
 filesystem events as JSON. Neat. Here's how:
 ```bash
 git clone https://github.com/e-dant/watcher.git && cd watcher # The main branch is the (latest) release branch.
-tool/build --no-build-test --no-build-bench --no-run-test # Build the release version for the host platform.
-build/out/this/Release/wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
+tool/build --no-build-test --no-build-bench --no-run-test && cd build/out/this/Release # Build the release version for the host platform.
+./wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
+# Or simply `nix build && nix run` if you're using Nix flakes!
 ```
 
 3. Efficient
