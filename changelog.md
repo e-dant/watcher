@@ -6,7 +6,7 @@ Replaced usage of "alternative operators" -- `and`, `or`, `not` -- with their
 "traditional" counterparts -- `&&`, `||`, `!`. This fixes compilation issues
 on MSVC.
 
-Android's CI pipeline uses just the latest five NDKs.
+Android's CI pipeline uses just the latest three NDKs. We have limited cache.
 
 Fixed automatic (semantic) version bumping in `flake.nix` from `tool/release`.
 
