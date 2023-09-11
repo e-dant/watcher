@@ -16,6 +16,8 @@ to the CMake build file.
 
 @toge: Add missing `<atomic>` include on the Linux/inotify adapter.
 
+Updated documentation around the `event` object and what this library thinks of safety as.
+
 ## 0.9.0
 
 ### Cli (0.9.0)
