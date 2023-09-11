@@ -2183,7 +2183,7 @@ private:
   std::filesystem::path const path{};
   event::callback const callback{};
   std::atomic<bool> is_open{true};
-  std::future<bool> future{std::async(
+  std::future<bool> watching{std::async(
     std::launch::async,
     [this]
     {
@@ -2209,7 +2209,7 @@ public:
   {
     if (this->is_open) {
       this->is_open = false;
-      auto ok = this->future.get();
+      auto ok = this->watching.get();
       this->callback(
         {(ok ? "s/self/die@" : "e/self/die@") + this->path.string(),
          event::effect_type::destroy,
