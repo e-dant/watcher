@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2
+
+Removed stray Makefile.
+
 ## 0.9.1
 
 Replaced usage of "alternative operators" -- `and`, `or`, `not` -- with their
