@@ -94,8 +94,8 @@ tool/build --no-build-test --no-build-bench --no-run-test && cd build/out/this/R
 4. Safe
 > We run this project through
 [unit tests against all available sanitiziers](https://github.com/e-dant/watcher/actions).
-The code is safe (with reasonably high certainty),
-simple and clean. (This includes thread safety.)
+The code is safe (with reasonable certainty) and simple.
+(This includes thread, memory, bounds, type and resource safety.)
 
 5. Dependency free
 > *Watcher* depends on the C++ Standard Library. For efficiency,
