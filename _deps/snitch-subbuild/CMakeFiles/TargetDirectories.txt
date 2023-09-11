@@ -1,0 +1,3 @@
+/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/snitch-populate.dir
+/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/edit_cache.dir
+/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/snitch-populate"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/snitch-populate.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/CMakeFiles/snitch-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-build.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-download.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-install.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-test.rule"
+		},
+		{
+			"file" : "/Users/edant/dev/watcher/_deps/snitch-subbuild/snitch-populate-prefix/src/snitch-populate-stamp/snitch-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"snitch-populate"
+		],
+		"name" : "snitch-populate"
+	}
+}

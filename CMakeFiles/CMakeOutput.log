@@ -1,0 +1,250 @@
+The system is: Darwin - 22.5.0 - arm64
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ 
+Build flags: 
+Id flags:  
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is Clang, found in "/Users/edant/dev/watcher/CMakeFiles/3.25.3/CompilerIdCXX/a.out"
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile cmTC_1995e/fast && /nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/cmTC_1995e.dir/build.make CMakeFiles/cmTC_1995e.dir/build
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua'
+Building CXX object CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0   -v -Wl,-v -MD -MT CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -c /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/share/cmake-3.25/Modules/CMakeCXXCompilerABI.cpp
+clang version 11.1.0
+Target: aarch64-apple-darwin
+Thread model: posix
+InstalledDir: /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin
+clang-11: warning: -Wl,-v: 'linker' input unused [-Wunused-command-line-argument]
+ (in-process)
+ "/nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin/clang-11" -cc1 -triple arm64-apple-macosx11.0.0 -Wundef-prefix=TARGET_OS_ -Werror=undef-prefix -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -emit-obj -disable-free -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-rounding-math -munwind-tables -target-sdk-version=13.3 -fcompatibility-qualified-id-block-type-checking -target-cpu apple-a13 -target-feature +v8.3a -target-feature +crypto -target-feature +crc -target-feature +fullfp16 -target-feature +lse -target-feature +neon -target-feature +ras -target-feature +rdm -target-feature +rcpc -target-feature +zcm -target-feature +zcz -target-feature +sha2 -target-feature +aes -target-abi darwinpcs -fallow-half-arguments-and-returns -debugger-tuning=lldb -target-linker-version 609 -v -nostdsysteminc -resource-dir /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root -dependency-file CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -idirafter /nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include -isystem /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include -isystem /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include -isystem /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include -iframework /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -isystem /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include -isystem /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include -isystem /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include -isystem /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include -iframework /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -isystem /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1 -U _FORTIFY_SOURCE -D _FORTIFY_SOURCE=2 -stdlib=libc++ -internal-isystem /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include -O2 -Wformat -Wformat-security -Werror=format-security -fdeprecated-macro -fdebug-compilation-dir /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua -ferror-limit 19 -fwrapv -stack-protector 2 -stack-protector-buffer-size 4 -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -fmax-type-align=16 -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -x c++ /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/share/cmake-3.25/Modules/CMakeCXXCompilerABI.cpp
+clang -cc1 version 11.1.0 based upon LLVM 11.1.0 default target aarch64-apple-darwin22.5.0
+ignoring duplicate directory "/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include"
+ignoring duplicate directory "/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include"
+ignoring duplicate directory "/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include"
+ignoring duplicate directory "/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include"
+ignoring duplicate directory "/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include"
+ignoring duplicate directory "/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks"
+#include "..." search starts here:
+#include <...> search starts here:
+ /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include
+ /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include
+ /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include
+ /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include
+ /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include
+ /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1
+ /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks (framework directory)
+ /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include
+ /nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include
+End of search list.
+Linking CXX executable cmTC_1995e
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1995e.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_1995e 
+clang version 11.1.0
+Target: aarch64-apple-darwin
+Thread model: posix
+InstalledDir: /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin
+ "/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/ld" -demangle -lto_library /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 11.0.0 13.3 -syslibroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -o cmTC_1995e -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib -L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib -L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib -L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib -L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib -L/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib -L/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -no_uuid -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -lc++abi -arch arm64 -lc++ -lSystem /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/lib/darwin/libclang_rt.osx.a -F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks
+@(#)PROGRAM:ld  PROJECT:ld64-609
+BUILD 00:08:28 Jul 29 2023
+configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em (tvOS)
+Library search paths:
+	/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib
+	/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib
+	/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib
+	/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib
+	/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib
+	/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib
+	/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib
+	/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib
+	/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib
+	/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib
+	/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib
+Framework search paths:
+	/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks
+	/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua'
+
+
+
+Parsed CXX implicit include dir info from above output: rv=done
+  found start of include info
+  found start of implicit include info
+    add: [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include]
+    add: [/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include]
+    add: [/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include]
+    add: [/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include]
+    add: [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include]
+    add: [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1]
+    add: [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include]
+    add: [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include]
+  end of search list found
+  collapse include dir [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include] ==> [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include]
+  collapse include dir [/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include] ==> [/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include]
+  collapse include dir [/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include] ==> [/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include]
+  collapse include dir [/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include] ==> [/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include]
+  collapse include dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include] ==> [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include]
+  collapse include dir [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1] ==> [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1]
+  collapse include dir [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include] ==> [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include]
+  collapse include dir [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include] ==> [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include]
+  implicit include dirs: [/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include;/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include;/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include;/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include;/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include;/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1;/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include;/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include]
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua]
+  ignore line: []
+  ignore line: [Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile cmTC_1995e/fast && /nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/cmTC_1995e.dir/build.make CMakeFiles/cmTC_1995e.dir/build]
+  ignore line: [make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua']
+  ignore line: [Building CXX object CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0   -v -Wl -v -MD -MT CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -c /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/share/cmake-3.25/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [clang version 11.1.0]
+  ignore line: [Target: aarch64-apple-darwin]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin]
+  ignore line: [clang-11: warning: -Wl -v: 'linker' input unused [-Wunused-command-line-argument]]
+  ignore line: [ (in-process)]
+  ignore line: [ "/nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin/clang-11" -cc1 -triple arm64-apple-macosx11.0.0 -Wundef-prefix=TARGET_OS_ -Werror=undef-prefix -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -emit-obj -disable-free -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-rounding-math -munwind-tables -target-sdk-version=13.3 -fcompatibility-qualified-id-block-type-checking -target-cpu apple-a13 -target-feature +v8.3a -target-feature +crypto -target-feature +crc -target-feature +fullfp16 -target-feature +lse -target-feature +neon -target-feature +ras -target-feature +rdm -target-feature +rcpc -target-feature +zcm -target-feature +zcz -target-feature +sha2 -target-feature +aes -target-abi darwinpcs -fallow-half-arguments-and-returns -debugger-tuning=lldb -target-linker-version 609 -v -nostdsysteminc -resource-dir /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root -dependency-file CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -idirafter /nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include -isystem /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include -isystem /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include -isystem /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include -iframework /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -isystem /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include -isystem /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include -isystem /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include -isystem /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include -iframework /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -isystem /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include -isystem /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1 -U _FORTIFY_SOURCE -D _FORTIFY_SOURCE=2 -stdlib=libc++ -internal-isystem /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include -O2 -Wformat -Wformat-security -Werror=format-security -fdeprecated-macro -fdebug-compilation-dir /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-cSkpua -ferror-limit 19 -fwrapv -stack-protector 2 -stack-protector-buffer-size 4 -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -fmax-type-align=16 -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -x c++ /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/share/cmake-3.25/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [clang -cc1 version 11.1.0 based upon LLVM 11.1.0 default target aarch64-apple-darwin22.5.0]
+  ignore line: [ignoring duplicate directory "/nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include"]
+  ignore line: [ignoring duplicate directory "/nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include"]
+  ignore line: [ignoring duplicate directory "/nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include"]
+  ignore line: [ignoring duplicate directory "/nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include"]
+  ignore line: [ignoring duplicate directory "/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include"]
+  ignore line: [ignoring duplicate directory "/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks"]
+  ignore line: [#include "..." search starts here:]
+  ignore line: [#include <...> search starts here:]
+  ignore line: [ /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include]
+  ignore line: [ /nix/store/x8c3sx9v4gpwcbqrb0p10fzp6vz2ix65-libcxxabi-11.1.0-dev/include]
+  ignore line: [ /nix/store/h9v8rcj9d89r50cypvdhqg00r4dgayd7-compiler-rt-libc-11.1.0-dev/include]
+  ignore line: [ /nix/store/8ss5x38kh0xwai41443ivh1qrjy0l48i-wtr.watcher-0.8.8/include]
+  ignore line: [ /nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/include]
+  ignore line: [ /nix/store/iz441b6aw6kh5q0pybfxgx2qwdzq5zm1-libcxx-11.1.0-dev/include/c++/v1]
+  ignore line: [ /nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks (framework directory)]
+  ignore line: [ /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/include]
+  ignore line: [ /nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/include]
+  ignore line: [End of search list.]
+  ignore line: [Linking CXX executable cmTC_1995e]
+  ignore line: [/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1995e.dir/link.txt --verbose=1]
+  ignore line: [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl -search_paths_first -Wl -headerpad_max_install_names  -v -Wl -v CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_1995e ]
+  ignore line: [clang version 11.1.0]
+  ignore line: [Target: aarch64-apple-darwin]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/bin]
+  link line: [ "/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/ld" -demangle -lto_library /nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 11.0.0 13.3 -syslibroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -o cmTC_1995e -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib -L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib -L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib -L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib -L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib -L/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib -L/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib -L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib -no_uuid -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o -lc++abi -arch arm64 -lc++ -lSystem /nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/lib/darwin/libclang_rt.osx.a -F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks -F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks]
+    arg [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/ld] ==> ignore
+    arg [-demangle] ==> ignore
+    arg [-lto_library] ==> ignore, skip following value
+    arg [/nix/store/78g551gc2wkzr06ar571fgvj6qn5gi14-clang-11.1.0/lib/libLTO.dylib] ==> skip value of -lto_library
+    arg [-dynamic] ==> ignore
+    arg [-arch] ==> ignore
+    arg [arm64] ==> ignore
+    arg [-platform_version] ==> ignore
+    arg [macos] ==> ignore
+    arg [11.0.0] ==> ignore
+    arg [13.3] ==> ignore
+    arg [-syslibroot] ==> ignore
+    arg [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_1995e] ==> ignore
+    arg [-L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+    arg [-L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+    arg [-L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+    arg [-L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+    arg [-L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+    arg [-L/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+    arg [-L/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+    arg [-L/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+    arg [-L/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib] ==> dir [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib]
+    arg [-L/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib] ==> dir [/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib]
+    arg [-L/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+    arg [-no_uuid] ==> ignore
+    arg [-search_paths_first] ==> ignore
+    arg [-headerpad_max_install_names] ==> ignore
+    arg [-v] ==> ignore
+    arg [CMakeFiles/cmTC_1995e.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lc++abi] ==> lib [c++abi]
+    arg [-arch] ==> ignore
+    arg [arm64] ==> ignore
+    arg [-lc++] ==> lib [c++]
+    arg [-lSystem] ==> lib [System]
+    arg [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/lib/darwin/libclang_rt.osx.a] ==> lib [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/lib/darwin/libclang_rt.osx.a]
+    arg [-F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks] ==> ignore
+    arg [-F/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks] ==> ignore
+  Library search paths: [;/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib;/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib;/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib;/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib;/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib;/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib;/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib;/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib;/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib;/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib;/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  Framework search paths: [;/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks;/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks]
+  remove lib [System]
+  remove lib [/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/resource-root/lib/darwin/libclang_rt.osx.a]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse library dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+  collapse library dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+  collapse library dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse library dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+  collapse library dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+  collapse library dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+  collapse library dir [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib] ==> [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib]
+  collapse library dir [/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib] ==> [/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse library dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+  collapse library dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+  collapse library dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse library dir [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib] ==> [/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib]
+  collapse library dir [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib] ==> [/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib]
+  collapse library dir [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib] ==> [/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib]
+  collapse library dir [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib] ==> [/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib]
+  collapse library dir [/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib] ==> [/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib]
+  collapse library dir [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib] ==> [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib]
+  collapse framework dir [/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks] ==> [/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks]
+  collapse framework dir [/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks] ==> [/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks]
+  implicit libs: [c++abi;c++]
+  implicit objs: []
+  implicit dirs: [/nix/store/i3ni49qiynsjnkwpmrwf71i5zzq850bb-libcxx-11.1.0/lib;/nix/store/njjd128h1bgxyx4fvkb2vx3ql2jqqhs6-libcxxabi-11.1.0/lib;/nix/store/myy52viyispq1zhrmivk2b4c0h9qvsmb-compiler-rt-libc-11.1.0/lib;/nix/store/6gqnpkyz9zcf9hc24b8qlxp746xvfhcf-libobjc-11.0.0/lib;/nix/store/x8ik76fqvy1afww1vfsxzj4w75iqhhmj-libSystem-11.0.0/lib;/nix/store/h332pis5y50g3cwpr3hlg919alyy0bh5-clang-11.1.0-lib/lib]
+  implicit fwks: [/nix/store/q2d0ya7rc5kmwbwvsqc2djvv88izn1q6-apple-framework-CoreFoundation-11.0.0/Library/Frameworks]
+
+
+Performing C++ SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD succeeded with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-p6jlzC
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile cmTC_bf01b/fast && /nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/cmTC_bf01b.dir/build.make CMakeFiles/cmTC_bf01b.dir/build
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-p6jlzC'
+Building CXX object CMakeFiles/cmTC_bf01b.dir/src.cxx.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -DCMAKE_HAVE_LIBC_PTHREAD  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/cmTC_bf01b.dir/src.cxx.o -MF CMakeFiles/cmTC_bf01b.dir/src.cxx.o.d -o CMakeFiles/cmTC_bf01b.dir/src.cxx.o -c /Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-p6jlzC/src.cxx
+Linking CXX executable cmTC_bf01b
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bf01b.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_bf01b.dir/src.cxx.o -o cmTC_bf01b 
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/CMakeScratch/TryCompile-p6jlzC'
+
+
+Source file was:
+#include <pthread.h>
+
+static void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+

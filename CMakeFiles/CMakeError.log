@@ -1,0 +1,517 @@
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+
+CXX compiler IPO check failed with the following output:
+Change Dir: /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin
+
+Run Build Command(s):/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make -f Makefile && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -S/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src -B/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin --check-build-system CMakeFiles/Makefile.cmake 0
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_progress_start /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin//CMakeFiles/progress.marks
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/foo.dir/build.make CMakeFiles/foo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 25%] Building CXX object CMakeFiles/foo.dir/foo.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/foo.dir/foo.cpp.o -MF CMakeFiles/foo.dir/foo.cpp.o.d -o CMakeFiles/foo.dir/foo.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/foo.cpp
+[ 50%] Linking CXX static library libfoo.a
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -P CMakeFiles/foo.dir/cmake_clean_target.cmake
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/foo.dir/link.txt --verbose=1
+"/usr/local/bin/llvm-ar" cr libfoo.a CMakeFiles/foo.dir/foo.cpp.o
+"/usr/local/bin/llvm-ranlib" libfoo.a
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 50%] Built target foo
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/depend
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+cd /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin && /nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_depends "Unix Makefiles" /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir/DependInfo.cmake
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+/nix/store/142h099pn0lk89wdwlpfb40c4r8mhg8g-gnumake-4.4.1/bin/make  -f CMakeFiles/boo.dir/build.make CMakeFiles/boo.dir/build
+make[2]: Entering directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+[ 75%] Building CXX object CMakeFiles/boo.dir/main.cpp.o
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++   -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -MD -MT CMakeFiles/boo.dir/main.cpp.o -MF CMakeFiles/boo.dir/main.cpp.o.d -o CMakeFiles/boo.dir/main.cpp.o -c /Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/src/main.cpp
+[100%] Linking CXX executable boo
+/nix/store/x27c0x6982aj1ycrywlr7pl7piz3cqjj-cmake-3.25.3/bin/cmake -E cmake_link_script CMakeFiles/boo.dir/link.txt --verbose=1
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/clang++ -flto=thin -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -mmacosx-version-min=11.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/boo.dir/main.cpp.o -o boo  libfoo.a 
+ld: warning: ignoring file libfoo.a, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0x21 0x3C 0x61 0x72 0x63 0x68 0x3E 0x0A 0x23 0x31 0x2F 0x31 0x32 0x20 0x20 0x20 )
+ld: warning: ignoring file CMakeFiles/boo.dir/main.cpp.o, building for macOS-arm64 but attempting to link with file built for unknown-unsupported file format ( 0xDE 0xC0 0x17 0x0B 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x20 0x0C 0x00 0x00 )
+Undefined symbols for architecture arm64:
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture arm64
+clang-11: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [CMakeFiles/boo.dir/build.make:101: boo] Error 1
+make[2]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make[1]: *** [CMakeFiles/Makefile2:114: CMakeFiles/boo.dir/all] Error 2
+make[1]: Leaving directory '/Users/edant/dev/watcher/CMakeFiles/_CMakeLTOTest-CXX/bin'
+make: *** [Makefile:94: all] Error 2
+
+

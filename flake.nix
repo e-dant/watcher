@@ -33,8 +33,6 @@
               version = "0.8.8"; # hook: tool/release
               src = self;
               nativeBuildInputs = deps;
-              # build phase should maybe also run unit tests? no...
-              # I think we should make a test target to this flake
               buildPhase = ''
                 cmake --build . --target wtr.watcher --config Release
                 cmake --build . --target wtr.hdr_watcher
@@ -45,10 +43,13 @@
               '';
             }
           );
-        in rec {
-          defaultApp = flake-utils.lib.mkApp { drv = defaultPackage; };
+        in {
+          defaultApp = flake-utils.lib.mkApp { drv = watcher; };
           defaultPackage = watcher;
           devShell = pkgs.mkShell {
+            # Bring watcher's tree and all of its dependencies in
+            inputsFrom = [ watcher ];
+            # When we launch a dev shell, we also want `watcher` pre-built
             buildInputs = [ watcher ];
           };
         }

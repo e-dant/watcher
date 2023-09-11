@@ -1,0 +1,2 @@
+/nix/store/7dkbcs6vgwbkb6rafh03j9j0bn8qpki0-clang-wrapper-11.1.0/bin/ar qc libsnitch.a CMakeFiles/snitch.dir/src/snitch.cpp.o
+/usr/local/bin/llvm-ranlib libsnitch.a
