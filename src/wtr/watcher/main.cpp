@@ -86,7 +86,7 @@ auto from_cmdline(int const argc, char const** const argv)
   {
     namespace fs = std::filesystem;
 
-    return fs::absolute(
+    return fs::canonical(
       [&]
       {
         auto p = fs::path(argc > 1 ? argv[1] : ".");
