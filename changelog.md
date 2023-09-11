@@ -14,7 +14,7 @@ Added the `test-bin` and `san-bin` components, for our sanitized variants and
 executable test targets, and a "proper" header-only library target, `wtr.hdr_watcher`,
 to the CMake build file.
 
-@toge: Add missing `<atomic>` include on the Linux/inotify adapter.
+@toge: Add missing include for `std::atomic<T>` in the Linux/inotify adapter.
 
 Updated documentation around the `event` object and what this library thinks of safety as.
 
