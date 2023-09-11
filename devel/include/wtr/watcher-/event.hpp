@@ -16,37 +16,43 @@
 namespace wtr {
 inline namespace watcher {
 
-/*  There are only three things the user needs:
-      - The `die` function
-      - The `watch` function
-      - The `event` object
-
-    The `event` object is used to pass information about
-    filesystem events to the (user-supplied) callback
-    given to `watch`.
+/*  The `event` object is used to carry information about
+    filesystem events to the user through the (user-supplied)
+    callback given to `watch`.
 
     The `event` object will contain the:
-      - Path, which is always absolute.
-      - Type, one of:
+      - `path_name`: The path to the event.
+      - `path_type`: One of:
         - dir
         - file
         - hard_link
         - sym_link
         - watcher
         - other
-      - Event type, one of:
+      - `effect_type`: One of:
         - rename
         - modify
         - create
         - destroy
         - owner
         - other
-      - Event time in nanoseconds since epoch
+      - `effect_time`:
+        The time of the event in nanoseconds since epoch.
 
     The `watcher` type is special.
     Events with this type will include messages from
     the watcher. You may recieve error messages or
-    important status updates.  */
+    important status updates.
+
+    The first event always has a `create` value for the
+    `effect_type`, a `watcher` value for the `path_type`,
+    and a status message in the `path_name` field; Either
+    "s/self/live@{some path}" or "e/self/live@{some path}".
+
+    Similarly, the last event always carries `destroy` and
+    `watcher` in the `effect_type` and `path_type` fields.
+    The `path_name` field will have the same message as the
+    first event, except for "die" instead of "live". */
 
 struct event {
 
