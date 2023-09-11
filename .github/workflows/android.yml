@@ -21,8 +21,6 @@ jobs:
           - r25b
           - r24
           - r23
-          - r22b
-          - r21e
         install_location:
           - .local
 
