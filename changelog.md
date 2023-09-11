@@ -18,6 +18,11 @@ to the CMake build file.
 
 Updated documentation around the `event` object and what this library thinks of safety as.
 
+Minor fixup on the CLI program: We use canonical, not absolute, paths. So, a path that
+would have been displayed as `some/path/.` is now displayed as `some/path`. We also
+`.close()` the watcher before scope exit, which fixes up json parsing in non-infinite
+(and non-streaming) runs.
+
 ## 0.9.0
 
 ### Cli (0.9.0)
