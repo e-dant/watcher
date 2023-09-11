@@ -66,12 +66,14 @@ auto watch_forever_or_expire(
     else
       std::cin.get();
 
+    auto ok = watcher.close();
+
     std::cout << "}"
               << "\n,\"milliseconds\":"
               << duration_cast<milliseconds>(system_clock::now() - then).count()
               << "\n}}}" << std::endl;
 
-    return true;
+    return ok;
   };
 };
 
