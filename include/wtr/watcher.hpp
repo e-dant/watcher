@@ -598,7 +598,7 @@ inline auto open_watch(
 }
 */
 
-inline auto block_while(std::atomic_bool& b)
+inline auto block_while(std::atomic<bool>& b)
 {
   using namespace std::chrono_literals;
   using std::this_thread::sleep_for;
@@ -611,7 +611,7 @@ inline auto block_while(std::atomic_bool& b)
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   auto&& sysres = open_event_stream(path, callback);
   block_while(is_living);
@@ -1140,7 +1140,7 @@ inline auto recv(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using ev = ::wtr::watcher::event;
 
@@ -1521,7 +1521,7 @@ inline auto do_event_recv(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using ev = ::wtr::watcher::event;
 
@@ -1621,7 +1621,7 @@ namespace adapter {
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
   && ! defined(__ANDROID_API__)
@@ -1843,7 +1843,7 @@ inline auto do_event_send(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 
@@ -2093,7 +2093,7 @@ inline bool tend_bucket(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 

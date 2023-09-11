@@ -202,7 +202,7 @@ inline auto do_event_send(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 

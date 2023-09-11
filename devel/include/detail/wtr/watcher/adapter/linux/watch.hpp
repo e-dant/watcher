@@ -29,7 +29,7 @@ namespace adapter {
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
   && ! defined(__ANDROID_API__)

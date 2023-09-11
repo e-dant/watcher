@@ -282,7 +282,7 @@ inline auto open_watch(
 }
 */
 
-inline auto block_while(std::atomic_bool& b)
+inline auto block_while(std::atomic<bool>& b)
 {
   using namespace std::chrono_literals;
   using std::this_thread::sleep_for;
@@ -295,7 +295,7 @@ inline auto block_while(std::atomic_bool& b)
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   auto&& sysres = open_event_stream(path, callback);
   block_while(is_living);

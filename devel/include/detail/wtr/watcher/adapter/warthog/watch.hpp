@@ -207,7 +207,7 @@ inline bool tend_bucket(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic_bool& is_living) noexcept -> bool
+  std::atomic<bool>& is_living) noexcept -> bool
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
