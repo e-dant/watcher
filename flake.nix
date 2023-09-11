@@ -30,7 +30,7 @@
           watcher = (
             pkgs.stdenv.mkDerivation {
               pname = "wtr.watcher";
-              version = "0.8.8"; # hook: tool/release
+              version = "0.9.1"; # hook: tool/release
               src = self;
               nativeBuildInputs = deps;
               buildPhase = ''
