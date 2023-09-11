@@ -2182,27 +2182,29 @@ class watch {
 private:
   std::filesystem::path const path{};
   event::callback const callback{};
-  mutable std::atomic<bool> is_open{true};
-  std::future<bool> future{};
-
-  inline auto open() const noexcept
-  {
-    this->callback(
-      {"s/self/live@" + this->path.string(),
-       event::effect_type::create,
-       event::path_type::watcher});
-    return std::async(
-      std::launch::async,
-      [this]() noexcept -> bool
-      {
-        return ::detail::wtr::watcher::adapter::watch(
-          this->path,
-          this->callback,
-          this->is_open);
-      });
-  };
+  std::atomic<bool> is_open{true};
+  std::future<bool> future{std::async(
+    std::launch::async,
+    [this]
+    {
+      this->callback(
+        {"s/self/live@" + this->path.string(),
+         event::effect_type::create,
+         event::path_type::watcher});
+      return ::detail::wtr::watcher::adapter::watch(
+        this->path,
+        this->callback,
+        this->is_open);
+    })};
 
 public:
+  inline watch(
+    std::filesystem::path const& path,
+    event::callback const& callback) noexcept
+      : path{path}
+      , callback{callback}
+  {}
+
   inline auto close() noexcept -> bool
   {
     if (this->is_open) {
@@ -2217,14 +2219,6 @@ public:
     else
       return false;
   };
-
-  inline watch(
-    std::filesystem::path const& path,
-    event::callback const& callback) noexcept
-      : path{path}
-      , callback{callback}
-      , future{this->open()}
-  {}
 
   inline ~watch() noexcept { this->close(); }
 };
