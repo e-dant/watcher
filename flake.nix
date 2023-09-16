@@ -103,8 +103,6 @@
           # Bring watcher's tree and all of its dependencies in via inputsFrom,
           # and pre-build watcher via buildInputs so that we can use it right away.
           watcher-devshell = pkgs.mkShell {
-            #inputsFrom = [ watcher ];
-            #buildInputs = [ watcher ];
             inputsFrom = [ watcher-cli watcher-hdr watcher-test watcher-bench ];
             buildInputs = [ watcher ];
           };
