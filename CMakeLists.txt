@@ -233,40 +233,68 @@ function(wtr_add_hdr_target NAME INCLPATH HDR_NAME)
     COMPONENT "include")
 endfunction()
 
-function(wtr_add_rel_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+function(wtr_add_rel_bin_target NAME SRC_SET)
   wtr_add_bin_target(
     "${NAME}"
     "bin"
     "OFF" # is test
     "${SRC_SET}"
-    "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
-    "${LINK_OPTIONS};${LL_EXTOPT_SET}"
+    "${COMPILE_OPTIONS}"
+    "${LINK_OPTIONS}"
     "${INCLUDE_PATH_SINGLE_HEADER}"
     "${LINK_LIBRARIES}")
 endfunction()
 
-function(wtr_add_test_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
+function(wtr_add_test_bin_target NAME SRC_SET)
   wtr_add_bin_target(
     "${NAME}"
     "test-bin"
     "ON"  # is test
     "${SRC_SET}"
-    "${COMPILE_OPTIONS};${CC_EXTOPT_SET}"
-    "${LINK_OPTIONS};${LL_EXTOPT_SET}"
+    "${COMPILE_OPTIONS}"
+    "${LINK_OPTIONS}"
     "${INCLUDE_PATH_DEVEL}"
     "${LINK_LIBRARIES};snitch::snitch")
 endfunction()
 
-function(wtr_add_bench_bin_target NAME SRC_SET CC_EXTOPT_SET LL_EXTOPT_SET)
-  wtr_add_test_bin_target(
-    "${NAME}"
+function(wtr_add_san_test_bin_target NAME SRC_SET SAN)
+  wtr_add_bin_target(
+    "${NAME}.${SAN}"
+    "test-bin"
+    "ON" # is test
     "${SRC_SET}"
-    "${CC_EXTOPT_SET}"
-    "${LL_EXTOPT_SET}")
+    "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+    "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+    "${INCLUDE_PATH_DEVEL}"
+    "${LINK_LIBRARIES};snitch::snitch")
+endfunction()
+
+function(wtr_add_bench_bin_target NAME SRC_SET)
+  wtr_add_bin_target(
+    "${NAME}"
+    "bench-bin"
+    "ON"  # is test
+    "${SRC_SET}"
+    "${COMPILE_OPTIONS}"
+    "${LINK_OPTIONS}"
+    "${INCLUDE_PATH_DEVEL}"
+    "${LINK_LIBRARIES};snitch::snitch")
+endfunction()
+
+function(wtr_add_san_bench_bin_target NAME SRC_SET SAN)
+  wtr_add_bin_target(
+    "${NAME}.${SAN}"
+    "bench-bin"
+    "ON"  # is test
+    "${SRC_SET}"
+    "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+    "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
+    "${INCLUDE_PATH_DEVEL}"
+    "${LINK_LIBRARIES};snitch::snitch")
 endfunction()
 
 function(wtr_add_autosan_bin_target NAME SRC_SET)
-  wtr_add_rel_bin_target("${NAME}" "${SRC_SET}" "" "")
+  wtr_add_rel_bin_target("${NAME}" "${SRC_SET}")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
       wtr_add_bin_target(
@@ -283,29 +311,21 @@ function(wtr_add_autosan_bin_target NAME SRC_SET)
 endfunction()
 
 function(wtr_add_autosan_test_bin_target NAME SRC_SET)
-  wtr_add_test_bin_target("${NAME}" "${SRC_SET}" "" "")
+  wtr_add_test_bin_target("${NAME}" "${SRC_SET}")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_bin_target(
-        "${NAME}.${SAN}"
-        "test-bin"
-        "ON" # is test
-        "${SRC_SET}"
-        "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-        "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-        "${INCLUDE_PATH_DEVEL}"
-        "${LINK_LIBRARIES};snitch::snitch")
+      wtr_add_san_test_bin_target("${NAME}" "${SRC_SET}" "${SAN}")
     endif()
   endforeach()
 endfunction()
 
 function(wtr_add_autosan_bench_bin_target NAME SRC_SET)
-  wtr_add_bench_bin_target("${NAME}" "${SRC_SET}" "" "")
+  wtr_add_bench_bin_target("${NAME}" "${SRC_SET}")
   foreach(SAN ${SAN_NAMES})
     if(WTR_WATCHER_ALLOWED_${SAN})
       wtr_add_bin_target(
         "${NAME}.${SAN}"
-        "test-bin"
+        "bench-bin"
         "ON"  # is test
         "${SRC_SET}"
         "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
@@ -327,19 +347,13 @@ wtr_add_hdr_target(
 
 wtr_add_autosan_bin_target(
   "wtr.watcher"
-  "${WTR_WATCHER_SOURCE_SET}"
-  "${COMPILE_OPTIONS}"
-  "${LINK_OPTIONS}")
+  "${WTR_WATCHER_SOURCE_SET}")
 
 wtr_add_autosan_test_bin_target(
   "wtr.test_watcher"
-  "${WTR_TEST_WATCHER_SOURCE_SET}"
-  "${COMPILE_OPTIONS}"
-  "${LINK_OPTIONS}")
+  "${WTR_TEST_WATCHER_SOURCE_SET}")
 
 wtr_add_bench_bin_target(
   "wtr.bench_watcher"
-  "${WTR_BENCH_WATCHER_SOURCE_SET}"
-  "${COMPILE_OPTIONS}"
-  "${LINK_OPTIONS}")
+  "${WTR_BENCH_WATCHER_SOURCE_SET}")
 

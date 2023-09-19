@@ -20,23 +20,6 @@
         let
           pkgs = import nixpkgs { inherit system; };
 
-          watcher_targets = {
-            cli = "wtr.watcher";
-            hdr = "wtr.hdr_watcher";
-            test = "wtr.test_watcher";
-            bench = "wtr.bench_watcher";
-          };
-          watcher_components = {
-            bin = "bin";
-            include = "include";
-          };
-          watcher_buildcfgs = {
-            rel = "Release";
-            deb = "Debug";
-            rwd = "RelWithDebInfo";
-            msr = "MinSizeRel";
-          };
-
           build_deps = [ pkgs.clang pkgs.cmake ];
           # If on Darwin, we need this to use FSEvents, dispatch, etc.
           maybe_sys_deps = pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.darwin.apple_sdk.frameworks.CoreServices ];
@@ -52,52 +35,83 @@
 
           mkWatcherDerivation =
             { src
+            , pname
             , buildcfg
             , targets
             , components
+            # TODO Just make this a regular cmake target
+            , installBashScriptName ? ""
+            , installBashScript ? ""
             }: pkgs.stdenv.mkDerivation {
-              inherit src buildcfg targets components;
-              pname = "wtr.watcher";
+              inherit src pname buildcfg targets components;
               version = "0.9.2"; # hook: tool/release
               nativeBuildInputs = build_deps ++ maybe_sys_deps ++ [ snitch ];
               env.WTR_WATCHER_USE_SYSTEM_SNITCH = 1;
-              buildPhase = ''for target in $targets; do cmake --build . --target "$target" --config "$buildcfg"; done'';
-              installPhase = ''for component in $components; do cmake --install . --prefix "$out" --config "$buildcfg" --component "$component"; done'';
+              buildPhase = ''
+                for target in $targets
+                do cmake --build . --target "$target" --config "$buildcfg" &
+                done
+                wait
+              '';
+              installPhase = ''
+                for component in $components
+                do cmake --install . --prefix "$out" --config "$buildcfg" --component "$component"
+                done
+                if [ -n "${installBashScript}" ]
+                then
+                  echo "${installBashScript}" | tee -a "$out/bin/${installBashScriptName}"
+                  chmod +x "$out/bin/${installBashScriptName}"
+                fi
+              '';
             };
 
           watcher = mkWatcherDerivation {
-            src = self;
-            buildcfg = watcher_buildcfgs.rel;
-            targets = [ watcher_targets.cli watcher_targets.hdr ];
-            components = [ watcher_components.bin watcher_components.include ];
+            src        = self;
+            pname      = "wtr.watcher";
+            buildcfg   = "Release";
+            targets    = [ "wtr.watcher" "wtr.hdr_watcher" ];
+            components = [ "bin" "include" ];
           };
-
           watcher-cli = mkWatcherDerivation {
-            src = self;
-            buildcfg = watcher_buildcfgs.rel;
-            targets = [ watcher_targets.cli ];
-            components = [ watcher_components.bin ];
+            src        = self;
+            pname      = "wtr.watcher";
+            buildcfg   = "Release";
+            targets    = [ "wtr.watcher" ];
+            components = [ "bin" ];
           };
-
           watcher-hdr = mkWatcherDerivation {
-            src = self;
-            buildcfg = watcher_buildcfgs.rel;
-            targets = [ watcher_targets.hdr ];
-            components = [ watcher_components.include ];
+            src        = self;
+            pname      = "exit";
+            buildcfg   = "Release";
+            targets    = [ "wtr.hdr_watcher" ];
+            components = [ "include" ];
           };
-
           watcher-test = mkWatcherDerivation {
-            src = self;
-            buildcfg = watcher_buildcfgs.deb;
-            targets = [ watcher_targets.test ];
-            components = [ watcher_components.bin ];
+            src        = self;
+            pname      = "wtr.test_watcher.allsan";
+            buildcfg   = "Debug";
+            targets    = [ "wtr.test_watcher" "wtr.test_watcher.asan" "wtr.test_watcher.msan" "wtr.test_watcher.tsan" "wtr.test_watcher.ubsan" ];
+            components = [ "test-bin" ];
+            installBashScriptName = "wtr.test_watcher.allsan";
+            installBashScript = ''
+              #!/usr/bin/env bash
+              PATH="$PATH:$out/bin"
+              mkdir -p /tmp/watcher-test
+              cd /tmp/watcher-test
+              if command -v wtr.test_watcher      ; then wtr.test_watcher      ; fi
+              if command -v wtr.test_watcher.asan ; then wtr.test_watcher.asan ; fi
+              if command -v wtr.test_watcher.msan ; then wtr.test_watcher.msan ; fi
+              if command -v wtr.test_watcher.tsan ; then wtr.test_watcher.tsan ; fi
+              if command -v wtr.test_watcher.ubsan; then wtr.test_watcher.ubsan; fi
+              rm -rf /tmp/watcher-test
+            '';
           };
-
           watcher-bench = mkWatcherDerivation {
-            src = self;
-            buildcfg = watcher_buildcfgs.rel;
-            targets = [ watcher_targets.bench ];
-            components = [ watcher_components.bin ];
+            src        = self;
+            pname      = "wtr.bench_watcher";
+            buildcfg   = "Release";
+            targets    = [ "wtr.bench_watcher" ];
+            components = [ "bin" ];
           };
 
           # Bring watcher's tree and all of its dependencies in via inputsFrom,
@@ -108,7 +122,8 @@
           };
 
         in {
-          defaultApp = flake-utils.lib.mkApp { drv = watcher; };
+          packages = { inherit watcher watcher-cli watcher-hdr watcher-test watcher-bench; };
+          defaultApp = flake-utils.lib.mkApp { drv = watcher-cli; };
           defaultPackage = watcher;
           devShell = watcher-devshell;
         }
