@@ -1,6 +1,12 @@
 # Changelog
 
+## 0.9.4
+
+Updated changelog for `0.9.3`.
+
 ## 0.9.3
+
+Made `flake.nix` work more correctly and gave components CMake more granularity.
 
 Removed stray and unused `#include <bit>`.
 
