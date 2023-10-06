@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5
+
+Fixed an error on windows which asked us to stop checking buffers for null (so we did).
+
+Temporarily disabled the Ubuntu 20.04 runner because it cannot find the generated Makefile.
+
 ## 0.9.4
 
 Set up an older Ubuntu runner, 20.04, alongside the latest, for CI.
