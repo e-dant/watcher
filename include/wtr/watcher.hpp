@@ -2,7 +2,6 @@
 #define W973564ED9F278A21F3E12037288412FBAF175F889
 
 #include <array>
-#include <bit>
 #include <cassert>
 #include <charconv>
 #include <chrono>
