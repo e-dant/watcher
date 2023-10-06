@@ -80,7 +80,7 @@ public:
 
 inline auto is_valid(watch_event_proxy& w) noexcept -> bool
 {
-  return w.is_valid && w.event_buf != nullptr;
+  return w.is_valid;
 }
 
 inline auto has_event(watch_event_proxy& w) noexcept -> bool
@@ -111,7 +111,7 @@ inline auto do_event_recv(
     &w.event_overlap,
     nullptr);
 
-  if (w.event_buf && read_ok) {
+  if (read_ok) {
     w.event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
     return true;
   }
