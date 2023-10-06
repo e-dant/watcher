@@ -2,9 +2,13 @@
 
 ## 0.9.4
 
+Set up an older Ubuntu runner, 20.04, alongside the latest, for CI.
+
 Updated changelog for `0.9.3`.
 
 ## 0.9.3
+
+Defaulted CMake use C++17 for this project.
 
 Made `flake.nix` work more correctly and gave components CMake more granularity.
 
