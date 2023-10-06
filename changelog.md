@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3
+
+Removed stray and unused `#include <bit>`.
+
 ## 0.9.2
 
 Removed stray Makefile.
