@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6
+
+Replaced a constant delay with a timeout in the "simple" test.
+
+Updated the flake lockfile.
+
 ## 0.9.5
 
 Fixed an error on windows which asked us to stop checking buffers for null (so we did).
