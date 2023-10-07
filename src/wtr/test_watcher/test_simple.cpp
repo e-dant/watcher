@@ -33,8 +33,8 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   REQUIRE(fs::exists(store_path));
 
   /*  This sleep is hiding a bug on darwin which picks
-      up events slightly before we start watching. I'm
-      ok with that bit of wiggle-room. */
+      up events slightly *before* we start watching.
+      I'm ok with that bit of wiggle-room. */
   std::this_thread::sleep_for(10ms);
 
   event_sent_list.push_back(
@@ -81,7 +81,12 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   }
 
   /*  And give the watchers some room to await the events */
-  std::this_thread::sleep_for(16ms);
+  for (int i = 0;; i++) {
+    std::this_thread::sleep_for(10ms);
+    auto _ = std::scoped_lock<std::mutex>{event_recv_list_mtx};
+    if (event_recv_list.size() == event_sent_list.size()) break;
+    if (i > 1000) REQUIRE(! "Timeout: Waited more than one second for results");
+  }
 
   event_sent_list.push_back(
     {std::string("s/self/die@").append(store_path.string()),
