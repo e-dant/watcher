@@ -6,6 +6,10 @@ Replaced a constant delay with a timeout in the "simple" test.
 
 Updated the flake lockfile.
 
+The `watch` constructor makes the given `path` absolute or, if
+the path cannot be made absolute (likely because it doesn't exist),
+then the watcher refuses to watch.
+
 ## 0.9.5
 
 Fixed an error on windows which asked us to stop checking buffers for null (so we did).
