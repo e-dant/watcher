@@ -370,15 +370,21 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
 
   namespace fs = std::filesystem;
 
-  auto cstr = CFStringGetCStringPtr(
-    static_cast<CFStringRef>(CFDictionaryGetValue(
-      static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(
+  if (event_recv_paths)
+    if (
+      void const* from_arr = CFArrayGetValueAtIndex(
         static_cast<CFArrayRef>(event_recv_paths),
-        static_cast<CFIndex>(i))),
-      kFSEventStreamEventExtendedDataPathKey)),
-    kCFStringEncodingUTF8);
-
-  return cstr ? fs::path{cstr} : fs::path{};
+        static_cast<CFIndex>(i)))
+      if (
+        void const* from_dict = CFDictionaryGetValue(
+          static_cast<CFDictionaryRef>(from_arr),
+          kFSEventStreamEventExtendedDataPathKey))
+        if (
+          char const* as_cstr = CFStringGetCStringPtr(
+            static_cast<CFStringRef>(from_dict),
+            kCFStringEncodingUTF8))
+          return fs::path{as_cstr};
+  return fs::path{};
 }
 
 /*  Sometimes events are batched together and re-sent
@@ -468,7 +474,7 @@ static_assert(FSEventStreamCallback{event_recv} == event_recv);
 inline auto open_event_stream(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback) noexcept
-  -> std::shared_ptr<sysres_type>
+  -> std::tuple<std::shared_ptr<sysres_type>, bool>
 {
   using namespace std::chrono_literals;
   using std::chrono::duration_cast, std::chrono::seconds;
@@ -479,18 +485,19 @@ inline auto open_event_stream(
   auto context = FSEventStreamContext{
     /*  FSEvents.h:
         "Currently the only valid value is zero." */
-    0,
+    .version = 0,
     /*  The "actual" context; our "argument pointer".
         This must be alive until we clear the event stream. */
-    static_cast<void*>(&sysres->argptr),
+    .info = static_cast<void*>(&sysres->argptr),
     /*  An optional "retention" callback. We don't need this
         because we manage `argptr`'s lifetime ourselves. */
-    nullptr,
+    .retain = nullptr,
     /*  An optional "release" callback, not needed for the same
         reasons as the retention callback. */
-    nullptr,
+    .release = nullptr,
     /*  An optional string for debugging purposes. */
-    nullptr};
+    .copyDescription = nullptr,
+  };
 
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
@@ -520,40 +527,46 @@ inline auto open_event_stream(
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
-  FSEventStreamRef stream = FSEventStreamCreate(
-    /*  A custom allocator is optional */
-    nullptr,
-    /*  A callable to invoke on changes */
-    &event_recv,
-    /*  The callable's arguments (context) */
-    &context,
-    /*  The path(s) we were asked to watch */
-    path_array,
-    /*  The time "since when" we receive events */
-    kFSEventStreamEventIdSinceNow,
-    /*  The time between scans *after inactivity* */
-    duration_cast<seconds>(16ms).count(),
-    /*  The event stream flags */
-    event_stream_flags);
+  if (
+    FSEventStreamRef stream = FSEventStreamCreate(
+      /*  A custom allocator is optional */
+      nullptr,
+      /*  A callable to invoke on changes */
+      &event_recv,
+      /*  The callable's arguments (context) */
+      &context,
+      /*  The path(s) we were asked to watch */
+      path_array,
+      /*  The time "since when" we receive events */
+      kFSEventStreamEventIdSinceNow,
+      /*  The time between scans *after inactivity* */
+      duration_cast<seconds>(16ms).count(),
+      /*  The event stream flags */
+      event_stream_flags)) {
+    FSEventStreamSetDispatchQueue(
+      stream,
+      /*  We don't need to retain, maintain or release this
+          dispatch queue. It's a global system queue, and it
+          outlives us. */
+      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 
-  FSEventStreamSetDispatchQueue(
-    stream,
-    /*  We don't need to retain, maintain or release this
-        dispatch queue. It's a global system queue, and it
-        outlives us. */
-    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+    FSEventStreamStart(stream);
 
-  FSEventStreamStart(stream);
+    sysres->stream = stream;
 
-  sysres->stream = stream;
-
-  return sysres;
+    return {sysres, true};
+  }
+  else {
+    return {{}, false};
+  }
 }
 
 inline auto
 close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
 {
   if (sysres->stream) {
+    /*  We want to handle any outstanding events before closing. */
+    FSEventStreamFlushSync(sysres->stream);
     /*  `FSEventStreamInvalidate()` only needs to be called
         if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
         That scheduling function is deprecated (as of macOS 13).
@@ -564,7 +577,7 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
         and produces a warning. I'm not sure what the right call
         to make here is. */
     FSEventStreamStop(sysres->stream);
-    /*  ?? FSEventStreamInvalidate(sysres->stream); */
+    FSEventStreamInvalidate(sysres->stream);
     FSEventStreamRelease(sysres->stream);
     sysres->stream = nullptr;
     return true;
@@ -588,9 +601,8 @@ inline auto watch(
   ::wtr::watcher::event::callback const& callback,
   std::atomic<bool>& is_living) noexcept -> bool
 {
-  auto&& sysres = open_event_stream(path, callback);
-  block_while(is_living);
-  return close_event_stream(std::move(sysres));
+  auto&& [sysres, ok] = open_event_stream(path, callback);
+  return ok ? (block_while(is_living), close_event_stream(sysres)) : false;
 }
 
 } /*  namespace adapter */
