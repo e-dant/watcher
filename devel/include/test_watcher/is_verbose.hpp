@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <stdlib.h>  // _dupenv_s
 #endif
 
@@ -11,7 +11,7 @@ namespace test_watcher {
 
 inline auto is_verbose() -> bool
 {
-#ifndef WIN32
+#ifndef _WIN32
   return std::getenv("VERBOSE") != nullptr;
 #else
   // WTF, Windows?

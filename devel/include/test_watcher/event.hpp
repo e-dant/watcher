@@ -48,7 +48,7 @@ struct std::hash<wtr::watcher::event_without_time> {
     -> std::size_t
   {
     return std::hash<decltype(ev.path_name.string())>{}(ev.path_name.string())
-#ifdef WIN32
+#ifdef _WIN32
          ^ std::hash<int>{}((int)ev.path_type)
          ^ std::hash<int>{}((int)ev.effect_type);
 #else

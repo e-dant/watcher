@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(WIN32)
+#if defined(_WIN32)
 
 #include "wtr/watcher.hpp"
 #include <atomic>

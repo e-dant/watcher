@@ -54,7 +54,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
     base_store_path,
     [&](event const& ev)
     {
-#ifdef WIN32
+#ifdef _WIN32
       // Windows counts all events in a directory as *also*
       // `modify` events *on* the directory. So, we ignore
       // those for consistency with the other tests.

@@ -46,7 +46,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
     store_path,
     [&event_recv_list_mtx, &event_recv_list](event const& ev)
     {
-#ifdef WIN32
+#ifdef _WIN32
       /*  Windows counts all events in a directory as *also*
           `modify` events *on* the directory. So, we ignore
           those for consistency with the other tests. */

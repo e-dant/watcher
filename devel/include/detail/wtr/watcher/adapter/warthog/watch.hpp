@@ -7,7 +7,7 @@
       - Only support the C++ standard library */
 
 #if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
-  && ! defined(WIN32)
+  && ! defined(_WIN32)
 
 #include "wtr/watcher.hpp"
 #include <chrono>

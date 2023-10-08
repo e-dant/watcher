@@ -69,7 +69,7 @@ auto watch_gather(
 
         auto cb = [&](wtr::event const& ev)
         {
-#ifdef WIN32
+#ifdef _WIN32
           /*  Windows counts all events in a directory as *also*
               `modify` events *on* the directory. So, we ignore
               those for consistency with the other tests. */
