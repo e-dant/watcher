@@ -2137,9 +2137,7 @@ inline auto watch(
 
 #include <atomic>
 #include <filesystem>
-#include <functional>
 #include <future>
-#include <memory>
 
 namespace wtr {
 inline namespace watcher {
@@ -2185,44 +2183,43 @@ inline namespace watcher {
     Happy hacking. */
 class watch {
 private:
-  std::filesystem::path const path{};
-  event::callback const callback{};
-  std::atomic<bool> is_open{true};
-  std::future<bool> watching{std::async(
-    std::launch::async,
-    [this]
-    {
-      this->callback(
-        {"s/self/live@" + this->path.string(),
-         event::effect_type::create,
-         event::path_type::watcher});
-      return ::detail::wtr::watcher::adapter::watch(
-        this->path,
-        this->callback,
-        this->is_open);
-    })};
+  std::atomic<bool> is_living{true};
+  std::future<bool> watching{};
 
 public:
   inline watch(
     std::filesystem::path const& path,
     event::callback const& callback) noexcept
-      : path{path}
-      , callback{callback}
+      : watching{std::async(
+        std::launch::async,
+        [=, this]
+        {
+          auto abs_path_ec = std::error_code{};
+          auto abs_path = std::filesystem::absolute(path, abs_path_ec);
+          callback(
+            {(abs_path_ec ? "e/self/live@" : "s/self/live@")
+               + abs_path.string(),
+             ::wtr::watcher::event::effect_type::create,
+             ::wtr::watcher::event::path_type::watcher});
+          auto watched_and_died_ok = abs_path_ec
+                                     ? false
+                                     : ::detail::wtr::watcher::adapter::watch(
+                                       abs_path,
+                                       callback,
+                                       this->is_living);
+          callback(
+            {(watched_and_died_ok ? "s/self/die@" : "e/self/die@")
+               + abs_path.string(),
+             ::wtr::watcher::event::effect_type::destroy,
+             ::wtr::watcher::event::path_type::watcher});
+          return watched_and_died_ok;
+        })}
   {}
 
   inline auto close() noexcept -> bool
   {
-    if (this->is_open) {
-      this->is_open = false;
-      auto ok = this->watching.get();
-      this->callback(
-        {(ok ? "s/self/die@" : "e/self/die@") + this->path.string(),
-         event::effect_type::destroy,
-         event::path_type::watcher});
-      return ok;
-    }
-    else
-      return false;
+    this->is_living = false;
+    return this->watching.valid() && this->watching.get();
   };
 
   inline ~watch() noexcept { this->close(); }
