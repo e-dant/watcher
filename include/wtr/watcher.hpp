@@ -1647,7 +1647,7 @@ inline auto watch(
 
 #endif
 
-#if defined(_WIN32)
+#if defined(WIN32)
 
 #include <atomic>
 #include <chrono>
@@ -1899,7 +1899,7 @@ inline auto watch(
       - Only support the C++ standard library */
 
 #if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
-  && ! defined(_WIN32)
+  && ! defined(WIN32)
 
 #include <chrono>
 #include <filesystem>
