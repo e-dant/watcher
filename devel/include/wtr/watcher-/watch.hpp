@@ -58,7 +58,7 @@ public:
     event::callback const& callback) noexcept
       : watching{std::async(
         std::launch::async,
-        [=, this]
+        [this, path, callback]
         {
           auto abs_path_ec = std::error_code{};
           auto abs_path = std::filesystem::absolute(path, abs_path_ec);
