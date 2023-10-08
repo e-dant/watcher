@@ -3,6 +3,7 @@
 #include "snitch/snitch.hpp"
 #include "test_watcher/constant.hpp"
 #include "test_watcher/event.hpp"
+#include "test_watcher/is_verbose.hpp"
 #include "wtr/watcher.hpp"
 #include <cassert>
 #include <chrono>
@@ -22,13 +23,13 @@ namespace test_watcher {
 auto watch_gather(
   auto const& title = "test",
   auto const& store_path = test_store_path / "tmp_store",
-  int const path_count = 10,
-  int const concurrency_level = 1)
+  int path_count = 10,
+  int concurrency_level = 1)
 {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;
 
-  static auto env_verbose = std::getenv("VERBOSE") != nullptr;
+  auto verbose = is_verbose();
 
   auto event_recv_list = std::vector<wtr::event>{};
   auto event_recv_list_mtx = std::mutex{};
@@ -78,7 +79,7 @@ auto watch_gather(
             return;
 #endif
           auto _ = std::scoped_lock{event_recv_list_mtx};
-          if (env_verbose) std::cout << ev << std::endl;
+          if (verbose) std::cout << ev << std::endl;
           for (auto const& p : watch_path_list)
             if (ev.path_name == p) return;
           event_recv_list.emplace_back(ev);

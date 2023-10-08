@@ -20,7 +20,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
 
   static constexpr auto path_count = 3;
   static constexpr auto title = "Simple";
-  static auto env_verbose = std::getenv("VERBOSE") != nullptr;
+  static auto verbose = is_verbose();
   auto const store_path = test_store_path / "simple_store";
   auto event_recv_list = std::vector<event>{};
   auto event_recv_list_mtx = std::mutex{};
@@ -56,7 +56,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
         return;
 #endif
       auto _ = std::scoped_lock{event_recv_list_mtx};
-      if (env_verbose) std::cout << ev << std::endl;
+      if (verbose) std::cout << ev << std::endl;
       event_recv_list.push_back(ev);
     });
 
@@ -100,7 +100,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   REQUIRE(fs::remove_all(test_store_path) > 0u);
   REQUIRE(fs::exists(test_store_path) == false);
 
-  if (env_verbose) {
+  if (verbose) {
     std::cout << "event_sent_list:" << std::endl;
     for (auto const& ev : event_sent_list) std::cout << ev << std::endl;
   }

@@ -21,7 +21,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   static constexpr auto path_count = 10;
   static constexpr auto title = "New Directories";
-  static auto env_verbose = std::getenv("VERBOSE") != nullptr;
+  static auto verbose = is_verbose();
   auto const base_store_path = test_store_path;
   auto const store_path_first = base_store_path / "new_directories_first_store";
   auto const store_path_second =
@@ -64,7 +64,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
         return;
 #endif
       auto _ = std::scoped_lock{event_recv_list_mtx};
-      if (env_verbose) std::cout << ev << std::endl;
+      if (verbose) std::cout << ev << std::endl;
       event_recv_list.push_back(ev);
     });
 
