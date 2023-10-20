@@ -87,13 +87,8 @@ auto from_cmdline(int const argc, char const** const argv)
   auto given_or_current_path = [](int const argc, char const** const argv)
   {
     namespace fs = std::filesystem;
-
-    return fs::canonical(
-      [&]
-      {
-        auto p = fs::path(argc > 1 ? argv[1] : ".");
-        return fs::exists(p) ? p : fs::current_path();
-      }());
+    auto p = fs::path(argc > 1 ? argv[1] : ".");
+    return fs::exists(p) ? p : fs::current_path();
   };
 
   /*  Show what happens.
