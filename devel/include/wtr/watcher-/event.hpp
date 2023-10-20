@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cassert>
 #include <charconv>
 #include <chrono>
 #include <filesystem>
@@ -96,6 +95,8 @@ public:
                                 TimePoint{Clock::now()}.time_since_epoch())
                                 .count()};
 
+  event const* const associated{nullptr};
+
   inline event(
     std::filesystem::path const& path_name,
     enum effect_type const& effect_type,
@@ -103,6 +104,12 @@ public:
       : path_name{path_name}
       , effect_type{effect_type}
       , path_type{path_type} {};
+
+  inline event(event const& base, event&& associated) noexcept
+      : path_name{base.path_name}
+      , effect_type{base.effect_type}
+      , path_type{base.path_type}
+      , associated{&associated} {};
 
   inline ~event() noexcept = default;
 
@@ -113,7 +120,9 @@ public:
   operator==(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
   {
     return l.path_name == r.path_name && l.effect_time == r.effect_time
-        && l.path_type == r.path_type && l.effect_type == r.effect_type;
+        && l.path_type == r.path_type && l.effect_type == r.effect_type
+        && (l.associated && r.associated ? *l.associated == *r.associated
+                                         : ! l.associated && ! r.associated);
   }
 
   inline friend auto
@@ -151,16 +160,31 @@ namespace {
     default                                 : return Lit"other"; \
   }
 
-#define wtr_event_to_str_cls_as_json(Char, from, Lit) \
-  using Cls = std::basic_string<Char>; \
-  auto&& effect_time = Lit"\"" + to<Cls>(from.effect_time) + Lit"\""; \
-  auto&& effect_type = Lit"\"" + to<Cls>(from.effect_type) + Lit"\""; \
-  auto&& path_name =   Lit"\"" + to<Cls>(from.path_name)   + Lit"\""; \
-  auto&& path_type =   Lit"\"" + to<Cls>(from.path_type)   + Lit"\""; \
-  return {                         effect_time + Lit":{" \
-         + Lit"\"effect_type\":" + effect_type + Lit","  \
-         + Lit"\"path_name\":"   + path_name   + Lit","  \
-         + Lit"\"path_type\":"   + path_type   + Lit"}"  \
+#define wtr_event_to_str_cls_as_json(Char, from, Lit)                         \
+  using Cls = std::basic_string<Char>;                                        \
+  auto&& etm = Lit"\"" + to<Cls>(from.effect_time) + Lit"\"";                 \
+  auto&& ety = Lit"\"" + to<Cls>(from.effect_type) + Lit"\"";                 \
+  auto&& pnm = Lit"\"" + to<Cls>(from.path_name)   + Lit"\"";                 \
+  auto&& pty = Lit"\"" + to<Cls>(from.path_type)   + Lit"\"";                 \
+  return {                         etm + Lit":{"                              \
+         + Lit"\"effect_type\":" + ety + Lit","                               \
+         + Lit"\"path_name\":"   + pnm + Lit","                               \
+         + Lit"\"path_type\":"   + pty                                        \
+         + [&]() -> Cls {                                                     \
+              if (! from.associated) return Cls{};                            \
+              auto f = *from.associated;                                      \
+              auto&& ttl = Cls{Lit",\"associated\""};                         \
+              auto&& ety = Lit"\"" + to<Cls>(from.effect_type) + Lit"\"";     \
+              auto&& pnm = Lit"\"" + to<Cls>(from.path_name)   + Lit"\"";     \
+              auto&& pty = Lit"\"" + to<Cls>(from.path_type)   + Lit"\"";     \
+              return { ttl                                                    \
+                     + Lit":{"                                                \
+                     + Lit"\"effect_type\":" + ety + Lit","                   \
+                     + Lit"\"path_name\":"   + pnm + Lit","                   \
+                     + Lit"\"path_type\":"   + pty + Lit"}"                   \
+                     };                                                       \
+           }()                                                                \
+         + Lit"}"                                                             \
          };
 
 /*  For types larger than char and/or char8_t, we can just cast

@@ -5,6 +5,7 @@
 #include "wtr/watcher.hpp"
 #include <atomic>
 #include <chrono>
+#include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 #include <cstdio>
 #include <filesystem>
@@ -13,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <unistd.h>
 #include <unordered_set>
 #include <vector>
 
@@ -23,9 +25,11 @@ namespace adapter {
 namespace {
 
 struct argptr_type {
+  /*  `fs::path` has no hash function, so we use this. */
   using pathset = std::unordered_set<std::string>;
   ::wtr::watcher::event::callback const callback{};
   std::shared_ptr<pathset> seen_created_paths{new pathset{}};
+  std::filesystem::path last_rename_from_path{};
 };
 
 struct sysres_type {
@@ -45,8 +49,23 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
       or can be null, but I'm skeptical. We ask Darwin
       for utf8 strings from a dictionary of utf8 strings
       which it gave us. Nothing should be able to be null.
-      We'll check anyway, just in case Darwin lies. */
+      We'll check anyway, just in case Darwin lies.
 
+      The dictionary contains looks like this:
+        { "path": String
+        , "fileID": Number
+        }
+      We can only call `CFStringGetCStringPtr()`
+      on the `path` field. Not sure what function
+      the `fileID` requires, or if it's different
+      from what we'd get from `stat()`. (Is it an
+      inode number?) Anyway, we seem to get this:
+        -[__NSCFNumber length]: unrecognized ...
+      Whenever we try to inspect it with Int or
+      CStringPtr functions for CFStringGet...().
+      The docs don't say much about these fields.
+      I don't think they mention fileID at all.
+  */
   namespace fs = std::filesystem;
 
   if (event_recv_paths)
@@ -66,6 +85,122 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
   return fs::path{};
 }
 
+inline auto event_recv_one(
+  argptr_type& ctx,
+  std::filesystem::path const& path,
+  unsigned flags)
+{
+  namespace fs = std::filesystem;
+
+  using path_type = enum ::wtr::watcher::event::path_type;
+  using effect_type = enum ::wtr::watcher::event::effect_type;
+
+  static constexpr unsigned fsev_flag_path_file =
+    kFSEventStreamEventFlagItemIsFile;
+  static constexpr unsigned fsev_flag_path_dir =
+    kFSEventStreamEventFlagItemIsDir;
+  static constexpr unsigned fsev_flag_path_sym_link =
+    kFSEventStreamEventFlagItemIsSymlink;
+  static constexpr unsigned fsev_flag_path_hard_link =
+    kFSEventStreamEventFlagItemIsHardlink
+    | kFSEventStreamEventFlagItemIsLastHardlink;
+
+  static constexpr unsigned fsev_flag_effect_create =
+    kFSEventStreamEventFlagItemCreated;
+  static constexpr unsigned fsev_flag_effect_remove =
+    kFSEventStreamEventFlagItemRemoved;
+  static constexpr unsigned fsev_flag_effect_modify =
+    kFSEventStreamEventFlagItemModified
+    | kFSEventStreamEventFlagItemInodeMetaMod
+    | kFSEventStreamEventFlagItemFinderInfoMod
+    | kFSEventStreamEventFlagItemChangeOwner
+    | kFSEventStreamEventFlagItemXattrMod;
+  static constexpr unsigned fsev_flag_effect_rename =
+    kFSEventStreamEventFlagItemRenamed;
+
+  static constexpr unsigned fsev_flag_effect_any =
+    fsev_flag_effect_create | fsev_flag_effect_remove | fsev_flag_effect_modify
+    | fsev_flag_effect_rename;
+
+  auto [callback, sc_paths, lrf_path] = ctx;
+
+  auto path_str = path.string();
+
+  /*  A single path won't have different "types". */
+  auto pt = flags & fsev_flag_path_file      ? path_type::file
+          : flags & fsev_flag_path_dir       ? path_type::dir
+          : flags & fsev_flag_path_sym_link  ? path_type::sym_link
+          : flags & fsev_flag_path_hard_link ? path_type::hard_link
+                                             : path_type::other;
+
+  /*  We want to report odd events (even with an empty path)
+      but we can bail early if we don't recognize the effect
+      because everything else we do depends on that. */
+  if (! (flags & fsev_flag_effect_any)) {
+    callback({path, effect_type::other, pt});
+    return;
+  }
+
+  /*  More than one effect might have happened to the
+      same path. (Which is why we use non-exclusive `if`s.) */
+  if (flags & fsev_flag_effect_create) {
+    auto at = sc_paths->find(path_str);
+    if (at == sc_paths->end()) {
+      sc_paths->emplace(path_str);
+      callback({path, effect_type::create, pt});
+    }
+  }
+  if (flags & fsev_flag_effect_remove) {
+    auto at = sc_paths->find(path_str);
+    if (at != sc_paths->end()) {
+      sc_paths->erase(at);
+      callback({path, effect_type::destroy, pt});
+    }
+  }
+  if (flags & fsev_flag_effect_modify) {
+    callback({path, effect_type::modify, pt});
+  }
+  if (flags & fsev_flag_effect_rename) {
+    /*  Assumes that the last "renamed-from" path
+        if "honestly" correlated to the current
+        "rename-to" path.
+        For non-destructive rename events, we
+        usually receive events in this order:
+          1. A rename event on the "from-path"
+          2. A rename event on the "to-path"
+        As long as that pattern holds, we can
+        store the first path in a set, look it
+        up, test it against the current path
+        for inequality, and check that it no
+        longer exists -- In which case, we can
+        say that we were renamed from that path
+        to the current path.
+        We want to store the last rename-from
+        path in a set on the heap because the
+        rename events might not be batched, and
+        we don't want to trample on some other
+        watcher with a static.
+        This pattern breaks down if there are
+        intervening rename events.
+        For thoughts on recognizing destructive
+        rename events, see this directory's
+        notes (in the `notes.md` file).
+    */
+    auto differs = ! lrf_path.empty() && lrf_path != path;
+    auto missing = access(lrf_path.c_str(), F_OK) == -1;
+    if (differs && missing) {
+      callback({
+        {lrf_path, effect_type::rename, pt},
+        {    path, effect_type::rename, pt}
+      });
+      lrf_path.clear();
+    }
+    else {
+      lrf_path = path;
+    }
+  }
+}
+
 /*  Sometimes events are batched together and re-sent
     (despite having already been sent).
     Example:
@@ -81,65 +216,18 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
     in a batch. We do this by storing and pruning the
     set of paths which we've seen created. */
 inline auto event_recv(
-  ConstFSEventStreamRef,          /*  `ConstFS..` is important */
-  void* argptr,                   /*  Arguments passed to us */
-  unsigned long recv_count,       /*  Event count */
-  void* recv_paths,               /*  Paths with events */
-  unsigned int const* recv_flags, /*  Event flags */
-  FSEventStreamEventId const*     /*  event stream id */
+  ConstFSEventStreamRef,      /*  `ConstFS..` is important */
+  void* ctx,                  /*  Arguments passed to us */
+  unsigned long count,        /*  Event count */
+  void* paths,                /*  Paths with events */
+  unsigned const* flags,      /*  Event flags */
+  FSEventStreamEventId const* /*  event stream id */
   ) noexcept -> void
 {
-  using evk = enum ::wtr::watcher::event::path_type;
-  using evw = enum ::wtr::watcher::event::effect_type;
-
-  static constexpr unsigned any_hard_link =
-    kFSEventStreamEventFlagItemIsHardlink
-    | kFSEventStreamEventFlagItemIsLastHardlink;
-
-  if (argptr && recv_paths) {
-
-    auto [callback, seen_created] = *static_cast<argptr_type*>(argptr);
-
-    for (unsigned long i = 0; i < recv_count; i++) {
-      auto path = path_from_event_at(recv_paths, i);
-
-      if (! path.empty()) {
-        /*  `path` has no hash function, so we use a string. */
-        auto path_str = path.string();
-
-        decltype(*recv_flags) flag = recv_flags[i];
-
-        /*  A single path won't have different "types". */
-        auto k = flag & kFSEventStreamEventFlagItemIsFile    ? evk::file
-               : flag & kFSEventStreamEventFlagItemIsDir     ? evk::dir
-               : flag & kFSEventStreamEventFlagItemIsSymlink ? evk::sym_link
-               : flag & any_hard_link                        ? evk::hard_link
-                                                             : evk::other;
-
-        /*  More than one thing might have happened to the
-            same path. (Which is why we use non-exclusive `if`s.) */
-        if (flag & kFSEventStreamEventFlagItemCreated) {
-          if (seen_created->find(path_str) == seen_created->end()) {
-            seen_created->emplace(path_str);
-            callback({path, evw::create, k});
-          }
-        }
-        if (flag & kFSEventStreamEventFlagItemRemoved) {
-          auto const& seen_created_at = seen_created->find(path_str);
-          if (seen_created_at != seen_created->end()) {
-            seen_created->erase(seen_created_at);
-            callback({path, evw::destroy, k});
-          }
-        }
-        if (flag & kFSEventStreamEventFlagItemModified) {
-          callback({path, evw::modify, k});
-        }
-        if (flag & kFSEventStreamEventFlagItemRenamed) {
-          callback({path, evw::rename, k});
-        }
-      }
-    }
-  }
+  if (! ctx || ! paths || ! flags) return;
+  auto& ap = *static_cast<argptr_type*>(ctx);
+  for (unsigned long i = 0; i < count; i++)
+    event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
 }
 
 /*  Make sure that event_recv has the same type as, or is
@@ -153,7 +241,7 @@ static_assert(FSEventStreamCallback{event_recv} == event_recv);
 inline auto open_event_stream(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback) noexcept
-  -> std::tuple<std::shared_ptr<sysres_type>, bool>
+  -> std::tuple<bool, std::shared_ptr<sysres_type>>
 {
   using namespace std::chrono_literals;
   using std::chrono::duration_cast, std::chrono::seconds;
@@ -193,12 +281,12 @@ inline auto open_event_stream(
 
   /*  If we want less "sleepy" time after a period of time
       without receiving filesystem events, we could OR like:
-      `event_stream_flags | kFSEventStreamCreateFlagNoDefer`.
+      `fsev_flag_listen | kFSEventStreamCreateFlagNoDefer`.
       We're talking about saving a maximum latency of `delay_s`
       after some period of inactivity, which is not likely to
       be noticeable. I'm not sure what Darwin sets the "period
       of inactivity" to, and I'm not sure it matters. */
-  static constexpr unsigned event_stream_flags =
+  static constexpr unsigned fsev_flag_listen =
     kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
     | kFSEventStreamCreateFlagUseCFTypes;
 
@@ -221,7 +309,7 @@ inline auto open_event_stream(
       /*  The time between scans *after inactivity* */
       duration_cast<seconds>(16ms).count(),
       /*  The event stream flags */
-      event_stream_flags)) {
+      fsev_flag_listen)) {
     FSEventStreamSetDispatchQueue(
       stream,
       /*  We don't need to retain, maintain or release this
@@ -233,10 +321,15 @@ inline auto open_event_stream(
 
     sysres->stream = stream;
 
-    return {sysres, true};
+    /*  todo: Do we need to release these?
+        CFRelease(path_cfstring);
+        CFRelease(path_array);
+    */
+
+    return {true, sysres};
   }
   else {
-    return {{}, false};
+    return {false, {}};
   }
 }
 
@@ -280,7 +373,7 @@ inline auto watch(
   ::wtr::watcher::event::callback const& callback,
   std::atomic<bool>& is_living) noexcept -> bool
 {
-  auto&& [sysres, ok] = open_event_stream(path, callback);
+  auto&& [ok, sysres] = open_event_stream(path, callback);
   return ok ? (block_while(is_living), close_event_stream(sysres)) : false;
 }
 

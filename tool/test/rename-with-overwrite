@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+
+lastdir=$PWD
+cd "$(dirname "$0")/../.." || exit 1 ; trap 'cd "$lastdir"' EXIT
+[ ! -d build/tmp ] && mkdir -p build/tmp ; cd build/tmp || exit 1
+nix build
+touch a
+touch b # We will overwrite this during `mv`
+nix run .\#watcher build -L -- -ms 1200 &
+sleep 0.8 # Be sure we didn't pick up a lingering create event
+mv a b
+wait
+rm b
+
