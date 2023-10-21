@@ -1,0 +1,67 @@
+#! /usr/bin/env bash
+# shellcheck disable=SC2064
+# SC2064: Intentional use of early expansion for trap.
+# shellcheck disable=SC2001
+# SC2001: In this case, we can't use variable replacement
+# because the `bash` on Windows doesn't support it and we
+# are replacing special characters anyway.
+# shellcheck disable=SC2317
+# SC2317: Command can be reached.
+
+beganat=$(date --iso=ns)
+builddir=$(realpath "$(dirname "$0")/../../build")
+testdir=$builddir/tst-$beganat
+export testdir
+
+trap "cd '$PWD' ; rm -rf '$testdir' '$testdir.json'" EXIT
+mkdir -p "$testdir" || exit 1
+cd "$testdir" || exit 1
+
+watch-async() {
+  watcher-via-nix() {
+    nix run --quiet .\#watcher -- "$@"
+  }
+
+  watcher=$(
+    relbin=$builddir/out/this/Release/wtr.watcher
+    { [ -x "$relbin" ] && echo "$relbin" ; } \
+    || command -v wtr.watcher \
+    || echo 'watcher-via-nix'
+  )
+
+  "$watcher" "$@" &
+  sleep 0.1
+}
+export -f watch-async
+
+show-output() {
+  d=$1
+  f=$d.json
+
+  {  test -n "$1" \
+  && test -d "$d" \
+  && test -f "$f" \
+  && which jq > /dev/null
+  } || return 1
+
+  sed "s|$d|d|g" "$f" \
+  | jq '.wtr.watcher
+  | (map(to_entries?)[0] | map(.key)) as $ks
+  | map($ks | length)[0] as $l
+  | range($l) as $r
+  | $ks[$r] as $t
+  | .stream[$t]
+  | .effect_time = $t' \
+  | jq --slurp --sort-keys '{events: .}'
+}
+export -f show-output
+
+show-events() {
+  show-output "$@" | jq .events
+}
+export -f show-events
+
+without-effect-time() {
+ sed '/"effect_time":/d'
+}
+export -f without-effect-time
