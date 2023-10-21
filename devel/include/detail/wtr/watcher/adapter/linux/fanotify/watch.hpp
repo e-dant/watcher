@@ -213,39 +213,33 @@ inline auto open_system_resources(
   };
 
   int watch_fd = fanotify_init(fan_init_flags, fan_init_opt_flags);
-  if (watch_fd >= 0) {
-    auto pmc = do_path_map_container_create(watch_fd, path, callback);
-    if (! pmc.empty()) {
-      epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
+  if (watch_fd < 1) return do_error("e/sys/fanotify_init", watch_fd);
 
-      int event_fd = epoll_create1(EPOLL_CLOEXEC);
+  auto pmc = do_path_map_container_create(watch_fd, path, callback);
+  if (pmc.empty()) return do_error("e/sys/fanotify_mark", watch_fd);
 
-      /*  @note We could make the epoll and fanotify file
-          descriptors non-blocking with `fcntl`. It's not
-          clear if we can do this from their `*_init` calls.
+  epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
+  int event_fd = epoll_create1(EPOLL_CLOEXEC);
+  if (event_fd < 1) return do_error("e/sys/epoll_create", watch_fd, event_fd);
 
-          fcntl(watch_fd, F_SETFL, O_NONBLOCK);
-          fcntl(event_fd, F_SETFL, O_NONBLOCK); */
+  /*  @note We could make the epoll and fanotify file
+      descriptors non-blocking with `fcntl`. It's not
+      clear if we can do this from their `*_init` calls
+      or if we need them to be non-blocking with our
+      current (threaded) architecture.
 
-      if (event_fd >= 0)
-        if (epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf) >= 0)
-          return system_resources{
-            .valid = true,
-            .watch_fd = watch_fd,
-            .event_fd = event_fd,
-            .event_conf = event_conf,
-            .mark_set = std::move(pmc),
-          };
-        else
-          return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
-      else
-        return do_error("e/sys/epoll_create", watch_fd, event_fd);
-    }
-    else
-      return do_error("e/sys/fanotify_mark", watch_fd);
-  }
-  else
-    return do_error("e/sys/fanotify_init", watch_fd);
+      fcntl(watch_fd, F_SETFL, O_NONBLOCK);
+      fcntl(event_fd, F_SETFL, O_NONBLOCK); */
+  int ctl_ec = epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf);
+  if (ctl_ec != 0) return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
+
+  return system_resources{
+    .valid = true,
+    .watch_fd = watch_fd,
+    .event_fd = event_fd,
+    .event_conf = event_conf,
+    .mark_set = std::move(pmc),
+  };
 };
 
 inline auto close_system_resources(system_resources&& sr) noexcept -> bool
@@ -253,7 +247,7 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
   return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
 };
 
-/*  "Promotes" an event's metadata to a full path.
+/*  Parses a full path from an event's metadata.
     The shenanigans we do here depend on this event being
     `FAN_EVENT_INFO_TYPE_DFID_NAME`. The kernel passes us
     some info about the directory and the directory entry
@@ -283,120 +277,70 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-// clang-format off
+
 /*  note at the end of file re. clang format */
-inline auto promote(fanotify_event_metadata const* mtd) noexcept
--> std::tuple<
-  bool,
-  std::filesystem::path,
-  enum ::wtr::watcher::event::effect_type,
-  enum ::wtr::watcher::event::path_type>
+inline auto parse_event(fanotify_event_metadata const* mtd) noexcept
+  -> ::wtr::watcher::event
 {
-  namespace fs = std::filesystem;
-  using ev = ::wtr::watcher::event;
+  using e = ::wtr::watcher::event;
+  using pt = enum e::path_type;
+  using et = enum e::effect_type;
 
-  auto path_imbue = [](
-                      char* path_accum,
-                      fanotify_event_info_fid const* dfid_info,
-                      file_handle* dir_fh,
-                      ssize_t dir_name_len = 0) noexcept -> void
+  auto parse_full_path_into =
+    [](char* path_buf, fanotify_event_metadata const* const mtd) noexcept
   {
-    char* name_info = (char*)(dfid_info + 1);
-    char* file_name = static_cast<char*>(
-      name_info + sizeof(file_handle) + sizeof(dir_fh->f_handle)
-      + sizeof(dir_fh->handle_bytes) + sizeof(dir_fh->handle_type));
+    auto dir_info_fid = ((fanotify_event_info_fid const*)(mtd + 1));
+    auto dir_fh = (struct file_handle*)(dir_info_fid->handle);
 
-    if (file_name && std::strcmp(file_name, ".") != 0)
-      std::snprintf(
-        path_accum + dir_name_len,
-        PATH_MAX - dir_name_len,
-        "/%s",
-        file_name);
+    ssize_t file_name_offset = 0;
+
+    /*  Directory name */
+    {
+      int fd =
+        open_by_handle_at(AT_FDCWD, dir_fh, O_RDONLY | O_CLOEXEC | O_PATH);
+      if (fd > 0) {
+        /*  If we have a pid with more than 128 digits... Well... */
+        char fs_proc_path[128];
+        snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
+        file_name_offset =
+          readlink(fs_proc_path, path_buf, PATH_MAX - sizeof(0));
+        close(fd);
+      }
+      path_buf[file_name_offset] = 0;
+      /*  todo: Is is an error if we can't get the directory name? */
+    }
+
+    /*  File name ("Directory entry")
+        If we wrote the directory name before here, we
+        can start writing the file name after its offset. */
+    {
+      if (file_name_offset > 0) {
+        char* file_name = ((char*)dir_fh->f_handle + dir_fh->handle_bytes);
+        auto file_name_is_not_dir = strcmp(file_name, ".") != 0;
+        if (file_name && file_name_is_not_dir) {
+          snprintf(
+            path_buf + file_name_offset,
+            PATH_MAX - file_name_offset,
+            "/%s",
+            file_name);
+        }
+      }
+    }
   };
 
-  auto dir_fid_info = ((fanotify_event_info_fid const*)(mtd + 1));
+  auto effect_type = mtd->mask & FAN_CREATE ? et::create
+                   : mtd->mask & FAN_DELETE ? et::destroy
+                   : mtd->mask & FAN_MODIFY ? et::modify
+                   : mtd->mask & FAN_MOVE   ? et::rename
+                                            : et::other;
 
-  auto dir_fh = (file_handle*)(dir_fid_info->handle);
+  auto path_type = mtd->mask & FAN_ONDIR ? pt::dir : pt::file;
 
-  auto effect_type = mtd->mask & FAN_CREATE ? ev::effect_type::create
-            : mtd->mask & FAN_DELETE ? ev::effect_type::destroy
-            : mtd->mask & FAN_MODIFY ? ev::effect_type::modify
-            : mtd->mask & FAN_MOVE   ? ev::effect_type::rename
-                                     : ev::effect_type::other;
+  char path_name[PATH_MAX];
+  parse_full_path_into(path_name, mtd);
 
-  auto path_type = mtd->mask & FAN_ONDIR ? ev::path_type::dir : ev::path_type::file;
-
-  /*  We can get a path name, so get that and use it */
-  char path_buf[PATH_MAX];
-  int fd = open_by_handle_at(
-    AT_FDCWD,
-    dir_fh,
-    O_RDONLY | O_CLOEXEC | O_PATH | O_NONBLOCK);
-  if (fd > 0){
-    char fs_proc_path[128];
-    std::snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
-    ssize_t dirname_len =
-      readlink(fs_proc_path, path_buf, sizeof(path_buf) - sizeof('\0'));
-    close(fd);
-
-    if (dirname_len > 0){
-      /*  Put the directory name in the path accumulator.
-          Passing `dirname_len` has the effect of putting
-          the event's filename in the path buffer as well. */
-      path_buf[dirname_len] = '\0';
-      path_imbue(path_buf, dir_fid_info, dir_fh, dirname_len);
-
-      return std::make_tuple(true, fs::path{std::move(path_buf)}, effect_type, path_type);}
-
-    else
-      return std::make_tuple(false, fs::path{}, effect_type, path_type);
-  }
-
-  else {
-    path_imbue(path_buf, dir_fid_info, dir_fh);
-
-    return std::make_tuple(true, fs::path{std::move(path_buf)}, effect_type, path_type);
-  }
+  return {path_name, effect_type, path_type};
 };
-
-// clang-format on
-
-inline auto check_and_update(
-  std::tuple<
-    bool,
-    std::filesystem::path,
-    enum ::wtr::watcher::event::effect_type,
-    enum ::wtr::watcher::event::path_type> const& r,
-  system_resources& sr) noexcept
-  -> std::tuple<
-    bool,
-    std::filesystem::path,
-    enum ::wtr::watcher::event::effect_type,
-    enum ::wtr::watcher::event::path_type> {
-    using ev = ::wtr::watcher::event;
-
-    auto [valid, path, effect_type, path_type] = r;
-
-    return std::make_tuple(
-
-      valid
-
-        ? path_type == ev::path_type::dir
-
-          ? effect_type == ev::effect_type::create  ? mark(path, sr)
-          : effect_type == ev::effect_type::destroy ? unmark(path, sr)
-                                                    : true
-
-          : true
-
-        : false,
-
-      path,
-
-      effect_type,
-
-      path_type);
-  };
 
 /*  Send events to the user.
     This is the important part.
@@ -404,16 +348,21 @@ inline auto check_and_update(
     a layer of translation
     between us and the kernel. */
 inline auto send(
-  std::tuple<
-    bool,
-    std::filesystem::path,
-    enum ::wtr::watcher::event::effect_type,
-    enum ::wtr::watcher::event::path_type> const& from_kernel,
+  ::wtr::watcher::event const& ev,
+  system_resources& sr,
   ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
-  auto [ok, path, effect_type, path_type] = from_kernel;
+  using e = ::wtr::watcher::event;
+  using pt = enum e::path_type;
+  using et = enum e::effect_type;
 
-  return ok ? (callback({path, effect_type, path_type}), ok) : ok;
+  auto ok = ev.path_type == pt::dir
+            ? ev.effect_type == et::create  ? mark(ev.path_name, sr)
+            : ev.effect_type == et::destroy ? unmark(ev.path_name, sr)
+                                            : true
+            : true;
+
+  return ok ? (callback(ev), true) : false;
 };
 
 /*  Reads through available (fanotify) filesystem events.
@@ -493,7 +442,7 @@ inline auto recv(
                                                    : event_state::eventful;
         switch (event_state) {
           case event_state::eventful :
-            send(check_and_update(promote(mtd), sr), callback);
+            send(parse_event(mtd), sr, callback);
             break;
           case event_state::e_version : return do_error("e/sys/kernel_version");
           case event_state::e_count : return do_error("e/sys/bad_count");
@@ -575,16 +524,11 @@ inline auto watch(
     return do_error(close, "e/self/sys_resource");
 };
 
-// clang-format off
-/*  returning tuples is confusing clang format */
-
 } /*  namespace fanotify */
 } /*  namespace adapter */
 } /*  namespace watcher */
 } /*  namespace wtr */
 } /*  namespace detail */
-
-// clang-format on
 
 #endif
 #endif
