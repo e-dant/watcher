@@ -1284,15 +1284,15 @@ inline auto watch(
 
 namespace detail::wtr::watcher::adapter::inotify {
 
-/*  - pathmap_type
+/*  - pathmap
         An alias for a map of file descriptors to paths.
-    - sysres_type
+    - sysres
         An object representing an inotify file descriptor,
         an epoll file descriptor, an epoll configuration,
         and whether or not the resources are ok */
-using pathmap_type = std::unordered_map<int, std::filesystem::path>;
+using pathmap = std::unordered_map<int, std::filesystem::path>;
 
-struct sysres_type {
+struct sysres {
   /*  Number of events allowed to be
       given to do_event_recv. The same
       value is usually returned by a
@@ -1359,7 +1359,7 @@ struct sysres_type {
   int in_fd = -1;
   int ep_fd = -1;
   epoll_event ep_interests[ep_q_sz]{};
-  pathmap_type dm{};
+  pathmap dm{};
   alignas(inotify_event) char ev_buf[ev_buf_len]{0};
 };
 
@@ -1380,7 +1380,7 @@ inline auto do_mark =
   [](auto& dm, int dirfd, auto const& dirname) noexcept -> bool
 {
   if (! std::filesystem::is_directory(dirname)) return false;
-  int wd = inotify_add_watch(dirfd, dirname.c_str(), sysres_type::in_ev_mask);
+  int wd = inotify_add_watch(dirfd, dirname.c_str(), sysres::in_ev_mask);
   return wd > 0 ? dm.emplace(wd, dirname).first != dm.end() : false;
 };
 
@@ -1394,7 +1394,7 @@ inline auto do_mark =
 inline auto make_pathmap = [](
                              auto const& base_path,
                              auto const& callback,
-                             int inotify_watch_fd) noexcept -> pathmap_type
+                             int inotify_watch_fd) noexcept -> pathmap
 {
   namespace fs = std::filesystem;
   using dopt = fs::directory_options;
@@ -1402,7 +1402,7 @@ inline auto make_pathmap = [](
   using fs::is_directory;
   constexpr auto fs_dir_opt =
     dopt::skip_permission_denied & dopt::follow_directory_symlink;
-  auto dm = pathmap_type{};
+  auto dm = pathmap{};
   dm.reserve(256);
   auto do_mark = [&](auto d) noexcept
   { return inotify::do_mark(dm, inotify_watch_fd, d); };
@@ -1416,13 +1416,13 @@ inline auto make_pathmap = [](
 };
 
 inline auto make_sysres =
-  [](auto const& base_path, auto const& callback) noexcept -> sysres_type
+  [](auto const& base_path, auto const& callback) noexcept -> sysres
 {
   auto do_error = [&](auto&& msg, int in_fd, int ep_fd = -1)
   {
     return (
       inotify::do_error(std::move(msg), base_path, callback),
-      sysres_type{
+      sysres{
         .ok = false,
         .in_fd = in_fd,
         .ep_fd = ep_fd,
@@ -1446,7 +1446,7 @@ inline auto make_sysres =
   auto want_ev = epoll_event{.events = EPOLLIN, .data{.fd = in_fd}};
   int ctlec = epoll_ctl(ep_fd, EPOLL_CTL_ADD, in_fd, &want_ev);
   if (ctlec < 0) return do_error("e/sys/epoll_ctl@", in_fd, ep_fd);
-  return sysres_type{
+  return sysres{
     .ok = true,
     .in_fd = in_fd,
     .ep_fd = ep_fd,
@@ -1516,7 +1516,7 @@ inline auto close_sysres = [](auto& sr) noexcept -> bool
 inline auto do_event_recv_one = [](
                                   auto const& base_path,
                                   auto const& callback,
-                                  sysres_type& sr,
+                                  sysres& sr,
                                   size_t read_len) noexcept -> bool
 {
   auto do_warn = [&](auto&& msg) noexcept -> bool
@@ -1555,10 +1555,10 @@ inline auto do_event_recv_one = [](
       self_del,
       self_delmov,
       eventful,
-    } event_state = ev_c++ > sysres_type::ev_c_ulim                ? e_lim
+    } event_state = ev_c++ > sysres::ev_c_ulim                     ? e_lim
                   : msk & IN_Q_OVERFLOW                            ? w_lim
                   : d == sr.dm.end()                               ? phantom
-                  : ! (msk & sysres_type::in_ev_mask)              ? impossible
+                  : ! (msk & sysres::in_ev_mask)                   ? impossible
                   : msk & IN_IGNORED                               ? ignore
                   : msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF) ? self_del
                   : msk & IN_DELETE_SELF || msk & IN_MOVE_SELF     ? self_delmov
@@ -1615,10 +1615,8 @@ inline auto do_event_recv_one = [](
     @todo
     Consider running and returning `find_dirs` from here.
     Remove destroyed watches. */
-inline auto do_event_recv = [](
-                              auto const& base_path,
-                              auto const& callback,
-                              sysres_type& sr) noexcept -> bool
+inline auto do_event_recv =
+  [](auto const& base_path, auto const& callback, sysres& sr) noexcept -> bool
 {
   memset(sr.ev_buf, 0, sizeof(sr.ev_buf));
   auto read_len = read(sr.in_fd, sr.ev_buf, sizeof(sr.ev_buf));
@@ -1672,8 +1670,8 @@ inline auto watch(
       int ev_count = epoll_wait(
         sr.ep_fd,
         sr.ep_interests,
-        sysres_type::ep_q_sz,
-        sysres_type::ep_delay_ms);
+        sysres::ep_q_sz,
+        sysres::ep_delay_ms);
       if (ev_count < 0)
         return do_error("e/sys/epoll_wait@");
       else if (ev_count > 0)
