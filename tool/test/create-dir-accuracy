@@ -1,0 +1,190 @@
+#! /usr/bin/env bash
+# shellcheck source=tool/test/.ctx
+
+# Create events for top-level directories
+(
+  read -r -d '' expect << .
+[
+  {
+    "effect_type": "create",
+    "path_name": "s/self/live@d",
+    "path_type": "watcher"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/a",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/b",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/c",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "s/self/die@d",
+    "path_type": "watcher"
+  }
+]
+.
+
+  actual=$(
+    . "$(dirname "$0")/.ctx"
+    watch-async "$testdir" -ms 200 > "$testdir.json"
+    while read -r d
+    do mkdir "$d"
+    done << .
+      a
+      b
+      c
+.
+    wait # for the watcher
+    show-events "$testdir" | without-effect-time
+  )
+
+  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+
+) || exit 1
+
+# Create events, then destroy events for top-level directories
+(
+  read -r -d '' expect << .
+[
+  {
+    "effect_type": "create",
+    "path_name": "s/self/live@d",
+    "path_type": "watcher"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/a",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/b",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/c",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/a",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/b",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/c",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "s/self/die@d",
+    "path_type": "watcher"
+  }
+]
+.
+
+  actual=$(
+    . "$(dirname "$0")/.ctx"
+    watch-async "$testdir" -ms 200 > "$testdir.json"
+    while read -r d
+    do mkdir "$d"
+    done << .
+      a
+      b
+      c
+.
+    while read -r d
+    do rmdir "$d"
+    done << .
+      a
+      b
+      c
+.
+    wait
+    show-events "$testdir" | without-effect-time
+  )
+
+  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+
+) || exit 1
+
+# Create-and-destroy events for top-level directories
+(
+  read -r -d '' expect << .
+[
+  {
+    "effect_type": "create",
+    "path_name": "s/self/live@d",
+    "path_type": "watcher"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/a",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/a",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/b",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/b",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/c",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "d/c",
+    "path_type": "dir"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "s/self/die@d",
+    "path_type": "watcher"
+  }
+]
+.
+
+  actual=$(
+    . "$(dirname "$0")/.ctx"
+    watch-async "$testdir" -ms 200 > "$testdir.json"
+    while read -r d
+    do mkdir "$d"
+       rmdir "$d"
+    done << .
+      a
+      b
+      c
+.
+    wait
+    show-events "$testdir" | without-effect-time
+  )
+
+  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+
+) || exit 1
