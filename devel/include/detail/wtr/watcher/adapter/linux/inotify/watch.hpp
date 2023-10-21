@@ -20,6 +20,7 @@
 #include <tuple>
 #include <unistd.h>
 #include <unordered_map>
+#include <vector>
 
 namespace detail::wtr::watcher::adapter::inotify {
 
