@@ -1574,7 +1574,7 @@ inline auto do_event_recv_one = [](
       case eventful : {
         using pt = enum ::wtr::watcher::event::path_type;
         using et = enum ::wtr::watcher::event::effect_type;
-        auto path_name = d->second / event->name;
+        auto path_name = d->second / (event->name);
         auto path_type = msk & IN_ISDIR ? pt::dir : pt::file;
         auto effect_type = msk & IN_CREATE     ? et::create
                          : msk & IN_DELETE     ? et::destroy
