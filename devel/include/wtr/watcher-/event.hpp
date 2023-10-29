@@ -7,6 +7,7 @@
 #include <functional>
 #include <ios>
 #include <limits>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -61,8 +62,8 @@ private:
   using TimePoint = std::chrono::time_point<Clock>;
 
 public:
-  /*  Ensure the user's callback can recieve events
-      and will return nothing. */
+  /*  Ensure the user's callback can receive
+      events and will return nothing. */
   using callback = std::function<void(event const&)>;
 
   /*  Represents "what happened" to a path. */
@@ -95,7 +96,13 @@ public:
                                 TimePoint{Clock::now()}.time_since_epoch())
                                 .count()};
 
-  event const* const associated{nullptr};
+  std::unique_ptr<event> const associated{nullptr};
+
+  inline event(event const& from) noexcept
+      : path_name{from.path_name}
+      , effect_type{from.effect_type}
+      , path_type{from.path_type}
+      , effect_time{from.effect_time} {};
 
   inline event(
     std::filesystem::path const& path_name,
@@ -109,15 +116,14 @@ public:
       : path_name{base.path_name}
       , effect_type{base.effect_type}
       , path_type{base.path_type}
-      , associated{&associated} {};
+      , associated{std::make_unique<event>(std::forward<event>(associated))} {};
 
   inline ~event() noexcept = default;
 
   /*  An equality comparison for all the fields in this object.
       Includes the `effect_time`, which might not be wanted,
       because the `effect_time` is typically (not always) unique. */
-  inline friend auto
-  operator==(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
+  inline friend auto operator==(event const& l, event const& r) noexcept -> bool
   {
     return l.path_name == r.path_name && l.effect_time == r.effect_time
         && l.path_type == r.path_type && l.effect_type == r.effect_type
@@ -125,8 +131,7 @@ public:
                                          : ! l.associated && ! r.associated);
   }
 
-  inline friend auto
-  operator!=(::wtr::event const& l, ::wtr::event const& r) noexcept -> bool
+  inline friend auto operator!=(event const& l, event const& r) noexcept -> bool
   {
     return ! (l == r);
   }
@@ -172,11 +177,11 @@ namespace {
          + Lit"\"path_type\":"   + pty                                        \
          + [&]() -> Cls {                                                     \
               if (! from.associated) return Cls{};                            \
-              auto f = *from.associated;                                      \
-              auto&& ttl = Cls{Lit",\"associated\""};                         \
-              auto&& ety = Lit"\"" + to<Cls>(from.effect_type) + Lit"\"";     \
-              auto&& pnm = Lit"\"" + to<Cls>(from.path_name)   + Lit"\"";     \
-              auto&& pty = Lit"\"" + to<Cls>(from.path_type)   + Lit"\"";     \
+              auto asc = from.associated.get();                               \
+              auto ttl = Cls{Lit",\"associated\""};                           \
+              auto ety = Lit"\"" + to<Cls>(asc->effect_type) + Lit"\"";       \
+              auto pnm = Lit"\"" + to<Cls>(asc->path_name)   + Lit"\"";       \
+              auto pty = Lit"\"" + to<Cls>(asc->path_type)   + Lit"\"";       \
               return { ttl                                                    \
                      + Lit":{"                                                \
                      + Lit"\"effect_type\":" + ety + Lit","                   \

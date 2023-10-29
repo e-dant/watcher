@@ -1,12 +1,11 @@
 #pragma once
 
-#if (defined(__linux__) || defined(__ANDROID_API__)) \
+#if (defined(__linux__) || __ANDROID_API__) \
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
 #include <linux/version.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)) \
-  && ! defined(__ANDROID_API__)
+#if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
 
 #include "wtr/watcher.hpp"
 #include <atomic>
@@ -27,225 +26,101 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace detail {
-namespace wtr {
-namespace watcher {
-namespace adapter {
-namespace fanotify {
+namespace detail::wtr::watcher::adapter::fanotify {
 
-/*  - delay
-      The delay, in milliseconds, while `epoll_wait` will
-      'sleep' for until we are woken up. We usually check
-      if we're still alive at that point.
-    - event_wait_queue_max
-      Number of events allowed to be given to recv
-      (returned by `epoll_wait`). Any number between 1
-      and some large number should be fine. We don't
-      lose events if we 'miss' them, the events are
-      still waiting in the next call to `epoll_wait`.
-    - event_buf_len:
-      For our event buffer, 4096 is a typical page size
-      and sufficiently large to hold a great many events.
-      That's a good thumb-rule, and it might be the best
-      value to use because there will be a possibly long
-      character string (for the filename) in the event.
-      We can infer some things about the size we need for
-      the event buffer, but it's unlikely to be meaningful
-      because of the variably sized character string being
-      reported. We could use something like:
-          event_buf_len
-            = ((event_wait_queue_max + PATH_MAX)
-            * (3 * sizeof(fanotify_event_metadata)));
-      But that's a lot of flourish for 72 bytes that won't
-      be meaningful.
-    - fan_init_flags:
+/*  - fan_init_flags:
       Post-event reporting, non-blocking IO and unlimited
       marks. We need sudo mode for the unlimited marks.
       If we were making a filesystem auditor, we might use:
           FAN_CLASS_PRE_CONTENT
           | FAN_UNLIMITED_QUEUE
           | FAN_UNLIMITED_MARKS
-    - fan_init_opt_flags:
+    - fan_init_io_flags:
       Read-only, non-blocking, and close-on-exec. */
-inline constexpr auto delay_ms = 16;
-inline constexpr auto event_wait_queue_max = 1;
-inline constexpr auto event_buf_len = PATH_MAX;
-inline constexpr auto fan_init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
-                                     | FAN_UNLIMITED_QUEUE
-                                     | FAN_UNLIMITED_MARKS;
-inline constexpr auto fan_init_opt_flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC;
 
-/*  - mark_set_type
-        A set of file descriptors for fanotify resources.
-    - system_resources
-        An object holding:
-          - An fanotify file descriptor
-          - An epoll file descriptor
-          - An epoll configuration
-          - A set of watch marks (as returned by fanotify_mark)
-          - A map of (sub)path handles to filesystem paths (names)
-          - A boolean: whether or not the resources are valid */
-using mark_set_type = std::unordered_set<int>;
-
-struct system_resources {
-  bool valid;
-  int watch_fd;
-  int event_fd;
-  epoll_event event_conf;
-  mark_set_type mark_set;
+struct ev_fa {
+  static constexpr auto buf_len = 4096;
+  static constexpr auto c_ulim = buf_len / sizeof(fanotify_event_metadata);
+  static constexpr auto recv_flags = FAN_ONDIR | FAN_CREATE | FAN_MODIFY
+                                   | FAN_MOVED_FROM | FAN_MOVED_TO | FAN_DELETE
+                                   | FAN_DELETE_SELF | FAN_MOVE_SELF;
+  static constexpr auto init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME
+                                   | FAN_UNLIMITED_QUEUE | FAN_UNLIMITED_MARKS;
+  static constexpr auto init_io_flags = O_RDONLY | O_CLOEXEC;  // O_NONBLOCK
+  int fd = -1;
+  alignas(fanotify_event_metadata) char buf[buf_len]{0};
 };
 
-inline auto mark(
-  std::filesystem::path const& full_path,
-  int watch_fd,
-  mark_set_type& ms) noexcept -> bool
-{
-  int wd = fanotify_mark(
-    watch_fd,
-    FAN_MARK_ADD,
-    FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE | FAN_MOVE
-      | FAN_DELETE_SELF | FAN_MOVE_SELF,
-    AT_FDCWD,
-    full_path.c_str());
-  if (wd >= 0) {
-    ms.insert(wd);
-    return true;
-  }
-  else
-    return false;
+struct sysres {
+  bool ok = false;
+  ev_fa ke{};
+  adapter::ep ep{};
 };
 
-inline auto
-mark(std::filesystem::path const& full_path, system_resources& sr) noexcept
-  -> bool
+inline auto do_mark =
+  [](char const* const dirpath, int fa_fd, auto const& cb) noexcept -> bool
 {
-  return mark(full_path, sr.watch_fd, sr.mark_set);
+  auto do_error = [&]() -> bool
+  { return adapter::do_error("w/sys/not_watched@", dirpath, cb); };
+  char real[PATH_MAX];
+  if (! realpath(dirpath, real)) return do_error();
+  int anonymous_wd =
+    fanotify_mark(fa_fd, FAN_MARK_ADD, ev_fa::recv_flags, AT_FDCWD, real);
+  return anonymous_wd == 0 ? true : is_dir(real) ? do_error() : false;
 };
 
-inline auto unmark(
-  std::filesystem::path const& full_path,
-  int watch_fd,
-  mark_set_type& mark_set) noexcept -> bool
+/*  Grabs the resources we need from `fanotify`
+    and `epoll`. Marks itself invalid on errors,
+    sends diagnostics on warnings and errors.
+    Notes:
+    We could make the epoll and fanotify file
+    descriptors non-blocking with `fcntl`. It's
+    not clear if we can do this from their
+    `*_init` calls or if we need them to be non-
+    blocking with our threaded architecture.
+      fcntl(fa_fd, F_SETFL, O_NONBLOCK);
+      fcntl(ep_fd, F_SETFL, O_NONBLOCK);
+*/
+inline auto make_sysres(
+  char const* const base_path,
+  ::wtr::watcher::event::callback const& cb) noexcept -> sysres
 {
-  int wd = fanotify_mark(
-    watch_fd,
-    FAN_MARK_REMOVE,
-    FAN_ONDIR | FAN_CREATE | FAN_MODIFY | FAN_DELETE | FAN_MOVE
-      | FAN_DELETE_SELF | FAN_MOVE_SELF,
-    AT_FDCWD,
-    full_path.c_str());
-  auto const& at = mark_set.find(wd);
-
-  if (wd >= 0 && at != mark_set.end()) {
-    mark_set.erase(at);
-    return true;
-  }
-  else
-    return false;
-};
-
-inline auto
-unmark(std::filesystem::path const& full_path, system_resources& sr) noexcept
-  -> bool
-{
-  return unmark(full_path, sr.watch_fd, sr.mark_set);
-};
-
-/*  Produces a `system_resources` with the file descriptors from
-    `fanotify_init` and `epoll_create`. Invokes `callback` on errors. */
-inline auto open_system_resources(
-  std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback) noexcept -> system_resources
-{
-  namespace fs = std::filesystem;
-  using ev = ::wtr::watcher::event;
-
-  auto do_error = [&path, &callback](
-                    char const* const msg,
-                    int watch_fd,
-                    int event_fd = -1) noexcept -> system_resources
+  auto do_error = [&](auto&& msg, int fa_fd, int ep_fd = -1) -> sysres
   {
-    callback(
-      {std::string{msg} + "(" + std::strerror(errno) + ")@" + path.string(),
-       ev::effect_type::other,
-       ev::path_type::watcher});
-
-    return system_resources{
-      .valid = false,
-      .watch_fd = watch_fd,
-      .event_fd = event_fd,
-      .event_conf = {.events = 0, .data = {.fd = watch_fd}},
-      .mark_set = {},
+    adapter::do_error(msg, base_path, cb);
+    return sysres{
+      .ok = false,
+      .ke = {.fd = fa_fd},
+      .ep = {.fd = ep_fd},
     };
   };
 
-  auto do_path_map_container_create =
-    [](
-      int const watch_fd,
-      fs::path const& base_path,
-      ::wtr::watcher::event::callback const& callback) -> mark_set_type
-  {
-    using diter = fs::recursive_directory_iterator;
+  int fa_fd = fanotify_init(ev_fa::init_flags, ev_fa::init_io_flags);
+  if (fa_fd < 1) return do_error("e/sys/fanotify_init@", fa_fd);
+  int ep_fd = epoll_create1(EPOLL_CLOEXEC);
+  if (ep_fd < 1) return do_error("e/sys/epoll_create@", fa_fd, ep_fd);
+  auto want_ev = epoll_event{.events = EPOLLIN, .data{.fd = fa_fd}};
+  int ctl_ec = epoll_ctl(ep_fd, EPOLL_CTL_ADD, fa_fd, &want_ev);
+  if (ctl_ec != 0) return do_error("e/sys/epoll_ctl@", fa_fd, ep_fd);
 
-    static constexpr auto dopt =
-      fs::directory_options::skip_permission_denied
-      & fs::directory_options::follow_directory_symlink;
+  adapter::walkdir_do(
+    base_path,
+    [&](auto const& dir) { do_mark(dir, fa_fd, cb); });
 
-    static constexpr auto rsrv_count = 1024;
-
-    auto pmc = mark_set_type{};
-    pmc.reserve(rsrv_count);
-
-    try {
-      if (mark(base_path, watch_fd, pmc))
-        if (fs::is_directory(base_path))
-          for (auto& dir : diter(base_path, dopt))
-            if (fs::is_directory(dir))
-              if (! mark(dir.path(), watch_fd, pmc))
-                callback(
-                  {"w/sys/not_watched@" + base_path.string() + "@"
-                     + dir.path().string(),
-                   ev::effect_type::other,
-                   ev::path_type::watcher});
-    } catch (...) {}
-
-    return pmc;
+  return sysres{
+    .ok = true,
+    .ke{.fd = fa_fd},
+    .ep{.fd = ep_fd},
   };
+}
 
-  int watch_fd = fanotify_init(fan_init_flags, fan_init_opt_flags);
-  if (watch_fd < 1) return do_error("e/sys/fanotify_init", watch_fd);
-
-  auto pmc = do_path_map_container_create(watch_fd, path, callback);
-  if (pmc.empty()) return do_error("e/sys/fanotify_mark", watch_fd);
-
-  epoll_event event_conf{.events = EPOLLIN, .data{.fd = watch_fd}};
-  int event_fd = epoll_create1(EPOLL_CLOEXEC);
-  if (event_fd < 1) return do_error("e/sys/epoll_create", watch_fd, event_fd);
-
-  /*  @note We could make the epoll and fanotify file
-      descriptors non-blocking with `fcntl`. It's not
-      clear if we can do this from their `*_init` calls
-      or if we need them to be non-blocking with our
-      current (threaded) architecture.
-
-      fcntl(watch_fd, F_SETFL, O_NONBLOCK);
-      fcntl(event_fd, F_SETFL, O_NONBLOCK); */
-  int ctl_ec = epoll_ctl(event_fd, EPOLL_CTL_ADD, watch_fd, &event_conf);
-  if (ctl_ec != 0) return do_error("e/sys/epoll_ctl", watch_fd, event_fd);
-
-  return system_resources{
-    .valid = true,
-    .watch_fd = watch_fd,
-    .event_fd = event_fd,
-    .event_conf = event_conf,
-    .mark_set = std::move(pmc),
-  };
-};
-
-inline auto close_system_resources(system_resources&& sr) noexcept -> bool
+inline auto close_sysres(sysres& sr) noexcept -> bool
 {
-  return close(sr.watch_fd) == 0 && close(sr.event_fd) == 0;
-};
+  sr.ok = false;
+  auto ok = close(sr.ke.fd) == 0 && close(sr.ep.fd) == 0;
+  sr.ke.fd = sr.ep.fd = -1;
+  return ok;
+}
 
 /*  Parses a full path from an event's metadata.
     The shenanigans we do here depend on this event being
@@ -277,70 +152,77 @@ inline auto close_system_resources(system_resources&& sr) noexcept -> bool
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
+inline auto pathof(fanotify_event_metadata const* const mtd) noexcept
+  -> std::filesystem::path
+{
+  constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
+  auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
+  auto dir_fh = (file_handle*)(dir_info->handle);
 
-/*  note at the end of file re. clang format */
-inline auto parse_event(fanotify_event_metadata const* mtd) noexcept
+  char path_buf[PATH_MAX];
+  ssize_t file_name_offset = 0;
+
+  /*  Directory name */
+  {
+    constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
+    int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
+    if (fd > 0) {
+      /*  If we have a pid with more than 128 digits... Well... */
+      char fs_ev_pidpath[128];
+      snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
+      file_name_offset = readlink(fs_ev_pidpath, path_buf, path_ulim);
+      close(fd);
+    }
+    path_buf[file_name_offset] = 0;
+    /*  todo: Is is an error if we can't get the directory name? */
+  }
+
+  /*  File name ("Directory entry")
+      If we wrote the directory name before here, we
+      can start writing the file name after its offset. */
+  {
+    if (file_name_offset > 0) {
+      char* file_name = ((char*)dir_fh->f_handle + dir_fh->handle_bytes);
+      auto not_selfdir = strcmp(file_name, ".") != 0;
+      auto beg = path_buf + file_name_offset;
+      auto end = PATH_MAX - file_name_offset;
+      if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
+    }
+  }
+  return {path_buf};
+}
+
+inline auto
+peek(fanotify_event_metadata const* const mtd, size_t read_len) noexcept
+  -> fanotify_event_metadata const*
+{
+  auto evlen = mtd->event_len;
+  auto next = (fanotify_event_metadata*)((char*)mtd + evlen);
+  return FAN_EVENT_OK(next, read_len - evlen) ? next : nullptr;
+}
+
+inline auto
+parse_event(fanotify_event_metadata const* m, size_t read_len) noexcept
   -> ::wtr::watcher::event
 {
-  using e = ::wtr::watcher::event;
-  using pt = enum e::path_type;
-  using et = enum e::effect_type;
-
-  auto parse_full_path_into =
-    [](char* path_buf, fanotify_event_metadata const* const mtd) noexcept
-  {
-    auto dir_info_fid = ((fanotify_event_info_fid const*)(mtd + 1));
-    auto dir_fh = (struct file_handle*)(dir_info_fid->handle);
-
-    ssize_t file_name_offset = 0;
-
-    /*  Directory name */
-    {
-      int fd =
-        open_by_handle_at(AT_FDCWD, dir_fh, O_RDONLY | O_CLOEXEC | O_PATH);
-      if (fd > 0) {
-        /*  If we have a pid with more than 128 digits... Well... */
-        char fs_proc_path[128];
-        snprintf(fs_proc_path, sizeof(fs_proc_path), "/proc/self/fd/%d", fd);
-        file_name_offset =
-          readlink(fs_proc_path, path_buf, PATH_MAX - sizeof(0));
-        close(fd);
-      }
-      path_buf[file_name_offset] = 0;
-      /*  todo: Is is an error if we can't get the directory name? */
-    }
-
-    /*  File name ("Directory entry")
-        If we wrote the directory name before here, we
-        can start writing the file name after its offset. */
-    {
-      if (file_name_offset > 0) {
-        char* file_name = ((char*)dir_fh->f_handle + dir_fh->handle_bytes);
-        auto file_name_is_not_dir = strcmp(file_name, ".") != 0;
-        if (file_name && file_name_is_not_dir) {
-          snprintf(
-            path_buf + file_name_offset,
-            PATH_MAX - file_name_offset,
-            "/%s",
-            file_name);
-        }
-      }
-    }
-  };
-
-  auto effect_type = mtd->mask & FAN_CREATE ? et::create
-                   : mtd->mask & FAN_DELETE ? et::destroy
-                   : mtd->mask & FAN_MODIFY ? et::modify
-                   : mtd->mask & FAN_MOVE   ? et::rename
-                                            : et::other;
-
-  auto path_type = mtd->mask & FAN_ONDIR ? pt::dir : pt::file;
-
-  char path_name[PATH_MAX];
-  parse_full_path_into(path_name, mtd);
-
-  return {path_name, effect_type, path_type};
-};
+  using ev = ::wtr::watcher::event;
+  using ev_pt = enum ev::path_type;
+  using ev_et = enum ev::effect_type;
+  auto n = peek(m, read_len);
+  auto pt = m->mask & FAN_ONDIR ? ev_pt::dir : ev_pt::file;
+  auto et = m->mask & FAN_CREATE ? ev_et::create
+          : m->mask & FAN_DELETE ? ev_et::destroy
+          : m->mask & FAN_MODIFY ? ev_et::modify
+          : m->mask & FAN_MOVE   ? ev_et::rename
+                                 : ev_et::other;
+  auto isfromto = [et](unsigned a, unsigned b) -> bool
+  { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
+  auto e = [et, pt](auto*... m) -> ev { return ev(ev(pathof(m), et, pt)...); };
+  return ! n                        ? e(m)
+       : isfromto(m->mask, n->mask) ? e(m, n)
+       : isfromto(n->mask, m->mask) ? e(n, m)
+                                    : e(m);
+}
 
 /*  Send events to the user.
     This is the important part.
@@ -349,186 +231,105 @@ inline auto parse_event(fanotify_event_metadata const* mtd) noexcept
     between us and the kernel. */
 inline auto send(
   ::wtr::watcher::event const& ev,
-  system_resources& sr,
-  ::wtr::watcher::event::callback const& callback) noexcept -> bool
+  sysres& sr,
+  ::wtr::watcher::event::callback const& cb) noexcept -> bool
 {
   using e = ::wtr::watcher::event;
-  using pt = enum e::path_type;
-  using et = enum e::effect_type;
+  using ev_pt = enum e::path_type;
+  using ev_et = enum e::effect_type;
+  auto [pn, et, pt, _t, _a] = ev;
+  auto update_ok = pt == ev_pt::dir && et == ev_et::create
+                   ? do_mark(pn.c_str(), sr.ke.fd, cb)
+                   : true;
+  return (cb(ev), update_ok);
+}
 
-  auto ok = ev.path_type == pt::dir
-            ? ev.effect_type == et::create  ? mark(ev.path_name, sr)
-            : ev.effect_type == et::destroy ? unmark(ev.path_name, sr)
-                                            : true
-            : true;
-
-  return ok ? (callback(ev), true) : false;
-};
-
-/*  Reads through available (fanotify) filesystem events.
-    Discerns their path and type.
-    Calls the callback.
-    Returns false on eventful errors.
-    @note
-    The `metadata->fd` field contains either a file
-    descriptor or the value `FAN_NOFD`. File descriptors
-    are always greater than 0. `FAN_NOFD` represents an
-    event queue overflow for `fanotify` listeners which
-    are _not_ monitoring file handles, such as mount
-    monitors. The file handle is in the metadata when an
-    `fanotify` listener is monitoring events by their
-    file handles.
-    The `metadata->vers` field may differ between kernel
-    versions, so we check it against the version we were
-    compiled with. */
-inline auto recv(
-  system_resources& sr,
+/*  Read some events from what fanotify gives
+    us. Sends (the valid) events to the user's
+    callback. Send a diagnostic to the user on
+    warnings and errors. Returns false on errors.
+    True otherwise.
+    Notes:
+    The `metadata->fd` field contains either a
+    file descriptor or the value `FAN_NOFD`. File
+    descriptors are always greater than 0 (but we
+    will get the FAN_NOFD value, and we can grab
+    other information from the /proc/self/<fd>
+    filesystem, which we do in `pathof()`).
+    `FAN_NOFD` represents an event queue overflow
+    for `fanotify` listeners which are *not*
+    monitoring file handles, such as mount/volume
+    watchers. The file handle is in the metadata
+    when an `fanotify` listener is monitoring
+    events by their file handles.
+    The `metadata->vers` field may differ between
+    kernel versions, so we check it against the
+    version we were compiled with. */
+inline auto do_event_recv(
   std::filesystem::path const& base_path,
-  ::wtr::watcher::event::callback const& callback) noexcept -> bool
+  ::wtr::watcher::event::callback const& cb,
+  sysres& sr) noexcept -> bool
 {
-  /*  Read some events into a buffer.
-      Send valid events to the user's callback.
-      Send a diagnostic to the user on warnings and errors.
-      Return false on errors. True otherwise. */
+  auto do_error = [&](auto&& msg) noexcept -> bool
+  { return adapter::do_error(msg, base_path.c_str(), cb); };
+  auto do_warn = [&](auto&& msg) noexcept -> bool { return ! do_error(msg); };
+  auto ev_info = [](fanotify_event_metadata* m) noexcept
+  { return (fanotify_event_info_fid*)(m + 1); };
+  auto ev_has_dirname = [&](fanotify_event_metadata* m) noexcept -> bool
+  { return ev_info(m)->hdr.info_type == FAN_EVENT_INFO_TYPE_DFID_NAME; };
 
-  using event_metadata = fanotify_event_metadata;
-  using event_info_fid = fanotify_event_info_fid;
-
-  static constexpr auto event_count_upper_lim =
-    event_buf_len / sizeof(fanotify_event_metadata);
-
-  auto do_error = [&base_path,
-                   &callback](char const* const msg) noexcept -> bool
-  {
-    return (
-      callback(
-        {std::string{msg} + "@" + base_path.string(),
-         ::wtr::watcher::event::effect_type::other,
-         ::wtr::watcher::event::path_type::watcher}),
-      false);
-  };
-
-  unsigned event_count = 0;
-  alignas(fanotify_event_metadata) char event_buf[event_buf_len];
-  auto read_len = read(sr.watch_fd, event_buf, sizeof(event_buf));
-  enum class read_state {
-    eventful,
-    eventless,
-    e_read
-  } read_state = read_len > 0    ? read_state::eventful
-               : read_len == 0   ? read_state::eventless
-               : errno == EAGAIN ? read_state::eventless
-                                 : read_state::e_read;
-
-  switch (read_state) {
-    case read_state::eventful :
-      for (auto* mtd = (event_metadata*)(event_buf);
-           FAN_EVENT_OK(mtd, read_len);
-           mtd = FAN_EVENT_NEXT(mtd, read_len)) {
-        auto hifty = ((event_info_fid const*)(mtd + 1))->hdr.info_type;
-        enum class event_state {
-          eventful,
-          e_version,
-          e_count,
-          w_fd,
-          w_q_overflow,
-          w_info_type
-        } event_state =
-          mtd->vers != FANOTIFY_METADATA_VERSION   ? event_state::e_version
-          : event_count++ > event_count_upper_lim  ? event_state::e_count
-          : mtd->fd != FAN_NOFD                    ? event_state::w_fd
-          : mtd->mask & FAN_Q_OVERFLOW             ? event_state::w_q_overflow
-          : hifty != FAN_EVENT_INFO_TYPE_DFID_NAME ? event_state::w_info_type
-                                                   : event_state::eventful;
-        switch (event_state) {
-          case event_state::eventful :
-            send(parse_event(mtd), sr, callback);
-            break;
-          case event_state::e_version : return do_error("e/sys/kernel_version");
-          case event_state::e_count : return do_error("e/sys/bad_count");
-          case event_state::w_fd : return ! do_error("w/sys/bad_fd");
-          case event_state::w_q_overflow : return ! do_error("w/sys/overflow");
-          case event_state::w_info_type : return ! do_error("w/sys/bad_info");
-        }
-      }
-      return true;
-
-    case read_state::eventless : return true;
-
-    case read_state::e_read : return do_error("e/sys/read");
-  }
-
-  assert(! "Unreachable");
-  return false;
-};
+  unsigned ev_c = 0;
+  memset(sr.ke.buf, 0, sr.ke.buf_len);
+  int read_len = read(sr.ke.fd, sr.ke.buf, sr.ke.buf_len);
+  if (read_len <= 0 && errno != EAGAIN)
+    return true;
+  else if (read_len < 0)
+    return do_error("e/sys/read@");
+  else
+    for (auto* mtd = (fanotify_event_metadata*)(sr.ke.buf);
+         FAN_EVENT_OK(mtd, read_len);
+         mtd = FAN_EVENT_NEXT(mtd, read_len))
+      if (ev_c++ > sr.ke.c_ulim)
+        return do_error("e/sys/bad_count@");
+      else if (mtd->vers != FANOTIFY_METADATA_VERSION)
+        return do_error("e/sys/kernel_version@");
+      else if (mtd->fd != FAN_NOFD)
+        return do_warn("w/sys/bad_fd@");
+      else if (mtd->mask & FAN_Q_OVERFLOW)
+        return do_warn("w/sys/overflow@");
+      else if (! ev_has_dirname(mtd))
+        return do_warn("w/sys/bad_info@");
+      else
+        send(parse_event(mtd, read_len), sr, cb);
+  return true;
+}
 
 inline auto watch(
-  std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback,
+  char const* const path,
+  ::wtr::watcher::event::callback const& cb,
   std::atomic<bool>& is_living) noexcept -> bool
 {
-  using ev = ::wtr::watcher::event;
+  auto sr = make_sysres(path, cb);
+  auto do_error = [&](auto&& msg) -> bool
+  { return (close_sysres(sr), adapter::do_error(msg, path, cb)); };
 
-  auto do_error = [&path, &callback](auto& f, char const* const msg) -> bool
-  {
-    return (
-      callback(
-        {std::string{msg} + "@" + path.string(),
-         ev::effect_type::other,
-         ev::path_type::watcher}),
-
-      f(),
-
-      false);
-  };
-
-  /*  While:
-      - System resources for fanotify and epoll
-      - An event list for receiving epoll events
-      - We're alive
-      Do:
-      - Await filesystem events
-      - Invoke `callback` on errors and events */
-
-  auto sr = open_system_resources(path, callback);
-
-  auto close = [&sr]() -> bool
-  { return close_system_resources(std::move(sr)); };
-
-  epoll_event event_recv_list[event_wait_queue_max];
-
-  if (sr.valid) [[likely]] {
-    while (is_living) [[likely]]
-
-    {
-      int event_count = epoll_wait(
-        sr.event_fd,
-        event_recv_list,
-        event_wait_queue_max,
-        delay_ms);
-      if (event_count < 0)
-        return do_error(close, "e/sys/epoll_wait");
-
-      else if (event_count > 0) [[likely]]
-        for (int n = 0; n < event_count; n++)
-          if (event_recv_list[n].data.fd == sr.watch_fd) [[likely]]
-            if (is_living) [[likely]]
-              if (! recv(sr, path, callback)) [[unlikely]]
-                return do_error(close, "e/self/event_recv");
-    }
-
-    return close();
+  if (! sr.ok) return do_error("e/self/resource@");
+  while (is_living) {
+    int ep_c =
+      epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
+    if (ep_c < 0)
+      return do_error("e/sys/epoll_wait@");
+    else if (ep_c > 0) [[likely]]
+      for (int n = 0; n < ep_c; n++)
+        if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
+          if (! do_event_recv(path, cb, sr)) [[unlikely]]
+            return do_error("e/self/event_recv@");
   }
 
-  else
-    return do_error(close, "e/self/sys_resource");
-};
+  return close_sysres(sr);
+}
 
-} /*  namespace fanotify */
-} /*  namespace adapter */
-} /*  namespace watcher */
-} /*  namespace wtr */
-} /*  namespace detail */
+} /* namespace detail::wtr::watcher::adapter::fanotify */
 
 #endif
 #endif
