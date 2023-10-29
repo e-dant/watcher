@@ -776,7 +776,7 @@ struct ep {
 };
 
 inline auto do_error =
-  [](std::string&& msg, char const* const path, auto const& cb) noexcept -> bool
+  [](std::string&& msg, char const* const path, auto const& cb) -> bool
 {
   using et = enum ::wtr::watcher::event::effect_type;
   using pt = enum ::wtr::watcher::event::path_type;
@@ -785,7 +785,7 @@ inline auto do_error =
 };
 
 inline auto do_warn =
-  [](std::string&& msg, auto const& path, auto const& cb) noexcept -> bool
+  [](std::string&& msg, auto const& path, auto const& cb) -> bool
 { return (do_error(std::move(msg), path, cb), true); };
 
 inline auto make_ep =
@@ -811,7 +811,7 @@ inline auto is_dir(char const* const path) -> bool
   return stat(path, &s) == 0 && S_ISDIR(s.st_mode);
 }
 
-inline auto strany = [](char const* const s, auto... cmp) noexcept -> bool
+inline auto strany = [](char const* const s, auto... cmp) -> bool
 { return ((strcmp(s, cmp) == 0) || ...); };
 
 /*  $ echo time wtr.watcher / -ms 1
@@ -835,7 +835,7 @@ inline auto strany = [](char const* const s, auto... cmp) noexcept -> bool
     not having a full picture.
 */
 template<class Fn>
-inline auto walkdir_do(char const* const path, Fn f) noexcept -> void
+inline auto walkdir_do(char const* const path, Fn const& f) -> void
 {
   auto pappend = [&](char* head, char* tail)
   { return snprintf(head, PATH_MAX, "%s/%s", path, tail); };
@@ -854,7 +854,7 @@ inline auto walkdir_do(char const* const path, Fn f) noexcept -> void
   }
 }
 
-inline auto close_sysres = [](auto& sr) noexcept -> bool
+inline auto close_sysres = [](auto& sr) -> bool
 {
   sr.ok = false;
   auto closed = close(sr.ke.fd) == 0 && close(sr.ep.fd) == 0;
@@ -873,14 +873,12 @@ inline auto close_sysres = [](auto& sr) noexcept -> bool
 
 #if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
 
-#include <atomic>
 #include <cassert>
 #include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
-#include <filesystem>
 #include <functional>
 #include <optional>
 #include <sys/epoll.h>
@@ -923,7 +921,7 @@ struct sysres {
 };
 
 inline auto do_mark =
-  [](char const* const dirpath, int fa_fd, auto const& cb) noexcept -> bool
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> bool
 {
   auto do_error = [&]() -> bool
   { return adapter::do_error("w/sys/not_watched@", dirpath, cb); };
@@ -946,9 +944,8 @@ inline auto do_mark =
       fcntl(fa_fd, F_SETFL, O_NONBLOCK);
       fcntl(ep_fd, F_SETFL, O_NONBLOCK);
 */
-inline auto make_sysres(
-  char const* const base_path,
-  ::wtr::watcher::event::callback const& cb) noexcept -> sysres
+inline auto make_sysres =
+  [](char const* const base_path, auto const& cb) -> sysres
 {
   auto do_error = [&](auto&& msg, int fa_fd, int ep_fd = -1) -> sysres
   {
@@ -977,9 +974,9 @@ inline auto make_sysres(
     .ke{.fd = fa_fd},
     .ep{.fd = ep_fd},
   };
-}
+};
 
-inline auto close_sysres(sysres& sr) noexcept -> bool
+inline auto close_sysres(sysres& sr) -> bool
 {
   sr.ok = false;
   auto ok = close(sr.ke.fd) == 0 && close(sr.ep.fd) == 0;
@@ -1017,8 +1014,7 @@ inline auto close_sysres(sysres& sr) noexcept -> bool
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto pathof(fanotify_event_metadata const* const mtd) noexcept
-  -> std::filesystem::path
+inline auto pathof(fanotify_event_metadata const* const mtd) -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
@@ -1054,11 +1050,11 @@ inline auto pathof(fanotify_event_metadata const* const mtd) noexcept
       if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
     }
   }
+
   return {path_buf};
 }
 
-inline auto
-peek(fanotify_event_metadata const* const mtd, size_t read_len) noexcept
+inline auto peek(fanotify_event_metadata const* const mtd, size_t read_len)
   -> fanotify_event_metadata const*
 {
   auto evlen = mtd->event_len;
@@ -1066,8 +1062,7 @@ peek(fanotify_event_metadata const* const mtd, size_t read_len) noexcept
   return FAN_EVENT_OK(next, read_len - evlen) ? next : nullptr;
 }
 
-inline auto
-parse_event(fanotify_event_metadata const* m, size_t read_len) noexcept
+inline auto parse_event(fanotify_event_metadata const* m, size_t read_len)
   -> ::wtr::watcher::event
 {
   using ev = ::wtr::watcher::event;
@@ -1094,10 +1089,8 @@ parse_event(fanotify_event_metadata const* m, size_t read_len) noexcept
     Most of the other code is
     a layer of translation
     between us and the kernel. */
-inline auto send(
-  ::wtr::watcher::event const& ev,
-  sysres& sr,
-  ::wtr::watcher::event::callback const& cb) noexcept -> bool
+inline auto send =
+  [](::wtr::watcher::event const& ev, sysres& sr, auto const& cb) -> bool
 {
   using e = ::wtr::watcher::event;
   using ev_pt = enum e::path_type;
@@ -1107,7 +1100,7 @@ inline auto send(
                    ? do_mark(pn.c_str(), sr.ke.fd, cb)
                    : true;
   return (cb(ev), update_ok);
-}
+};
 
 /*  Read some events from what fanotify gives
     us. Sends (the valid) events to the user's
@@ -1130,17 +1123,15 @@ inline auto send(
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_event_recv(
-  std::filesystem::path const& base_path,
-  ::wtr::watcher::event::callback const& cb,
-  sysres& sr) noexcept -> bool
+inline auto do_ev_recv =
+  [](char const* const base_path, auto const& cb, sysres& sr) -> bool
 {
-  auto do_error = [&](auto&& msg) noexcept -> bool
-  { return adapter::do_error(msg, base_path.c_str(), cb); };
-  auto do_warn = [&](auto&& msg) noexcept -> bool { return ! do_error(msg); };
-  auto ev_info = [](fanotify_event_metadata* m) noexcept
+  auto do_error = [&](auto&& msg) -> bool
+  { return adapter::do_error(msg, base_path, cb); };
+  auto do_warn = [&](auto&& msg) -> bool { return ! do_error(msg); };
+  auto ev_info = [](fanotify_event_metadata* m)
   { return (fanotify_event_info_fid*)(m + 1); };
-  auto ev_has_dirname = [&](fanotify_event_metadata* m) noexcept -> bool
+  auto ev_has_dirname = [&](fanotify_event_metadata* m) -> bool
   { return ev_info(m)->hdr.info_type == FAN_EVENT_INFO_TYPE_DFID_NAME; };
 
   unsigned ev_c = 0;
@@ -1155,24 +1146,22 @@ inline auto do_event_recv(
          FAN_EVENT_OK(mtd, read_len);
          mtd = FAN_EVENT_NEXT(mtd, read_len))
       if (ev_c++ > sr.ke.c_ulim)
-        return do_error("e/sys/bad_count@");
+        return do_error("e/sys/ev_lin@");
       else if (mtd->vers != FANOTIFY_METADATA_VERSION)
         return do_error("e/sys/kernel_version@");
       else if (mtd->fd != FAN_NOFD)
         return do_warn("w/sys/bad_fd@");
       else if (mtd->mask & FAN_Q_OVERFLOW)
-        return do_warn("w/sys/overflow@");
+        return do_warn("w/sys/ev_lim@");
       else if (! ev_has_dirname(mtd))
         return do_warn("w/sys/bad_info@");
       else
         send(parse_event(mtd, read_len), sr, cb);
   return true;
-}
+};
 
-inline auto watch(
-  char const* const path,
-  ::wtr::watcher::event::callback const& cb,
-  std::atomic<bool>& is_living) noexcept -> bool
+inline auto watch =
+  [](char const* const path, auto const& cb, auto const& is_living) -> bool
 {
   auto sr = make_sysres(path, cb);
   auto do_error = [&](auto&& msg) -> bool
@@ -1187,12 +1176,12 @@ inline auto watch(
     else if (ep_c > 0) [[likely]]
       for (int n = 0; n < ep_c; n++)
         if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
-          if (! do_event_recv(path, cb, sr)) [[unlikely]]
-            return do_error("e/self/event_recv@");
+          if (! do_ev_recv(path, cb, sr)) [[unlikely]]
+            return do_error("e/self/ev_recv@");
   }
 
   return close_sysres(sr);
-}
+};
 
 } /* namespace detail::wtr::watcher::adapter::fanotify */
 
@@ -1206,7 +1195,6 @@ inline auto watch(
 
 #if (KERNEL_VERSION(2, 7, 0) <= LINUX_VERSION_CODE) || __ANDROID_API__
 
-#include <atomic>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -1292,11 +1280,8 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto do_mark = [](
-                        char const* const dirpath,
-                        int dirfd,
-                        auto& dm,
-                        auto const& cb) noexcept -> bool
+inline auto do_mark =
+  [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> bool
 {
   auto do_error = [&]() -> bool
   { return adapter::do_error("w/sys/not_watched@", dirpath, cb); };
@@ -1309,7 +1294,7 @@ inline auto do_mark = [](
 };
 
 inline auto make_sysres =
-  [](char const* const base_path, auto const& cb) noexcept -> sysres
+  [](char const* const base_path, auto const& cb) -> sysres
 {
   auto do_error = [&](std::string&& msg = "e/self/resource@")
   { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
@@ -1399,14 +1384,14 @@ inline auto make_sysres =
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_event_recv =
-  [](char const* const base_path, auto const& cb, sysres& sr) noexcept -> bool
+inline auto do_ev_recv =
+  [](char const* const base_path, auto const& cb, sysres& sr) -> bool
 {
-  auto do_error = [&](auto&& msg) noexcept -> bool
+  auto do_error = [&](auto&& msg) -> bool
   { return adapter::do_error(msg, base_path, cb); };
-  auto do_warn = [&](auto&& msg) noexcept -> bool { return ! do_error(msg); };
+  auto do_warn = [&](auto&& msg) -> bool { return ! do_error(msg); };
   auto defer_close = std::vector<int>{};
-  auto do_deferred = [&]() noexcept
+  auto do_deferred = [&]()
   {
     /*  No need to check rm_watch for errors
         because there is a very good chance
@@ -1454,8 +1439,8 @@ inline auto do_event_recv =
                  : msk & IN_DELETE_SELF || msk & IN_MOVE_SELF     ? self_delmov
                                                                   : eventful;
     switch (recv_state) {
-      case e_lim : return (do_deferred(), do_error("e/sys/event_lim@"));
-      case w_lim : do_warn("w/sys/event_lim@"); break;
+      case e_lim : return (do_deferred(), do_error("e/sys/ev_lim@"));
+      case w_lim : do_warn("w/sys/ev_lim@"); break;
       case phantom : do_warn("w/sys/phantom_event@"); break;
       case impossible : break;
       case ignore : break;
@@ -1505,10 +1490,8 @@ inline auto do_event_recv =
   return do_deferred();
 };
 
-inline auto watch(
-  char const* const path,
-  ::wtr::watcher::event::callback const& cb,
-  std::atomic<bool>& is_living) noexcept -> bool
+inline auto watch =
+  [](char const* const path, auto const& cb, auto const& is_living) -> bool
 {
   auto sr = make_sysres(path, cb);
   auto do_error = [&](auto&& msg) -> bool
@@ -1523,12 +1506,12 @@ inline auto watch(
     else if (ep_c > 0) [[likely]]
       for (int n = 0; n < ep_c; n++)
         if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
-          if (! do_event_recv(path, cb, sr)) [[unlikely]]
-            return do_error("e/self/event_recv@");
+          if (! do_ev_recv(path, cb, sr)) [[unlikely]]
+            return do_error("e/self/ev_recv@");
   }
 
   return close_sysres(sr);
-}
+};
 
 } /* namespace detail::wtr::watcher::adapter::inotify */
 
@@ -1543,24 +1526,18 @@ inline auto watch(
 
 namespace detail::wtr::watcher::adapter {
 
-/*  We'll run and keep running as long as
-    we have:
-    - A lifetime the user hasn't ended
-    - System resources for inotify and epoll
-    - An event buffer to `read()` into */
 inline auto watch =
-  [](auto const& path, auto const& cb, auto& is_living) noexcept -> bool
+  [](auto const& path, auto const& cb, auto const& is_living) -> bool
 {
+  auto p = path.c_str();
 #if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
-  bool fanotify_usable = geteuid() == 0;
+  return geteuid() == 0 ? fanotify::watch(p, cb, is_living)
+                        : inotify::watch(p, cb, is_living);
 #elif (KERNEL_VERSION(2, 7, 0) <= LINUX_VERSION_CODE) || __ANDROID_API__
-  bool fanotify_usable = false;
+  return inotify::watch(p, cb, is_living);
 #else
 #error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
-
-  return fanotify_usable ? fanotify::watch(path.c_str(), cb, is_living)
-                         : inotify::watch(path.c_str(), cb, is_living);
 };
 
 } /*  namespace detail::wtr::watcher::adapter */

@@ -8,7 +8,6 @@
 #if (KERNEL_VERSION(2, 7, 0) <= LINUX_VERSION_CODE) || __ANDROID_API__
 
 #include "wtr/watcher.hpp"
-#include <atomic>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -94,11 +93,8 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto do_mark = [](
-                        char const* const dirpath,
-                        int dirfd,
-                        auto& dm,
-                        auto const& cb) noexcept -> bool
+inline auto do_mark =
+  [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> bool
 {
   auto do_error = [&]() -> bool
   { return adapter::do_error("w/sys/not_watched@", dirpath, cb); };
@@ -111,7 +107,7 @@ inline auto do_mark = [](
 };
 
 inline auto make_sysres =
-  [](char const* const base_path, auto const& cb) noexcept -> sysres
+  [](char const* const base_path, auto const& cb) -> sysres
 {
   auto do_error = [&](std::string&& msg = "e/self/resource@")
   { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
@@ -201,14 +197,14 @@ inline auto make_sysres =
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_event_recv =
-  [](char const* const base_path, auto const& cb, sysres& sr) noexcept -> bool
+inline auto do_ev_recv =
+  [](char const* const base_path, auto const& cb, sysres& sr) -> bool
 {
-  auto do_error = [&](auto&& msg) noexcept -> bool
+  auto do_error = [&](auto&& msg) -> bool
   { return adapter::do_error(msg, base_path, cb); };
-  auto do_warn = [&](auto&& msg) noexcept -> bool { return ! do_error(msg); };
+  auto do_warn = [&](auto&& msg) -> bool { return ! do_error(msg); };
   auto defer_close = std::vector<int>{};
-  auto do_deferred = [&]() noexcept
+  auto do_deferred = [&]()
   {
     /*  No need to check rm_watch for errors
         because there is a very good chance
@@ -256,8 +252,8 @@ inline auto do_event_recv =
                  : msk & IN_DELETE_SELF || msk & IN_MOVE_SELF     ? self_delmov
                                                                   : eventful;
     switch (recv_state) {
-      case e_lim : return (do_deferred(), do_error("e/sys/event_lim@"));
-      case w_lim : do_warn("w/sys/event_lim@"); break;
+      case e_lim : return (do_deferred(), do_error("e/sys/ev_lim@"));
+      case w_lim : do_warn("w/sys/ev_lim@"); break;
       case phantom : do_warn("w/sys/phantom_event@"); break;
       case impossible : break;
       case ignore : break;
@@ -307,10 +303,8 @@ inline auto do_event_recv =
   return do_deferred();
 };
 
-inline auto watch(
-  char const* const path,
-  ::wtr::watcher::event::callback const& cb,
-  std::atomic<bool>& is_living) noexcept -> bool
+inline auto watch =
+  [](char const* const path, auto const& cb, auto const& is_living) -> bool
 {
   auto sr = make_sysres(path, cb);
   auto do_error = [&](auto&& msg) -> bool
@@ -325,12 +319,12 @@ inline auto watch(
     else if (ep_c > 0) [[likely]]
       for (int n = 0; n < ep_c; n++)
         if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
-          if (! do_event_recv(path, cb, sr)) [[unlikely]]
-            return do_error("e/self/event_recv@");
+          if (! do_ev_recv(path, cb, sr)) [[unlikely]]
+            return do_error("e/self/ev_recv@");
   }
 
   return close_sysres(sr);
-}
+};
 
 } /* namespace detail::wtr::watcher::adapter::inotify */
 

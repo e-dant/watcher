@@ -43,7 +43,7 @@ struct ep {
 };
 
 inline auto do_error =
-  [](std::string&& msg, char const* const path, auto const& cb) noexcept -> bool
+  [](std::string&& msg, char const* const path, auto const& cb) -> bool
 {
   using et = enum ::wtr::watcher::event::effect_type;
   using pt = enum ::wtr::watcher::event::path_type;
@@ -52,7 +52,7 @@ inline auto do_error =
 };
 
 inline auto do_warn =
-  [](std::string&& msg, auto const& path, auto const& cb) noexcept -> bool
+  [](std::string&& msg, auto const& path, auto const& cb) -> bool
 { return (do_error(std::move(msg), path, cb), true); };
 
 inline auto make_ep =
@@ -78,7 +78,7 @@ inline auto is_dir(char const* const path) -> bool
   return stat(path, &s) == 0 && S_ISDIR(s.st_mode);
 }
 
-inline auto strany = [](char const* const s, auto... cmp) noexcept -> bool
+inline auto strany = [](char const* const s, auto... cmp) -> bool
 { return ((strcmp(s, cmp) == 0) || ...); };
 
 /*  $ echo time wtr.watcher / -ms 1
@@ -102,7 +102,7 @@ inline auto strany = [](char const* const s, auto... cmp) noexcept -> bool
     not having a full picture.
 */
 template<class Fn>
-inline auto walkdir_do(char const* const path, Fn f) noexcept -> void
+inline auto walkdir_do(char const* const path, Fn const& f) -> void
 {
   auto pappend = [&](char* head, char* tail)
   { return snprintf(head, PATH_MAX, "%s/%s", path, tail); };
@@ -121,7 +121,7 @@ inline auto walkdir_do(char const* const path, Fn f) noexcept -> void
   }
 }
 
-inline auto close_sysres = [](auto& sr) noexcept -> bool
+inline auto close_sysres = [](auto& sr) -> bool
 {
   sr.ok = false;
   auto closed = close(sr.ke.fd) == 0 && close(sr.ep.fd) == 0;
