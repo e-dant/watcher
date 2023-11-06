@@ -1220,12 +1220,12 @@ inline auto watch =
 #include <cstring>
 #include <filesystem>
 #include <functional>
+#include <limits.h>
 #include <sys/epoll.h>
 #include <sys/inotify.h>
 #include <system_error>
 #include <unistd.h>
 #include <unordered_map>
-#include <limits.h>
 
 namespace detail::wtr::watcher::adapter::inotify {
 
@@ -1317,8 +1317,10 @@ inline auto do_mark =
   int wd = -1;
   if (realpath(dirpath, real) && is_dir(real))
     wd = inotify_add_watch(dirfd, real, ke_in_ev::recv_mask);
-  if (wd > 0) return (dm.emplace(wd, real), true);
-  else return do_error("w/sys/not_watched@", dirpath, cb);
+  if (wd > 0)
+    return (dm.emplace(wd, real), true);
+  else
+    return do_error("w/sys/not_watched@", dirpath, cb);
 };
 
 inline auto make_sysres =
@@ -1334,7 +1336,8 @@ inline auto make_sysres =
     base_path,
     [&](char const* const dir) { do_mark(dir, in_fd, dm, cb); });
   auto ep = make_ep(base_path, cb, in_fd);
-  if (dm.empty() || ep.fd < 0) return (close(in_fd), do_error("e/self/resource@"));
+  if (dm.empty() || ep.fd < 0)
+    return (close(in_fd), do_error("e/self/resource@"));
   return sysres{
     .ok = true,
     .ke{
@@ -1382,19 +1385,18 @@ inline auto parse_ev(
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
   auto istofrom = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_TO) && (b->mask & IN_MOVED_FROM); };
-  auto one = [&](auto* a, auto* next) -> parsed
-  { return {ev(pathof(a), et, pt), next}; };
-  auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  auto one = [&](auto* a, auto* next) -> parsed {
+    return {ev(pathof(a), et, pt), next};
+  };
+  auto assoc = [&](auto* a, auto* b) -> parsed {
+    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
+  };
   auto next = peek(in, tail);
 
-  return ! isassoc(in, next)
-           ? one(in, next)
-           : isfromto(in, next)
-             ? assoc(in, next)
-             : istofrom(next, in)
-               ? assoc(next, in)
-               : one(in, next);
+  return ! isassoc(in, next) ? one(in, next)
+       : isfromto(in, next)  ? assoc(in, next)
+       : istofrom(next, in)  ? assoc(next, in)
+                             : one(in, next);
 }
 
 struct defer_dm_rm_wd {
@@ -1404,8 +1406,7 @@ struct defer_dm_rm_wd {
 
   inline auto push(int wd) -> void
   {
-    if (back_idx < sizeof(buf))
-      buf[back_idx++] = wd;
+    if (back_idx < sizeof(buf)) buf[back_idx++] = wd;
   };
 
   inline defer_dm_rm_wd(ke_in_ev::paths& dm)
