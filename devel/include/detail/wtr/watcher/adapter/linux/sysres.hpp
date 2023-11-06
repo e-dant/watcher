@@ -121,12 +121,29 @@ inline auto walkdir_do(char const* const path, Fn const& f) -> void
   }
 }
 
+/*  We aren't worried about losing data after
+    a failed call to `close()` (whereas closing
+    a file descriptor in use for, say, writing
+    would be a problem). Linux will eventually
+    close the file descriptor regardless of the
+    return value of `close()`, so we always set
+    the file descriptors to -1 during cleanup
+    to avoid double-closing or checking these
+    descriptors for events.
+    We are only interested in failures about
+    bad file descriptors. We would probably
+    hit that if we failed to create a valid
+    file descriptor, on, say, an out-of-fds
+    device or a machine running some odd OS.
+    Everything else is fine to pass on.
+*/
 inline auto close_sysres = [](auto& sr) -> bool
 {
   sr.ok = false;
-  auto closed = close(sr.ke.fd) == 0 && close(sr.ep.fd) == 0;
+  close(sr.ke.fd);
+  close(sr.ep.fd);
   sr.ke.fd = sr.ep.fd = -1;
-  return closed;
+  return errno != EBADF;
 };
 
 } /*  namespace detail::wtr::watcher::adapter */
