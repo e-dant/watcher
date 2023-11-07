@@ -32,7 +32,7 @@ jobs:
           - ubuntu-22.04
           - ubuntu-latest
         cxx_compiler:
-          - clang++
+          # - clang++ See issue 41
           - g++
         install_location:
           - .local
