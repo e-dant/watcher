@@ -9,7 +9,7 @@
 # SC2317: Command can be reached.
 
 beganat=$(date -u +"%Y-%m-%dT%H:%M:%SZ") # or date --iso=ns -u on non-bsd
-builddir=$(realpath "$(dirname "$0")/../../build")
+builddir=$( (cd "$(dirname "$0")/../../build" && pwd) )
 testdir=$builddir/tst-$beganat
 export testdir
 
