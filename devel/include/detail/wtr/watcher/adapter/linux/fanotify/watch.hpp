@@ -47,7 +47,6 @@ struct ke_fa_ev {
   static constexpr auto init_flags
     = FAN_CLASS_NOTIF
     | FAN_REPORT_FID
-    | FAN_REPORT_TARGET_FID
     | FAN_REPORT_DIR_FID
     | FAN_REPORT_NAME
     | FAN_UNLIMITED_QUEUE

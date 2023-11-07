@@ -929,7 +929,6 @@ struct ke_fa_ev {
   static constexpr auto init_flags
     = FAN_CLASS_NOTIF
     | FAN_REPORT_FID
-    | FAN_REPORT_TARGET_FID
     | FAN_REPORT_DIR_FID
     | FAN_REPORT_NAME
     | FAN_UNLIMITED_QUEUE
@@ -1383,8 +1382,6 @@ inline auto parse_ev(
   { return b && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto istofrom = [](auto* a, auto* b) -> bool
-  { return (a->mask & IN_MOVED_TO) && (b->mask & IN_MOVED_FROM); };
   auto one = [&](auto* a, auto* next) -> parsed {
     return {ev(pathof(a), et, pt), next};
   };
@@ -1395,7 +1392,7 @@ inline auto parse_ev(
 
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
-       : istofrom(next, in)  ? assoc(next, in)
+       : isfromto(next, in)  ? assoc(next, in)
                              : one(in, next);
 }
 
