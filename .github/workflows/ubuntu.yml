@@ -62,3 +62,6 @@ jobs:
 
       - name: Test fanotify
         run: sudo VERBOSE=1 tool/build --verbose --no-build
+
+      - name: Test
+        run: find tool/test -type f -not -name .ctx | bash
