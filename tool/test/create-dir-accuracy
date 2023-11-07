@@ -100,7 +100,7 @@
 
   actual=$(
     . "$(dirname "$0")/.ctx"
-    watch-async "$testdir" -ms 200 > "$testdir.json"
+    watch-async "$testdir" -ms 300 > "$testdir.json"
     while read -r d
     do mkdir "$d"
     done << .
@@ -108,6 +108,7 @@
       b
       c
 .
+    [ "$(uname -s)" = Darwin ] && sleep 0.1
     while read -r d
     do rmdir "$d"
     done << .

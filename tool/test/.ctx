@@ -8,7 +8,7 @@
 # shellcheck disable=SC2317
 # SC2317: Command can be reached.
 
-beganat=$(date --iso=ns)
+beganat=$(date -u +"%Y-%m-%dT%H:%M:%SZ") # or date --iso=ns -u on non-bsd
 builddir=$(realpath "$(dirname "$0")/../../build")
 testdir=$builddir/tst-$beganat
 export testdir
@@ -16,6 +16,9 @@ export testdir
 trap "cd '$PWD' ; rm -rf '$testdir' '$testdir.json'" EXIT
 mkdir -p "$testdir" || exit 1
 cd "$testdir" || exit 1
+
+# Otherwise, the Darwin watcher will the testdir's creation event
+[ "$(uname -s)" = Darwin ] && sleep 0.2
 
 watch-async() {
   watcher-via-nix() {

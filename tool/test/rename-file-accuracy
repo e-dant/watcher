@@ -1,0 +1,102 @@
+#! /usr/bin/env bash
+# shellcheck source=tool/test/.ctx
+
+# Create and rename, without overwriting the moved-to file
+(
+  read -r -d '' expect << .
+[
+  {
+    "effect_type": "create",
+    "path_name": "s/self/live@d",
+    "path_type": "watcher"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/a",
+    "path_type": "file"
+  },
+  {
+    "associated": {
+      "effect_type": "rename",
+      "path_name": "d/b",
+      "path_type": "file"
+    },
+    "effect_type": "rename",
+    "path_name": "d/a",
+    "path_type": "file"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "s/self/die@d",
+    "path_type": "watcher"
+  }
+]
+.
+
+  actual=$(
+    . "$(dirname "$0")/.ctx"
+    watch-async "$testdir" -ms 200 > "$testdir.json"
+    touch a
+    mv a b
+    wait # for the watcher
+    show-events "$testdir" | without-effect-time
+  )
+
+  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+
+) || exit 1
+
+# Create and rename, overwriting the moved-to file
+(
+  read -r -d '' expect << .
+[
+  {
+    "effect_type": "create",
+    "path_name": "s/self/live@d",
+    "path_type": "watcher"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/a",
+    "path_type": "file"
+  },
+  {
+    "effect_type": "create",
+    "path_name": "d/b",
+    "path_type": "file"
+  },
+  {
+    "associated": {
+      "effect_type": "rename",
+      "path_name": "d/b",
+      "path_type": "file"
+    },
+    "effect_type": "rename",
+    "path_name": "d/a",
+    "path_type": "file"
+  },
+  {
+    "effect_type": "destroy",
+    "path_name": "s/self/die@d",
+    "path_type": "watcher"
+  }
+]
+.
+
+  actual=$(
+    . "$(dirname "$0")/.ctx"
+    watch-async "$testdir" -ms 300 > "$testdir.json"
+    touch a b
+    # todo:
+    # Otherwise, on Darwin, b will have a creation event
+    # after the rename, and will miss the one above.
+    [ "$(uname -s)" = Darwin ] && sleep 0.1
+    mv a b
+    wait # for the watcher
+    show-events "$testdir" | without-effect-time
+  )
+
+  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+
+) || exit 1
+
