@@ -25,11 +25,12 @@ namespace adapter {
 namespace {
 
 struct argptr_type {
+  using fspath = std::filesystem::path;
   /*  `fs::path` has no hash function, so we use this. */
   using pathset = std::unordered_set<std::string>;
   ::wtr::watcher::event::callback const callback{};
   std::shared_ptr<pathset> seen_created_paths{new pathset{}};
-  std::filesystem::path last_rename_from_path{};
+  std::shared_ptr<fspath> last_rename_from_path{new fspath{}};
 };
 
 struct sysres_type {
@@ -186,17 +187,17 @@ inline auto event_recv_one(
         rename events, see this directory's
         notes (in the `notes.md` file).
     */
-    auto differs = ! lrf_path.empty() && lrf_path != path;
-    auto missing = access(lrf_path.c_str(), F_OK) == -1;
+    auto differs = ! lrf_path->empty() && *lrf_path != path;
+    auto missing = access(lrf_path->c_str(), F_OK) == -1;
     if (differs && missing) {
       callback({
-        {lrf_path, effect_type::rename, pt},
-        {    path, effect_type::rename, pt}
+        {*lrf_path, effect_type::rename, pt},
+        {     path, effect_type::rename, pt}
       });
-      lrf_path.clear();
+      lrf_path->clear();
     }
     else {
-      lrf_path = path;
+      *lrf_path = path;
     }
   }
 }
@@ -307,7 +308,7 @@ inline auto open_event_stream(
       /*  The time "since when" we receive events */
       kFSEventStreamEventIdSinceNow,
       /*  The time between scans *after inactivity* */
-      duration_cast<seconds>(16ms).count(),
+      (0.016s).count(),
       /*  The event stream flags */
       fsev_flag_listen)) {
     FSEventStreamSetDispatchQueue(
