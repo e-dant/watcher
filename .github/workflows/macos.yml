@@ -49,4 +49,4 @@ jobs:
           export VERBOSE=1
           tool/build --verbose --no-build
 
-      - run: find tool/test -type f -not -name .ctx | bash
+      - run: tool/test/all
