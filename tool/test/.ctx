@@ -73,9 +73,10 @@ check-result() {
   [[ -z "$1" || -z "$2" ]] && return 1
   expect=$1
   actual=$2
-  if diff <(echo "$expect") <(echo "$actual")
+  if diff <(echo "$expect") <(echo "$actual") &> /dev/null
   then echo ':) ok'
-  else printf '\n%s\n' 'oops, expected:' "$expect" && return 1
+  else echo 'oops :('
+       diff --side-by-side <(echo "$expect") <(echo "$actual")
   fi
 }
 export -f check-result
