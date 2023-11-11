@@ -1,8 +1,10 @@
 #! /usr/bin/env bash
 # shellcheck source=tool/test/.ctx
 
-# Create and rename, without overwriting the moved-to file
+ec=0
+
 (
+  desc='Create and rename a file without overwriting an existing file'
   read -r -d '' expect << .
 [
   {
@@ -33,8 +35,11 @@
 ]
 .
 
+  echo -n "$desc ... "
+
+  . "$(dirname "$0")/.ctx"
+
   actual=$(
-    . "$(dirname "$0")/.ctx"
     watch-async "$testdir" -ms 200 > "$testdir.json"
     touch a
     mv a b
@@ -42,12 +47,12 @@
     show-events "$testdir" | without-effect-time
   )
 
-  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+  check-result "$expect" "$actual"
+)
+ec=$((ec + $?))
 
-) || exit 1
-
-# Create and rename, overwriting the moved-to file
 (
+  desc='Create and rename a file, overwriting an existing file'
   read -r -d '' expect << .
 [
   {
@@ -83,8 +88,11 @@
 ]
 .
 
+  echo -n "$desc ... "
+
+  . "$(dirname "$0")/.ctx"
+
   actual=$(
-    . "$(dirname "$0")/.ctx"
     watch-async "$testdir" -ms 300 > "$testdir.json"
     touch a b
     # todo:
@@ -96,7 +104,8 @@
     show-events "$testdir" | without-effect-time
   )
 
-  diff <(echo "$expect") <(echo "$actual") && echo ':) ok'
+  check-result "$expect" "$actual"
+)
+ec=$((ec + $?))
 
-) || exit 1
-
+exit "$ec"
