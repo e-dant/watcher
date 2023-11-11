@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+find "$(dirname "$0")" -type f -not -name .ctx -and -not -name all | shuf | bash
+
