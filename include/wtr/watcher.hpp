@@ -939,12 +939,9 @@ struct ke_fa_ev {
     = FAN_ONDIR
     | FAN_CREATE
     | FAN_MODIFY
-    | FAN_ATTRIB
-    | FAN_MOVED_FROM
-    | FAN_MOVED_TO
+    // | FAN_ATTRIB todo: Support change of ownership
+    | FAN_MOVE
     | FAN_DELETE
-    | FAN_DELETE_SELF
-    | FAN_MOVE_SELF
     | FAN_EVENT_ON_CHILD;
 
   int fd = -1;
