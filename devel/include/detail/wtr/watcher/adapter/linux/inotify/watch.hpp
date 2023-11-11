@@ -143,7 +143,7 @@ inline auto
 peek(inotify_event const* const in_ev, inotify_event const* const ev_tail)
   -> inotify_event*
 {
-  auto len_to_next = sizeof(inotify_event) + in_ev->len;
+  auto len_to_next = sizeof(inotify_event) + (in_ev ? in_ev->len : 0);
   auto next = (inotify_event*)((char*)in_ev + len_to_next);
   return next < ev_tail ? next : nullptr;
 };
@@ -164,14 +164,13 @@ inline auto parse_ev(
   auto pathof = [&](inotify_event const* const m)
   { return dirname / std::filesystem::path{m->name}; };
   auto pt = in->mask & IN_ISDIR ? ev_pt::dir : ev_pt::file;
-  auto et = in->mask & IN_CREATE     ? ev_et::create
-          : in->mask & IN_DELETE     ? ev_et::destroy
-          : in->mask & IN_MOVED_FROM ? ev_et::rename
-          : in->mask & IN_MOVED_TO   ? ev_et::rename
-          : in->mask & IN_MODIFY     ? ev_et::modify
-                                     : ev_et::other;
+  auto et = in->mask & IN_CREATE ? ev_et::create
+          : in->mask & IN_DELETE ? ev_et::destroy
+          : in->mask & IN_MOVE   ? ev_et::rename
+          : in->mask & IN_MODIFY ? ev_et::modify
+                                 : ev_et::other;
   auto isassoc = [&](auto* a, auto* b) -> bool
-  { return b && b->cookie == a->cookie && et == ev_et::rename; };
+  { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
   auto one = [&](auto* a, auto* next) -> parsed {
@@ -226,9 +225,9 @@ struct defer_dm_rm_wd {
 
     Event notes:
     Phantom Events --
-    An event, probably from some
-    other recent instance of
-    inotify, somehow got to us.
+    An event from an unmarked path,
+    or a path which we didn't mark,
+    was somehow reported to us.
     These events are rare, but they
     do happen. We won't be able to
     parse this event's real path.
