@@ -67,7 +67,7 @@ auto time_parts(chrono::nanoseconds ns) -> TimeParts
   };
 };
 
-auto ftime(char* buf, unsigned long len, chrono::nanoseconds tnanos) {
+auto ftime(char* buf, unsigned long long len, chrono::nanoseconds tnanos) {
   auto [ss, ms, us, ns] = time_parts(tnanos);
   auto b = ss > 0
     ? snprintf(buf, len, "%lld s", ss)

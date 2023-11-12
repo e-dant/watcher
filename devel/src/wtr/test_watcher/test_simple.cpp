@@ -95,6 +95,10 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
 
   /*  @todo This close operation should probably try to flush
       any pending events out there... Can we do that? */
+#ifdef _WIN32
+  std::this_thread::sleep_for(100ms);
+#endif
+
   REQUIRE(watcher.close() == true);
 
   REQUIRE(fs::remove_all(test_store_path) > 0u);
