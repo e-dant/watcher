@@ -100,9 +100,9 @@ list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET PREPEND
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(WTR_BENCH_WATCHER_SOURCE_SET
-  "bench_concurrent_watch_targets")
+  "test_performance")
 list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET PREPEND
-  "src/wtr/bench_watcher/")
+  "devel/src/wtr/test_watcher/")
 list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(INCLUDE_PATH_SINGLE_HEADER
