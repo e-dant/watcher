@@ -16,9 +16,14 @@
 using namespace std;
 using namespace wtr;
 
+inline auto do_nothing() -> void {
 #ifdef _WIN32
-#define asm __asm
+  unsigned volatile char _;
+  _ = 0;
+#else
+  asm volatile ("nop");
 #endif
+};
 
 struct BenchCfg {
   int watch_count;
@@ -143,7 +148,7 @@ public:
       int n = 1000;
       for (int i = 0; i < n; ++i) {
         auto start = now();
-        asm volatile ("nop");
+        (volatile void)do_nothing();
         clock_overhead += since(start);
       }
       clock_overhead /= n;
@@ -157,7 +162,7 @@ public:
         by the watcher between witnessing an
         event and sending it through to us.
     */
-    auto cb = [](auto) { asm volatile ("nop"); };
+    auto cb = [](auto) { (volatile void)do_nothing(); };
 
     /*  For now, we're not measuring the time
         taken for the con/destruction of the
