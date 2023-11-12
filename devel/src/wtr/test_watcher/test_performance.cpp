@@ -16,6 +16,10 @@
 using namespace std;
 using namespace wtr;
 
+#ifdef _WIN32
+#define asm __asm
+#endif
+
 struct BenchCfg {
   int watch_count;
   int event_count;
