@@ -14,7 +14,10 @@ project(
   VERSION 0.9.5 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
-  LANGUAGES CXX)
+  LANGUAGES
+    CXX
+    C
+)
 
 #
 # Options, Variable & Constants
@@ -356,4 +359,18 @@ wtr_add_autosan_test_bin_target(
 wtr_add_bench_bin_target(
   "wtr.bench_watcher"
   "${WTR_BENCH_WATCHER_SOURCE_SET}")
+
+# Used in the tool/test suite. Platforms vary
+# in their mv(1) implementations. We smooth
+# over that by using the `rename` system call,
+# which doesn't vary much at all.
+wtr_add_bin_target(
+  "portable-destructive-rename"
+  "test-bin"
+  "OFF"
+  "devel/src/portable-destructive-rename/main.c"
+  "${COMPILE_OPTIONS}"
+  "${LINK_OPTIONS}"
+  ""
+  "")
 

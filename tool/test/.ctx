@@ -17,20 +17,14 @@ trap "cd '$PWD' ; rm -rf '$testdir' '$testdir.json'" EXIT
 mkdir -p "$testdir" || exit 1
 cd "$testdir" || exit 1
 
+PATH=$builddir/out/this/Debug:$PATH
+
 # Otherwise, the Darwin watcher will the testdir's creation event
 [ "$(uname -s)" = Darwin ] && sleep 0.2
 
 watch-async() {
-  watcher-via-nix() {
-    nix run --quiet .\#watcher -- "$@"
-  }
-
-  watcher=$(
-    relbin=$builddir/out/this/Release/wtr.watcher
-    { [ -x "$relbin" ] && echo "$relbin" ; } \
-    || command -v wtr.watcher \
-    || echo 'watcher-via-nix'
-  )
+  watcher-via-nix() { nix run --quiet .\#watcher -- "$@"; }
+  watcher=$(command -v wtr.watcher || echo 'watcher-via-nix')
 
   "$watcher" "$@" &
   sleep 0.1

@@ -99,7 +99,7 @@ ec=$((ec + $?))
     # Otherwise, on Darwin, b will have a creation event
     # after the rename, and will miss the one above.
     [ "$(uname -s)" = Darwin ] && sleep 0.1
-    mv -T a b
+    portable-destructive-rename a b
     wait # for the watcher
     show-events "$testdir" | without-effect-time
   )
