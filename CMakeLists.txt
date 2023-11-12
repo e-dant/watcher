@@ -96,7 +96,7 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "test_new_directories"
   "test_simple")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET PREPEND
-  "src/wtr/test_watcher/")
+  "devel/src/wtr/test_watcher/")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(WTR_BENCH_WATCHER_SOURCE_SET
