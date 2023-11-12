@@ -145,7 +145,7 @@ public:
         reliable this figure probably is. */
     auto clock_overhead = 0ns;
     {
-      int n = 1000;
+      constexpr int n = 1000;
       for (int i = 0; i < n; ++i) {
         auto start = now();
         (volatile void)do_nothing();
