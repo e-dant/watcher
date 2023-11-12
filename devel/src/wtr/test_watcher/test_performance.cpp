@@ -148,7 +148,7 @@ public:
       constexpr int n = 1000;
       for (int i = 0; i < n; ++i) {
         auto start = now();
-        (volatile void)do_nothing();
+        do_nothing();
         clock_overhead += since(start);
       }
       clock_overhead /= n;
@@ -162,7 +162,7 @@ public:
         by the watcher between witnessing an
         event and sending it through to us.
     */
-    auto cb = [](auto) { (volatile void)do_nothing(); };
+    auto cb = [](auto) { do_nothing(); };
 
     /*  For now, we're not measuring the time
         taken for the de/construction of the
