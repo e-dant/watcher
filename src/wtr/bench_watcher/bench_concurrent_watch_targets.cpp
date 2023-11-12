@@ -13,16 +13,20 @@
 
 // clang-format off
 
-namespace ti = std::chrono;
+using namespace std;
+using namespace wtr;
 
 struct BenchCfg {
-  int watcher_count;
+  int watch_count;
   int event_count;
 };
 
 struct BenchResult {
   struct BenchCfg cfg;
-  ti::nanoseconds time_taken;
+  chrono::nanoseconds time_taken_total;
+  chrono::nanoseconds time_taken_fsops;
+  chrono::nanoseconds time_taken_watch;
+  chrono::nanoseconds clock_overhead;
   unsigned nth;
 };
 
@@ -37,23 +41,80 @@ struct RangePair {
   Range event_range;
 };
 
-auto show_result(BenchResult const& res) -> void
-{
-  auto const ss = static_cast<long long>(ti::duration_cast<ti::seconds>(res.time_taken).count());
-  auto const ms = static_cast<long long>(ti::duration_cast<ti::milliseconds>(res.time_taken).count());
-  auto const us = static_cast<long long>(ti::duration_cast<ti::microseconds>(res.time_taken).count());
-  auto const ns = static_cast<long long>(res.time_taken.count());
+struct TimeParts {
+  long long seconds;
+  long long milliseconds;
+  long long microseconds;
+  long long nanoseconds;
+};
 
-  printf(
-    "%i|%i|",
-    res.cfg.watcher_count, res.cfg.event_count);
-  ss > 0
-    ? printf("%lld s\n", ss)
+auto time_parts(chrono::nanoseconds ns) -> TimeParts
+{
+  return {
+    static_cast<long long>(chrono::duration_cast<chrono::seconds>(ns).count()),
+    static_cast<long long>(chrono::duration_cast<chrono::milliseconds>(ns).count()),
+    static_cast<long long>(chrono::duration_cast<chrono::microseconds>(ns).count()),
+    static_cast<long long>(ns.count())
+  };
+};
+
+auto ftime(char* buf, unsigned long len, chrono::nanoseconds tnanos) {
+  auto [ss, ms, us, ns] = time_parts(tnanos);
+  auto b = ss > 0
+    ? snprintf(buf, len, "%lld s", ss)
     : ms > 0
-      ? printf("%lld ms\n", ms)
+      ? snprintf(buf, len, "%lld ms", ms)
       : us > 0
-        ? printf("%lld us\n", us)
-        : printf("%lld ns\n", ns);
+        ? snprintf(buf, len, "%lld us", us)
+        : snprintf(buf, len, "%lld ns", ns);
+  return b;
+}
+
+auto show_results(auto res) -> void
+{
+  char buf[2048 * 80]{0};
+  char* p = buf;
+  auto colw = 20;
+  auto idx = [&](char* p)
+  { return sizeof(buf) - (p - buf); };
+  auto inc = [&](char* p, int n)
+  { return p + n < buf + sizeof(buf) ? p + n : 0; };
+  auto fill = [&](char* p, int n) {
+    auto np = p;
+    while (n --> 0)
+      np = inc(np, snprintf(np, idx(np), " "));
+    return np;
+  };
+  auto incnfill = [&](char* p, int n)
+  { return fill(inc(p, n), colw - n > 0 ? colw - n : 0); };
+  auto hdrs =
+  { "Total Time", "Total Fs Ops Time", "Total Watch Time", "Fs Ops Time/Event", "Watch Time/Event", "Clock Overhead", "Watchers", "Events" };
+  for (auto hdr : hdrs)
+    p = incnfill(p, snprintf(p, idx(p), "%s", hdr));
+  p = inc(p, snprintf(p, idx(p), "\n"));
+  for (auto r : res) {
+    p = incnfill(p, ftime(p, idx(p), r.time_taken_total));
+    p = incnfill(p, ftime(p, idx(p), r.time_taken_fsops));
+    p = incnfill(p, ftime(p, idx(p), r.time_taken_watch));
+    p = incnfill(p, ftime(p, idx(p), r.time_taken_fsops / r.cfg.watch_count));
+    p = incnfill(p, ftime(p, idx(p), r.time_taken_watch / r.cfg.event_count));
+    p = incnfill(p, ftime(p, idx(p), r.clock_overhead));
+    p = incnfill(p, snprintf(p, idx(p), "%i", r.cfg.watch_count));
+    p = incnfill(p, snprintf(p, idx(p), "%i", r.cfg.event_count));
+    p = inc(p, snprintf(p, idx(p), "\n"));
+  }
+  printf("%s", buf);
+};
+
+auto now() -> chrono::nanoseconds
+{
+  return chrono::duration_cast<chrono::nanoseconds>(
+      chrono::system_clock{}.now().time_since_epoch());
+};
+
+auto since(chrono::nanoseconds const& start) -> chrono::nanoseconds
+{
+  return now() - start;
 };
 
 template<BenchCfg cfg>
@@ -61,107 +122,157 @@ class Bench{
 public:
   auto concurrent_watchers() -> BenchResult
   {
-    namespace tw = wtr::test_watcher;
-    namespace fs = std::filesystem;
+    auto path = test_watcher::test_store_path;
 
-    static unsigned nth = 0;
+    if (! filesystem::exists(path))
+      filesystem::create_directory(path);
 
-    if (! fs::exists(tw::test_store_path))
-      fs::create_directory(tw::test_store_path);
+    /*  Try to approximate the overhead of
+        observing the time and a bit of
+        addition by doing what we do in
+        the ofstream loop, but without the
+        actual filesystem ops.
+        The longer this loop, the more
+        reliable this figure probably is. */
+    auto clock_overhead = 0ns;
+    {
+      int n = 1000;
+      for (int i = 0; i < n; ++i) {
+        auto start = now();
+        asm volatile ("nop");
+        clock_overhead += since(start);
+      }
+      clock_overhead /= n;
+    }
 
-    auto start = ti::system_clock{}.now();
+    /*  Forces entry into the closure when the
+        watcher decides to call it. Compilers
+        might otherwise optimize a function
+        with an empty body away. We use this
+        to measure the accumulated time taken
+        by the watcher between witnessing an
+        event and sending it through to us.
+    */
+    auto cb = [](auto) { asm volatile ("nop"); };
 
-    auto watchers = std::array<std::unique_ptr<wtr::watch>, cfg.watcher_count>{};
+    /*  For now, we're not measuring the time
+        taken for the con/destruction of the
+        watchers or the filesystems ops to
+        set-up/tear-down the directory tree.
+        Open question if we should measure
+        the time taken for con/destruction
+        of these watchers. If we do want that,
+        we should take care not to measure the
+        allocation overhead. */
+    auto watchers = array<unique_ptr<watch>, cfg.watch_count>{};
+    for (int i = 0; i < cfg.watch_count; ++i)
+      watchers.at(i) = std::move(make_unique<watch>(path, cb));
 
-    for (int i = 0; i < cfg.watcher_count; ++i)
-      watchers.at(i) = std::move(
-          std::make_unique<wtr::watch>(
-            tw::test_store_path,
-              [](auto) {}
-            ));
+    auto start = now();
+    auto time_taken_fsops = chrono::nanoseconds{0};
+    for (int i = 0; i < cfg.event_count; ++i) {
+      auto start_fsops = now();
+      ofstream{path / to_string(i)};  // touch
+      time_taken_fsops += since(start_fsops);
+    }
+    auto time_taken_total = since(start);
+    time_taken_fsops -= clock_overhead * cfg.event_count;
+    auto time_taken_watch = time_taken_total - time_taken_fsops;
 
-    for (int i = 0; i < cfg.event_count; ++i)
-      std::ofstream{tw::test_store_path / std::to_string(i)};  // touch
+    if (filesystem::exists(path))
+      filesystem::remove_all(path);
 
-    auto time_taken = duration_cast<ti::nanoseconds>(
-        ti::system_clock{}.now() - start);
-
-    if (std::filesystem::exists(tw::test_store_path))
-      std::filesystem::remove_all(tw::test_store_path);
-
-    return {cfg, time_taken, nth++};
+    return {
+      cfg,
+      time_taken_total,
+      time_taken_fsops,
+      time_taken_watch,
+      clock_overhead,
+      [] { static unsigned nth = 0; return nth++; }(),
+    };
   };
 };
 
 template<RangePair Rp>
-constexpr auto bench_range() -> void
+auto bench_range() -> vector<BenchResult>
 {
+  auto res = vector<BenchResult>{};
+
   // Until the end ...
   if constexpr (
       Rp.watcher_range.start + Rp.watcher_range.step <= Rp.watcher_range.stop
       && Rp.event_range.start + Rp.event_range.step <= Rp.event_range.stop)
   {
     // Run this ...
-    auto res =
+    auto head =
       Bench<BenchCfg{
-        .watcher_count=Rp.watcher_range.start,
+        .watch_count=Rp.watcher_range.start,
         .event_count=Rp.event_range.start}>{}
       .concurrent_watchers();
-    show_result(res);
 
-    // Then run the next ...
-    return bench_range<
-      RangePair{
-        .watcher_range = Range{
-          .start=Rp.watcher_range.start + Rp.watcher_range.step,
-          .stop=Rp.watcher_range.stop,
-          .step=Rp.watcher_range.step},
-        .event_range = Range{
-          .start=Rp.event_range.start + Rp.event_range.step,
-          .stop=Rp.event_range.stop,
-          .step=Rp.event_range.step}}>();
+    // And the rest ...
+    auto tail =
+      bench_range<
+        RangePair{
+          .watcher_range = Range{
+            .start=Rp.watcher_range.start + Rp.watcher_range.step,
+            .stop=Rp.watcher_range.stop,
+            .step=Rp.watcher_range.step},
+          .event_range = Range{
+            .start=Rp.event_range.start + Rp.event_range.step,
+            .stop=Rp.event_range.stop,
+            .step=Rp.event_range.step}}
+      >();
+
+    res.push_back(head);
+    res.insert(res.end(), tail.begin(), tail.end());
   }
+
+  return res;
 };
 
-/*  We bench 1..30 watchers on directories with 100..1k events with a
-    callback that prints events to stdout.
-    These benchmarks should be bound by how fast we can create events
-    and write to stdout.
+auto vec_cat(auto... vs) -> vector<BenchResult>
+{
+  auto res = vector<BenchResult>{};
+  (res.insert(res.end(), vs.begin(), vs.end()), ...);
+  return res;
+};
+
+/*  We test that the overhead of watching a filesystem is unencumbering.
+
+    IOW, our results should be bound to how fast we can perform io on
+    the filesystem, not by how fast the watcher can witness events.
+
     We want to offload most of the unrelated work onto compile-time
     computations so that we can accurately measure a "common" watcher
     path/callback setup. Things like:
       Allocating, storing and resizing vectors of watchers.
       Complicated iteration logic.
-    We use some fancy templates for that, but beware of this (fatal)
+    We use some fancy templates for that, so beware of the (fatal)
     compiler error when testing many watchers or events:
       template instantiation depth exceeds <some number around 1k>
-    We bench 1 to 30 watchers on directories with 100 to 1k events.
-    The callback prints the events to stdout. These benchmarks should
-    ideally be bound by how fast we can create the events and perform
-    i/o to stdout. */
+*/
 
-TEST_CASE("Bench Concurrent watch Targets", "[bench][concurrent][file][watch-target]")
+TEST_CASE("Concurrent Watch Target Performance", "[perf][concurrent][file][watch-target]")
 {
-  printf("Watcher Count|Event Count|Time Taken\n");
-  bench_range<RangePair{
-    .watcher_range={.start=1, .stop=1, .step=0},
-    .event_range={.start=100, .stop=1000, .step=100}}>();
-};
+  //  Warming up the cache
+  bench_range<RangePair{{1,3,1},{100,500,100}}>();
 
-TEST_CASE("Bench Concurrent watch Targets 2", "[bench][concurrent][file][watch-target]")
-{
-  printf("Watcher Count|Event Count|Time Taken\n");
-  bench_range<RangePair{
-    .watcher_range={.start=1, .stop=30, .step=5},
-    .event_range={.start=100, .stop=100, .step=0}}>();
-};
+  auto res = vec_cat(
+    bench_range<RangePair{
+        .watcher_range=  { .start=1,    .stop=1,     .step=0    },
+        .event_range=    { .start=100,  .stop=1000,  .step=100  }}>(),
+    bench_range<RangePair{
+        .watcher_range=  { .start=1,    .stop=1,     .step=0    },
+        .event_range=    { .start=1000, .stop=10000, .step=1000 }}>(),
+    bench_range<RangePair{
+        .watcher_range=  { .start=5,    .stop=30,    .step=5    },
+        .event_range=    { .start=1000, .stop=1000,  .step=0    }}>()
+  );
+  show_results(res);
 
-TEST_CASE("Bench Concurrent watch Targets 3", "[bench][concurrent][file][watch-target]")
-{
-  printf("Watcher Count|Event Count|Time Taken\n");
-  bench_range<RangePair{
-    .watcher_range={.start=1, .stop=1, .step=0},
-    .event_range={.start=100, .stop=10000, .step=1000}}>();
+  for (auto r : res)
+    CHECK(r.time_taken_watch < (r.time_taken_fsops / 100));
 };
 
 // clang-format on
