@@ -165,11 +165,11 @@ public:
     auto cb = [](auto) { (volatile void)do_nothing(); };
 
     /*  For now, we're not measuring the time
-        taken for the con/destruction of the
-        watchers or the filesystems ops to
-        set-up/tear-down the directory tree.
+        taken for the de/construction of the
+        watchers or the set-up/tear-down time
+        of the directory tree.
         Open question if we should measure
-        the time taken for con/destruction
+        the time taken for de/construction
         of these watchers. If we do want that,
         we should take care not to measure the
         allocation overhead. */
