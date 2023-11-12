@@ -53,7 +53,6 @@ jobs:
           bash -c 'ls -hal build/tiny'
           bash -c 'cmake -S . -B build/manual ; cmake --build build/manual --target wtr.test_watcher --config Release'
           bash -c 'cmake -S . -B build/manual ; cmake --build build/manual --target wtr.test_watcher --config Debug'
-          bash -c 'cmake -S . -B build/manual ; cmake --build build/manual --target wtr.bench_watcher --config Release'
 
       - name: Test
         env:
@@ -61,5 +60,4 @@ jobs:
         run: |
           bash -c 'build/manual/Debug/wtr.test_watcher.exe'
           bash -c 'build/manual/Release/wtr.test_watcher.exe'
-          bash -c 'build/manual/Release/wtr.bench_watcher.exe'
 

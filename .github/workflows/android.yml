@@ -51,4 +51,4 @@ jobs:
 
       - name: Build
         run: |
-          tool/build --verbose --platform-android --no-build-test --no-build-bench --no-run-test --no-run-bench
+          tool/build --verbose --platform-android --no-build-test --no-run-test
