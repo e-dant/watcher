@@ -106,23 +106,16 @@
               rm -rf /tmp/watcher-test
             '';
           };
-          watcher-bench = mkWatcherDerivation {
-            src        = self;
-            pname      = "wtr.bench_watcher";
-            buildcfg   = "Release";
-            targets    = [ "wtr.bench_watcher" ];
-            components = [ "bin" ];
-          };
 
           # Bring watcher's tree and all of its dependencies in via inputsFrom,
           # and pre-build watcher via buildInputs so that we can use it right away.
           watcher-devshell = pkgs.mkShell {
-            inputsFrom = [ watcher-cli watcher-hdr watcher-test watcher-bench ];
+            inputsFrom = [ watcher-cli watcher-hdr watcher-test ];
             buildInputs = [ watcher ];
           };
 
         in {
-          packages = { inherit watcher watcher-cli watcher-hdr watcher-test watcher-bench; };
+          packages = { inherit watcher watcher-cli watcher-hdr watcher-test; };
           defaultApp = flake-utils.lib.mkApp { drv = watcher-cli; };
           defaultPackage = watcher;
           devShell = watcher-devshell;

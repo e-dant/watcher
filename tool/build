@@ -44,9 +44,7 @@ fia    --no-platform-this || fia --no-platform || ! { fia    --platform-this || 
 fia     --no-platform-ios || fia --no-platform || ! { fia     --platform-ios || fia --platform-all                     ; };     PLATFORM_IOS=$?
 fia    --no-build-release || fia    --no-build || ! { fia    --build-release || fia    --build-all || ! fia    --build ; };    BUILD_RELEASE=$?
 fia      --no-build-debug || fia    --no-build || ! { fia      --build-debug || fia    --build-all || ! fia    --build ; };      BUILD_DEBUG=$?
-fia      --no-build-bench || fia    --no-build || ! { fia      --build-bench || fia    --build-all || ! fia    --build ; };      BUILD_BENCH=$?
 fia       --no-build-test || fia    --no-build || ! { fia       --build-test || fia    --build-all || ! fia    --build ; };       BUILD_TEST=$?
-fia        --no-run-bench || fia      --no-run || ! { fia        --run-bench || fia      --run-all || ! fia      --run ; };        RUN_BENCH=$?
 fia         --no-run-test || fia      --no-run || ! { fia         --run-test || fia      --run-all || ! fia      --run ; };         RUN_TEST=$?
                                                   ! { fia          --install                                           ; };          INSTALL=$?
                                                   ! { fia            --clean                                           ; };            CLEAN=$?
@@ -71,18 +69,14 @@ valid-flags() {
   echo -- --no-platform
   echo -- --build-release
   echo -- --build-debug
-  echo -- --build-bench
   echo -- --build-test
   echo -- --build-all
   echo -- --no-build-release
   echo -- --no-build-debug
-  echo -- --no-build-bench
   echo -- --no-build-test
   echo -- --no-build
-  echo -- --run-bench
   echo -- --run-test
   echo -- --run-all
-  echo -- --no-run-bench
   echo -- --no-run-test
   echo -- --no-run-all
   echo -- --clean
@@ -109,9 +103,7 @@ inspect-all-options() {
   echo "    PLATFORM_IOS=$PLATFORM_IOS"
   echo "   BUILD_RELEASE=$BUILD_RELEASE"
   echo "     BUILD_DEBUG=$BUILD_DEBUG"
-  echo "     BUILD_BENCH=$BUILD_BENCH"
   echo "      BUILD_TEST=$BUILD_TEST"
-  echo "       RUN_BENCH=$RUN_BENCH"
   echo "        RUN_TEST=$RUN_TEST"
   echo "         INSTALL=$INSTALL"
   echo "           CLEAN=$CLEAN"
@@ -133,9 +125,9 @@ $0
   Build the Watcher.
   This file is a collection of shorthands for CMake invocations
   which eases over some platform-specific configuration, cross-
-  compilation, and the many, many build targets: unit-tests,
-  benches, sanitized builds, debug builds, release builds,
-  installation targets, etc, etc, etc.
+  compilation, and the many, many build targets:
+    tests, sanitized builds, debug builds, release builds,
+    installation targets, etc, etc, etc.
 
 Usage
   $0 [--help | --clean | [PLATFORM_OPTIONS] [BUILD_OPTIONS] [RUN_OPTIONS]]
@@ -153,10 +145,10 @@ Run Options
 $(valid-flags | sed 's/ /\n  /g' | grep run)
 
 Examples
-  $0 --build-all --no-run-test --run-bench --verbose
+  $0 --build-all --no-run-test --verbose
   $0 --no-run --build-all --platform-all
   $0 --build-release --install
-  $0 --run-bench
+  $0 --run-test
   $0 --clean"
 }
 just-help() { help; exit 0; }
@@ -278,12 +270,10 @@ cmake-targetsys-of-platform() {
 all-buildtargets() {
   echo wtr.watcher
   echo wtr.watcher
-  echo wtr.bench_watcher
   echo wtr.test_watcher
 }
 all-base-targets() {
   echo wtr.watcher
-  echo wtr.bench_watcher
   echo wtr.test_watcher
 }
 all-sanitizers() {
@@ -331,7 +321,6 @@ opt-buildcfgs() {
 opt-buildtargets() {
   [ "$BUILD_DEBUG"   = 1 ] && echo wtr.watcher
   [ "$BUILD_RELEASE" = 1 ] && echo wtr.watcher
-  [ "$BUILD_BENCH"   = 1 ] && echo wtr.bench_watcher
   [ "$BUILD_TEST"    = 1 ] && echo wtr.test_watcher
 }
 existing-targets-of-platform() {
@@ -402,14 +391,6 @@ runlog-tests()  {
        "$target"
     done
 }
-runlog-benches() {
-    all-existing-buildtarget-paths \
-  | grep -i this/release/wtr.bench_watcher \
-  | existing-matching-targets-in-pathptrn \
-  | while read -r target
-    do "$target"
-    done
-}
 
 flags-are-valid || { help ; exit 1 ; }
 
@@ -418,7 +399,6 @@ if [ "$HELP"    = 1 ]; then help   ; exit 0 ; fi
 if [ "$CLEAN"   = 1 ]; then clean || exit 1 ; fi
 opt-build-each                    || exit 1 ;
 [ "$RUN_TEST"   = 1 ] && runlog-tests
-[ "$RUN_BENCH"  = 1 ] && runlog-benches
 
 if [ "$VERBOSE" = 1 ]; then
   opt-platforms | while read -r platform

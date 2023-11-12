@@ -25,13 +25,13 @@ inline auto do_nothing() -> void {
 #endif
 };
 
-struct BenchCfg {
+struct PerfCfg {
   int watch_count;
   int event_count;
 };
 
-struct BenchResult {
-  struct BenchCfg cfg;
+struct PerfResult {
+  struct PerfCfg cfg;
   chrono::nanoseconds time_taken_total;
   chrono::nanoseconds time_taken_fsops;
   chrono::nanoseconds time_taken_watch;
@@ -126,10 +126,10 @@ auto since(chrono::nanoseconds const& start) -> chrono::nanoseconds
   return now() - start;
 };
 
-template<BenchCfg cfg>
-class Bench{
+template<PerfCfg cfg>
+class Perf{
 public:
-  auto concurrent_watchers() -> BenchResult
+  auto concurrent_watchers() -> PerfResult
   {
     auto path = test_watcher::test_store_path;
 
@@ -203,9 +203,9 @@ public:
 };
 
 template<RangePair Rp>
-auto bench_range() -> vector<BenchResult>
+auto perf_range() -> vector<PerfResult>
 {
-  auto res = vector<BenchResult>{};
+  auto res = vector<PerfResult>{};
 
   // Until the end ...
   if constexpr (
@@ -214,14 +214,14 @@ auto bench_range() -> vector<BenchResult>
   {
     // Run this ...
     auto head =
-      Bench<BenchCfg{
+      Perf<PerfCfg{
         .watch_count=Rp.watcher_range.start,
         .event_count=Rp.event_range.start}>{}
       .concurrent_watchers();
 
     // And the rest ...
     auto tail =
-      bench_range<
+      perf_range<
         RangePair{
           .watcher_range = Range{
             .start=Rp.watcher_range.start + Rp.watcher_range.step,
@@ -240,9 +240,9 @@ auto bench_range() -> vector<BenchResult>
   return res;
 };
 
-auto vec_cat(auto... vs) -> vector<BenchResult>
+auto vec_cat(auto... vs) -> vector<PerfResult>
 {
-  auto res = vector<BenchResult>{};
+  auto res = vector<PerfResult>{};
   (res.insert(res.end(), vs.begin(), vs.end()), ...);
   return res;
 };
@@ -265,19 +265,20 @@ auto vec_cat(auto... vs) -> vector<BenchResult>
 TEST_CASE("Concurrent Watch Target Performance", "[perf][concurrent][file][watch-target]")
 {
   //  Warming up the cache
-  bench_range<RangePair{{1,3,1},{100,500,100}}>();
+  perf_range<RangePair{{1,3,1},{100,500,100}}>();
 
   auto res = vec_cat(
-    bench_range<RangePair{
+    perf_range<RangePair{
         .watcher_range=  { .start=1,    .stop=1,     .step=0    },
         .event_range=    { .start=100,  .stop=1000,  .step=100  }}>(),
-    bench_range<RangePair{
+    perf_range<RangePair{
         .watcher_range=  { .start=1,    .stop=1,     .step=0    },
         .event_range=    { .start=1000, .stop=10000, .step=1000 }}>(),
-    bench_range<RangePair{
+    perf_range<RangePair{
         .watcher_range=  { .start=5,    .stop=30,    .step=5    },
         .event_range=    { .start=1000, .stop=1000,  .step=0    }}>()
   );
+
   show_results(res);
 
   for (auto r : res)

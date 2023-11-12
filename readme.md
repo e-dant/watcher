@@ -80,10 +80,13 @@ If you aren't looking to create something with the library, no worries.
 Just use ours and you've got yourself a filesystem watcher which prints
 filesystem events as JSON. Neat. Here's how:
 ```bash
-git clone https://github.com/e-dant/watcher.git && cd watcher # The main branch is the (latest) release branch.
-tool/build --no-build-test --no-build-bench --no-run-test && cd build/out/this/Release # Build the release version for the host platform.
+# The main branch is the (latest) release branch.
+git clone https://github.com/e-dant/watcher.git && cd watcher
+# Via Nix
+nix run | grep -oE 'cmake-is-tough'
+# With the build script
+tool/build --no-build-test --no-run-test && cd build/out/this/Release # Build the release version for the host platform.
 ./wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
-# Or simply `nix build && nix run` if you're using Nix flakes!
 ```
 
 3. Efficient
@@ -244,8 +247,7 @@ cd build/out/this/Release
 ```
 
 This will take care of some platform-specifics, building the
-release, debug, and sanitizer variants, and running the unit
-tests and benchmarks.
+release, debug, and sanitizer variants, and running some tests.
 
 #### CMake
 

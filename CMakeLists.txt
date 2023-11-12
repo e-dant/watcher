@@ -24,7 +24,6 @@ project(
 #
 
 option(WTR_WATCHER_BUILD_TEST  "Create a target for the test programs"                ON)
-option(WTR_WATCHER_BUILD_BENCH "Create a target for the benchmarking programs"        ON)
 option(WTR_WATCHER_BUILD_ASAN  "Create a target for the address sanitizer"            ON)
 option(WTR_WATCHER_BUILD_MSAN  "Create a target for the memory sanitizer"             ON)
 option(WTR_WATCHER_BUILD_TSAN  "Create a target for the thread sanitizer"             ON)
@@ -94,16 +93,11 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "test_concurrent_watch_targets"
   "test_watch_targets"
   "test_new_directories"
-  "test_simple")
+  "test_simple"
+  "test_performance")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET PREPEND
   "devel/src/wtr/test_watcher/")
 list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET APPEND ".cpp")
-
-set(WTR_BENCH_WATCHER_SOURCE_SET
-  "test_performance")
-list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET PREPEND
-  "devel/src/wtr/test_watcher/")
-list(TRANSFORM WTR_BENCH_WATCHER_SOURCE_SET APPEND ".cpp")
 
 set(INCLUDE_PATH_SINGLE_HEADER
   "include")
@@ -272,30 +266,6 @@ function(wtr_add_san_test_bin_target NAME SRC_SET SAN)
     "${LINK_LIBRARIES};snitch::snitch")
 endfunction()
 
-function(wtr_add_bench_bin_target NAME SRC_SET)
-  wtr_add_bin_target(
-    "${NAME}"
-    "bench-bin"
-    "ON"  # is test
-    "${SRC_SET}"
-    "${COMPILE_OPTIONS}"
-    "${LINK_OPTIONS}"
-    "${INCLUDE_PATH_DEVEL}"
-    "${LINK_LIBRARIES};snitch::snitch")
-endfunction()
-
-function(wtr_add_san_bench_bin_target NAME SRC_SET SAN)
-  wtr_add_bin_target(
-    "${NAME}.${SAN}"
-    "bench-bin"
-    "ON"  # is test
-    "${SRC_SET}"
-    "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-    "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-    "${INCLUDE_PATH_DEVEL}"
-    "${LINK_LIBRARIES};snitch::snitch")
-endfunction()
-
 function(wtr_add_autosan_bin_target NAME SRC_SET)
   wtr_add_rel_bin_target("${NAME}" "${SRC_SET}")
   foreach(SAN ${SAN_NAMES})
@@ -322,23 +292,6 @@ function(wtr_add_autosan_test_bin_target NAME SRC_SET)
   endforeach()
 endfunction()
 
-function(wtr_add_autosan_bench_bin_target NAME SRC_SET)
-  wtr_add_bench_bin_target("${NAME}" "${SRC_SET}")
-  foreach(SAN ${SAN_NAMES})
-    if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_bin_target(
-        "${NAME}.${SAN}"
-        "bench-bin"
-        "ON"  # is test
-        "${SRC_SET}"
-        "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-        "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-        "${INCLUDE_PATH_DEVEL}"
-        "${LINK_LIBRARIES};snitch::snitch")
-    endif()
-  endforeach()
-endfunction()
-
 #
 # Actual work
 #
@@ -355,10 +308,6 @@ wtr_add_autosan_bin_target(
 wtr_add_autosan_test_bin_target(
   "wtr.test_watcher"
   "${WTR_TEST_WATCHER_SOURCE_SET}")
-
-wtr_add_bench_bin_target(
-  "wtr.bench_watcher"
-  "${WTR_BENCH_WATCHER_SOURCE_SET}")
 
 # Used in the tool/test suite. Platforms vary
 # in their mv(1) implementations. We smooth

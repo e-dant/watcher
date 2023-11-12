@@ -114,7 +114,7 @@ echo "
 },
 {
   \"directory\": \"$thisdir/build/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/build/out/this/Debug/_deps/snitch-src/include -I$thisdir/build/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.bench_watcher.dir/devel/src/wtr/test_watcher/test_performance.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_performance.cpp\",
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/build/out/this/Debug/_deps/snitch-src/include -I$thisdir/build/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.dir/devel/src/wtr/test_watcher/test_performance.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_performance.cpp\",
   \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_performance.cpp\"
 },
 {
