@@ -60,4 +60,5 @@ jobs:
         run: |
           bash -c 'build/manual/Debug/wtr.test_watcher.exe'
           bash -c 'build/manual/Release/wtr.test_watcher.exe'
+          bash -c 'echo f windows'
 
