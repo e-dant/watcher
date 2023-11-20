@@ -78,7 +78,7 @@ struct Args {
         : targis("-years")        || targis("-y")   ? 365 * 24 * 60 * 60 * 1e9
                                                     :                      1e6;
       auto td = strtod(st, (char**)&stend);
-      if (is_help || td == HUGE_VAL || td < 0)
+      if (is_help || td == HUGE_VAL || td <= 0)
         return nullopt;
       else
         return nanoseconds(llroundl(td * ttons));
