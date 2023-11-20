@@ -16,7 +16,7 @@ namespace fs = filesystem;
 // clang-format off
 
 struct Args {
-  static constexpr auto usage =
+  static constexpr auto help =
     "wtr.watcher <PATH=. [-UNIT <TIME>]>\n"
     "wtr.watcher <-h | --help>\n"
     "\n"
@@ -42,23 +42,20 @@ struct Args {
     "  TIME\n"
     "    Any positive integer, as long as it's\n"
     "    less than ULONG_MAX. Which is large.\n";
-  optional<char const*> help;
-  optional<fs::path> path;
-  optional<nanoseconds> time;
+  bool const is_help;
+  optional<fs::path> const path;
+  optional<nanoseconds> const time;
 
   static auto try_parse(int argc, char const* const* const argv) -> optional<Args>
   {
     auto argis = [&](auto const i, char const* a)
     { return argc > i ? strcmp(a, argv[i]) == 0 : false; };
 
-    auto help = [&]() -> optional<char const*> {
-      if (argis(1, "-h") || argis(1, "--help")) return usage;
-      else return nullopt;
-    }();
+    auto is_help = [&] { return argis(1, "-h") || argis(1, "--help"); }();
 
     auto path = [&]() -> optional<fs::path>
     {
-      if (help.has_value()) return nullopt;
+      if (is_help) return nullopt;
       else if (argc < 2) return fs::current_path();
       else if (fs::exists(argv[1])) return fs::path(argv[1]);
       else return nullopt;
@@ -81,7 +78,7 @@ struct Args {
         : targis("-years")        || targis("-y")   ? 365 * 24 * 60 * 60 * 1e9
                                                     :                      1e6;
       auto td = strtod(st, (char**)&stend);
-      if (help.has_value()
+      if (is_help
           || td == HUGE_VAL
           || td < 0)
         return nullopt;
@@ -89,31 +86,28 @@ struct Args {
         return nanoseconds(llroundl(td * ttons));
     }();
 
-    if (help.has_value() || path.has_value() || time.has_value())
-      return Args{help, path, time};
+    if (is_help || path.has_value() || time.has_value())
+      return Args{is_help, path, time};
     else
       return nullopt;
   }
 };
 
-auto watch_for = [](auto path, auto time) -> bool
-{
-  auto w = watch(path, [](auto ev) { cout << "{" << ev << "}" << endl; });
-  if (! time.has_value()) cin.get();
-  else this_thread::sleep_for(time.value());
-  return w.close();
-};
-
 /*  Watch a path for some time.
     Or watch a path forever.
     Show what happens, or show help. */
-int main(int const argc, char const** const argv)
+int main(int const argc, char const* const* const argv)
 {
+  auto cb = [](auto ev) { cout << "{" << ev << "}" << endl; };
   auto args = Args::try_parse(argc, argv);
-  return ! args.has_value() ? (cerr << Args::usage, 1)
-       : args->help.has_value() ? (cout << Args::usage, 0)
-       : ! args->path.has_value() ? (cerr << Args::usage, 1)
-       : ! watch_for(args->path.value(), args->time);
+  return ! args.has_value() ? (cerr << Args::help, 1)
+       : args->is_help ? (cout << Args::help, 0)
+       : ! args->path.has_value() ? (cerr << Args::help, 1)
+       : [&] { auto w = watch(args->path.value(), cb);
+               if (! args->time.has_value()) cin.get();
+               else this_thread::sleep_for(args->time.value());
+               return ! w.close();
+             }();
 };
 
 // clang-format on
