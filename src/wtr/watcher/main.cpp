@@ -45,6 +45,7 @@ struct Args {
   optional<char const*> help;
   optional<fs::path> path;
   optional<nanoseconds> time;
+
   static auto try_parse(int argc, char const* const* const argv) -> optional<Args>
   {
     auto argis = [&](auto const i, char const* a)
@@ -112,7 +113,7 @@ int main(int const argc, char const** const argv)
   return ! args.has_value() ? (cerr << Args::usage, 1)
        : args->help.has_value() ? (cout << Args::usage, 0)
        : ! args->path.has_value() ? (cerr << Args::usage, 1)
-       : watch_for(args->path.value(), args->time);
+       : ! watch_for(args->path.value(), args->time);
 };
 
 // clang-format on
