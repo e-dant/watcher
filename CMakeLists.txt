@@ -68,14 +68,13 @@ if(NOT IS_CC_MSVC)
 endif()
 
 if(NOT WIN32 AND NOT IS_CC_MSVC)
+  // TODO: strict-aliasing
   set(COMPILE_OPTIONS
     "${COMPILE_OPTIONS}"
     "-fno-exceptions"
     "-fno-rtti"
-    "-fstrict-aliasing"
     "-fstrict-enums"
-    "-fstrict-overflow"
-    "-fstrict-return")
+    "-fstrict-overflow")
   if(NOT IS_CC_APPLECLANG)
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
@@ -84,6 +83,7 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
   else()
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
+      "-fstrict-return"
       "-fstrict-float-cast-overflow")
   endif()
 endif()
