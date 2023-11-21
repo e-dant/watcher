@@ -67,6 +67,24 @@ if(NOT IS_CC_MSVC)
     "-Wno-unneeded-internal-declaration")
 endif()
 
+if(NOT WIN32 AND NOT IS_CC_MSVC)
+  set(COMPILE_OPTIONS
+    "${COMPILE_OPTIONS}"
+    "-fno-exceptions"
+    "-fno-rtti"
+    "-fstrict-aliasing"
+    "-fstrict-enums"
+    "-fstrict-float-cast-overflow"
+    "-fstrict-overflow"
+    "-fstrict-return")
+  if(NOT IS_CC_APPLECLANG)
+    set(COMPILE_OPTIONS
+      "${COMPILE_OPTIONS}"
+      "-fexpensive-optimizations"
+      "-fwhole-program")
+  endif()
+endif()
+
 if(ANDROID)
   # Android's stdlib ("bionic") doesn't need to be linked with (p)threads.
   set(LINK_LIBRARIES
@@ -84,20 +102,14 @@ else()
 endif()
 
 set(WTR_WATCHER_SOURCE_SET
-  "main") # TODO this should be more clear. We have tons of mains.
-list(TRANSFORM WTR_WATCHER_SOURCE_SET PREPEND
-  "src/wtr/watcher/")
-list(TRANSFORM WTR_WATCHER_SOURCE_SET APPEND ".cpp")
+  "src/wtr/watcher/main.cpp")
 
 set(WTR_TEST_WATCHER_SOURCE_SET
-  "test_concurrent_watch_targets"
-  "test_watch_targets"
-  "test_new_directories"
-  "test_simple"
-  "test_performance")
-list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET PREPEND
-  "devel/src/wtr/test_watcher/")
-list(TRANSFORM WTR_TEST_WATCHER_SOURCE_SET APPEND ".cpp")
+  "devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp"
+  "devel/src/wtr/test_watcher/test_watch_targets.cpp"
+  "devel/src/wtr/test_watcher/test_new_directories.cpp"
+  "devel/src/wtr/test_watcher/test_simple.cpp"
+  "devel/src/wtr/test_watcher/test_performance.cpp")
 
 set(INCLUDE_PATH_SINGLE_HEADER
   "include")
