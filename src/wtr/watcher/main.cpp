@@ -94,16 +94,18 @@ struct Args {
 
 auto json(event const& e) -> string
 {
-  auto s = [](auto a)
-  { return '"' + to<string>(a) + '"'; };
+  auto s = [](auto a) { return to<string>(a); };
+  auto q = [&](auto a) { return '"' + s(a) + '"'; };
   return
-      "{\"path_type\":"   + s(e.path_type)
-    + ",\"path_name\":"   + s(e.path_name)
-    + ",\"effect_type\":" + s(e.effect_type)
-    + ",\"effect_time\":" + s(e.effect_time)
-    + (e.associated ? "," + json(*e.associated) : "")
-    + "}"
-    ;
+    "{\"path_type\":"   + q(e.path_type)
+  + ",\"path_name\":"   + q(e.path_name)
+  + ",\"effect_type\":" + q(e.effect_type)
+  + ",\"effect_time\":" + s(e.effect_time)
+  + ",\"associated\":"  + ( e.associated
+                          ? json(*e.associated)
+                          : "null" )
+  + "}"
+  ;
 }
 
 /*  Watch a path for some time.
@@ -111,7 +113,7 @@ auto json(event const& e) -> string
     Show what happens, or show help. */
 int main(int const argc, char const* const* const argv)
 {
-  auto cb = [](event ev) { cout << json(ev) << endl; };
+  auto cb = [](event const& ev) { cout << json(ev) << endl; };
   auto args = Args::try_parse(argc, argv);
   return ! args.has_value() ? (cerr << Args::help, 1)
        : args->is_help ? (cout << Args::help, 0)

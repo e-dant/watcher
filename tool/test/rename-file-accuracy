@@ -18,14 +18,14 @@ ec=0
     "path_type": "file"
   },
   {
+    "effect_type": "rename",
+    "path_name": "d/a",
+    "path_type": "file",
     "associated": {
       "effect_type": "rename",
       "path_name": "d/b",
       "path_type": "file"
-    },
-    "effect_type": "rename",
-    "path_name": "d/a",
-    "path_type": "file"
+    }
   },
   {
     "effect_type": "destroy",
@@ -71,14 +71,14 @@ ec=$((ec + $?))
     "path_type": "file"
   },
   {
+    "effect_type": "rename",
+    "path_name": "d/a",
+    "path_type": "file",
     "associated": {
       "effect_type": "rename",
       "path_name": "d/b",
       "path_type": "file"
-    },
-    "effect_type": "rename",
-    "path_name": "d/a",
-    "path_type": "file"
+    }
   },
   {
     "effect_type": "destroy",

@@ -75,7 +75,7 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
     "-fno-rtti"
     "-fstrict-enums"
     "-fstrict-overflow")
-  if(NOT IS_CC_APPLECLANG)
+  if(NOT IS_CC_APPLECLANG AND NOT ANDROID)
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
       "-fexpensive-optimizations"

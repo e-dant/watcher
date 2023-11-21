@@ -47,8 +47,9 @@ show-output() {
     , path_name: .path_name
     , effect_type: .effect_type
     , effect_time: .effect_time
+    , associated: .associated
     }' \
-  | jq --slurp --sort-keys
+  | jq --slurp -S
 }
 export -f show-output
 
@@ -66,10 +67,11 @@ check-result() {
   [[ -z "$1" || -z "$2" ]] && return 1
   expect=$1
   actual=$2
-  if diff <(echo "$expect") <(echo "$actual") &> /dev/null
+  lhs() { echo "$expect" | jq -S; }
+  rhs() { echo "$actual" | jq -S | sed '/"associated": null,/d'; }
+  if diff <(lhs) <(rhs) &> /dev/null
   then echo ':) ok'
-  else echo 'oops :('
-       diff --side-by-side <(echo "$expect") <(echo "$actual")
+  else echo 'oops :(' && diff --side-by-side <(lhs) <(rhs)
   fi
 }
 export -f check-result
