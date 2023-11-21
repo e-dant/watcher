@@ -333,8 +333,8 @@ wtr_add_bin_target(
   "test-bin"
   "OFF"
   "devel/src/portable-destructive-rename/main.c"
-  "${COMPILE_OPTIONS}"
-  "${LINK_OPTIONS}"
+  ""
+  ""
   ""
   "")
 
