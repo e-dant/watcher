@@ -68,7 +68,7 @@ if(NOT IS_CC_MSVC)
 endif()
 
 if(NOT WIN32 AND NOT IS_CC_MSVC)
-  // TODO: strict-aliasing
+  # TODO: strict-aliasing
   set(COMPILE_OPTIONS
     "${COMPILE_OPTIONS}"
     "-fno-exceptions"
