@@ -42,19 +42,18 @@ show-output() {
   } || return 1
 
   sed "s|$d|d|g" "$f" \
-  | jq '.wtr.watcher
-  | (map(to_entries?)[0] | map(.key)) as $ks
-  | map($ks | length)[0] as $l
-  | range($l) as $r
-  | $ks[$r] as $t
-  | .stream[$t]
-  | .effect_time = $t' \
-  | jq --slurp --sort-keys '{events: .}'
+  | jq '
+    { path_type: .path_type
+    , path_name: .path_name
+    , effect_type: .effect_type
+    , effect_time: .effect_time
+    }' \
+  | jq --slurp --sort-keys
 }
 export -f show-output
 
 show-events() {
-  show-output "$@" | jq .events
+  show-output "$@" | jq
 }
 export -f show-events
 
