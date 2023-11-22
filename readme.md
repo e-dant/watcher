@@ -10,33 +10,41 @@
 ## Quick Start
 
 ```cpp
+#include "../../../include/wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
-#include "wtr/watcher.hpp" // Or wherever yours is
 
-// This is the entire API.
+using namespace std;
+using namespace wtr;
+
+// The event type, and every field within it, has
+// string conversions and stream operators. Yes,
+// all kinds of strings, narrow and wide and the
+// odd ones. If we don't want formatting control,
+// we can json-serialize and show the event as:
+//   some_stream << event
+// Here, we'll apply our own formatting.
+auto show = [](event e)
+{
+  cout << to<string>(e.effect_type) + ' '
+        + to<string>(e.path_type)   + ' '
+        + to<string>(e.path_name)
+        + (e.associated ? " -> " + to<string>(e.associated->path_name) : "")
+       << endl;
+};
+
 int main()
 {
-  // The watcher will call this function on every event.
-  // This function can block (depending on what you do in it).
-  auto cb = [](wtr::event const& ev)
-  {
-    std::cout << "{\"" << ev.effect_time << "\":["
-              << ev.effect_type << "," << ev.path_type << "," << ev.path_name
-              << "]}," << std::endl;
-    // If you don't need special formatting, this works:
-    // std::cout << ev << "," << std::endl;
-    // Wide-strings works as well.
-  };
-
-  // Watch the current directory asynchronously.
-  auto watcher = wtr::watch(".", cb);
+  // Watch the current directory asynchronously,
+  // calling the provided function for each event.
+  auto watcher = watch(".", show);
 
   // Do some work. (We'll just wait for a newline.)
-  std::cin.get();
+  cin.get();
 
-  // The watcher closes itself around here.
+  // The watcher would close itself around here,
+  // though we can check and close it ourselves:
+  return watcher.close() ? 0 : 1;
 }
-
 ```
 
 ```sh
@@ -588,3 +596,5 @@ https://github.com/g0t4/Rx-FileSystemWatcher:
   static analysis: none (managed language)
 
 ```
+
+
