@@ -102,12 +102,15 @@ public:
       : path_name{from.path_name}
       , effect_type{from.effect_type}
       , path_type{from.path_type}
-      , effect_time{from.effect_time} {};
+      , effect_time{from.effect_time}
+      , associated{
+          from.associated ? std::make_unique<event>(*from.associated)
+                          : nullptr} {};
 
   inline event(
     std::filesystem::path const& path_name,
-    enum effect_type const& effect_type,
-    enum path_type const& path_type) noexcept
+    enum effect_type effect_type,
+    enum path_type path_type) noexcept
       : path_name{path_name}
       , effect_type{effect_type}
       , path_type{path_type} {};

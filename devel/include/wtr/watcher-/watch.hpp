@@ -60,25 +60,24 @@ public:
         std::launch::async,
         [this, path, callback]
         {
-          auto abs_path_ec = std::error_code{};
-          auto abs_path = std::filesystem::absolute(path, abs_path_ec);
+          auto ec = std::error_code{};
+          auto abs_path = std::filesystem::absolute(path, ec);
+          auto path_ok =
+            ! ec && std::filesystem::is_directory(abs_path, ec) && ! ec;
           callback(
-            {(abs_path_ec ? "e/self/live@" : "s/self/live@")
-               + abs_path.string(),
-             ::wtr::watcher::event::effect_type::create,
-             ::wtr::watcher::event::path_type::watcher});
-          auto watched_and_died_ok = abs_path_ec
-                                     ? false
-                                     : ::detail::wtr::watcher::adapter::watch(
-                                       abs_path,
-                                       callback,
-                                       this->is_living);
+            {(path_ok ? "s/self/live@" : "e/self/live@") + abs_path.string(),
+             event::effect_type::create,
+             event::path_type::watcher});
+          auto died_ok = ! path_ok ? true
+                                   : ::detail::wtr::watcher::adapter::watch(
+                                     abs_path,
+                                     callback,
+                                     this->is_living);
           callback(
-            {(watched_and_died_ok ? "s/self/die@" : "e/self/die@")
-               + abs_path.string(),
-             ::wtr::watcher::event::effect_type::destroy,
-             ::wtr::watcher::event::path_type::watcher});
-          return watched_and_died_ok;
+            {(died_ok ? "s/self/die@" : "e/self/die@") + abs_path.string(),
+             event::effect_type::destroy,
+             event::path_type::watcher});
+          return path_ok && died_ok;
         })}
   {}
 
