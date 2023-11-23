@@ -71,7 +71,8 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
   # TODO: strict-aliasing
   set(COMPILE_OPTIONS
     "${COMPILE_OPTIONS}"
-    "-Wno-ignored-optimization-argument"
+    "-Wno-ignored-optimization-argument" # For Android's clang
+    "-Wno-unused-command-line-argument" # For clang-11
     "-fno-exceptions"
     "-fno-rtti"
     "-fstrict-enums"
