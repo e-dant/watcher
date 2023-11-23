@@ -93,7 +93,7 @@ git clone https://github.com/e-dant/watcher.git && cd watcher
 # Via Nix
 nix run | grep -oE 'cmake-is-tough'
 # With the build script
-tool/build --no-build-test --no-run-test && cd build/out/this/Release # Build the release version for the host platform.
+tool/build --no-build-test --no-run-test && cd out/this/Release # Build the release version for the host platform.
 ./wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
 ```
 
@@ -247,7 +247,7 @@ kind of thing.
 
 ```sh
 tool/build
-cd build/out/this/Release
+cd out/this/Release
 
 # watches the current directory forever
 ./wtr.watcher
@@ -261,9 +261,9 @@ release, debug, and sanitizer variants, and running some tests.
 #### CMake
 
 ```sh
-cmake -S . -B build/out
-cmake --build build/out --config Release
-cd build/out
+cmake -S . -B out
+cmake --build out --config Release
+cd out
 
 # watches the current directory forever
 ./wtr.watcher
