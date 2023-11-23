@@ -74,14 +74,18 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
     "-fno-exceptions"
     "-fno-rtti"
     "-fstrict-enums"
-    "-fstrict-overflow"
-    "-fexpensive-optimizations"
-    "-fwhole-program")
+    "-fstrict-overflow")
   if(IS_CC_CLANG)
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
       "-fstrict-return"
       "-fstrict-float-cast-overflow")
+  endif()
+  if(NOT IS_CC_APPLECLANG)
+    set(COMPILE_OPTIONS
+      "${COMPILE_OPTIONS}"
+      "-fexpensive-optimizations"
+      "-fwhole-program")
   endif()
 endif()
 
