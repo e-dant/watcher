@@ -165,7 +165,8 @@ The `event` object is used to pass information about
 filesystem events to the (user-supplied) callback
 given to `watch`.
 
-The `event` object will contain the:
+The `event` object will contain:
+  - `associated`, another event, associated with this one, such as a renamed-to path. (This is a recursive structure.)
   - `path_name`, which is an absolute path to the event.
   - `path_type`, the type of path. One of:
     - `dir`
