@@ -74,18 +74,13 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
     "-fno-exceptions"
     "-fno-rtti"
     "-fstrict-enums"
-    "-fstrict-overflow")
-  if(NOT IS_CC_APPLECLANG AND NOT ANDROID)
-    set(COMPILE_OPTIONS
-      "${COMPILE_OPTIONS}"
-      "-fexpensive-optimizations"
-      "-fwhole-program")
-  else()
-    set(COMPILE_OPTIONS
-      "${COMPILE_OPTIONS}"
-      "-fstrict-return"
-      "-fstrict-float-cast-overflow")
-  endif()
+    "-fstrict-overflow"
+    "-fstrict-return"
+    "-fstrict-float-cast-overflow"
+    "-fexpensive-optimizations"
+    "-fwhole-program"
+    "-Wno-ignored-optimization-argument"
+    "-Wno-unused-command-line-argument")
 endif()
 
 if(ANDROID)
