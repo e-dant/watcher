@@ -234,16 +234,36 @@ A capable program is [here](https://github.com/e-dant/watcher/blob/release/src/w
 
 ## Consume
 
-### In Your Project
+This project is accessible through:
+- Conan: Includes the header
+- Nix: Provides isolation, determinism, includes header, cli, test and benchmark targets
+- Bazel: Provides isolation, include header and cli targets
+- `tool/build`: Includes header, cli, test and benchmark targets
+- CMake: Includes header, cli, test and benchmark targets
+- Just copying the header file
 
-Download this project. Include `watcher.hpp`. That's all.
+### Conan
 
-This is a `FetchContent`-able project, if you're into that
-kind of thing.
+See the [package here](https://conan.io/center/recipes/watcher).
 
-### As A CLI Program
+### Nix
 
-#### `build` Script
+```sh
+nix build # To just build
+nix run # Build and run without arguments
+nix run . -- / | jq # Build and run the default target, watch the root directory, pipe it to jq
+nix develop # Enter an isolated development shell with everything needed to explore this project
+```
+
+### Bazel
+
+```sh
+bazel build cli # Build, but don't run, the cli
+bazel build hdr # Ditto for the single-header
+bazel run cli # Run the cli program without arguments
+```
+
+### `tool/build`
 
 ```sh
 tool/build
@@ -258,7 +278,7 @@ cd out/this/Release
 This will take care of some platform-specifics, building the
 release, debug, and sanitizer variants, and running some tests.
 
-#### CMake
+### CMake
 
 ```sh
 cmake -S . -B out
