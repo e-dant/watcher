@@ -71,6 +71,7 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
   # TODO: strict-aliasing
   set(COMPILE_OPTIONS
     "${COMPILE_OPTIONS}"
+    "-Wno-ignored-optimization-argument"
     "-fno-exceptions"
     "-fno-rtti"
     "-fstrict-enums"
