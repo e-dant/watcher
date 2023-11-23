@@ -36,15 +36,15 @@ jobs:
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/build/out
+            ${{github.workspace}}/out
           key: ${{runner.os}}-dependencies
 
       - name: Build
         run: |
           export CXX="$(which "${{matrix.cxx_compiler}}")"
           tool/build --verbose --no-run
-          ls -al build/out/this/Debug
-          ls -al build/out/this/Release
+          ls -al out/this/Debug
+          ls -al out/this/Release
 
       - name: Test
         run: |

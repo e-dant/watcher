@@ -36,7 +36,7 @@ jobs:
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/build/out
+            ${{github.workspace}}/out
             ${{github.workspace}}/cmake
           key: ${{runner.os}}-dependencies
 

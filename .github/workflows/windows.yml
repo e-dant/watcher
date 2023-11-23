@@ -48,17 +48,17 @@ jobs:
 
       - name: Build
         run: |
-          bash -c 'if [ ! -d build/tiny ] ; then mkdir -p build/tiny ; fi'
-          cl.exe src/wtr/tiny_watcher/main.cpp /std:c++17 /O2 /EHs /EHr /EHc /Fe:build/tiny/watcher.exe
-          bash -c 'ls -hal build/tiny'
-          bash -c 'cmake -S . -B build/manual ; cmake --build build/manual --target wtr.test_watcher --config Release'
-          bash -c 'cmake -S . -B build/manual ; cmake --build build/manual --target wtr.test_watcher --config Debug'
+          bash -c 'if [ ! -d out/tiny ] ; then mkdir -p out/tiny ; fi'
+          cl.exe src/wtr/tiny_watcher/main.cpp /std:c++17 /O2 /EHs /EHr /EHc /Fe:out/tiny/watcher.exe
+          bash -c 'ls -hal out/tiny'
+          bash -c 'cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Release'
+          bash -c 'cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Debug'
 
       - name: Test
         env:
           VERBOSE: 1
         run: |
-          bash -c 'build/manual/Debug/wtr.test_watcher.exe'
-          bash -c 'build/manual/Release/wtr.test_watcher.exe'
+          bash -c 'out/manual/Debug/wtr.test_watcher.exe'
+          bash -c 'out/manual/Release/wtr.test_watcher.exe'
           bash -c 'echo f windows'
 

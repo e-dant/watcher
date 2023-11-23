@@ -154,7 +154,7 @@ Examples
 just-help() { help; exit 0; }
 
 clean() {
-  cmd="rm -rf '$PWD/build/out'"
+  cmd="rm -rf '$PWD/out'"
   [ "$VERBOSE" = 1 ] && echo "$cmd"
   eval "$cmd"
 }
@@ -211,12 +211,12 @@ opt-platforms() {
 out-path-of() {
   [ -n "$1" ] || return 1
   case "$1" in
-    android) echo -n "$PWD/build/out/android" ;;
-    windows) echo -n "$PWD/build/out/windows" ;;
-    linux)   echo -n "$PWD/build/out/linux"   ;;
-    macos)   echo -n "$PWD/build/out/macos"   ;;
-    this)    echo -n "$PWD/build/out/this"    ;;
-    ios)     echo -n "$PWD/build/out/ios"     ;;
+    android) echo -n "$PWD/out/android" ;;
+    windows) echo -n "$PWD/out/windows" ;;
+    linux)   echo -n "$PWD/out/linux"   ;;
+    macos)   echo -n "$PWD/out/macos"   ;;
+    this)    echo -n "$PWD/out/this"    ;;
+    ios)     echo -n "$PWD/out/ios"     ;;
     *)                              return 1  ;; esac
   if [ -n "$2" ]
   then

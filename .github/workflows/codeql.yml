@@ -44,7 +44,7 @@ jobs:
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/build/out
+            ${{github.workspace}}/out
           key: ${{runner.os}}-codeql-dependencies
 
       - name: Setup CodeQL
@@ -55,8 +55,8 @@ jobs:
       - name: Build
         run: |
           export CXX="$(which "${{matrix.cxx_compiler}}")"
-          cmake -S . -B build/out/this/codeql -DCMAKE_BUILD_TYPE="${{matrix.build_type}}"
-          cmake --build build/out/this/codeql --config "${{matrix.build_type}}"
+          cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE="${{matrix.build_type}}"
+          cmake --build out/this/codeql --config "${{matrix.build_type}}"
 
       - name: Analyze
         uses: github/codeql-action/analyze@v2

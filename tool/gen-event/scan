@@ -2,11 +2,11 @@
 
 LAST_DIR="$PWD"
 cd "$(dirname "$0")/../.." || exit 1
-(build/out/this/release/wtr.watcher . -s 3) &
+(out/this/release/wtr.watcher . -s 3) &
 (tool/test/file) &
 sleep 5
 if pgrep wtr.watcher; then
 killall wtr.watcher; fi
 kill $(pgrep bash)
-ls -al build/out/this/release/wtr.watcher
+ls -al out/this/release/wtr.watcher
 cd "$LAST_DIR" || exit 1

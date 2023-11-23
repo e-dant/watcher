@@ -3,12 +3,12 @@
 #
 
 # In the 'Test' step, we could do something like this:
-#   build/out/this/Release/wtr.watcher . -s 5 &
-#   build/out/this/Release/wtr.watcher.asan . -s 5 &
-#   build/out/this/Release/wtr.watcher.ubsan . -s 5 &
-#   build/out/this/Debug/wtr.watcher . -s 5 &
-#   build/out/this/Debug/wtr.watcher.asan . -s 5 &
-#   build/out/this/Debug/wtr.watcher.ubsan . -s 5 &
+#   out/this/Release/wtr.watcher . -s 5 &
+#   out/this/Release/wtr.watcher.asan . -s 5 &
+#   out/this/Release/wtr.watcher.ubsan . -s 5 &
+#   out/this/Debug/wtr.watcher . -s 5 &
+#   out/this/Debug/wtr.watcher.asan . -s 5 &
+#   out/this/Debug/wtr.watcher.ubsan . -s 5 &
 #   wait
 # To see if the cli works as intended. But, if they don't finish,
 # that might be a lot of money if I forget to stop the runner...
@@ -49,15 +49,15 @@ jobs:
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/build/out
+            ${{github.workspace}}/out
           key: ${{runner.os}}-dependencies
 
       - name: Build
         run: |
           export CXX=$(which ${{matrix.cxx_compiler}})
           tool/build --verbose --no-run
-          ls -al build/out/this/Debug
-          ls -al build/out/this/Release
+          ls -al out/this/Debug
+          ls -al out/this/Release
 
       - name: Test inotify
         run: VERBOSE=1 tool/build --verbose --no-build
