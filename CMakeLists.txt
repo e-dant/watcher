@@ -75,12 +75,14 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
     "-fno-rtti"
     "-fstrict-enums"
     "-fstrict-overflow"
-    "-fstrict-return"
-    "-fstrict-float-cast-overflow"
     "-fexpensive-optimizations"
-    "-fwhole-program"
-    "-Wno-ignored-optimization-argument"
-    "-Wno-unused-command-line-argument")
+    "-fwhole-program")
+  if(IS_CC_CLANG)
+    set(COMPILE_OPTIONS
+      "${COMPILE_OPTIONS}"
+      "-fstrict-return"
+      "-fstrict-float-cast-overflow")
+  endif()
 endif()
 
 if(ANDROID)
