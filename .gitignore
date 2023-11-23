@@ -3,3 +3,4 @@ compile_commands.json
 tmp_test_watcher
 /build
 /result
+/watcher
