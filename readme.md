@@ -56,7 +56,7 @@ eval c++ -std=c++17 -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRA
 ./watcher
 ```
 
-```json
+```
 modify file /Users/edant/dev/watcher/.git/objects/48/tmp_obj_N0t55Y
 modify file /Users/edant/dev/watcher/.git/index.lock
 rename file /Users/edant/dev/watcher/.git/index.lock -> /Users/edant/dev/watcher/.git/index
