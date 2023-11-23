@@ -57,9 +57,9 @@ eval c++ -std=c++17 -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRA
 ```
 
 ```json
-{"1676230605412906000":["/Users/edant/dev/watcher/.git/objects/a3/7c930de44735d72810f669facf3a249eef665b","create","file"]},
-{"1676230605412910000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","create","file"]},
-{"1676230605412913000":["/Users/edant/dev/watcher/.git/objects/a3/tmp_obj_pCziIU","destroy","file"]},
+modify file /Users/edant/dev/watcher/.git/objects/48/tmp_obj_N0t55Y
+modify file /Users/edant/dev/watcher/.git/index.lock
+rename file /Users/edant/dev/watcher/.git/index.lock -> /Users/edant/dev/watcher/.git/index
 ```
 
 Enjoy!
