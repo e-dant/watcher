@@ -27,6 +27,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          export CMAKE_ANDROID_API=34
           export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android_ndk_maj_v}}*' | head -n 1)
           tool/build --verbose --platform-android --no-build-test --no-run-test
