@@ -1,5 +1,5 @@
 // clang-format off
-#include "../../../include/wtr/watcher.hpp"  // Or wherever yours is
+#include "wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
 
 using namespace std;
@@ -12,17 +12,17 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto show(event e)
-{
-  cout << to<string>(e.effect_type) + ' '
-        + to<string>(e.path_type)   + ' '
-        + to<string>(e.path_name)
-        + (e.associated ? " -> " + to<string>(e.associated->path_name) : "")
-       << endl;
+auto smol(event e) -> string {
+  return to<string>(e.effect_type) + ' '
+       + to<string>(e.path_type)   + ' '
+       + to<string>(e.path_name)
+       + (! e.associated ? ""
+          : " -> " + smol(*e.associated));
 }
 
-int main()
-{
+auto show(event e) { cout << smol(e) << endl; }
+
+auto main() -> int {
   // Watch the current directory asynchronously,
   // calling the provided function for each event.
   auto watcher = watch(".", show);
