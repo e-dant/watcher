@@ -17,25 +17,22 @@ on:
 
 jobs:
   analyze:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-latest
         cxx_compiler:
           - g++
         build_type:
           - Debug
         install_location:
           - .local
-
-    name: Analyze
-    runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci codeql]')"
-
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
     steps:
       - uses: actions/checkout@v3
       - name: Setup Cache
@@ -45,19 +42,16 @@ jobs:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
             ${{github.workspace}}/out
-          key: ${{runner.os}}-codeql-dependencies
-
+          key: codeql-${{runner.os}}-${{matrix.os}}-dependencies
       - name: Setup CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: 'cpp'
-
       - name: Build
         run: |
           export CXX="$(which "${{matrix.cxx_compiler}}")"
           cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE="${{matrix.build_type}}"
           cmake --build out/this/codeql --config "${{matrix.build_type}}"
-
       - name: Analyze
         uses: github/codeql-action/analyze@v2
 

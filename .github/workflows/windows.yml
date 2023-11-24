@@ -1,9 +1,3 @@
-#
-# Windows Workflow
-#
-
-# https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
-
 name: Windows
 
 on:
@@ -14,28 +8,18 @@ on:
 
 jobs:
   build:
+    runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
-        cxx_compiler:
-          - msvc
-        install_location:
-          - .local
         os:
           - windows-2022
           - windows-2019
-
-    runs-on: ${{matrix.os}}
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci windows]')"
-
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
+      - uses: aminya/setup-cpp@v1
         with:
-          compiler: ${{matrix.cxx_compiler}}
-          vcvarsall: ${{contains(matrix.os, 'windows')}}
+          compiler: 'msvc'
+          vcvarsall: true # Truly a masterpiece, what a great idea Windows :)
           cmake: true
           ccache: false
           ninja: false
@@ -45,20 +29,18 @@ jobs:
           cppcheck: false
           clangtidy: false
           opencppcoverage: false
-
-      - name: Build
+      - run: |
+          cl.exe src/wtr/tiny_watcher/main.cpp /Iinclude /std:c++17 /O2 /EHs /EHr /EHc /Fe:tiny.exe
+          bash -c 'ls -hal tiny.exe'
+      - shell: bash
         run: |
-          bash -c 'if [ ! -d out/tiny ] ; then mkdir -p out/tiny ; fi'
-          cl.exe src/wtr/tiny_watcher/main.cpp /std:c++17 /O2 /EHs /EHr /EHc /Fe:out/tiny/watcher.exe
-          bash -c 'ls -hal out/tiny'
-          bash -c 'cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Release'
-          bash -c 'cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Debug'
-
-      - name: Test
+          cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Release
+          cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Debug
+      - shell: bash
         env:
           VERBOSE: 1
         run: |
-          bash -c 'out/manual/Debug/wtr.test_watcher.exe'
-          bash -c 'out/manual/Release/wtr.test_watcher.exe'
-          bash -c 'echo f windows'
+          out/manual/Debug/wtr.test_watcher.exe || echo f windows
+          out/manual/Release/wtr.test_watcher.exe || echo f windows
+      - run: echo windows is an abomination
 

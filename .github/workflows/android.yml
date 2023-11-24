@@ -14,41 +14,19 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        android_ndk_revision:
-          - r25b
-          - r24
-          - r23
+        android_ndk_maj_v:
+          - '24'
+          - '25'
+          - '26'
         install_location:
           - .local
-
-    runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci android]')"
-
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup Cache
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/out
-            ${{github.workspace}}/cmake
-          key: ${{runner.os}}-dependencies
-
-      - name: Setup NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: ${{matrix.android_ndk_revision}}
-          # Always add to path. Otherwise,
-          # the wrong standard headers are found.
-          add-to-path: true
-          local-cache: true
-
-      - name: Build
-        run: |
+      - run: |
+          export CMAKE_ANDROID_API=34
+          export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android_ndk_maj_v}}*' | head -n 1)
           tool/build --verbose --platform-android --no-build-test --no-run-test

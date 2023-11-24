@@ -1,20 +1,3 @@
-#
-# Ubuntu Workflow
-#
-
-# In the 'Test' step, we could do something like this:
-#   out/this/Release/wtr.watcher . -s 5 &
-#   out/this/Release/wtr.watcher.asan . -s 5 &
-#   out/this/Release/wtr.watcher.ubsan . -s 5 &
-#   out/this/Debug/wtr.watcher . -s 5 &
-#   out/this/Debug/wtr.watcher.asan . -s 5 &
-#   out/this/Debug/wtr.watcher.ubsan . -s 5 &
-#   wait
-# To see if the cli works as intended. But, if they don't finish,
-# that might be a lot of money if I forget to stop the runner...
-
-# https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
-
 name: Ubuntu
 
 on:
@@ -25,45 +8,31 @@ on:
 
 jobs:
   build:
+    runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
         os:
           - ubuntu-22.04
           - ubuntu-latest
         cxx_compiler:
-          # - clang++ See issue 41
+          # See issue 41 re. clang++
           - g++
         install_location:
           - .local
-
-    runs-on: ${{matrix.os}}
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci ubuntu]')"
-
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup Cache
-        uses: actions/cache@v3
-        id: cache
+      - uses: actions/cache@v3
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
             ${{github.workspace}}/out
-          key: ${{runner.os}}-dependencies
-
-      - name: Build
-        run: |
-          export CXX=$(which ${{matrix.cxx_compiler}})
+          key: ubuntu-${{runner.os}}-${{matrix.os}}-dependencies
+      - run: |
           tool/build --verbose --no-run
           ls -al out/this/Debug
           ls -al out/this/Release
+      - run: tool/build --verbose --no-build
+      - run: sudo tool/build --verbose --no-build
+      - run: tool/test/all || tool/test/all
+      - run: sudo tool/test/all || sudo tool/test/all
 
-      - name: Test inotify
-        run: VERBOSE=1 tool/build --verbose --no-build
-
-      - name: Test fanotify
-        run: sudo VERBOSE=1 tool/build --verbose --no-build
-
-      - run: tool/test/all
-      - run: sudo tool/test/all

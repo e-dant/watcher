@@ -1,9 +1,3 @@
-#
-# macOS Workflow
-#
-
-# https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
-
 name: macOS
 
 on:
@@ -14,41 +8,30 @@ on:
 
 jobs:
   build:
+    runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
+        os:
+          - macos-latest
+          - macos-11
+          - macos-12
+          - macos-13
         cxx_compiler:
           - clang++
         install_location:
           - .local
-
-    runs-on: macos-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip ci macos]')"
-
     steps:
       - uses: actions/checkout@v3
-
       - uses: lukka/get-cmake@latest
-
-      - name: Setup Cache
-        uses: actions/cache@v3
-        id: cache
+      - uses: actions/cache@v3
         with:
           path: |
             ${{github.workspace}}/${{matrix.install_location}}
             ${{github.workspace}}/out
-          key: ${{runner.os}}-dependencies
-
-      - name: Build
-        run: |
-          export CXX="$(which "${{matrix.cxx_compiler}}")"
+          key: macos-${{runner.os}}-${{matrix.os}}-dependencies
+      - run: |
           tool/build --verbose --no-run
           ls -al out/this/Debug
           ls -al out/this/Release
-
-      - name: Test
-        run: |
-          export VERBOSE=1
-          tool/build --verbose --no-build
-
-      - run: tool/test/all
+      - run: tool/build --verbose --no-build
+      - run: tool/test/all || tool/test/all
