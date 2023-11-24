@@ -10,7 +10,7 @@
 ## Quick Start
 
 ```cpp
-#include "../../../include/wtr/watcher.hpp"  // Or wherever yours is
+#include "wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
 
 using namespace std;
@@ -23,17 +23,17 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto show(event e)
-{
-  cout << to<string>(e.effect_type) + ' '
-        + to<string>(e.path_type)   + ' '
-        + to<string>(e.path_name)
-        + (e.associated ? " -> " + to<string>(e.associated->path_name) : "")
-       << endl;
+auto smol(event e) -> string {
+  return to<string>(e.effect_type) + ' '
+       + to<string>(e.path_type)   + ' '
+       + to<string>(e.path_name)
+       + (! e.associated ? ""
+          : " -> " + smol(*e.associated));
 }
 
-int main()
-{
+auto show(event e) { cout << smol(e) << endl; }
+
+auto main() -> int {
   // Watch the current directory asynchronously,
   // calling the provided function for each event.
   auto watcher = watch(".", show);
@@ -51,7 +51,7 @@ int main()
 # Sigh
 PLATFORM_EXTRAS=$(test "$(uname)" = Darwin && echo '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -framework CoreFoundation -framework CoreServices')
 # Build
-eval c++ -std=c++17 -O3 src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
+eval c++ -std=c++17 -Iinclude src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM_EXTRAS
 # Run
 ./watcher
 ```
