@@ -9,7 +9,7 @@
 # SC2317: Command can be reached.
 
 beganat=$(date -u +"%Y-%m-%dT%H:%M:%SZ") # or date --iso=ns -u on non-bsd
-builddir=$( (cd "$(dirname "$0")/../../build" && pwd) )
+builddir=$( (cd "$(dirname "$0")/../../out" && pwd) )
 testdir=$builddir/tst-$beganat
 export testdir
 
@@ -17,7 +17,7 @@ trap "cd '$PWD' ; rm -rf '$testdir' '$testdir.json'" EXIT
 mkdir -p "$testdir" || exit 1
 cd "$testdir" || exit 1
 
-PATH=$builddir/out/this/Debug:$PATH
+PATH=$builddir/this/Debug:$PATH
 
 # Otherwise, the Darwin watcher will the testdir's creation event
 [ "$(uname -s)" = Darwin ] && sleep 0.2
