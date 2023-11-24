@@ -52,22 +52,20 @@ struct Args {
     auto argis = [&](auto const i, char const* a)
     { return argc > i ? strcmp(a, argv[i]) == 0 : false; };
 
-    auto is_help = [&] { return argis(1, "-h") || argis(1, "--help"); }();
+    bool is_help = argis(1, "-h") || argis(1, "--help");
 
-    auto path = [&]() -> optional<fs::path>
-    {
-      if (is_help) return nullopt;
-      else if (argc < 2) return fs::current_path();
-      else if (fs::exists(argv[1])) return fs::path(argv[1]);
-      else return nullopt;
-    }();
+    auto path =
+      is_help ? nullopt
+      : argc < 2 ? optional(fs::current_path())
+      : fs::exists(argv[1]) ? optional(fs::path(argv[1]))
+      : nullopt;
 
     auto time = [&]() -> optional<nanoseconds> {
-      char const* st = argc > 3 ? argv[3] : "0";
-      char const* stend = st + strlen(st);
-      auto targis = [&](char const* a) { return argis(2, a); };
-      auto ttons =
-          targis("-nanoseconds")  || targis("-ns")  ?                      1e0
+      auto st = argc > 3 ? argv[3] : "0";
+      auto stend = st + strlen(st);
+      auto targis = [&](auto a) { return argis(2, a); };
+      auto ttons
+        = targis("-nanoseconds")  || targis("-ns")  ?                      1e0
         : targis("-microseconds") || targis("-us")  ?                      1e3
         : targis("-milliseconds") || targis("-ms")  ?                      1e6
         : targis("-seconds")      || targis("-s")   ?                      1e9
@@ -85,42 +83,40 @@ struct Args {
         return nanoseconds(llroundl(td * ttons));
     }();
 
-    if (is_help || path.has_value() || time.has_value())
-      return Args{is_help, path, time};
-    else
-      return nullopt;
+    return is_help || path || time
+           ? optional(Args{is_help, path, time})
+           : nullopt;
   }
 };
 
 auto json(event const& e) -> string
 {
+  auto tails = e.associated
+               ? json(*e.associated)
+               : "null";
   auto s = [](auto a) { return to<string>(a); };
   auto q = [&](auto a) { return '"' + s(a) + '"'; };
-  return
-    "{\"path_type\":"   + q(e.path_type)
-  + ",\"path_name\":"   + q(e.path_name)
-  + ",\"effect_type\":" + q(e.effect_type)
-  + ",\"effect_time\":" + s(e.effect_time)
-  + ",\"associated\":"  + ( e.associated
-                          ? json(*e.associated)
-                          : "null" )
-  + "}"
-  ;
+  return "{\"path_type\":"   + q(e.path_type)
+       + ",\"path_name\":"   + q(e.path_name)
+       + ",\"effect_type\":" + q(e.effect_type)
+       + ",\"effect_time\":" + s(e.effect_time)
+       + ",\"associated\":"  + tails
+       + "}";
 }
 
 /*  Watch a path for some time.
     Or watch a path forever.
     Show what happens, or show help. */
-int main(int const argc, char const* const* const argv)
+int main(int argc, char const* const* const argv)
 {
-  auto cb = [](event const& ev) { cout << json(ev) << endl; };
+  auto cb = [](auto ev) { cout << json(ev) << endl; };
   auto args = Args::try_parse(argc, argv);
-  return ! args.has_value() ? (cerr << Args::help, 1)
+  return ! args ? (cerr << Args::help, 1)
        : args->is_help ? (cout << Args::help, 0)
-       : ! args->path.has_value() ? (cerr << Args::help, 1)
-       : [&] { auto w = watch(args->path.value(), cb);
-               if (! args->time.has_value()) cin.get();
-               else this_thread::sleep_for(args->time.value());
+       : ! args->path ? (cerr << Args::help, 1)
+       : [&] { auto w = watch(*args->path, cb);
+               if (! args->time) cin.get();
+               else this_thread::sleep_for(*args->time);
                return ! w.close();
              }();
 };
