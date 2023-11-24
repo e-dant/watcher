@@ -57,6 +57,9 @@
                 for component in $components
                 do cmake --install . --prefix "$out" --config "$buildcfg" --component "$component"
                 done
+                for target in $targets
+                do find "$out" -name "$target" -exec ls -al {} \;
+                done
                 if [ -n "${installBashScript}" ]
                 then
                   echo "${installBashScript}" | tee -a "$out/bin/${installBashScriptName}"
