@@ -57,9 +57,9 @@ eval c++ -std=c++17 -Iinclude src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM
 ```
 
 ```
-modify file /Users/edant/dev/watcher/.git/objects/48/tmp_obj_N0t55Y
-modify file /Users/edant/dev/watcher/.git/index.lock
-rename file /Users/edant/dev/watcher/.git/index.lock -> /Users/edant/dev/watcher/.git/index
+modify file /Users/edant/dev/watcher/.git/refs/heads/next.lock
+rename file /Users/edant/dev/watcher/.git/refs/heads/next.lock -> rename file /Users/edant/dev/watcher/.git/refs/heads/next
+create file /Users/edant/dev/watcher/.git/HEAD.lock
 ```
 
 Enjoy!
