@@ -7,7 +7,7 @@ using namespace wtr;
 
 // The event type, and every field within it, has
 // string conversions and stream operators. All
-// kinds of strings, the narrow, wide and odd ones.
+// kinds of strings -- The narrow, wide and weird.
 // If we don't want particular formatting, we can
 // json-serialize and show the event like this:
 //   some_stream << event
