@@ -32,11 +32,11 @@ struct ep {
   static constexpr auto q_ulim = 64;
   /*  The delay, in milliseconds, while
       `epoll_wait` will 'pause' us for
-      until we are woken up. We use the
-      time after this to check if we're
-      still alive, then re-enter epoll.
+      until we are woken up. We check if
+      we are still alive through the fd
+      from our semaphore-like eventfd.
   */
-  static constexpr auto wake_ms = 16;
+  static constexpr auto wake_ms = -1;
 
   int fd = -1;
   epoll_event interests[q_ulim]{};
@@ -55,8 +55,11 @@ inline auto do_warn =
   [](std::string&& msg, auto const& path, auto const& cb) -> bool
 { return (do_error(std::move(msg), path, cb), true); };
 
-inline auto make_ep =
-  [](char const* const base_path, auto const& cb, int ev_fd) -> ep
+inline auto make_ep = [](
+                        char const* const base_path,
+                        auto const& cb,
+                        int ev_il_fd,
+                        int ev_fs_fd) -> ep
 {
   auto do_error = [&](auto&& msg)
   { return (adapter::do_error(msg, base_path, cb), ep{}); };
@@ -65,11 +68,13 @@ inline auto make_ep =
 #else
   int fd = epoll_create1(EPOLL_CLOEXEC);
 #endif
-  auto want_ev = epoll_event{.events = EPOLLIN, .data{.fd = ev_fd}};
-  int ec = epoll_ctl(fd, EPOLL_CTL_ADD, ev_fd, &want_ev);
-  return fd < 0 ? do_error("e/sys/epoll_create@")
-       : ec < 0 ? (close(fd), do_error("e/sys/epoll_ctl@"))
-                : ep{.fd = fd};
+  auto want_ev_fs = epoll_event{.events = EPOLLIN, .data{.fd = ev_fs_fd}};
+  auto want_ev_il = epoll_event{.events = EPOLLIN, .data{.fd = ev_il_fd}};
+  bool ctl_ok = epoll_ctl(fd, EPOLL_CTL_ADD, ev_fs_fd, &want_ev_fs) >= 0
+             && epoll_ctl(fd, EPOLL_CTL_ADD, ev_il_fd, &want_ev_il) >= 0;
+  return fd < 0   ? do_error("e/sys/epoll_create@")
+       : ! ctl_ok ? (close(fd), do_error("e/sys/epoll_ctl@"))
+                  : ep{.fd = fd};
 };
 
 inline auto is_dir(char const* const path) -> bool

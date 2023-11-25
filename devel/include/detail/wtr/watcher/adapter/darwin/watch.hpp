@@ -3,7 +3,6 @@
 #if defined(__APPLE__)
 
 #include "wtr/watcher.hpp"
-#include <atomic>
 #include <chrono>
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
@@ -359,12 +358,12 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     return false;
 }
 
-inline auto block_while(std::atomic<bool>& b)
+inline auto block_while(semabin const& is_living)
 {
   using namespace std::chrono_literals;
   using std::this_thread::sleep_for;
 
-  while (b) sleep_for(16ms);
+  while (is_living.state() == semabin::state::pending) sleep_for(16ms);
 }
 
 } /*  namespace */
@@ -372,7 +371,7 @@ inline auto block_while(std::atomic<bool>& b)
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic<bool>& is_living) noexcept -> bool
+  semabin const& is_living) noexcept -> bool
 {
   auto&& [ok, sysres] = open_event_stream(path, callback);
   return ok ? (block_while(is_living), close_event_stream(sysres)) : false;

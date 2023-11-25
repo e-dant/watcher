@@ -1,7 +1,6 @@
 #pragma once
 
 #include "wtr/watcher.hpp"
-#include <atomic>
 #include <filesystem>
 #include <future>
 
@@ -49,7 +48,8 @@ inline namespace watcher {
     Happy hacking. */
 class watch {
 private:
-  std::atomic<bool> is_living{true};
+  using sb = ::detail::wtr::watcher::semabin;
+  sb is_living{};
   std::future<bool> watching{};
 
 public:
@@ -62,29 +62,29 @@ public:
         {
           auto ec = std::error_code{};
           auto abs_path = std::filesystem::absolute(path, ec);
-          auto path_ok =
-            ! ec && std::filesystem::is_directory(abs_path, ec) && ! ec;
+          auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
+                     && ! ec && this->is_living.state() == sb::state::pending;
           callback(
-            {(path_ok ? "s/self/live@" : "e/self/live@") + abs_path.string(),
+            {(pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string(),
              event::effect_type::create,
              event::path_type::watcher});
-          auto died_ok = ! path_ok ? true
-                                   : ::detail::wtr::watcher::adapter::watch(
-                                     abs_path,
-                                     callback,
-                                     this->is_living);
+          auto post_ok = ! pre_ok ? true
+                                  : ::detail::wtr::watcher::adapter::watch(
+                                    abs_path,
+                                    callback,
+                                    this->is_living);
           callback(
-            {(died_ok ? "s/self/die@" : "e/self/die@") + abs_path.string(),
+            {(post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string(),
              event::effect_type::destroy,
              event::path_type::watcher});
-          return path_ok && died_ok;
+          return pre_ok && post_ok;
         })}
   {}
 
   inline auto close() noexcept -> bool
   {
-    this->is_living = false;
-    return this->watching.valid() && this->watching.get();
+    return this->is_living.release() == sb::state::released
+        && this->watching.valid() && this->watching.get();
   };
 
   inline ~watch() noexcept { this->close(); }

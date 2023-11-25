@@ -98,6 +98,7 @@ struct ke_in_ev {
 struct sysres {
   bool ok = false;
   ke_in_ev ke{};
+  semabin const& il{};
   adapter::ep ep{};
 };
 
@@ -114,8 +115,10 @@ inline auto do_mark =
     return do_error("w/sys/not_watched@", dirpath, cb);
 };
 
-inline auto make_sysres =
-  [](char const* const base_path, auto const& cb) -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& is_living) -> sysres
 {
   auto do_error = [&](auto&& msg)
   { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
@@ -126,7 +129,7 @@ inline auto make_sysres =
   walkdir_do(
     base_path,
     [&](char const* const dir) { do_mark(dir, in_fd, dm, cb); });
-  auto ep = make_ep(base_path, cb, in_fd);
+  auto ep = make_ep(base_path, cb, is_living.fd, in_fd);
   if (dm.empty() || ep.fd < 0)
     return (close(in_fd), do_error("e/self/resource@"));
   return sysres{
@@ -135,6 +138,7 @@ inline auto make_sysres =
         .fd = in_fd,
         .dm = std::move(dm),
         },
+    .il = is_living,
     .ep = ep,
   };
 };
@@ -325,25 +329,31 @@ inline auto do_ev_recv =
 };
 
 inline auto watch =
-  [](char const* const path, auto const& cb, auto const& is_living) -> bool
+  [](char const* const path, auto const& cb, semabin const& is_living) -> bool
 {
-  auto sr = make_sysres(path, cb);
+  auto sr = make_sysres(path, cb, is_living);
   auto do_error = [&](auto&& msg) -> bool
   { return (close_sysres(sr), adapter::do_error(msg, path, cb)); };
+  auto is_ev_of = [&](int nth, int fd) -> bool
+  { return sr.ep.interests[nth].data.fd == fd; };
 
   if (! sr.ok) return do_error("e/self/resource@");
-  while (is_living) {
+  while (true) {
     int ep_c =
       epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
     if (ep_c < 0)
       return do_error("e/sys/epoll_wait@");
-    else if (ep_c > 0) [[likely]]
-      for (int n = 0; n < ep_c; n++)
-        if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
-          if (! do_ev_recv(path, cb, sr)) [[unlikely]]
-            return do_error("e/self/ev_recv@");
+    else if (ep_c == 0)
+      continue;
+    else
+      for (int n = 0; n < ep_c; ++n)
+        if (is_ev_of(n, sr.il.fd))
+          return sr.il.state() == semabin::state::released
+                 ? close_sysres(sr)
+                 : do_error("e/self/semabin@");
+        else if (is_ev_of(n, sr.ke.fd) && ! do_ev_recv(path, cb, sr))
+          return do_error("e/self/ev_recv@");
   }
-  return close_sysres(sr);
 };
 
 } /* namespace detail::wtr::watcher::adapter::inotify */

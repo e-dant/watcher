@@ -207,7 +207,7 @@ inline bool tend_bucket(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic<bool>& is_living) noexcept -> bool
+  semabin const& is_living) noexcept -> bool
 {
   using std::this_thread::sleep_for, std::chrono::milliseconds;
 
@@ -224,7 +224,7 @@ inline auto watch(
 
   static constexpr auto delay_ms = 16;
 
-  while (is_living) {
+  while (is_living.state() == semabin::state::pending) {
     if (
       ! tend_bucket(path, callback, bucket) || ! scan(path, callback, bucket)) {
       return false;

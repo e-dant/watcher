@@ -3,7 +3,6 @@
 #if defined(_WIN32)
 
 #include "wtr/watcher.hpp"
-#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <string>
@@ -191,7 +190,7 @@ inline auto do_event_send(
   else {
     return false;
   }
-}  // namespace
+}
 
 }  // namespace
 
@@ -202,7 +201,7 @@ inline auto do_event_send(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  std::atomic<bool>& is_living) noexcept -> bool
+  semabin const& is_living) noexcept -> bool
 {
   using namespace ::wtr::watcher;
 
@@ -213,7 +212,7 @@ inline auto watch(
 
     while (is_valid(w) && has_event(w)) { do_event_send(w, callback); }
 
-    while (is_living) {
+    while (is_living.state() == semabin::state::pending) {
       ULONG_PTR completion_key{0};
       LPOVERLAPPED overlap{nullptr};
 

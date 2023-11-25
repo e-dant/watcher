@@ -70,6 +70,7 @@ struct ke_fa_ev {
 struct sysres {
   bool ok = false;
   ke_fa_ev ke{};
+  semabin const& il{};
   adapter::ep ep{};
 };
 
@@ -90,19 +91,23 @@ inline auto do_mark =
     sends diagnostics on warnings and errors.
     Walks the given base path, recursively,
     marking each directory along the way. */
-inline auto make_sysres =
-  [](char const* const base_path, auto const& cb) -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& is_living) -> sysres
 {
+  auto do_error = [&](auto&& msg)
+  { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
-  if (fa_fd < 1) {
-    do_error("e/sys/fanotify_init@", base_path, cb);
-    return {.ok = false};
-  }
+  if (fa_fd < 1) return do_error("e/sys/fanotify_init@");
   walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+  auto ep = make_ep(base_path, cb, is_living.fd, fa_fd);
+  if (ep.fd < 1) return (close(fa_fd), do_error("e/self/resource@"));
   return {
     .ok = true,
     .ke{.fd = fa_fd},
-    .ep = make_ep(base_path, cb, fa_fd),
+    .il = is_living,
+    .ep = ep,
   };
 };
 
@@ -297,26 +302,31 @@ inline auto do_ev_recv =
 };
 
 inline auto watch =
-  [](char const* const path, auto const& cb, auto const& is_living) -> bool
+  [](char const* const path, auto const& cb, semabin const& is_living) -> bool
 {
-  auto sr = make_sysres(path, cb);
+  auto sr = make_sysres(path, cb, is_living);
   auto do_error = [&](auto&& msg) -> bool
   { return (close_sysres(sr), adapter::do_error(msg, path, cb)); };
+  auto is_ev_of = [&](int nth, int fd) -> bool
+  { return sr.ep.interests[nth].data.fd == fd; };
 
   if (! sr.ok) return do_error("e/self/resource@");
-  while (is_living) [[likely]] {
+  while (true) {
     int ep_c =
       epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
     if (ep_c < 0)
       return do_error("e/sys/epoll_wait@");
-    else if (ep_c > 0) [[likely]]
-      for (int n = 0; n < ep_c; n++)
-        if (sr.ep.interests[n].data.fd == sr.ke.fd) [[likely]]
-          if (! do_ev_recv(path, cb, sr)) [[unlikely]]
-            return do_error("e/self/ev_recv@");
+    else if (ep_c == 0)
+      continue;
+    else
+      for (int n = 0; n < ep_c; ++n)
+        if (is_ev_of(n, sr.il.fd))
+          return sr.il.state() == semabin::state::released
+                 ? close_sysres(sr)
+                 : do_error("e/self/semabin@");
+        else if (is_ev_of(n, sr.ke.fd) && ! do_ev_recv(path, cb, sr))
+          return do_error("e/self/ev_recv@");
   }
-
-  return close_sysres(sr);
 };
 
 } /* namespace detail::wtr::watcher::adapter::fanotify */
