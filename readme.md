@@ -12,6 +12,7 @@
 ```cpp
 #include "wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
+#include <string>
 
 using namespace std;
 using namespace wtr;
@@ -23,15 +24,14 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto smol(event e) -> string {
-  return to<string>(e.effect_type) + ' '
-       + to<string>(e.path_type)   + ' '
-       + to<string>(e.path_name)
-       + (! e.associated ? ""
-          : " -> " + smol(*e.associated));
+auto show(event e) {
+  auto s = [](auto a) { return to<string>(a); };
+  cout << s(e.effect_type) + ' '
+        + s(e.path_type)   + ' '
+        + s(e.path_name)
+        + (e.associated ? " -> " + s(e.associated->path_name) : "")
+       << endl;
 }
-
-auto show(event e) { cout << smol(e) << endl; }
 
 auto main() -> int {
   // Watch the current directory asynchronously,
@@ -39,7 +39,7 @@ auto main() -> int {
   auto watcher = watch(".", show);
 
   // Do some work. (We'll just wait for a newline.)
-  cin.get();
+  getchar();
 
   // The watcher would close itself around here,
   // though we can check and close it ourselves:
@@ -57,9 +57,9 @@ eval c++ -std=c++17 -Iinclude src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM
 ```
 
 ```
-modify file /Users/edant/dev/watcher/.git/refs/heads/next.lock
-rename file /Users/edant/dev/watcher/.git/refs/heads/next.lock -> rename file /Users/edant/dev/watcher/.git/refs/heads/next
-create file /Users/edant/dev/watcher/.git/HEAD.lock
+modify file /home/e-dant/dev/watcher/.git/refs/heads/next.lock
+rename file /home/e-dant/dev/watcher/.git/refs/heads/next.lock -> /home/e-dant/dev/watcher/.git/refs/heads/next
+create file /home/e-dant/dev/watcher/.git/HEAD.lock
 ```
 
 Enjoy!
