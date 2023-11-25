@@ -1,6 +1,7 @@
 // clang-format off
 #include "wtr/watcher.hpp"  // Or wherever yours is
 #include <iostream>
+#include <string>
 
 using namespace std;
 using namespace wtr;
@@ -12,15 +13,14 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto smol(event e) -> string {
-  return to<string>(e.effect_type) + ' '
-       + to<string>(e.path_type)   + ' '
-       + to<string>(e.path_name)
-       + (! e.associated ? ""
-          : " -> " + smol(*e.associated));
+auto show(event e) {
+  auto s = [](auto a) { return to<string>(a); };
+  cout << s(e.effect_type) + ' '
+        + s(e.path_type)   + ' '
+        + s(e.path_name)
+        + (e.associated ? " -> " + s(e.associated->path_name) : "")
+       << endl;
 }
-
-auto show(event e) { cout << smol(e) << endl; }
 
 auto main() -> int {
   // Watch the current directory asynchronously,
@@ -28,7 +28,7 @@ auto main() -> int {
   auto watcher = watch(".", show);
 
   // Do some work. (We'll just wait for a newline.)
-  cin.get();
+  getchar();
 
   // The watcher would close itself around here,
   // though we can check and close it ourselves:
