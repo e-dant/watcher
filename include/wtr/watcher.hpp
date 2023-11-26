@@ -362,17 +362,28 @@ inline auto operator<<(
 #include <string.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
+#elif defined(__APPLE__)
+#include <dispatch/dispatch.h>
 #endif
 
 namespace detail::wtr::watcher {
 
-/*  A semaphore which is pollable on Linux.
-    On all platforms, this behaves like an
-    atomic boolean flag. (On non-Linux, this
-    literally is an atomic boolean flag.)
+/*  A semaphore-like construct which can be
+    used with poll and friends on Linux and
+    dispatch on Apple. This class is emulates
+    a binary semaphore; An atomic boolean flag.
+
+    On other platforms, this is an atomic flag
+    which can be checked in a sleep, wake loop,
+    ideally with a generous sleep time.
+
     On Linux, this is an eventfd in semaphore
-    mode, which means that it can be waited on
-    with poll() and friends. */
+    mode. The file descriptor is exposed for
+    use with poll and friends.
+
+    On macOS, this is a dispatch_semaphore_t,
+    which can be scheduled with dispatch.
+*/
 
 class semabin {
 public:
@@ -382,7 +393,7 @@ private:
   mutable std::atomic<state> is = pending;
 
 public:
-#ifdef __linux__
+#if defined(__linux__)
 
   int const fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE);
 
@@ -423,6 +434,53 @@ public:
 
   inline ~semabin() noexcept { close(this->fd); }
 
+#elif defined(__APPLE__)
+
+  dispatch_semaphore_t const sema = []()
+  { return dispatch_semaphore_create(0); }();
+
+  inline auto release() noexcept -> state
+  {
+    auto write_ev = [this]()
+    {
+      if (dispatch_semaphore_signal(this->sema) == 1)
+        return released;
+      else
+        return error;
+    };
+
+    if (this->is == released)
+      return released;
+    else
+      return this->is = write_ev();
+  }
+
+  inline auto state() const noexcept -> state
+  {
+    auto read_ev = [this]()
+    {
+      if (dispatch_semaphore_wait(this->sema, DISPATCH_TIME_NOW) == 0)
+        return released;
+      else
+        return pending;
+    };
+
+    if (this->is == pending)
+      return pending;
+    else
+      return this->is = read_ev();
+  }
+
+  inline auto block_on(dispatch_queue_t queue) const noexcept -> bool
+  {
+    dispatch_sync(queue, ^{
+      dispatch_semaphore_wait(this->sema, DISPATCH_TIME_FOREVER);
+    });
+    return this->state() == released;
+  }
+
+  inline ~semabin() noexcept { dispatch_release(this->sema); }
+
 #else
 
   inline auto release() noexcept -> enum state { return this->is = released; }
@@ -436,7 +494,6 @@ public:
 
 #if defined(__APPLE__)
 
-#include <atomic>
 #include <chrono>
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
@@ -445,7 +502,6 @@ public:
 #include <limits>
 #include <random>
 #include <string>
-#include <thread>
 #include <tuple>
 #include <unistd.h>
 #include <unordered_set>
@@ -674,11 +730,11 @@ static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
 inline auto open_event_stream(
   std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback) noexcept
+  ::wtr::watcher::event::callback const& callback,
+  dispatch_queue_t queue) noexcept
   -> std::tuple<bool, std::shared_ptr<sysres_type>>
 {
   using namespace std::chrono_literals;
-  using std::chrono::duration_cast, std::chrono::seconds;
 
   auto sysres =
     std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
@@ -728,38 +784,30 @@ inline auto open_event_stream(
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
-  if (
-    FSEventStreamRef stream = FSEventStreamCreate(
-      /*  A custom allocator is optional */
-      nullptr,
-      /*  A callable to invoke on changes */
-      &event_recv,
-      /*  The callable's arguments (context) */
-      &context,
-      /*  The path(s) we were asked to watch */
-      path_array,
-      /*  The time "since when" we receive events */
-      kFSEventStreamEventIdSinceNow,
-      /*  The time between scans *after inactivity* */
-      (0.016s).count(),
-      /*  The event stream flags */
-      fsev_flag_listen)) {
-    FSEventStreamSetDispatchQueue(
-      stream,
-      /*  We don't need to retain, maintain or release this
-          dispatch queue. It's a global system queue, and it
-          outlives us. */
-      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+  FSEventStreamRef stream = FSEventStreamCreate(
+    /*  A custom allocator is optional */
+    nullptr,
+    /*  A callable to invoke on changes */
+    &event_recv,
+    /*  The callable's arguments (context) */
+    &context,
+    /*  The path(s) we were asked to watch */
+    path_array,
+    /*  The time "since when" we receive events */
+    kFSEventStreamEventIdSinceNow,
+    /*  The time between scans *after inactivity* */
+    (0.016s).count(),
+    /*  The event stream flags */
+    fsev_flag_listen);
 
+  if (stream && queue) {
+    FSEventStreamSetDispatchQueue(stream, queue);
     FSEventStreamStart(stream);
-
     sysres->stream = stream;
-
     /*  todo: Do we need to release these?
         CFRelease(path_cfstring);
         CFRelease(path_array);
     */
-
     return {true, sysres};
   }
   else {
@@ -792,14 +840,6 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     return false;
 }
 
-inline auto block_while(semabin const& is_living)
-{
-  using namespace std::chrono_literals;
-  using std::this_thread::sleep_for;
-
-  while (is_living.state() == semabin::state::pending) sleep_for(16ms);
-}
-
 } /*  namespace */
 
 inline auto watch(
@@ -807,8 +847,9 @@ inline auto watch(
   ::wtr::watcher::event::callback const& callback,
   semabin const& is_living) noexcept -> bool
 {
-  auto&& [ok, sysres] = open_event_stream(path, callback);
-  return ok ? (block_while(is_living), close_event_stream(sysres)) : false;
+  auto queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+  auto&& [ok, sysres] = open_event_stream(path, callback, queue);
+  return ok && is_living.block_on(queue) && close_event_stream(sysres);
 }
 
 } /*  namespace adapter */
@@ -1693,7 +1734,6 @@ inline auto watch =
 
 #if defined(_WIN32)
 
-#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <string>
@@ -2202,24 +2242,28 @@ inline namespace watcher {
       occur in the path being watched.
 
     This is an adaptor "switch" that chooses the ideal
-   adaptor for the host platform.
+    adaptor for the host platform.
 
     Every adapter monitors `path` for changes and invokes
-   the `callback` with an `event` object when they occur.
+    the `callback` with an `event` object when they occur.
 
     There are two things the user needs: `watch` and
-   `event`.
+    `event`.
 
     Typical use looks something like this:
 
-    auto w = watch(".", [](event const& e) {
-      std::cout
-        << "path_name:   " << e.path_name   << "\n"
-        << "path_type:   " << e.path_type   << "\n"
-        << "effect_type: " << e.effect_type << "\n"
-        << "effect_time: " << e.effect_time << "\n"
-        << std::endl;
-    };
+      auto show(event e) {
+        auto s = [](auto a) { return to<string>(a); };
+        cout << s(e.effect_type) + ' '
+              + s(e.path_type)   + ' '
+              + s(e.path_name)
+              + (e.associated
+                 ? " -> " + s(e.associated->path_name)
+                 : "")
+             << endl;
+      }
+
+      auto w = watch(".", show);
 
     That's it.
 

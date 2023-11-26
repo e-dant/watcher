@@ -11,7 +11,6 @@
 #include <limits>
 #include <random>
 #include <string>
-#include <thread>
 #include <tuple>
 #include <unistd.h>
 #include <unordered_set>
@@ -240,11 +239,11 @@ static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
 inline auto open_event_stream(
   std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback) noexcept
+  ::wtr::watcher::event::callback const& callback,
+  dispatch_queue_t queue) noexcept
   -> std::tuple<bool, std::shared_ptr<sysres_type>>
 {
   using namespace std::chrono_literals;
-  using std::chrono::duration_cast, std::chrono::seconds;
 
   auto sysres =
     std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
@@ -294,38 +293,30 @@ inline auto open_event_stream(
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
-  if (
-    FSEventStreamRef stream = FSEventStreamCreate(
-      /*  A custom allocator is optional */
-      nullptr,
-      /*  A callable to invoke on changes */
-      &event_recv,
-      /*  The callable's arguments (context) */
-      &context,
-      /*  The path(s) we were asked to watch */
-      path_array,
-      /*  The time "since when" we receive events */
-      kFSEventStreamEventIdSinceNow,
-      /*  The time between scans *after inactivity* */
-      (0.016s).count(),
-      /*  The event stream flags */
-      fsev_flag_listen)) {
-    FSEventStreamSetDispatchQueue(
-      stream,
-      /*  We don't need to retain, maintain or release this
-          dispatch queue. It's a global system queue, and it
-          outlives us. */
-      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+  FSEventStreamRef stream = FSEventStreamCreate(
+    /*  A custom allocator is optional */
+    nullptr,
+    /*  A callable to invoke on changes */
+    &event_recv,
+    /*  The callable's arguments (context) */
+    &context,
+    /*  The path(s) we were asked to watch */
+    path_array,
+    /*  The time "since when" we receive events */
+    kFSEventStreamEventIdSinceNow,
+    /*  The time between scans *after inactivity* */
+    (0.016s).count(),
+    /*  The event stream flags */
+    fsev_flag_listen);
 
+  if (stream && queue) {
+    FSEventStreamSetDispatchQueue(stream, queue);
     FSEventStreamStart(stream);
-
     sysres->stream = stream;
-
     /*  todo: Do we need to release these?
         CFRelease(path_cfstring);
         CFRelease(path_array);
     */
-
     return {true, sysres};
   }
   else {
@@ -358,14 +349,6 @@ close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
     return false;
 }
 
-inline auto block_while(semabin const& is_living)
-{
-  using namespace std::chrono_literals;
-  using std::this_thread::sleep_for;
-
-  while (is_living.state() == semabin::state::pending) sleep_for(16ms);
-}
-
 } /*  namespace */
 
 inline auto watch(
@@ -373,8 +356,9 @@ inline auto watch(
   ::wtr::watcher::event::callback const& callback,
   semabin const& is_living) noexcept -> bool
 {
-  auto&& [ok, sysres] = open_event_stream(path, callback);
-  return ok ? (block_while(is_living), close_event_stream(sysres)) : false;
+  auto queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+  auto&& [ok, sysres] = open_event_stream(path, callback, queue);
+  return ok && is_living.block_on(queue) && close_event_stream(sysres);
 }
 
 } /*  namespace adapter */
