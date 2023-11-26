@@ -24,24 +24,28 @@ inline namespace watcher {
       occur in the path being watched.
 
     This is an adaptor "switch" that chooses the ideal
-   adaptor for the host platform.
+    adaptor for the host platform.
 
     Every adapter monitors `path` for changes and invokes
-   the `callback` with an `event` object when they occur.
+    the `callback` with an `event` object when they occur.
 
     There are two things the user needs: `watch` and
-   `event`.
+    `event`.
 
     Typical use looks something like this:
 
-    auto w = watch(".", [](event const& e) {
-      std::cout
-        << "path_name:   " << e.path_name   << "\n"
-        << "path_type:   " << e.path_type   << "\n"
-        << "effect_type: " << e.effect_type << "\n"
-        << "effect_time: " << e.effect_time << "\n"
-        << std::endl;
-    };
+      auto show(event e) {
+        auto s = [](auto a) { return to<string>(a); };
+        cout << s(e.effect_type) + ' '
+              + s(e.path_type)   + ' '
+              + s(e.path_name)
+              + (e.associated
+                 ? " -> " + s(e.associated->path_name)
+                 : "")
+             << endl;
+      }
+
+      auto w = watch(".", show);
 
     That's it.
 
