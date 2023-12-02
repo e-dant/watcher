@@ -117,14 +117,6 @@ public:
       return this->is = read_ev();
   }
 
-  inline auto block_on(dispatch_queue_t queue) const noexcept -> bool
-  {
-    dispatch_sync(queue, ^{
-      dispatch_semaphore_wait(this->sema, DISPATCH_TIME_FOREVER);
-    });
-    return this->state() == released;
-  }
-
   inline ~semabin() noexcept { dispatch_release(this->sema); }
 
 #else
