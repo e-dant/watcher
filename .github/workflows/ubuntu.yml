@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    fail-fast: false
     strategy:
       matrix:
         os:
