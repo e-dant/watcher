@@ -9,6 +9,9 @@
 namespace wtr {
 namespace test_watcher {
 
+/*  Best to use local temporary directories because
+    some platforms do not allow the system temporaries
+    to be modified beyond creation */
 inline auto make_local_tmp_dir()
 {
   static auto dist = std::uniform_int_distribution<int>{0, 1000000};
