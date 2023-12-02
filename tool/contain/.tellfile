@@ -1,8 +1,0 @@
-- given name
-echo contain
-- given build
-echo ./build ${tellargs[@]}
-- given run
-echo ./run ${tellargs[@]}
-- given bun
-echo eval `tell build ${tellargs[@]}`' && eval '`tell run ${tellargs[@]}`
