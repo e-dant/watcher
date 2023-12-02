@@ -8,21 +8,15 @@
 #if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
 
 #include "wtr/watcher.hpp"
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <cstdio>
-#include <cstring>
+#include <errno.h>
 #include <fcntl.h>
-#include <functional>
-#include <optional>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/fanotify.h>
-#include <system_error>
-#include <tuple>
 #include <unistd.h>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace detail::wtr::watcher::adapter::fanotify {
 
@@ -68,22 +62,25 @@ struct ke_fa_ev {
 // clang-format on
 
 struct sysres {
-  bool ok = false;
+  result ok = result::e;
   ke_fa_ev ke{};
   semabin const& il{};
   adapter::ep ep{};
 };
 
 inline auto do_mark =
-  [](char const* const dirpath, int fa_fd, auto const& cb) -> bool
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
 {
-  auto do_error = [&]() -> bool
-  { return adapter::do_error("w/sys/not_watched@", dirpath, cb); };
+  auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
-  if (! realpath(dirpath, real)) return do_error();
   int anonymous_wd =
-    fanotify_mark(fa_fd, FAN_MARK_ADD, ke_fa_ev::recv_flags, AT_FDCWD, real);
-  return anonymous_wd == 0 ? true : is_dir(real) ? do_error() : false;
+    realpath(dirpath, real) && is_dir(real)
+      ? fanotify_mark(fa_fd, FAN_MARK_ADD, ke_fa_ev::recv_flags, AT_FDCWD, real)
+      : -1;
+  if (anonymous_wd == 0)
+    return result::complete;
+  else
+    return send_msg(e, dirpath, cb), e;
 };
 
 /*  Grabs the resources we need from `fanotify`
@@ -96,15 +93,18 @@ inline auto make_sysres = [](
                             auto const& cb,
                             semabin const& is_living) -> sysres
 {
-  auto do_error = [&](auto&& msg)
-  { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
-  if (fa_fd < 1) return do_error("e/sys/fanotify_init@");
+  if (fa_fd < 1)
+    return sysres{.ok = result::e_sys_api_fanotify, .il = is_living};
+
   walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
-  auto ep = make_ep(base_path, cb, is_living.fd, fa_fd);
-  if (ep.fd < 1) return (close(fa_fd), do_error("e/self/resource@"));
-  return {
-    .ok = true,
+
+  auto ep = make_ep(fa_fd, is_living.fd);
+  if (ep.fd < 1)
+    return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = is_living};
+
+  return sysres{
+    .ok = result::pending,
     .ke{.fd = fa_fd},
     .il = is_living,
     .ep = ep,
@@ -229,14 +229,14 @@ inline auto parse_ev(fanotify_event_metadata const* const m, size_t read_len)
 }
 
 inline auto do_mark_if_newdir =
-  [](::wtr::watcher::event const& ev, int fa_fd, auto const& cb) -> bool
+  [](::wtr::watcher::event const& ev, int fa_fd, auto const& cb) -> result
 {
   auto is_newdir = ev.effect_type == ::wtr::watcher::event::effect_type::create
                 && ev.path_type == ::wtr::watcher::event::path_type::dir;
   if (is_newdir)
     return do_mark(ev.path_name.c_str(), fa_fd, cb);
   else
-    return true;
+    return result::complete;
 };
 
 /*  Read some events from what fanotify gives
@@ -260,37 +260,32 @@ inline auto do_mark_if_newdir =
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_ev_recv =
-  [](char const* const base_path, auto const& cb, sysres& sr) -> bool
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
-  auto do_error = [&](auto&& msg) -> bool
-  { return adapter::do_error(msg, base_path, cb); };
-  auto do_warn = [&](auto&& msg) -> bool { return ! do_error(msg); };
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };
   auto ev_has_dirname = [&](fanotify_event_metadata const* const m) -> bool
   { return ev_info(m)->hdr.info_type == FAN_EVENT_INFO_TYPE_DFID_NAME; };
 
   unsigned ev_c = 0;
-  memset(sr.ke.buf, 0, sr.ke.buf_len);
   int read_len = read(sr.ke.fd, sr.ke.buf, sr.ke.buf_len);
   auto const* mtd = (fanotify_event_metadata*)(sr.ke.buf);
   if (read_len <= 0 && errno != EAGAIN)
-    return true;
+    return result::pending;
   else if (read_len < 0)
-    return do_error("e/sys/read@");
+    return result::e_sys_api_read;
   else
     while (mtd && FAN_EVENT_OK(mtd, read_len))
       if (ev_c++ > sr.ke.c_ulim)
-        return do_error("e/sys/ev_lim@");
+        return result::e_sys_ret;
       else if (mtd->vers != FANOTIFY_METADATA_VERSION)
-        return do_error("e/sys/kernel_version@");
+        return result::e_sys_lim_kernel_version;
       else if (mtd->fd != FAN_NOFD)
-        return do_warn("w/sys/bad_fd@");
+        return result::w_sys_bad_fd;
       else if (mtd->mask & FAN_Q_OVERFLOW)
-        return do_warn("w/sys/ev_lim@");
+        return result::w_sys_q_overflow;
       else if (! ev_has_dirname(mtd))
-        return do_warn("w/sys/bad_info@");
+        return result::w_sys_bad_meta;
       else {
         auto [ev, n, l] = parse_ev(mtd, read_len);
         do_mark_if_newdir(ev, sr.ke.fd, cb);
@@ -298,38 +293,10 @@ inline auto do_ev_recv =
         mtd = n;
         read_len -= l;
       }
-  return true;
+  return result::pending;
 };
 
-inline auto watch =
-  [](char const* const path, auto const& cb, semabin const& is_living) -> bool
-{
-  auto sr = make_sysres(path, cb, is_living);
-  auto do_error = [&](auto&& msg) -> bool
-  { return (close_sysres(sr), adapter::do_error(msg, path, cb)); };
-  auto is_ev_of = [&](int nth, int fd) -> bool
-  { return sr.ep.interests[nth].data.fd == fd; };
-
-  if (! sr.ok) return do_error("e/self/resource@");
-  while (true) {
-    int ep_c =
-      epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
-    if (ep_c < 0)
-      return do_error("e/sys/epoll_wait@");
-    else if (ep_c == 0)
-      continue;
-    else
-      for (int n = 0; n < ep_c; ++n)
-        if (is_ev_of(n, sr.il.fd))
-          return sr.il.state() == semabin::state::released
-                 ? close_sysres(sr)
-                 : do_error("e/self/semabin@");
-        else if (is_ev_of(n, sr.ke.fd) && ! do_ev_recv(path, cb, sr))
-          return do_error("e/self/ev_recv@");
-  }
-};
-
-} /* namespace detail::wtr::watcher::adapter::fanotify */
+} /*  namespace detail::wtr::watcher::adapter::fanotify */
 
 #endif
 #endif

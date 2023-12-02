@@ -8,15 +8,14 @@
 #if (KERNEL_VERSION(2, 7, 0) <= LINUX_VERSION_CODE) || __ANDROID_API__
 
 #include "wtr/watcher.hpp"
-#include <cstring>
 #include <filesystem>
-#include <functional>
 #include <limits.h>
+#include <string.h>
 #include <sys/epoll.h>
 #include <sys/inotify.h>
-#include <system_error>
 #include <unistd.h>
 #include <unordered_map>
+#include <utility>
 
 namespace detail::wtr::watcher::adapter::inotify {
 
@@ -49,7 +48,7 @@ struct ke_in_ev {
   static_assert(buf_len > one_ulim * 8, "capacity");
   /*  The upper limit of how many events
       we could possibly read into a buffer
-      which is `ev_buf_len` bytes large.
+      which is `buf_len` bytes large.
       Practically, if we come half-way
       close to this value, we should
       be skeptical of the `read`.
@@ -90,29 +89,33 @@ struct ke_in_ev {
   int fd = -1;
   using paths = std::unordered_map<int, std::filesystem::path>;
   paths dm{};
-  alignas(inotify_event) char buf[buf_len]{0};
+  alignas(inotify_event) char ev_buf[buf_len]{0};
+  int rm_wd_buf[buf_len]{0};
+
+  static_assert(sizeof(ev_buf) % sizeof(inotify_event) == 0, "alignment");
 };
 
 // clang-format on
 
 struct sysres {
-  bool ok = false;
+  result ok = result::e;
   ke_in_ev ke{};
   semabin const& il{};
   adapter::ep ep{};
 };
 
 inline auto do_mark =
-  [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> bool
+  [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> result
 {
+  auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
-  int wd = -1;
-  if (realpath(dirpath, real) && is_dir(real))
-    wd = inotify_add_watch(dirfd, real, ke_in_ev::recv_mask);
+  int wd = realpath(dirpath, real) && is_dir(real)
+           ? inotify_add_watch(dirfd, real, ke_in_ev::recv_mask)
+           : -1;
   if (wd > 0)
-    return (dm.emplace(wd, real), true);
+    return dm.emplace(wd, real), result::complete;
   else
-    return do_error("w/sys/not_watched@", dirpath, cb);
+    return send_msg(e, dirpath, cb), e;
 };
 
 inline auto make_sysres = [](
@@ -120,20 +123,38 @@ inline auto make_sysres = [](
                             auto const& cb,
                             semabin const& is_living) -> sysres
 {
-  auto do_error = [&](auto&& msg)
-  { return (adapter::do_error(std::move(msg), base_path, cb), sysres{}); };
-  /*  todo: Do we really need to be non-blocking? */
-  int in_fd = inotify_init();
-  if (in_fd < 0) return do_error("e/sys/inotify_init@");
-  auto dm = ke_in_ev::paths{};
-  walkdir_do(
-    base_path,
-    [&](char const* const dir) { do_mark(dir, in_fd, dm, cb); });
-  auto ep = make_ep(base_path, cb, is_living.fd, in_fd);
-  if (dm.empty() || ep.fd < 0)
-    return (close(in_fd), do_error("e/self/resource@"));
+  auto make_inotify = [](result* ok) -> int
+  {
+    if (*ok >= result::e) return -1;
+    int in_fd = inotify_init();
+    if (in_fd < 0) *ok = result::e_sys_api_inotify;
+    return in_fd;
+  };
+
+  auto make_dm = [&](result* ok, int in_fd) -> ke_in_ev::paths
+  {
+    auto dm = ke_in_ev::paths{};
+    if (*ok >= result::e) return dm;
+    walkdir_do(base_path, [&](auto dir) { do_mark(dir, in_fd, dm, cb); });
+    if (dm.empty()) *ok = result::e_self_noent;
+    return dm;
+  };
+
+  auto make_ep = [&](result* ok, int in_fd, int il_fd) -> ep
+  {
+    if (*ok >= result::e) return ep{};
+    auto ep = adapter::make_ep(in_fd, il_fd);
+    if (ep.fd < 0) *ok = result::e_sys_api_epoll;
+    return ep;
+  };
+
+  auto ok = result::pending;
+  auto in_fd = make_inotify(&ok);
+  auto dm = make_dm(&ok, in_fd);
+  auto ep = make_ep(&ok, in_fd, is_living.fd);
+
   return sysres{
-    .ok = true,
+    .ok = ok,
     .ke{
         .fd = in_fd,
         .dm = std::move(dm),
@@ -192,23 +213,31 @@ inline auto parse_ev(
 }
 
 struct defer_dm_rm_wd {
-  unsigned back_idx = 0;
-  int buf[ke_in_ev::c_ulim];
-  ke_in_ev::paths& dm;
+  ke_in_ev& ke;
+  size_t back_idx = 0;
 
-  inline auto push(int wd) -> void
+  /*  It is impossible to exceed our buffer
+      because we store as many events as are
+      possible to receive from `read()`.
+      If we do exceed the indices, then some
+      system invariant has been violated. */
+  inline auto push(int wd) -> bool
   {
-    if (back_idx < sizeof(buf)) buf[back_idx++] = wd;
+    if (back_idx < ke.buf_len)
+      return ke.rm_wd_buf[back_idx++] = wd, true;
+    else
+      return false;
   };
 
-  inline defer_dm_rm_wd(ke_in_ev::paths& dm)
-      : dm{dm} {};
+  inline defer_dm_rm_wd(ke_in_ev& ke)
+      : ke{ke} {};
 
   inline ~defer_dm_rm_wd()
   {
-    for (unsigned i = 0; i < back_idx; i++) {
-      auto at = dm.find(buf[i]);
-      if (at != dm.end()) dm.erase(at);
+    for (size_t i = 0; i < back_idx; ++i) {
+      auto wd = ke.rm_wd_buf[i];
+      auto at = ke.dm.find(wd);
+      if (at != ke.dm.end()) ke.dm.erase(at);
     }
   };
 };
@@ -285,78 +314,51 @@ struct defer_dm_rm_wd {
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_ev_recv =
-  [](char const* const base_path, auto const& cb, sysres& sr) -> bool
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
-  auto is_physical_ev = [](unsigned msk) -> bool
+  auto is_parity_lost = [](unsigned msk) -> bool
+  { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };
+  auto is_real_event = [](unsigned msk) -> bool
   {
-    bool is_any = msk & ke_in_ev::recv_mask;
-    bool is_self = msk & IN_DELETE_SELF || msk & IN_MOVE_SELF;
-    bool is_ignored = msk & IN_IGNORED;
-    return is_any && ! is_self && ! is_ignored;
+    bool has_any = msk & ke_in_ev::recv_mask;
+    bool is_self_info = msk & (IN_IGNORED | IN_DELETE_SELF | IN_MOVE_SELF);
+    return has_any && ! is_self_info;
   };
 
-  memset(sr.ke.buf, 0, sizeof(sr.ke.buf));
-  auto dmrm = defer_dm_rm_wd{sr.ke.dm};
-  auto read_len = read(sr.ke.fd, sr.ke.buf, sizeof(sr.ke.buf));
-  auto const* in_ev = (inotify_event*)(sr.ke.buf);
-  auto const* const in_ev_tail = (inotify_event*)(sr.ke.buf + read_len);
+  auto read_len = read(sr.ke.fd, sr.ke.ev_buf, sizeof(sr.ke.ev_buf));
   if (read_len < 0 && errno != EAGAIN)
-    return do_error("e/sys/read@", base_path, cb);
-  while (in_ev && in_ev < in_ev_tail) {
-    auto in_ev_next = peek(in_ev, in_ev_tail);
+    return result::e_sys_api_read;
+  else {
+    auto const* in_ev = (inotify_event*)(sr.ke.ev_buf);
+    auto const* const in_ev_tail = (inotify_event*)(sr.ke.ev_buf + read_len);
     unsigned in_ev_c = 0;
-    unsigned msk = in_ev->mask;
-    auto dmhit = sr.ke.dm.find(in_ev->wd);
-    if (in_ev_c++ > ke_in_ev::c_ulim)
-      return do_error("e/sys/ev_lim@", base_path, cb);
-    else if (msk & IN_Q_OVERFLOW)
-      do_warn("w/sys/ev_lim@", base_path, cb);
-    else if (dmhit == sr.ke.dm.end())
-      do_warn("w/sys/phantom_event@", base_path, cb);
-    else if (msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF))
-      dmrm.push(in_ev->wd);
-    else if (is_physical_ev(msk)) {
-      auto [ev, next] = parse_ev(dmhit->second, in_ev, in_ev_tail);
-      if (msk & IN_ISDIR && msk & IN_CREATE)
-        do_mark(ev.path_name.c_str(), sr.ke.fd, sr.ke.dm, cb);
-      cb(ev);
-      in_ev_next = next;
+    auto dmrm = defer_dm_rm_wd{sr.ke};
+    while (in_ev && in_ev < in_ev_tail) {
+      auto in_ev_next = peek(in_ev, in_ev_tail);
+      unsigned msk = in_ev->mask;
+      auto dmhit = sr.ke.dm.find(in_ev->wd);
+      if (in_ev_c++ > ke_in_ev::c_ulim)
+        return result::e_sys_ret;
+      else if (is_parity_lost(msk) && ! dmrm.push(in_ev->wd))
+        return result::e_sys_ret;
+      else if (dmhit == sr.ke.dm.end())
+        send_msg(result::w_sys_phantom, "", cb);
+      else if (msk & IN_Q_OVERFLOW)
+        send_msg(result::w_sys_q_overflow, dmhit->second.c_str(), cb);
+      else if (is_real_event(msk)) {
+        auto [ev, next] = parse_ev(dmhit->second, in_ev, in_ev_tail);
+        if (msk & IN_ISDIR && msk & IN_CREATE)
+          do_mark(ev.path_name.c_str(), sr.ke.fd, sr.ke.dm, cb);
+        cb(ev);
+        in_ev_next = next;
+      }
+      in_ev = in_ev_next;
     }
-    in_ev = in_ev_next;
-  }
-  return true;
-};
-
-inline auto watch =
-  [](char const* const path, auto const& cb, semabin const& is_living) -> bool
-{
-  auto sr = make_sysres(path, cb, is_living);
-  auto do_error = [&](auto&& msg) -> bool
-  { return (close_sysres(sr), adapter::do_error(msg, path, cb)); };
-  auto is_ev_of = [&](int nth, int fd) -> bool
-  { return sr.ep.interests[nth].data.fd == fd; };
-
-  if (! sr.ok) return do_error("e/self/resource@");
-  while (true) {
-    int ep_c =
-      epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
-    if (ep_c < 0)
-      return do_error("e/sys/epoll_wait@");
-    else if (ep_c == 0)
-      continue;
-    else
-      for (int n = 0; n < ep_c; ++n)
-        if (is_ev_of(n, sr.il.fd))
-          return sr.il.state() == semabin::state::released
-                 ? close_sysres(sr)
-                 : do_error("e/self/semabin@");
-        else if (is_ev_of(n, sr.ke.fd) && ! do_ev_recv(path, cb, sr))
-          return do_error("e/self/ev_recv@");
+    return result::pending;
   }
 };
 
-} /* namespace detail::wtr::watcher::adapter::inotify */
+} /*  namespace detail::wtr::watcher::adapter::inotify */
 
 #endif
 #endif
