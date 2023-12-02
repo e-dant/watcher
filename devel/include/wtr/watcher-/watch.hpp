@@ -87,7 +87,7 @@ public:
 
   inline auto close() noexcept -> bool
   {
-    return this->is_living.release() == sb::state::released
+    return this->is_living.release() != sb::state::pending
         && this->watching.valid() && this->watching.get();
   };
 
