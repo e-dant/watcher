@@ -9,8 +9,8 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
-    fail-fast: false
     strategy:
+      fail-fast: false
       matrix:
         os:
           - windows-2022
