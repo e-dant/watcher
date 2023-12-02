@@ -1,5 +1,5 @@
 #include "snitch/snitch.hpp"
-#include "test_watcher/constant.hpp"
+#include "test_watcher/test_watcher.hpp"
 #include "wtr/watcher.hpp"
 #include <algorithm>
 #include <array>
@@ -131,10 +131,10 @@ class Perf{
 public:
   auto concurrent_watchers() -> PerfResult
   {
-    auto path = test_watcher::test_store_path;
+    auto const tmpdir = wtr::test_watcher::make_local_tmp_dir();
 
-    if (! filesystem::exists(path))
-      filesystem::create_directory(path);
+    if (! filesystem::exists(tmpdir))
+      filesystem::create_directory(tmpdir);
 
     /*  Try to approximate the overhead of
         observing the time and a bit of
@@ -175,21 +175,21 @@ public:
         allocation overhead. */
     auto watchers = array<unique_ptr<watch>, cfg.watch_count>{};
     for (int i = 0; i < cfg.watch_count; ++i)
-      watchers.at(i) = std::move(make_unique<watch>(path, cb));
+      watchers.at(i) = std::move(make_unique<watch>(tmpdir, cb));
 
     auto start = now();
     auto time_taken_fsops = chrono::nanoseconds{0};
     for (int i = 0; i < cfg.event_count; ++i) {
       auto start_fsops = now();
-      auto _ = ofstream{path / to_string(i)};  // touch
+      auto _ = ofstream{tmpdir / to_string(i)};  // touch
       time_taken_fsops += since(start_fsops);
     }
     auto time_taken_total = since(start);
     time_taken_fsops -= clock_overhead * cfg.event_count;
     auto time_taken_watch = time_taken_total - time_taken_fsops;
 
-    if (filesystem::exists(path))
-      filesystem::remove_all(path);
+    if (filesystem::exists(tmpdir))
+      filesystem::remove_all(tmpdir);
 
     return {
       cfg,

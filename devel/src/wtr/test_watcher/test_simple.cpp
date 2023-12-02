@@ -21,7 +21,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   static constexpr auto path_count = 3;
   static constexpr auto title = "Simple";
   static auto verbose = is_verbose();
-  auto const store_path = test_store_path / "simple_store";
+  auto const tmpdir = make_local_tmp_dir();
   auto event_recv_list = std::vector<event>{};
   auto event_recv_list_mtx = std::mutex{};
   auto event_sent_list = std::vector<event>{};
@@ -29,8 +29,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
 
   std::cout << title << std::endl;
 
-  fs::create_directories(store_path);
-  REQUIRE(fs::exists(store_path));
+  REQUIRE(fs::exists(tmpdir) || fs::create_directory(tmpdir));
 
   /*  This sleep is hiding a bug on darwin which picks
       up events slightly *before* we start watching.
@@ -38,12 +37,12 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   std::this_thread::sleep_for(10ms);
 
   event_sent_list.push_back(
-    {std::string("s/self/live@").append(store_path.string()),
+    {std::string("s/self/live@").append(tmpdir.string()),
      event::effect_type::create,
      event::path_type::watcher});
 
   auto watcher = watch(
-    store_path,
+    tmpdir,
     [&event_recv_list_mtx, &event_recv_list](event const& ev)
     {
 #ifdef _WIN32
@@ -64,7 +63,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   std::this_thread::sleep_for(100ms);
 
   for (int i = 0; i < path_count; ++i) {
-    auto const new_dir_path = store_path / ("new_dir" + std::to_string(i));
+    auto const new_dir_path = tmpdir / ("new_dir" + std::to_string(i));
     fs::create_directory(new_dir_path);
     REQUIRE(fs::is_directory(new_dir_path));
 
@@ -72,7 +71,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
       {new_dir_path, event::effect_type::create, event::path_type::dir});
 
     auto const new_file_path =
-      store_path / ("new_file" + std::to_string(i) + ".txt");
+      tmpdir / ("new_file" + std::to_string(i) + ".txt");
     std::ofstream(new_file_path).close();
     REQUIRE(fs::is_regular_file(new_file_path));
 
@@ -89,7 +88,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
   }
 
   event_sent_list.push_back(
-    {std::string("s/self/die@").append(store_path.string()),
+    {std::string("s/self/die@").append(tmpdir.string()),
      event::effect_type::destroy,
      event::path_type::watcher});
 
@@ -97,8 +96,7 @@ TEST_CASE("Simple", "[test][dir][file][simple]")
       any pending events out there... Can we do that? */
   REQUIRE(watcher.close() == true);
 
-  REQUIRE(fs::remove_all(test_store_path) > 0u);
-  REQUIRE(fs::exists(test_store_path) == false);
+  REQUIRE(! fs::exists(tmpdir) || fs::remove_all(tmpdir));
 
   if (verbose) {
     std::cout << "event_sent_list:" << std::endl;

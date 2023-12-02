@@ -3,10 +3,24 @@
 #include "wtr/watcher.hpp"
 #include <filesystem>
 #include <fstream>
+#include <random>
 #include <string>
 
 namespace wtr {
 namespace test_watcher {
+
+inline auto make_local_tmp_dir()
+{
+  static auto dist = std::uniform_int_distribution<int>{0, 1000000};
+  static auto gen = std::mt19937{std::random_device{}()};
+  auto n = dist(gen);
+  auto str_n = std::to_string(n);
+  auto cur_path = std::filesystem::current_path();
+  auto tmp_dir = cur_path / str_n;
+  auto abs_tmp_dir = std::filesystem::absolute(tmp_dir);
+  std::filesystem::create_directory(abs_tmp_dir);
+  return abs_tmp_dir;
+}
 
 inline auto create_regular_files(auto const& path, auto n)
 {

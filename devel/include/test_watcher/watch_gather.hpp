@@ -3,6 +3,7 @@
 #include "snitch/snitch.hpp"
 #include "test_watcher/constant.hpp"
 #include "test_watcher/event.hpp"
+#include "test_watcher/filesystem.hpp"
 #include "test_watcher/is_verbose.hpp"
 #include "wtr/watcher.hpp"
 #include <cassert>
@@ -22,7 +23,6 @@ namespace test_watcher {
 
 auto watch_gather(
   auto const& title = "test",
-  auto const& store_path = test_store_path / "tmp_store",
   int path_count = 10,
   int concurrency_level = 1)
 {
@@ -37,6 +37,8 @@ auto watch_gather(
   auto event_sent_list = std::vector<wtr::event>{};
   auto watch_path_list = std::vector<fs::path>{};
 
+  auto const tmpdir = make_local_tmp_dir();
+
   std::cerr << title << std::endl;
 
   {
@@ -44,13 +46,10 @@ auto watch_gather(
 
     /*  Setup the test directory */
     {
-      /*  Clean, if needed, from e.g. prior test runs. */
-      for (auto p : {test_store_path, store_path})
-        REQUIRE(
-          (! fs::exists(p) || fs::remove_all(p)) && fs::create_directory(p));
+      REQUIRE(fs::exists(tmpdir) || fs::create_directory(tmpdir));
 
       for (auto i = 0; i < concurrency_level; i++) {
-        auto p = store_path / std::to_string(i);
+        auto p = tmpdir / std::to_string(i);
         watch_path_list.emplace_back(p);
         REQUIRE(fs::create_directory(p));
       }
@@ -117,8 +116,7 @@ auto watch_gather(
   }
 
   /*  Clean */
-  REQUIRE(fs::remove_all(store_path));
-  REQUIRE(fs::remove_all(test_store_path));
+  REQUIRE(! fs::exists(tmpdir) || fs::remove_all(tmpdir));
 
   return std::make_pair(std::move(event_sent_list), std::move(event_recv_list));
 };

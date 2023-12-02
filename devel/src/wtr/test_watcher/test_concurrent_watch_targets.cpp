@@ -16,7 +16,6 @@ TEST_CASE(
 
   check_event_lists_set_eq(watch_gather(
     "Concurrent Event Targets",
-    test_store_path / "concurrent_event_targets_store",
     10,
     32));
 };

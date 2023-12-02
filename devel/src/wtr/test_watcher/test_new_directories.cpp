@@ -22,14 +22,13 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
   static constexpr auto path_count = 10;
   static constexpr auto title = "New Directories";
   static auto verbose = is_verbose();
-  auto const base_store_path = test_store_path;
-  auto const store_path_first = base_store_path / "new_directories_first_store";
-  auto const store_path_second =
-    base_store_path / "new_directories_second_store";
+  auto const tmpdir = make_local_tmp_dir();
+  auto const dira = tmpdir / "new_directories_first_store";
+  auto const dirb = tmpdir / "new_directories_second_store";
   auto const store_path_list =
-    std::vector<fs::path>{base_store_path, store_path_first, store_path_second};
+    std::vector<fs::path>{tmpdir, dira, dirb};
   auto const new_store_path_list =
-    std::vector<fs::path>{store_path_first, store_path_second};
+    std::vector<fs::path>{dira, dirb};
   auto event_recv_list = std::vector<event>{};
   auto event_recv_list_mtx = std::mutex{};
   auto event_sent_list = std::vector<event>{};
@@ -37,7 +36,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   std::cout << title << std::endl;
 
-  fs::create_directory(base_store_path);
+  REQUIRE(fs::exists(tmpdir) || fs::create_directory(tmpdir));
 
   /* @todo
      This sleep is hiding a bug on darwin which picks
@@ -46,12 +45,12 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
   std::this_thread::sleep_for(100ms);
 
   event_sent_list.push_back(
-    {std::string("s/self/live@").append(base_store_path.string()),
+    {std::string("s/self/live@").append(tmpdir.string()),
      event::effect_type::create,
      event::path_type::watcher});
 
   auto lifetime = watch(
-    base_store_path,
+    tmpdir,
     [&](event const& ev)
     {
 #ifdef _WIN32
@@ -112,7 +111,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
   std::this_thread::sleep_for(10ms);
 
   event_sent_list.push_back(
-    {std::string("s/self/die@").append(base_store_path.string()),
+    {std::string("s/self/die@").append(tmpdir.string()),
      event::effect_type::destroy,
      event::path_type::watcher});
 
@@ -120,8 +119,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target]")
 
   REQUIRE(dead);
 
-  fs::remove_all(base_store_path);
-  REQUIRE(! fs::exists(base_store_path));
+  REQUIRE(! fs::exists(tmpdir) || fs::remove_all(tmpdir));
 
   check_event_lists_eq(event_sent_list, event_recv_list);
 };
