@@ -262,7 +262,7 @@ auto vec_cat(auto... vs) -> vector<PerfResult>
       template instantiation depth exceeds <some number around 1k>
 */
 
-TEST_CASE("Concurrent Watch Target Performance", "[perf][concurrent][file][watch-target]")
+TEST_CASE("Concurrent Watch Target Performance", "[concurrent][file][watch-target][perf]")
 {
   //  Warming up the cache
   perf_range<RangePair{{1,3,1},{100,500,100}}>();

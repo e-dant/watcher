@@ -9,7 +9,7 @@
 /* Test that files are scanned */
 TEST_CASE(
   "Concurrent Event Targets",
-  "[test][concurrent][file][dir][watch-target]")
+  "[test][concurrent][file][dir][watch-target][not-perf]")
 {
   using namespace wtr::watcher;
   using namespace wtr::test_watcher;
