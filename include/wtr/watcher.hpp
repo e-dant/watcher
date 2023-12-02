@@ -1690,7 +1690,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 #include <linux/version.h>
 #include <unistd.h>
 
-#if (KERNEL_VERSION(2, 7, 0) > LINUX_VERSION_CODE) || __ANDROID_API__
+#if KERNEL_VERSION(2, 7, 0) > LINUX_VERSION_CODE
 #error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
 
