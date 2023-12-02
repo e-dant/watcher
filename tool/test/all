@@ -1,4 +1,7 @@
 #! /usr/bin/env bash
 
-find "$(dirname "$0")" -type f -not -name .ctx -and -not -name all | bash
+tmpf=$(mktemp)
 
+find "$(dirname "$0")" -type f -not -name .ctx -and -not -name all | bash | tee "$tmpf"
+
+exit "$(grep -c oops "$tmpf")"
