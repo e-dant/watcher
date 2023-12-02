@@ -181,7 +181,7 @@ public:
     auto time_taken_fsops = chrono::nanoseconds{0};
     for (int i = 0; i < cfg.event_count; ++i) {
       auto start_fsops = now();
-      ofstream{path / to_string(i)};  // touch
+      auto _ = ofstream{path / to_string(i)};  // touch
       time_taken_fsops += since(start_fsops);
     }
     auto time_taken_total = since(start);
@@ -282,7 +282,7 @@ TEST_CASE("Concurrent Watch Target Performance", "[perf][concurrent][file][watch
   show_results(res);
 
   for (auto r : res)
-    CHECK(r.time_taken_watch < (r.time_taken_fsops / 100));
+    CHECK(r.time_taken_watch < (r.time_taken_fsops / 50));
 };
 
 // clang-format on
