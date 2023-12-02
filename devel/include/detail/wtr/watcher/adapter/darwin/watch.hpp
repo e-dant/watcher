@@ -11,7 +11,6 @@
 #include <limits>
 #include <random>
 #include <string>
-#include <tuple>
 #include <unistd.h>
 #include <unordered_set>
 #include <vector>
@@ -240,8 +239,7 @@ static_assert(FSEventStreamCallback{event_recv} == event_recv);
 inline auto open_event_stream(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  dispatch_queue_t queue) noexcept
-  -> std::tuple<bool, std::shared_ptr<sysres_type>>
+  dispatch_queue_t queue) noexcept -> std::shared_ptr<sysres_type>
 {
   using namespace std::chrono_literals;
 
@@ -265,6 +263,10 @@ inline auto open_event_stream(
     .copyDescription = nullptr,
   };
 
+  /*  todo: Do we need to release these?
+      CFRelease(path_cfstring);
+      CFRelease(path_array);
+  */
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
   CFArrayRef path_array = CFArrayCreate(
@@ -313,40 +315,33 @@ inline auto open_event_stream(
     FSEventStreamSetDispatchQueue(stream, queue);
     FSEventStreamStart(stream);
     sysres->stream = stream;
-    /*  todo: Do we need to release these?
-        CFRelease(path_cfstring);
-        CFRelease(path_array);
-    */
-    return {true, sysres};
-  }
-  else {
-    return {false, {}};
-  }
-}
-
-inline auto
-close_event_stream(std::shared_ptr<sysres_type> const& sysres) noexcept -> bool
-{
-  if (sysres->stream) {
-    /*  We want to handle any outstanding events before closing. */
-    FSEventStreamFlushSync(sysres->stream);
-    /*  `FSEventStreamInvalidate()` only needs to be called
-        if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
-        That scheduling function is deprecated (as of macOS 13).
-        Calling `FSEventStreamInvalidate()` fails an assertion
-        and produces a warning in the console. However, calling
-        `FSEventStreamRelease()` without first invalidating via
-        `FSEventStreamInvalidate()` *also* fails an assertion,
-        and produces a warning. I'm not sure what the right call
-        to make here is. */
-    FSEventStreamStop(sysres->stream);
-    FSEventStreamInvalidate(sysres->stream);
-    FSEventStreamRelease(sysres->stream);
-    sysres->stream = nullptr;
-    return true;
+    return sysres;
   }
   else
-    return false;
+    return nullptr;
+}
+
+inline auto close_event_stream(std::shared_ptr<sysres_type> const& sr) noexcept
+  -> bool
+{
+  /*  We want to handle any outstanding events before closing,
+      so we flush the event stream before stopping it.
+      `FSEventStreamInvalidate()` only needs to be called
+      if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
+      That scheduling function is deprecated (as of macOS 13).
+      Calling `FSEventStreamInvalidate()` fails an assertion
+      and produces a warning in the console. However, calling
+      `FSEventStreamRelease()` without first invalidating via
+      `FSEventStreamInvalidate()` *also* fails an assertion,
+      and produces a warning. I'm not sure what the right call
+      to make here is. */
+  return sr->stream
+      && (FSEventStreamFlushSync(sr->stream),
+          FSEventStreamStop(sr->stream),
+          FSEventStreamInvalidate(sr->stream),
+          FSEventStreamRelease(sr->stream),
+          sr->stream = nullptr,
+          true);
 }
 
 } /*  namespace */
@@ -357,8 +352,9 @@ inline auto watch(
   semabin const& is_living) noexcept -> bool
 {
   auto queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-  auto&& [ok, sysres] = open_event_stream(path, callback, queue);
-  return ok && is_living.block_on(queue) && close_event_stream(sysres);
+  auto sr = open_event_stream(path, callback, queue);
+  return sr && dispatch_semaphore_wait(is_living.sema, DISPATCH_TIME_FOREVER),
+         close_event_stream(sr);
 }
 
 } /*  namespace adapter */
