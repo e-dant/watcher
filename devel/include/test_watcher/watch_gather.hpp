@@ -44,14 +44,16 @@ auto watch_gather(
 
     /*  Setup the test directory */
     {
-      /*  Same directory for the whole test suite */
-      REQUIRE(fs::create_directory(test_store_path));
-      for (auto i = 0; i < concurrency_level; i++)
-        watch_path_list.emplace_back(store_path / std::to_string(i));
-      /*  (Usually) unique to each test case */
-      REQUIRE(fs::create_directory(store_path));
+      /*  Clean, if needed, from e.g. prior test runs. */
+      for (auto p : {test_store_path, store_path})
+        REQUIRE(
+          (! fs::exists(p) || fs::remove_all(p)) && fs::create_directory(p));
 
-      for (auto const& p : watch_path_list) REQUIRE(fs::create_directory(p));
+      for (auto i = 0; i < concurrency_level; i++) {
+        auto p = store_path / std::to_string(i);
+        watch_path_list.emplace_back(p);
+        REQUIRE(fs::create_directory(p));
+      }
     }
 
 #ifdef __APPLE__
