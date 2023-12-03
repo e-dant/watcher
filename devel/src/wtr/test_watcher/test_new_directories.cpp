@@ -96,7 +96,7 @@ TEST_CASE("New Directories", "[test][dir][watch-target][not-perf]")
       std::this_thread::sleep_for(10ms);
 
       auto const new_file_path = new_dir_path / "file.txt";
-      std::ofstream{new_file_path}; /* NOLINT */
+      auto _ = std::ofstream{new_file_path};
       REQUIRE(fs::exists(new_file_path));
       event_sent_list.push_back(event{
         new_file_path,
