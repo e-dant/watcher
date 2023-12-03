@@ -35,5 +35,5 @@ jobs:
           ls -al out/this/Debug
           ls -al out/this/Release
       - run: tool/build --verbose --no-build
-      - run: tool/test/all || tool/test/all || echo ouch
+      - run: tool/test/all || tool/test/all
 
