@@ -389,6 +389,10 @@ runlog-tests()  {
   | while read -r target
     do echo "$target"
        "$target"
+       ec=$?
+       if [ $ec -ne 0 ]
+       then echo "Test failed ($ec) at $target"
+       fi
     done
 }
 
