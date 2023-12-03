@@ -486,7 +486,6 @@ public:
 
 #if defined(__APPLE__)
 
-#include <chrono>
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 #include <cstdio>
@@ -505,6 +504,21 @@ namespace adapter {
 namespace {
 
 // clang-format off
+
+/*  If we want less "sleepy" time after a period of time
+    without receiving filesystem events, we could OR like:
+    `fsev_flag_listen | kFSEventStreamCreateFlagNoDefer`.
+    We're talking about saving a maximum latency of `delay_s`
+    after some period of inactivity, which is not likely to
+    be noticeable. I'm not sure what Darwin sets the "period
+    of inactivity" to, and I'm not sure it matters. */
+inline constexpr unsigned fsev_listen_for
+  = kFSEventStreamCreateFlagFileEvents
+  | kFSEventStreamCreateFlagUseExtendedData
+  | kFSEventStreamCreateFlagUseCFTypes;
+inline constexpr auto fsev_listen_since
+  = kFSEventStreamEventIdSinceNow;
+
 inline constexpr unsigned fsev_flag_path_file
   = kFSEventStreamEventFlagItemIsFile;
 inline constexpr unsigned fsev_flag_path_dir
@@ -711,7 +725,7 @@ inline auto event_recv(
   unsigned long count,        /*  Event count */
   void* paths,                /*  Paths with events */
   unsigned const* flags,      /*  Event flags */
-  FSEventStreamEventId const* /*  event stream id */
+  FSEventStreamEventId const* /*  A unique stream id */
   ) noexcept -> void
 {
   auto ap = static_cast<argptr_type*>(ctx);
@@ -733,75 +747,50 @@ inline auto open_event_stream(
   ::wtr::watcher::event::callback const& callback,
   dispatch_queue_t queue) noexcept -> std::shared_ptr<sysres_type>
 {
-  using namespace std::chrono_literals;
-
   auto sysres =
     std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
 
+  /*  This *must* remain alive until we clear the event stream. */
+  void* cb_ctx = static_cast<void*>(&sysres->argptr);
+
   auto context = FSEventStreamContext{
-    /*  FSEvents.h:
-        "Currently the only valid value is zero." */
-    .version = 0,
-    /*  The "actual" context; our "argument pointer".
-        This must be alive until we clear the event stream. */
-    .info = static_cast<void*>(&sysres->argptr),
-    /*  An optional "retention" callback. We don't need this
-        because we manage `argptr`'s lifetime ourselves. */
-    .retain = nullptr,
-    /*  An optional "release" callback, not needed for the same
-        reasons as the retention callback. */
-    .release = nullptr,
-    /*  An optional string for debugging purposes. */
-    .copyDescription = nullptr,
+    .version = 0,               /*  FSEvents.h: "Only valid value is zero." */
+    .info = cb_ctx,             /*  The context; Our "argument pointer". */
+    .retain = nullptr,          /*  Not needed; We manage the lifetimes. */
+    .release = nullptr,         /*  Same reason as `.retain` */
+    .copyDescription = nullptr, /*  Optional string for debugging. */
   };
 
   /*  todo: Do we need to release these?
       CFRelease(path_cfstring);
       CFRelease(path_array);
   */
+
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
+  /*  A predefined structure which is (from CFArray.h) --
+      "appropriate when the values in a CFArray are CFTypes" */
+  static auto const cf_arr_ty = kCFTypeArrayCallBacks;
   CFArrayRef path_array = CFArrayCreate(
-    /*  A custom allocator is optional */
-    nullptr,
-    /*  Data: A pointer-to-pointer of (in our case) strings */
-    &path_cfstring,
-    /*  We're just storing one path here */
-    1,
-    /*  A predefined structure which is "appropriate for use
-        when the values in a CFArray are all CFTypes" (CFArray.h) */
-    &kCFTypeArrayCallBacks);
-
-  /*  If we want less "sleepy" time after a period of time
-      without receiving filesystem events, we could OR like:
-      `fsev_flag_listen | kFSEventStreamCreateFlagNoDefer`.
-      We're talking about saving a maximum latency of `delay_s`
-      after some period of inactivity, which is not likely to
-      be noticeable. I'm not sure what Darwin sets the "period
-      of inactivity" to, and I'm not sure it matters. */
-  static constexpr unsigned fsev_flag_listen =
-    kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseExtendedData
-    | kFSEventStreamCreateFlagUseCFTypes;
+    nullptr,        /*  A custom allocator is optional */
+    &path_cfstring, /*  Data: A ptr-ptr of (in our case) strings */
+    1,              /*  We're just storing one path here */
+    &cf_arr_ty      /*  The type of the data we're storing */
+  );
 
   /*  Request a filesystem event stream for `path` from the
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
   FSEventStreamRef stream = FSEventStreamCreate(
-    /*  A custom allocator is optional */
-    nullptr,
-    /*  A callable to invoke on changes */
-    &event_recv,
-    /*  The callable's arguments (context) */
-    &context,
-    /*  The path(s) we were asked to watch */
-    path_array,
-    /*  The time "since when" we receive events */
-    kFSEventStreamEventIdSinceNow,
-    /*  The time between scans *after inactivity* */
-    (0.016s).count(),
-    /*  The event stream flags */
-    fsev_flag_listen);
+    nullptr,           /*  A custom allocator is optional */
+    &event_recv,       /*  A callable to invoke on changes */
+    &context,          /*  The callable's arguments (context) */
+    path_array,        /*  The path(s) we were asked to watch */
+    fsev_listen_since, /*  The time "since when" we watch */
+    0.016,             /*  Seconds between scans *after inactivity* */
+    fsev_listen_for    /*  Which event types to send up to us */
+  );
 
   if (stream && queue) {
     FSEventStreamSetDispatchQueue(stream, queue);
