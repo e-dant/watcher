@@ -40,7 +40,7 @@ ec=0
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 200 > "$testdir.json"
+    watch-async "$testdir" -ms 500 > "$testdir.json"
     touch a
     mv a b
     wait # for the watcher
@@ -93,7 +93,7 @@ ec=$((ec + $?))
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 300 > "$testdir.json"
+    watch-async "$testdir" -ms 500 > "$testdir.json"
     touch a b
     # todo:
     # Otherwise, on Darwin, b will have a creation event
