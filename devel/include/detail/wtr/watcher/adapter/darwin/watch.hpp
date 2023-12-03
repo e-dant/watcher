@@ -113,14 +113,22 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
 }
 
 inline auto event_recv_one(
-  argptr_type& ctx,
+  argptr_type* ctx,
   std::filesystem::path const& path,
   unsigned flags)
 {
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
 
-  auto [callback, sc_paths, lrf_path] = ctx;
+  if (
+    ! ctx                            // These checks are unfortunate
+    || ! ctx->callback               // and absolutely necessary.
+    || ! ctx->seen_created_paths     // Once in a while, Darwin will only
+    || ! ctx->last_rename_from_path  // give *part* of the context to us.
+    ) [[unlikely]]
+    return;
+
+  auto [callback, sc_paths, lrf_path] = *ctx;
 
   auto path_str = path.string();
 
@@ -222,10 +230,10 @@ inline auto event_recv(
   FSEventStreamEventId const* /*  event stream id */
   ) noexcept -> void
 {
-  if (! ctx || ! paths || ! flags) return;
-  auto& ap = *static_cast<argptr_type*>(ctx);
-  for (unsigned long i = 0; i < count; i++)
-    event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
+  auto ap = static_cast<argptr_type*>(ctx);
+  if (paths && flags)
+    for (unsigned long i = 0; i < count; i++)
+      event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
 }
 
 /*  Make sure that event_recv has the same type as, or is
