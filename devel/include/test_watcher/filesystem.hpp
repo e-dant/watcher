@@ -19,8 +19,9 @@ inline auto make_local_tmp_dir()
   auto n = dist(gen);
   auto str_n = std::to_string(n);
   auto cur_path = std::filesystem::current_path();
-  auto tmp_dir = cur_path / str_n;
+  auto tmp_dir = cur_path / "out" / str_n;
   auto abs_tmp_dir = std::filesystem::absolute(tmp_dir);
+  std::filesystem::create_directory(abs_tmp_dir.parent_path());
   std::filesystem::create_directory(abs_tmp_dir);
   return abs_tmp_dir;
 }
