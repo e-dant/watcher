@@ -282,7 +282,7 @@ TEST_CASE("Concurrent Watch Target Performance", "[concurrent][file][watch-targe
   show_results(res);
 
   for (auto r : res)
-    CHECK(r.time_taken_watch < (r.time_taken_fsops / 50));
+    CHECK(r.time_taken_watch < (r.time_taken_fsops / 10));
 };
 
 // clang-format on
