@@ -504,6 +504,36 @@ namespace watcher {
 namespace adapter {
 namespace {
 
+// clang-format off
+inline constexpr unsigned fsev_flag_path_file
+  = kFSEventStreamEventFlagItemIsFile;
+inline constexpr unsigned fsev_flag_path_dir
+  = kFSEventStreamEventFlagItemIsDir;
+inline constexpr unsigned fsev_flag_path_sym_link
+  = kFSEventStreamEventFlagItemIsSymlink;
+inline constexpr unsigned fsev_flag_path_hard_link
+  = kFSEventStreamEventFlagItemIsHardlink
+  | kFSEventStreamEventFlagItemIsLastHardlink;
+inline constexpr unsigned fsev_flag_effect_create
+  = kFSEventStreamEventFlagItemCreated;
+inline constexpr unsigned fsev_flag_effect_remove
+  = kFSEventStreamEventFlagItemRemoved;
+inline constexpr unsigned fsev_flag_effect_modify
+  = kFSEventStreamEventFlagItemModified
+  | kFSEventStreamEventFlagItemInodeMetaMod
+  | kFSEventStreamEventFlagItemFinderInfoMod
+  | kFSEventStreamEventFlagItemChangeOwner
+  | kFSEventStreamEventFlagItemXattrMod;
+inline constexpr unsigned fsev_flag_effect_rename
+  = kFSEventStreamEventFlagItemRenamed;
+inline constexpr unsigned fsev_flag_effect_any
+  = fsev_flag_effect_create
+  | fsev_flag_effect_remove
+  | fsev_flag_effect_modify
+  | fsev_flag_effect_rename;
+
+// clang-format on
+
 struct argptr_type {
   using fspath = std::filesystem::path;
   /*  `fs::path` has no hash function, so we use this. */
@@ -567,43 +597,22 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
 }
 
 inline auto event_recv_one(
-  argptr_type& ctx,
+  argptr_type* ctx,
   std::filesystem::path const& path,
   unsigned flags)
 {
-  namespace fs = std::filesystem;
-
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
 
-  static constexpr unsigned fsev_flag_path_file =
-    kFSEventStreamEventFlagItemIsFile;
-  static constexpr unsigned fsev_flag_path_dir =
-    kFSEventStreamEventFlagItemIsDir;
-  static constexpr unsigned fsev_flag_path_sym_link =
-    kFSEventStreamEventFlagItemIsSymlink;
-  static constexpr unsigned fsev_flag_path_hard_link =
-    kFSEventStreamEventFlagItemIsHardlink
-    | kFSEventStreamEventFlagItemIsLastHardlink;
+  if (
+    ! ctx                            // These checks are unfortunate
+    || ! ctx->callback               // and absolutely necessary.
+    || ! ctx->seen_created_paths     // Once in a while, Darwin will only
+    || ! ctx->last_rename_from_path  // give *part* of the context to us.
+    ) [[unlikely]]
+    return;
 
-  static constexpr unsigned fsev_flag_effect_create =
-    kFSEventStreamEventFlagItemCreated;
-  static constexpr unsigned fsev_flag_effect_remove =
-    kFSEventStreamEventFlagItemRemoved;
-  static constexpr unsigned fsev_flag_effect_modify =
-    kFSEventStreamEventFlagItemModified
-    | kFSEventStreamEventFlagItemInodeMetaMod
-    | kFSEventStreamEventFlagItemFinderInfoMod
-    | kFSEventStreamEventFlagItemChangeOwner
-    | kFSEventStreamEventFlagItemXattrMod;
-  static constexpr unsigned fsev_flag_effect_rename =
-    kFSEventStreamEventFlagItemRenamed;
-
-  static constexpr unsigned fsev_flag_effect_any =
-    fsev_flag_effect_create | fsev_flag_effect_remove | fsev_flag_effect_modify
-    | fsev_flag_effect_rename;
-
-  auto [callback, sc_paths, lrf_path] = ctx;
+  auto [callback, sc_paths, lrf_path] = *ctx;
 
   auto path_str = path.string();
 
@@ -705,10 +714,10 @@ inline auto event_recv(
   FSEventStreamEventId const* /*  event stream id */
   ) noexcept -> void
 {
-  if (! ctx || ! paths || ! flags) return;
-  auto& ap = *static_cast<argptr_type*>(ctx);
-  for (unsigned long i = 0; i < count; i++)
-    event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
+  auto ap = static_cast<argptr_type*>(ctx);
+  if (paths && flags)
+    for (unsigned long i = 0; i < count; i++)
+      event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
 }
 
 /*  Make sure that event_recv has the same type as, or is

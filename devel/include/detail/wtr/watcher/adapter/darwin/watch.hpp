@@ -48,6 +48,7 @@ inline constexpr unsigned fsev_flag_effect_any
   | fsev_flag_effect_remove
   | fsev_flag_effect_modify
   | fsev_flag_effect_rename;
+
 // clang-format on
 
 struct argptr_type {
