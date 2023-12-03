@@ -21,6 +21,35 @@ namespace watcher {
 namespace adapter {
 namespace {
 
+// clang-format off
+inline constexpr unsigned fsev_flag_path_file
+  = kFSEventStreamEventFlagItemIsFile;
+inline constexpr unsigned fsev_flag_path_dir
+  = kFSEventStreamEventFlagItemIsDir;
+inline constexpr unsigned fsev_flag_path_sym_link
+  = kFSEventStreamEventFlagItemIsSymlink;
+inline constexpr unsigned fsev_flag_path_hard_link
+  = kFSEventStreamEventFlagItemIsHardlink
+  | kFSEventStreamEventFlagItemIsLastHardlink;
+inline constexpr unsigned fsev_flag_effect_create
+  = kFSEventStreamEventFlagItemCreated;
+inline constexpr unsigned fsev_flag_effect_remove
+  = kFSEventStreamEventFlagItemRemoved;
+inline constexpr unsigned fsev_flag_effect_modify
+  = kFSEventStreamEventFlagItemModified
+  | kFSEventStreamEventFlagItemInodeMetaMod
+  | kFSEventStreamEventFlagItemFinderInfoMod
+  | kFSEventStreamEventFlagItemChangeOwner
+  | kFSEventStreamEventFlagItemXattrMod;
+inline constexpr unsigned fsev_flag_effect_rename
+  = kFSEventStreamEventFlagItemRenamed;
+inline constexpr unsigned fsev_flag_effect_any
+  = fsev_flag_effect_create
+  | fsev_flag_effect_remove
+  | fsev_flag_effect_modify
+  | fsev_flag_effect_rename;
+// clang-format on
+
 struct argptr_type {
   using fspath = std::filesystem::path;
   /*  `fs::path` has no hash function, so we use this. */
@@ -88,37 +117,8 @@ inline auto event_recv_one(
   std::filesystem::path const& path,
   unsigned flags)
 {
-  namespace fs = std::filesystem;
-
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
-
-  static constexpr unsigned fsev_flag_path_file =
-    kFSEventStreamEventFlagItemIsFile;
-  static constexpr unsigned fsev_flag_path_dir =
-    kFSEventStreamEventFlagItemIsDir;
-  static constexpr unsigned fsev_flag_path_sym_link =
-    kFSEventStreamEventFlagItemIsSymlink;
-  static constexpr unsigned fsev_flag_path_hard_link =
-    kFSEventStreamEventFlagItemIsHardlink
-    | kFSEventStreamEventFlagItemIsLastHardlink;
-
-  static constexpr unsigned fsev_flag_effect_create =
-    kFSEventStreamEventFlagItemCreated;
-  static constexpr unsigned fsev_flag_effect_remove =
-    kFSEventStreamEventFlagItemRemoved;
-  static constexpr unsigned fsev_flag_effect_modify =
-    kFSEventStreamEventFlagItemModified
-    | kFSEventStreamEventFlagItemInodeMetaMod
-    | kFSEventStreamEventFlagItemFinderInfoMod
-    | kFSEventStreamEventFlagItemChangeOwner
-    | kFSEventStreamEventFlagItemXattrMod;
-  static constexpr unsigned fsev_flag_effect_rename =
-    kFSEventStreamEventFlagItemRenamed;
-
-  static constexpr unsigned fsev_flag_effect_any =
-    fsev_flag_effect_create | fsev_flag_effect_remove | fsev_flag_effect_modify
-    | fsev_flag_effect_rename;
 
   auto [callback, sc_paths, lrf_path] = ctx;
 
