@@ -65,37 +65,35 @@ struct sysres_type {
   argptr_type argptr{};
 };
 
+/*  We make a path from a C string...
+    In an array, in a dictionary...
+    Without type safety...
+    Because most of darwin's apis are `void*`-typed.
+
+    We should be guarenteed that nothing in here is
+    or can be null, but I'm skeptical. We ask Darwin
+    for utf8 strings from a dictionary of utf8 strings
+    which it gave us. Nothing should be able to be null.
+    We'll check anyway, just in case Darwin lies.
+
+    The dictionary contains looks like this:
+      { "path": String
+      , "fileID": Number
+      }
+    We can only call `CFStringGetCStringPtr()`
+    on the `path` field. Not sure what function
+    the `fileID` requires, or if it's different
+    from what we'd get from `stat()`. (Is it an
+    inode number?) Anyway, we seem to get this:
+      -[__NSCFNumber length]: unrecognized ...
+    Whenever we try to inspect it with Int or
+    CStringPtr functions for CFStringGet...().
+    The docs don't say much about these fields.
+    I don't think they mention fileID at all.
+*/
 inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
   -> std::filesystem::path
 {
-  /*  We make a path from a C string...
-      In an array, in a dictionary...
-      Without type safety...
-      Because most of darwin's apis are `void*`-typed.
-
-      We should be guarenteed that nothing in here is
-      or can be null, but I'm skeptical. We ask Darwin
-      for utf8 strings from a dictionary of utf8 strings
-      which it gave us. Nothing should be able to be null.
-      We'll check anyway, just in case Darwin lies.
-
-      The dictionary contains looks like this:
-        { "path": String
-        , "fileID": Number
-        }
-      We can only call `CFStringGetCStringPtr()`
-      on the `path` field. Not sure what function
-      the `fileID` requires, or if it's different
-      from what we'd get from `stat()`. (Is it an
-      inode number?) Anyway, we seem to get this:
-        -[__NSCFNumber length]: unrecognized ...
-      Whenever we try to inspect it with Int or
-      CStringPtr functions for CFStringGet...().
-      The docs don't say much about these fields.
-      I don't think they mention fileID at all.
-  */
-  namespace fs = std::filesystem;
-
   if (event_recv_paths)
     if (
       void const* from_arr = CFArrayGetValueAtIndex(
@@ -109,8 +107,9 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
           char const* as_cstr = CFStringGetCStringPtr(
             static_cast<CFStringRef>(from_dict),
             kCFStringEncodingUTF8))
-          return fs::path{as_cstr};
-  return fs::path{};
+          return {as_cstr};
+
+  return {};
 }
 
 inline auto event_recv_one(
@@ -121,12 +120,13 @@ inline auto event_recv_one(
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
 
-  if (
-    ! ctx                            // These checks are unfortunate
-    || ! ctx->callback               // and absolutely necessary.
-    || ! ctx->seen_created_paths     // Once in a while, Darwin will only
-    || ! ctx->last_rename_from_path  // give *part* of the context to us.
-    ) [[unlikely]]
+  auto ctx_ok =
+    ctx                             // These checks are unfortunate
+    && ctx->callback                // and absolutely necessary.
+    && ctx->seen_created_paths      // Once in a while, Darwin will only
+    && ctx->last_rename_from_path;  // give *part* of the context to us.
+
+  if (! ctx_ok) [[unlikely]]
     return;
 
   auto [callback, sc_paths, lrf_path] = *ctx;
