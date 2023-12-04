@@ -5,14 +5,11 @@
 #include "wtr/watcher.hpp"
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
-#include <cstdio>
 #include <filesystem>
-#include <limits>
-#include <random>
+#include <memory>
 #include <string>
 #include <unistd.h>
 #include <unordered_set>
-#include <vector>
 
 namespace detail {
 namespace wtr {
@@ -35,7 +32,6 @@ inline constexpr unsigned fsev_listen_for
   | kFSEventStreamCreateFlagUseCFTypes;
 inline constexpr auto fsev_listen_since
   = kFSEventStreamEventIdSinceNow;
-
 inline constexpr unsigned fsev_flag_path_file
   = kFSEventStreamEventFlagItemIsFile;
 inline constexpr unsigned fsev_flag_path_dir
@@ -65,18 +61,13 @@ inline constexpr unsigned fsev_flag_effect_any
 
 // clang-format on
 
-struct argptr_type {
+struct ctx_type {
   using fspath = std::filesystem::path;
   /*  `fs::path` has no hash function, so we use this. */
   using pathset = std::unordered_set<std::string>;
-  ::wtr::watcher::event::callback const callback{};
-  std::shared_ptr<pathset> seen_created_paths{new pathset{}};
-  std::shared_ptr<fspath> last_rename_from_path{new fspath{}};
-};
-
-struct sysres_type {
-  FSEventStreamRef stream{};
-  argptr_type argptr{};
+  ::wtr::watcher::event::callback const& callback{};
+  pathset* seen_created_paths = nullptr;
+  fspath* last_rename_path = nullptr;
 };
 
 /*  We make a path from a C string...
@@ -126,28 +117,16 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
   return {};
 }
 
-inline auto event_recv_one(
-  argptr_type* ctx,
-  std::filesystem::path const& path,
-  unsigned flags)
+inline auto
+event_recv_one(ctx_type& ctx, std::filesystem::path const& path, unsigned flags)
 {
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
 
-  auto ctx_ok =
-    ctx                             // These checks are unfortunate
-    && ctx->callback                // and absolutely necessary.
-    && ctx->seen_created_paths      // Once in a while, Darwin will only
-    && ctx->last_rename_from_path;  // give *part* of the context to us.
-
-  if (! ctx_ok) [[unlikely]]
-    return;
-
-  auto [callback, sc_paths, lrf_path] = *ctx;
-
   auto path_str = path.string();
 
   /*  A single path won't have different "types". */
+
   auto pt = flags & fsev_flag_path_file      ? path_type::file
           : flags & fsev_flag_path_dir       ? path_type::dir
           : flags & fsev_flag_path_sym_link  ? path_type::sym_link
@@ -157,33 +136,35 @@ inline auto event_recv_one(
   /*  We want to report odd events (even with an empty path)
       but we can bail early if we don't recognize the effect
       because everything else we do depends on that. */
+
   if (! (flags & fsev_flag_effect_any)) {
-    callback({path, effect_type::other, pt});
+    ctx.callback({path, effect_type::other, pt});
     return;
   }
 
   /*  More than one effect might have happened to the
       same path. (Which is why we use non-exclusive `if`s.) */
+
   if (flags & fsev_flag_effect_create) {
-    auto at = sc_paths->find(path_str);
-    if (at == sc_paths->end()) {
-      sc_paths->emplace(path_str);
-      callback({path, effect_type::create, pt});
+    auto at = ctx.seen_created_paths->find(path_str);
+    if (at == ctx.seen_created_paths->end()) {
+      ctx.seen_created_paths->emplace(path_str);
+      ctx.callback({path, effect_type::create, pt});
     }
   }
   if (flags & fsev_flag_effect_remove) {
-    auto at = sc_paths->find(path_str);
-    if (at != sc_paths->end()) {
-      sc_paths->erase(at);
-      callback({path, effect_type::destroy, pt});
+    auto at = ctx.seen_created_paths->find(path_str);
+    if (at != ctx.seen_created_paths->end()) {
+      ctx.seen_created_paths->erase(at);
+      ctx.callback({path, effect_type::destroy, pt});
     }
   }
   if (flags & fsev_flag_effect_modify) {
-    callback({path, effect_type::modify, pt});
+    ctx.callback({path, effect_type::modify, pt});
   }
   if (flags & fsev_flag_effect_rename) {
     /*  Assumes that the last "renamed-from" path
-        if "honestly" correlated to the current
+        is "honestly" correlated to the current
         "rename-to" path.
         For non-destructive rename events, we
         usually receive events in this order:
@@ -207,17 +188,19 @@ inline auto event_recv_one(
         rename events, see this directory's
         notes (in the `notes.md` file).
     */
-    auto differs = ! lrf_path->empty() && *lrf_path != path;
-    auto missing = access(lrf_path->c_str(), F_OK) == -1;
+
+    auto differs =
+      ! ctx.last_rename_path->empty() && *ctx.last_rename_path != path;
+    auto missing = access(ctx.last_rename_path->c_str(), F_OK) == -1;
     if (differs && missing) {
-      callback({
-        {*lrf_path, effect_type::rename, pt},
-        {     path, effect_type::rename, pt}
+      ctx.callback({
+        {*ctx.last_rename_path, effect_type::rename, pt},
+        {                 path, effect_type::rename, pt}
       });
-      lrf_path->clear();
+      ctx.last_rename_path->clear();
     }
     else {
-      *lrf_path = path;
+      *ctx.last_rename_path = path;
     }
   }
 }
@@ -236,19 +219,27 @@ inline auto event_recv_one(
     So, we filter out duplicate events when they're sent
     in a batch. We do this by storing and pruning the
     set of paths which we've seen created. */
+
 inline auto event_recv(
   ConstFSEventStreamRef,      /*  `ConstFS..` is important */
-  void* ctx,                  /*  Arguments passed to us */
+  void* maybe_ctx,            /*  Arguments passed to us */
   unsigned long count,        /*  Event count */
   void* paths,                /*  Paths with events */
   unsigned const* flags,      /*  Event flags */
   FSEventStreamEventId const* /*  A unique stream id */
   ) noexcept -> void
 {
-  auto ap = static_cast<argptr_type*>(ctx);
-  if (paths && flags)
+  auto ctx = static_cast<ctx_type*>(maybe_ctx);
+  auto ok = paths                   /*  These checks are unfortunate. */
+         && flags                   /*  While they may seem silly, */
+         && ctx                     /*  they are also necessary. */
+         && ctx->callback           /*  Once in a blue moon, */
+         && ctx->seen_created_paths /*  Darwin will give us */
+         && ctx->last_rename_path;  /*  a partial context. */
+
+  if (ok)
     for (unsigned long i = 0; i < count; i++)
-      event_recv_one(ap, path_from_event_at(paths, i), flags[i]);
+      event_recv_one(*ctx, path_from_event_at(paths, i), flags[i]);
 }
 
 /*  Make sure that event_recv has the same type as, or is
@@ -257,22 +248,17 @@ inline auto event_recv(
     Side note: Is an exception qualifier *really* part of
     the type? Or, is it a "path_type"? Something else?
     We want this assertion for nice compiler errors. */
+
 static_assert(FSEventStreamCallback{event_recv} == event_recv);
 
 inline auto open_event_stream(
   std::filesystem::path const& path,
-  ::wtr::watcher::event::callback const& callback,
-  dispatch_queue_t queue) noexcept -> std::shared_ptr<sysres_type>
+  dispatch_queue_t queue,
+  void* ctx) noexcept -> FSEventStreamRef
 {
-  auto sysres =
-    std::make_shared<sysres_type>(sysres_type{nullptr, argptr_type{callback}});
-
-  /*  This *must* remain alive until we clear the event stream. */
-  void* cb_ctx = static_cast<void*>(&sysres->argptr);
-
   auto context = FSEventStreamContext{
     .version = 0,               /*  FSEvents.h: "Only valid value is zero." */
-    .info = cb_ctx,             /*  The context; Our "argument pointer". */
+    .info = ctx,                /*  The context; Our "argument pointer". */
     .retain = nullptr,          /*  Not needed; We manage the lifetimes. */
     .release = nullptr,         /*  Same reason as `.retain` */
     .copyDescription = nullptr, /*  Optional string for debugging. */
@@ -299,6 +285,7 @@ inline auto open_event_stream(
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
+
   FSEventStreamRef stream = FSEventStreamCreate(
     nullptr,           /*  A custom allocator is optional */
     &event_recv,       /*  A callable to invoke on changes */
@@ -309,18 +296,16 @@ inline auto open_event_stream(
     fsev_listen_for    /*  Which event types to send up to us */
   );
 
-  if (stream && queue) {
+  if (stream && queue && ctx) {
     FSEventStreamSetDispatchQueue(stream, queue);
     FSEventStreamStart(stream);
-    sysres->stream = stream;
-    return sysres;
+    return stream;
   }
   else
     return nullptr;
 }
 
-inline auto close_event_stream(std::shared_ptr<sysres_type> const& sr) noexcept
-  -> bool
+inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
 {
   /*  We want to handle any outstanding events before closing,
       so we flush the event stream before stopping it.
@@ -333,12 +318,13 @@ inline auto close_event_stream(std::shared_ptr<sysres_type> const& sr) noexcept
       `FSEventStreamInvalidate()` *also* fails an assertion,
       and produces a warning. I'm not sure what the right call
       to make here is. */
-  return sr->stream
-      && (FSEventStreamFlushSync(sr->stream),
-          FSEventStreamStop(sr->stream),
-          FSEventStreamInvalidate(sr->stream),
-          FSEventStreamRelease(sr->stream),
-          sr->stream = nullptr,
+
+  return s
+      && (FSEventStreamFlushSync(s),
+          FSEventStreamStop(s),
+          FSEventStreamInvalidate(s),
+          FSEventStreamRelease(s),
+          s = nullptr,
           true);
 }
 
@@ -350,9 +336,30 @@ inline auto watch(
   semabin const& is_living) noexcept -> bool
 {
   auto queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-  auto sr = open_event_stream(path, callback, queue);
-  return sr && dispatch_semaphore_wait(is_living.sema, DISPATCH_TIME_FOREVER),
-         close_event_stream(sr);
+  auto seen_created_paths = ctx_type::pathset{};
+  auto last_rename_path = ctx_type::fspath{};
+  auto ctx = std::make_unique<ctx_type>(
+    ctx_type{callback, &seen_created_paths, &last_rename_path});
+
+  /*  We *must* ensure that everything created above this line
+      is alive *at least* until we close the event stream.
+      We don't really have unique ownership of these resources.
+      There used to be a shared pointer between us and the system,
+      but there appeared to be a rare issue with the reference
+      counts expiring while the object should have still been
+      alive and in use by the kernel. I only witnessed that
+      behavior on highly concurrent performance tests with many
+      thousands of events. There may have been another factor.
+      For now, ensuring that our resources live for long enough
+      by hand with a "uniquely" owned object works well. */
+
+  if (ctx) {
+    auto fsevs = open_event_stream(path, queue, ctx.get());
+    dispatch_semaphore_wait(is_living.sema, DISPATCH_TIME_FOREVER);
+    return close_event_stream(fsevs);
+  }
+  else
+    return false;
 }
 
 } /*  namespace adapter */
