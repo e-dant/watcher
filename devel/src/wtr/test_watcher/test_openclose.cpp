@@ -1,21 +1,14 @@
 #include "snitch/snitch.hpp"
 #include "test_watcher/test_watcher.hpp"
-#include "wtr/watcher.hpp"
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cstdio>
-#include <fstream>
-#include <memory>
-#include <tuple>
-#include <utility>
-#include <vector>
+#include <stdio.h>
 
 // clang-format off
 
 TEST_CASE("Rapid Open and Close", "[concurrent][openclose][perf]")
 {
   using namespace wtr::test_watcher;
+
+  printf("Rapid Open and Close\n");
 
   auto res = vec_cat(
     perf_range<RangePair{

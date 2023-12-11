@@ -1,15 +1,7 @@
 #include "snitch/snitch.hpp"
 #include "test_watcher/test_watcher.hpp"
 #include "wtr/watcher.hpp"
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cstdio>
-#include <fstream>
-#include <memory>
-#include <tuple>
-#include <utility>
-#include <vector>
+#include <stdio.h>
 
 // clang-format off
 
@@ -28,9 +20,11 @@
       template instantiation depth exceeds <some number around 1k>
 */
 
-TEST_CASE("Concurrent Watch Target Performance", "[concurrent][file][watch-target][perf]")
+TEST_CASE("Performance", "[concurrent][file][watch-target][perf]")
 {
   using namespace wtr::test_watcher;
+
+  printf("Performance\n");
 
   //  Warming up the cache
   perf_range<RangePair{{1,3,1},{100,500,100}}>();
