@@ -23,7 +23,7 @@ jobs:
           - .local
     steps:
       - uses: actions/checkout@v3
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@v3.28.0
       - uses: actions/cache@v3
         with:
           path: |
