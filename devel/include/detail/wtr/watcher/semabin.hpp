@@ -15,9 +15,10 @@
 namespace detail::wtr::watcher {
 
 /*  A semaphore-like construct which can be
-    used with poll and friends on Linux and
-    dispatch on Apple. This class is emulates
-    a binary semaphore; An atomic boolean flag.
+    used with poll and friends on Linux.
+
+    On Darwin, this is a semaphore which is
+    schedulable with the dispatch library.
 
     On other platforms, this is an atomic flag
     which can be checked in a sleep, wake loop,
@@ -26,9 +27,6 @@ namespace detail::wtr::watcher {
     On Linux, this is an eventfd in semaphore
     mode. The file descriptor is exposed for
     use with poll and friends.
-
-    On macOS, this is a dispatch_semaphore_t,
-    which can be scheduled with dispatch.
 */
 
 class semabin {
@@ -82,42 +80,39 @@ public:
 
 #elif defined(__APPLE__)
 
-  dispatch_semaphore_t const sema = []()
-  { return dispatch_semaphore_create(0); }();
+  mutable dispatch_semaphore_t sem = dispatch_semaphore_create(0);
 
   inline auto release() noexcept -> state
   {
-    auto write_ev = [this]()
-    {
-      if (dispatch_semaphore_signal(this->sema) == 1)
-        return released;
-      else
-        return error;
-    };
+    auto exchange_when = pending;
+    auto was_exchanged = this->is.compare_exchange_strong(
+      exchange_when,
+      released,
+      std::memory_order_release,
+      std::memory_order_acquire);
 
-    if (this->is == released)
+    if (was_exchanged) dispatch_semaphore_signal(this->sem);
+
+    return released;
+  }
+
+  inline auto wait() const noexcept -> state
+  {
+    auto s = this->is.load(std::memory_order_acquire);
+    if (s == pending) {
+      dispatch_semaphore_wait(this->sem, DISPATCH_TIME_FOREVER);
       return released;
+    }
     else
-      return this->is = write_ev();
+      return s;
   }
 
   inline auto state() const noexcept -> state
   {
-    auto read_ev = [this]()
-    {
-      if (dispatch_semaphore_wait(this->sema, DISPATCH_TIME_NOW) == 0)
-        return released;
-      else
-        return pending;
-    };
-
-    if (this->is == pending)
-      return pending;
-    else
-      return this->is = read_ev();
+    return this->is.load(std::memory_order_acquire);
   }
 
-  inline ~semabin() noexcept { dispatch_release(this->sema); }
+  inline ~semabin() noexcept { this->release(); }
 
 #else
 
