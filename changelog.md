@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.9.6
+## 0.10.0
+
+Added an associated event to the fields of the event object. (The event object is recursive now.) This field stores a renamed-to effect type, associated with the rename-from “parent” event. Currently, the only possible associated event is a renamed-to event. In the future, we may store other kinds of associated events there. Ownership changes are a good candidate. This kind of structure allows more room for future changes if needed, although admittedly the intended use of associated events may be a bit less obvious to the user than I’d like. 
+
+Added a set of shell-based test suites. These tests are focused on accuracy and portability. (They’re integration tests.)
+
+Added a rapid open-and-close stress test. Fixed a related issue on Darwin’s watcher. 
+
+Added support for building with Bazel. 
+
+Fixed the link behind our Conan badge. 
+
+Some files were moved around and simplified. In particular, the CLI was re-written to be the ~100 line program it should be. 
+
+Exceptions and run-time type information were removed from our CLI builds on non-Windows platforms. (We never used RTTI, exceptions were used in a scarce few places. This cuts the binary down by a couple dozen kilobytes, weighing it in around 50-80kb, depending on the platform.)
+
+Many thanks to @toge for all of their work on Conan for us.
 
 Replaced a constant delay with a timeout in the "simple" test.
 
