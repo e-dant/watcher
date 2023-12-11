@@ -382,18 +382,34 @@ opt-build-each() {
   [ "$VERBOSE" = 1 ] && opt-show-each-buildcmd
   opt-show-each-buildcmd | shellstrip | bash -e
 }
-runlog-tests()  {
-    all-existing-buildtarget-paths \
+run-test()  {
+  all-existing-buildtarget-paths \
   | grep -i this/debug/wtr.test_watcher \
   | existing-matching-targets-in-pathptrn \
   | while read -r target
-    do echo "$target"
-       "$target"
-       ec=$?
-       if [ $ec -ne 0 ]
-       then echo "Test failed ($ec) at $target"
-       fi
+    do
+      echo "Running $target"
+      "$target" || return 1
     done
+  return 0
+  uniq_msg=b5c02513073841751ea8628d2b45e1e1
+  nfailed=$(
+    all-existing-buildtarget-paths \
+    | grep -i this/debug/wtr.test_watcher \
+    | existing-matching-targets-in-pathptrn \
+    | while read -r target
+      do
+        echo "Running $target"
+        "$target" # '[not-perf]'
+        [ $? -eq 0 ] || echo "$uniq_msg"
+      done \
+    | grep -c "$uniq_msg"
+  )
+  if [ "$nfailed" -gt 0 ]
+  then echo "$nfailed tests failed"
+  else echo "All tests passed"
+  fi
+  return "$nfailed"
 }
 
 flags-are-valid || { help ; exit 1 ; }
@@ -401,8 +417,10 @@ flags-are-valid || { help ; exit 1 ; }
 if [ "$VERBOSE" = 1 ]; then inspect-options ; fi
 if [ "$HELP"    = 1 ]; then help   ; exit 0 ; fi
 if [ "$CLEAN"   = 1 ]; then clean || exit 1 ; fi
+
 opt-build-each                    || exit 1 ;
-[ "$RUN_TEST"   = 1 ] && runlog-tests
+
+[ "$RUN_TEST"   = 1 ] && { run-test || exit 1 ; }
 
 if [ "$VERBOSE" = 1 ]; then
   opt-platforms | while read -r platform
@@ -411,3 +429,4 @@ if [ "$VERBOSE" = 1 ]; then
 fi
 
 exit 0
+
