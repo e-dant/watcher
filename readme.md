@@ -68,7 +68,7 @@ Enjoy!
 
 ## Tell Me More
 
-An arbitrary filesystem event watcher which is
+A filesystem event watcher which is
 
 1. Simple
 > The [1613](https://github.com/e-dant/watcher/blob/release/tool/sl)
@@ -97,8 +97,8 @@ tool/build --no-build-test --no-run-test && cd out/this/Release # Build the rele
 ```
 
 3. Efficient
-> In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
-*Watcher* uses a near-zero amount of resources and makes
+> You can watch an *entire filesystem* with Watcher. In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
+we use a near-zero amount of resources and make
 [efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 
 4. Safe
