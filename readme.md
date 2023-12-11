@@ -364,10 +364,11 @@ Linux
 - `inotify`
 - `fanotify`
 - `epoll`
+- `eventfd`
 
 Darwin
 - `FSEvents`
-- `dispatch_queue`
+- `dispatch`
 
 Windows
 - `ReadDirectoryChangesW`
