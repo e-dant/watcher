@@ -20,7 +20,7 @@
       template instantiation depth exceeds <some number around 1k>
 */
 
-TEST_CASE("Performance", "[concurrent][file][watch-target][perf]")
+TEST_CASE("Performance", "[concurrent][file][perf]")
 {
   using namespace wtr::test_watcher;
 
