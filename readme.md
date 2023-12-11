@@ -97,9 +97,9 @@ tool/build --no-build-test --no-run-test && cd out/this/Release # Build the rele
 ```
 
 3. Efficient
-> You can watch an *entire filesystem* with Watcher. In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
+> You can watch an *entire filesystem* with this project. In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
 we use a near-zero amount of resources and make
-[efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
+[efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency). We regularly test that the overhead of detecting and sending an event to the user is an order of magnitude less than the filesystem operations being measured.
 
 4. Safe
 > We run this project through
