@@ -12,11 +12,9 @@ Added support for building with Bazel.
 
 Fixed the link behind our Conan badge. 
 
-Some files were moved around and simplified. In particular, the CLI was re-written to be the ~100 line program it should be. 
+Some files were moved around and simplified. Among them, the CLI was re-written to be the ~100 line program it should be. 
 
 Exceptions and run-time type information were removed from our CLI builds on non-Windows platforms. (We never used RTTI, exceptions were used in a scarce few places. This cuts the binary down by a couple dozen kilobytes, weighing it in around 50-80kb, depending on the platform.)
-
-Many thanks to @toge for all of their work on Conan for us.
 
 Replaced a constant delay with a timeout in the "simple" test.
 
@@ -25,6 +23,8 @@ Updated the flake lockfile.
 The `watch` constructor makes the given `path` absolute or, if
 the path cannot be made absolute (likely because it doesn't exist),
 then the watcher refuses to watch.
+
+Many thanks to @toge for all of their work on Conan for us.
 
 ## 0.9.5
 
