@@ -71,10 +71,9 @@ Enjoy!
 An arbitrary filesystem event watcher which is
 
 1. Simple
-> These [3532](https://github.com/e-dant/watcher/blob/release/tool/sl)
-lines, more than half of which is either documentation or tests, were written to be
-[read](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp)
-as easily as the API is used:
+> The [1613](https://github.com/e-dant/watcher/blob/release/tool/sl)
+lines that make up *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
+and the API attempts to be practical:
 ```cpp
 auto w = watch(path, [](event ev) { cout << ev; });
 ```
@@ -474,9 +473,9 @@ https://github.com/notify-rs/notify:
   static analysis: yes (borrow checked)
 
 https://github.com/e-dant/watcher:
-  lines of code: 1574
-  lines of tests: 681
-  lines of docs: 1277
+  lines of code: 1613
+  lines of tests: 865
+  lines of docs: 1908
   implementation languages: cpp
   interface languages: cpp, shells
   supported platforms: linux, darwin, windows, bsd
