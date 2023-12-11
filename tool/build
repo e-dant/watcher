@@ -401,22 +401,21 @@ run-test()  {
   fi
   return "$nfailed"
 }
-
-flags-are-valid || { help ; exit 1 ; }
-
-if [ "$VERBOSE" = 1 ]; then inspect-options ; fi
-if [ "$HELP"    = 1 ]; then help   ; exit 0 ; fi
-if [ "$CLEAN"   = 1 ]; then clean || exit 1 ; fi
-
-opt-build-each                    || exit 1 ;
-
-[ "$RUN_TEST"   = 1 ] && { run-test || exit 1 ; }
-
-if [ "$VERBOSE" = 1 ]; then
+show-artifacts() {
   opt-platforms | while read -r platform
   do existing-targets-of-platform "$platform"
   done
-fi
+}
 
-exit 0
+#
+#  Actual work
+#
+
+flags-are-valid     || { help ; exit 1 ; }
+[ 1 = "$VERBOSE"  ] && { inspect-options ; }
+[ 1 = "$HELP"     ] && { help ; exit 0 ; }
+[ 1 = "$CLEAN"    ] && { clean || exit 1 ; }
+opt-build-each      || { exit 1 ; }
+[ 1 = "$RUN_TEST" ] && { run-test || exit 1 ; }
+[ 1 = "$VERBOSE"  ] && { show-artifacts ; }
 
