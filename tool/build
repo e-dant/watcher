@@ -383,15 +383,6 @@ opt-build-each() {
   opt-show-each-buildcmd | shellstrip | bash -e
 }
 run-test()  {
-  all-existing-buildtarget-paths \
-  | grep -i this/debug/wtr.test_watcher \
-  | existing-matching-targets-in-pathptrn \
-  | while read -r target
-    do
-      echo "Running $target"
-      "$target" || return 1
-    done
-  return 0
   uniq_msg=b5c02513073841751ea8628d2b45e1e1
   nfailed=$(
     all-existing-buildtarget-paths \
@@ -399,9 +390,8 @@ run-test()  {
     | existing-matching-targets-in-pathptrn \
     | while read -r target
       do
-        echo "Running $target"
-        "$target" # '[not-perf]'
-        [ $? -eq 0 ] || echo "$uniq_msg"
+        echo "$(basename "$target")" 1>&2
+        "$target" 1>&2 || echo "$uniq_msg"
       done \
     | grep -c "$uniq_msg"
   )

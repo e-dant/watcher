@@ -8,7 +8,7 @@ TEST_CASE("Rapid Open and Close", "[concurrent][openclose][perf]")
 {
   using namespace wtr::test_watcher;
 
-  printf("Rapid Open and Close\n");
+  fprintf(stderr, "Rapid Open and Close\n");
 
   auto res = vec_cat(
     perf_range<RangePair{

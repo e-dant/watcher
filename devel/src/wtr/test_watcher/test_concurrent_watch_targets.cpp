@@ -8,14 +8,14 @@
 
 /* Test that files are scanned */
 TEST_CASE(
-  "Concurrent Event Targets",
+  "Concurrency",
   "[test][concurrent][file][dir][watch-target][not-perf]")
 {
   using namespace wtr::watcher;
   using namespace wtr::test_watcher;
 
   check_event_lists_set_eq(watch_gather(
-    "Concurrent Event Targets",
+    "Concurrency",
     10,
     32));
 };

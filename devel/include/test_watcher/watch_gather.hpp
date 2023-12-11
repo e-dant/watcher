@@ -80,7 +80,7 @@ auto watch_gather(
             return;
 #endif
           auto _ = std::scoped_lock{event_recv_list_mtx};
-          if (verbose) std::cout << ev << std::endl;
+          if (verbose) std::cerr << ev << std::endl;
           for (auto const& p : watch_path_list)
             if (ev.path_name == p) return;
           event_recv_list.emplace_back(ev);

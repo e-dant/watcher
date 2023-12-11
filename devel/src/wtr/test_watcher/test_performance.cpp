@@ -24,7 +24,7 @@ TEST_CASE("Performance", "[concurrent][file][watch-target][perf]")
 {
   using namespace wtr::test_watcher;
 
-  printf("Performance\n");
+  fprintf(stderr, "Performance\n");
 
   //  Warming up the cache
   perf_range<RangePair{{1,3,1},{100,500,100}}>();

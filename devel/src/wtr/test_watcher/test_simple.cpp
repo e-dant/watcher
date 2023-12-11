@@ -27,7 +27,7 @@ TEST_CASE("Simple", "[test][dir][file][simple][not-perf]")
   auto event_sent_list = std::vector<event>{};
   auto watch_path_list = std::vector<std::string>{};
 
-  std::cout << title << std::endl;
+  std::cerr << title << std::endl;
 
   REQUIRE(fs::exists(tmpdir) || fs::create_directory(tmpdir));
 
@@ -55,7 +55,7 @@ TEST_CASE("Simple", "[test][dir][file][simple][not-perf]")
         return;
 #endif
       auto _ = std::scoped_lock{event_recv_list_mtx};
-      if (verbose) std::cout << ev << std::endl;
+      if (verbose) std::cerr << ev << std::endl;
       event_recv_list.push_back(ev);
     });
 
@@ -99,8 +99,8 @@ TEST_CASE("Simple", "[test][dir][file][simple][not-perf]")
   REQUIRE(! fs::exists(tmpdir) || fs::remove_all(tmpdir));
 
   if (verbose) {
-    std::cout << "event_sent_list:" << std::endl;
-    for (auto const& ev : event_sent_list) std::cout << ev << std::endl;
+    std::cerr << "event_sent_list:" << std::endl;
+    for (auto const& ev : event_sent_list) std::cerr << ev << std::endl;
   }
 
   check_event_lists_eq(event_sent_list, event_recv_list);
