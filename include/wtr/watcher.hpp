@@ -369,9 +369,10 @@ inline auto operator<<(
 namespace detail::wtr::watcher {
 
 /*  A semaphore-like construct which can be
-    used with poll and friends on Linux and
-    dispatch on Apple. This class is emulates
-    a binary semaphore; An atomic boolean flag.
+    used with poll and friends on Linux.
+
+    On Darwin, this is a semaphore which is
+    schedulable with the dispatch library.
 
     On other platforms, this is an atomic flag
     which can be checked in a sleep, wake loop,
@@ -380,9 +381,6 @@ namespace detail::wtr::watcher {
     On Linux, this is an eventfd in semaphore
     mode. The file descriptor is exposed for
     use with poll and friends.
-
-    On macOS, this is a dispatch_semaphore_t,
-    which can be scheduled with dispatch.
 */
 
 class semabin {
@@ -436,42 +434,39 @@ public:
 
 #elif defined(__APPLE__)
 
-  dispatch_semaphore_t const sema = []()
-  { return dispatch_semaphore_create(0); }();
+  mutable dispatch_semaphore_t sem = dispatch_semaphore_create(0);
 
   inline auto release() noexcept -> state
   {
-    auto write_ev = [this]()
-    {
-      if (dispatch_semaphore_signal(this->sema) == 1)
-        return released;
-      else
-        return error;
-    };
+    auto exchange_when = pending;
+    auto was_exchanged = this->is.compare_exchange_strong(
+      exchange_when,
+      released,
+      std::memory_order_release,
+      std::memory_order_acquire);
 
-    if (this->is == released)
+    if (was_exchanged) dispatch_semaphore_signal(this->sem);
+
+    return released;
+  }
+
+  inline auto wait() const noexcept -> state
+  {
+    auto s = this->is.load(std::memory_order_acquire);
+    if (s == pending) {
+      dispatch_semaphore_wait(this->sem, DISPATCH_TIME_FOREVER);
       return released;
+    }
     else
-      return this->is = write_ev();
+      return s;
   }
 
   inline auto state() const noexcept -> state
   {
-    auto read_ev = [this]()
-    {
-      if (dispatch_semaphore_wait(this->sema, DISPATCH_TIME_NOW) == 0)
-        return released;
-      else
-        return pending;
-    };
-
-    if (this->is == pending)
-      return pending;
-    else
-      return this->is = read_ev();
+    return this->is.load(std::memory_order_acquire);
   }
 
-  inline ~semabin() noexcept { dispatch_release(this->sema); }
+  inline ~semabin() noexcept { this->release(); }
 
 #else
 
@@ -486,12 +481,12 @@ public:
 
 #if defined(__APPLE__)
 
+#include <atomic>
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
+#include <dispatch/dispatch.h>
 #include <filesystem>
-#include <memory>
 #include <string>
-#include <unistd.h>
 #include <unordered_set>
 
 namespace detail {
@@ -549,8 +544,8 @@ struct ctx_type {
   /*  `fs::path` has no hash function, so we use this. */
   using pathset = std::unordered_set<std::string>;
   ::wtr::watcher::event::callback const& callback{};
-  pathset* seen_created_paths = nullptr;
-  fspath* last_rename_path = nullptr;
+  pathset* seen_created_paths{nullptr};
+  fspath* last_rename_path{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -603,8 +598,11 @@ inline auto path_from_event_at(void* event_recv_paths, unsigned long i) noexcept
 inline auto
 event_recv_one(ctx_type& ctx, std::filesystem::path const& path, unsigned flags)
 {
+  using ::wtr::watcher::event;
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
+
+  auto cb = ctx.callback;
 
   auto path_str = path.string();
 
@@ -621,7 +619,7 @@ event_recv_one(ctx_type& ctx, std::filesystem::path const& path, unsigned flags)
       because everything else we do depends on that. */
 
   if (! (flags & fsev_flag_effect_any)) {
-    ctx.callback({path, effect_type::other, pt});
+    cb({path, effect_type::other, pt});
     return;
   }
 
@@ -629,21 +627,24 @@ event_recv_one(ctx_type& ctx, std::filesystem::path const& path, unsigned flags)
       same path. (Which is why we use non-exclusive `if`s.) */
 
   if (flags & fsev_flag_effect_create) {
+    auto et = effect_type::create;
     auto at = ctx.seen_created_paths->find(path_str);
     if (at == ctx.seen_created_paths->end()) {
       ctx.seen_created_paths->emplace(path_str);
-      ctx.callback({path, effect_type::create, pt});
+      cb({path, et, pt});
     }
   }
   if (flags & fsev_flag_effect_remove) {
+    auto et = effect_type::destroy;
     auto at = ctx.seen_created_paths->find(path_str);
     if (at != ctx.seen_created_paths->end()) {
       ctx.seen_created_paths->erase(at);
-      ctx.callback({path, effect_type::destroy, pt});
+      cb({path, et, pt});
     }
   }
   if (flags & fsev_flag_effect_modify) {
-    ctx.callback({path, effect_type::modify, pt});
+    auto et = effect_type::modify;
+    cb({path, et, pt});
   }
   if (flags & fsev_flag_effect_rename) {
     /*  Assumes that the last "renamed-from" path
@@ -672,13 +673,14 @@ event_recv_one(ctx_type& ctx, std::filesystem::path const& path, unsigned flags)
         notes (in the `notes.md` file).
     */
 
-    auto differs =
-      ! ctx.last_rename_path->empty() && *ctx.last_rename_path != path;
-    auto missing = access(ctx.last_rename_path->c_str(), F_OK) == -1;
+    auto et = effect_type::rename;
+    auto lr_path = *ctx.last_rename_path;
+    auto differs = ! lr_path.empty() && lr_path != path;
+    auto missing = access(lr_path.c_str(), F_OK) == -1;
     if (differs && missing) {
-      ctx.callback({
-        {*ctx.last_rename_path, effect_type::rename, pt},
-        {                 path, effect_type::rename, pt}
+      cb({
+        {lr_path, et, pt},
+        {   path, et, pt}
       });
       ctx.last_rename_path->clear();
     }
@@ -712,17 +714,20 @@ inline auto event_recv(
   FSEventStreamEventId const* /*  A unique stream id */
   ) noexcept -> void
 {
-  auto ctx = static_cast<ctx_type*>(maybe_ctx);
-  auto ok = paths                   /*  These checks are unfortunate. */
-         && flags                   /*  While they may seem silly, */
-         && ctx                     /*  they are also necessary. */
-         && ctx->callback           /*  Once in a blue moon, */
-         && ctx->seen_created_paths /*  Darwin will give us */
-         && ctx->last_rename_path;  /*  a partial context. */
+  auto pctx = static_cast<ctx_type*>(maybe_ctx);
+  auto ok = paths           /*  These checks are unfortunate, */
+         && flags           /*  but they are also necessary. */
+         && pctx            /*  Once in a blue moon, near an exit, */
+         && pctx->callback; /*  we are given a partial context. */
 
-  if (ok)
-    for (unsigned long i = 0; i < count; i++)
-      event_recv_one(*ctx, path_from_event_at(paths, i), flags[i]);
+  if (ok) {
+    auto ctx = *pctx;
+    for (unsigned long i = 0; i < count; i++) {
+      auto path = path_from_event_at(paths, i);
+      auto flag = flags[i];
+      event_recv_one(ctx, path, flag);
+    }
+  }
 }
 
 /*  Make sure that event_recv has the same type as, or is
@@ -801,7 +806,6 @@ inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
       `FSEventStreamInvalidate()` *also* fails an assertion,
       and produces a warning. I'm not sure what the right call
       to make here is. */
-
   return s
       && (FSEventStreamFlushSync(s),
           FSEventStreamStop(s),
@@ -813,6 +817,54 @@ inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
 
 } /*  namespace */
 
+/*  Lifetimes --
+    We *must* ensure that the queue, context and callback
+    are alive *at least* until we close the event stream.
+    We don't really have unique ownership of these resources.
+    There used to be a shared pointer between us and the system,
+    but there appeared to be a rare issue with the reference
+    counts expiring while the object should have still been
+    alive and in use by the kernel. I witnessed this bevahvior
+    when running highly concurrent performance tests with many
+    thousands of events. There may have been another factor.
+    For now, ensuring that our resources live for long enough
+    by hand with a "uniquely" owned object works well.
+
+    Why the `usleep`? --
+    Bug on Darwin: The system may call the FSEvent stream's
+    associated callback even after we've stopped the stream.
+    Only seems to happen when many thousands of events are
+    being generator for watchers with a very short lifetime.
+    I don't know what we can do about it. We've tried a mutex
+    which locks during the context's lifetime, but it's always
+    released here, and it complicates checks within the event
+    loop because we're reading into the memory of a dangling
+    mutex (owned within the context object) because this scope
+    has been left, and the context no longer exists. Similar
+    issues cropped up when we went for atomic reference vars,
+    owner_alive and borrower_alive, trying to leave this scope
+    only when both were false. Very transactional, and doomed
+    ultimately with the same issues as the mutex; The context
+    itself does not exist. A slew of other errors and UB come
+    from the system calling on a non-existent object. In our
+    case, the set of seen-created paths may need to allocate
+    and deallocate. That is not going to end well when the
+    system betrays us.
+
+    The only semi-reliable way of synchronizing the (should
+    be f'ing closed) stream is to sleep. I have left two of
+    the stress-tests we have, performance and rapid_open_close,
+    running on a loop for hours. I'm under no illusion that a
+    reliably looping, passing stress test makes the use of
+    time as a synchronization primitive reliable. WIP.
+
+    The issue being addressed is a rare use, by FSEvents, of
+    the context we give it, after the FSEvent stream has been
+    released and invalidated. The issue is probably within the
+    FSEvents system, or maybe dispatch, probably not with us.
+    Which is why a transactional lifetime on the context we own,
+    lent to FSEvents, does not work.
+*/
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
@@ -821,28 +873,13 @@ inline auto watch(
   auto queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
   auto seen_created_paths = ctx_type::pathset{};
   auto last_rename_path = ctx_type::fspath{};
-  auto ctx = std::make_unique<ctx_type>(
-    ctx_type{callback, &seen_created_paths, &last_rename_path});
+  auto ctx = ctx_type{callback, &seen_created_paths, &last_rename_path};
 
-  /*  We *must* ensure that everything created above this line
-      is alive *at least* until we close the event stream.
-      We don't really have unique ownership of these resources.
-      There used to be a shared pointer between us and the system,
-      but there appeared to be a rare issue with the reference
-      counts expiring while the object should have still been
-      alive and in use by the kernel. I only witnessed that
-      behavior on highly concurrent performance tests with many
-      thousands of events. There may have been another factor.
-      For now, ensuring that our resources live for long enough
-      by hand with a "uniquely" owned object works well. */
-
-  if (ctx) {
-    auto fsevs = open_event_stream(path, queue, ctx.get());
-    dispatch_semaphore_wait(is_living.sema, DISPATCH_TIME_FOREVER);
-    return close_event_stream(fsevs);
-  }
-  else
-    return false;
+  auto fsevs = open_event_stream(path, queue, &ctx);
+  auto state_ok = is_living.wait() == semabin::released;
+  auto close_ok = close_event_stream(fsevs);
+  usleep(100);
+  return state_ok && close_ok;
 }
 
 } /*  namespace adapter */
@@ -2328,23 +2365,25 @@ public:
         std::launch::async,
         [this, path, callback]
         {
+          using ::detail::wtr::watcher::adapter::watch;
+
           auto ec = std::error_code{};
           auto abs_path = std::filesystem::absolute(path, ec);
           auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
                      && ! ec && this->is_living.state() == sb::state::pending;
+
+          auto live_msg =
+            (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
           callback(
-            {(pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string(),
-             event::effect_type::create,
-             event::path_type::watcher});
-          auto post_ok = ! pre_ok ? true
-                                  : ::detail::wtr::watcher::adapter::watch(
-                                    abs_path,
-                                    callback,
-                                    this->is_living);
+            {live_msg, event::effect_type::create, event::path_type::watcher});
+
+          auto post_ok = ! pre_ok || watch(abs_path, callback, this->is_living);
+
+          auto die_msg =
+            (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
           callback(
-            {(post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string(),
-             event::effect_type::destroy,
-             event::path_type::watcher});
+            {die_msg, event::effect_type::destroy, event::path_type::watcher});
+
           return pre_ok && post_ok;
         })}
   {}
