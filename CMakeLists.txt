@@ -332,8 +332,8 @@ wtr_add_autosan_bin_target(
 )
 
 set(WTR_TEST_WATCHER_SOURCE_SET
-  "devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp"
-  "devel/src/wtr/test_watcher/test_watch_targets.cpp"
+  "devel/src/wtr/test_watcher/test_concurrency.cpp"
+  "devel/src/wtr/test_watcher/test_event_targets.cpp"
   "devel/src/wtr/test_watcher/test_new_directories.cpp"
   "devel/src/wtr/test_watcher/test_simple.cpp"
   "devel/src/wtr/test_watcher/test_performance.cpp"

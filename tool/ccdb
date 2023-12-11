@@ -34,13 +34,13 @@ echo "
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.dir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.dir/devel/src/wtr/test_watcher/test_concurrency.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.dir/devel/src/wtr/test_watcher/test_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.dir/devel/src/wtr/test_watcher/test_event_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
@@ -54,13 +54,13 @@ echo "
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.asan.dir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.asan.dir/devel/src/wtr/test_watcher/test_concurrency.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.asan.dir/devel/src/wtr/test_watcher/test_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.asan.dir/devel/src/wtr/test_watcher/test_event_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
@@ -74,13 +74,13 @@ echo "
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.tsan.dir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.tsan.dir/devel/src/wtr/test_watcher/test_concurrency.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.tsan.dir/devel/src/wtr/test_watcher/test_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.tsan.dir/devel/src/wtr/test_watcher/test_event_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
@@ -94,13 +94,13 @@ echo "
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.ubsan.dir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.ubsan.dir/devel/src/wtr/test_watcher/test_concurrency.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_concurrency.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
-  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.ubsan.dir/devel/src/wtr/test_watcher/test_watch_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\",
-  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_watch_targets.cpp\"
+  \"command\": \"/usr/local/bin/c++  -I$thisdir/devel/include -I$thisdir/out/this/Debug/_deps/snitch-src/include -I$thisdir/out/this/Debug/_deps/snitch-build -g -flto=auto -fno-fat-lto-objects -Wall -Wextra -Werror -Wno-unused-function -Wno-unneeded-internal-declaration -std=gnu++20 -o CMakeFiles/wtr.test_watcher.ubsan.dir/devel/src/wtr/test_watcher/test_event_targets.cpp.o -c $thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\",
+  \"file\": \"$thisdir/devel/src/wtr/test_watcher/test_event_targets.cpp\"
 },
 {
   \"directory\": \"$thisdir/out/this/Debug\",
