@@ -11,7 +11,7 @@
 #include <vector>
 
 /* Test that files are scanned */
-TEST_CASE("Simple", "[test][dir][file][simple][not-perf]")
+TEST_CASE("Simple", "[dir][file][simple][not-perf]")
 {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;

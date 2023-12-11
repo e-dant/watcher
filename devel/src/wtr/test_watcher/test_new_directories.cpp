@@ -12,7 +12,7 @@
 #include <vector>
 
 /* Test that files are scanned */
-TEST_CASE("New Directories", "[test][dir][accuracy][not-perf]")
+TEST_CASE("New Directories", "[dir][accuracy][not-perf]")
 {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;
