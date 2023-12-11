@@ -64,7 +64,8 @@ if(NOT IS_CC_MSVC)
     "-Wextra"
     "-Werror"
     "-Wno-unused-function"
-    "-Wno-unneeded-internal-declaration")
+    "-Wno-unneeded-internal-declaration"
+  )
 endif()
 
 if(NOT WIN32 AND NOT IS_CC_MSVC)
@@ -76,51 +77,43 @@ if(NOT WIN32 AND NOT IS_CC_MSVC)
     "-fno-exceptions"
     "-fno-rtti"
     "-fstrict-enums"
-    "-fstrict-overflow")
+    "-fstrict-overflow"
+  )
   if(IS_CC_CLANG)
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
       "-fstrict-return"
-      "-fstrict-float-cast-overflow")
+      "-fstrict-float-cast-overflow"
+    )
   endif()
   if(NOT IS_CC_APPLECLANG)
     set(COMPILE_OPTIONS
       "${COMPILE_OPTIONS}"
       "-fexpensive-optimizations"
-      "-fwhole-program")
+      "-fwhole-program"
+    )
   endif()
 endif()
 
 if(ANDROID)
   # Android's stdlib ("bionic") doesn't need to be linked with (p)threads.
-  set(LINK_LIBRARIES
-    "${LINK_LIBRARIES}")
+  set(LINK_LIBRARIES "${LINK_LIBRARIES}")
 else()
   find_package(Threads REQUIRED)
   set(LINK_LIBRARIES
     "${LINK_LIBRARIES}"
-    "Threads::Threads")
+    "Threads::Threads"
+  )
   if(APPLE)
     list(APPEND LINK_LIBRARIES
       "-framework CoreFoundation"
-      "-framework CoreServices")
+      "-framework CoreServices"
+    )
   endif()
 endif()
 
-set(WTR_WATCHER_SOURCE_SET
-  "src/wtr/watcher/main.cpp")
-
-set(WTR_TEST_WATCHER_SOURCE_SET
-  "devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp"
-  "devel/src/wtr/test_watcher/test_watch_targets.cpp"
-  "devel/src/wtr/test_watcher/test_new_directories.cpp"
-  "devel/src/wtr/test_watcher/test_simple.cpp"
-  "devel/src/wtr/test_watcher/test_performance.cpp")
-
-set(INCLUDE_PATH_SINGLE_HEADER
-  "include")
-set(INCLUDE_PATH_DEVEL
-  "devel/include")
+set(INCLUDE_PATH_SINGLE_HEADER "include")
+set(INCLUDE_PATH_DEVEL "devel/include")
 
 set(WTR_WATCHER_ALLOWED_ASAN        0)
 set(WTR_WATCHER_ALLOWED_MSAN        0)
@@ -228,7 +221,8 @@ function(wtr_add_bin_target
     install(
       TARGETS "${NAME}"
       DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
-      COMPONENT "${BIN_COMPONENT_NAME}")
+      COMPONENT "${BIN_COMPONENT_NAME}"
+    )
   endif()
 endfunction()
 
@@ -237,15 +231,18 @@ function(wtr_add_hdr_target NAME INCLPATH HDR_NAME)
   add_library(
     "${NAME}"
     INTERFACE
-    "${INCLPATH}/wtr/${HDR_NAME}")
+    "${INCLPATH}/wtr/${HDR_NAME}"
+  )
   target_include_directories(
     "${NAME}"
     INTERFACE
-    "${INCLPATH}")
+    "${INCLPATH}"
+  )
   install(
     FILES "${INCLPATH}/wtr/${HDR_NAME}"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr"
-    COMPONENT "include")
+    COMPONENT "include"
+  )
 endfunction()
 
 function(wtr_add_rel_bin_target NAME SRC_SET)
@@ -257,7 +254,8 @@ function(wtr_add_rel_bin_target NAME SRC_SET)
     "${COMPILE_OPTIONS}"
     "${LINK_OPTIONS}"
     "${INCLUDE_PATH_SINGLE_HEADER}"
-    "${LINK_LIBRARIES}")
+    "${LINK_LIBRARIES}"
+  )
 endfunction()
 
 function(wtr_add_test_bin_target NAME SRC_SET)
@@ -269,7 +267,8 @@ function(wtr_add_test_bin_target NAME SRC_SET)
     "${COMPILE_OPTIONS}"
     "${LINK_OPTIONS}"
     "${INCLUDE_PATH_DEVEL}"
-    "${LINK_LIBRARIES};snitch::snitch")
+    "${LINK_LIBRARIES};snitch::snitch"
+  )
 endfunction()
 
 function(wtr_add_san_test_bin_target NAME SRC_SET SAN)
@@ -281,7 +280,8 @@ function(wtr_add_san_test_bin_target NAME SRC_SET SAN)
     "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
     "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
     "${INCLUDE_PATH_DEVEL}"
-    "${LINK_LIBRARIES};snitch::snitch")
+    "${LINK_LIBRARIES};snitch::snitch"
+  )
 endfunction()
 
 function(wtr_add_autosan_bin_target NAME SRC_SET)
@@ -296,7 +296,8 @@ function(wtr_add_autosan_bin_target NAME SRC_SET)
         "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "${INCLUDE_PATH_SINGLE_HEADER}"
-        "${LINK_LIBRARIES}")
+        "${LINK_LIBRARIES}"
+      )
     endif()
   endforeach()
 endfunction()
@@ -317,15 +318,31 @@ endfunction()
 wtr_add_hdr_target(
   "wtr.hdr_watcher"
   "${INCLUDE_PATH_SINGLE_HEADER}"
-  "watcher.hpp")
+  "watcher.hpp"
+)
 
 wtr_add_autosan_bin_target(
   "wtr.watcher"
-  "${WTR_WATCHER_SOURCE_SET}")
+  "src/wtr/watcher/main.cpp"
+)
 
+wtr_add_autosan_bin_target(
+  "tw"
+  "src/wtr/tiny_watcher/main.cpp"
+)
+
+set(WTR_TEST_WATCHER_SOURCE_SET
+  "devel/src/wtr/test_watcher/test_concurrent_watch_targets.cpp"
+  "devel/src/wtr/test_watcher/test_watch_targets.cpp"
+  "devel/src/wtr/test_watcher/test_new_directories.cpp"
+  "devel/src/wtr/test_watcher/test_simple.cpp"
+  "devel/src/wtr/test_watcher/test_performance.cpp"
+  "devel/src/wtr/test_watcher/test_openclose.cpp"
+)
 wtr_add_autosan_test_bin_target(
   "wtr.test_watcher"
-  "${WTR_TEST_WATCHER_SOURCE_SET}")
+  "${WTR_TEST_WATCHER_SOURCE_SET}"
+)
 
 # Used in the tool/test suite. Platforms vary
 # in their mv(1) implementations. We smooth
@@ -339,5 +356,6 @@ wtr_add_bin_target(
   ""
   ""
   ""
-  "")
+  ""
+)
 
