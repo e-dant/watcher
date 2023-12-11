@@ -23,13 +23,7 @@ jobs:
           - .local
     steps:
       - uses: actions/checkout@v3
-      - uses: lukka/get-cmake@v3.28.0
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/out
-          key: macos-${{runner.os}}-${{matrix.os}}-dependencies
+      - uses: lukka/get-cmake@v3.27.0
       - run: |
           tool/build --verbose --no-run
           ls -al out/this/Debug
