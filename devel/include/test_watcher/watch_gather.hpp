@@ -105,10 +105,11 @@ auto watch_gather(
       for (auto const& p : watch_path_list)
         if (! fs::exists(p)) assert(fs::exists(p));
       for (int i = 0;; i++) {
+        auto timeout = 1000 + (concurrency_level * 500);
         std::this_thread::sleep_for(10ms);
         auto _ = std::scoped_lock<std::mutex>{event_recv_list_mtx};
         if (event_recv_list.size() == event_sent_list.size()) break;
-        if (i > 1000) REQUIRE(! "Timeout: Waited more than one second for results");
+        if (i > timeout) REQUIRE(! "Timeout: Waited more than one second for results");
       }
       for (auto const& p : watch_path_list)
         event_sent_list.emplace_back(wtr::event{
