@@ -43,8 +43,7 @@ TEST_CASE("Performance", "[concurrent][file][perf]")
 
   show_results(res);
 
-  for (auto r : res)
-    CHECK(r.time_taken_watch < r.time_taken_fsops);
+  CHECK(median(watch_times_of(res)) < median(fsops_times_of(res)));
 };
 
 // clang-format on

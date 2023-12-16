@@ -26,6 +26,22 @@ inline auto do_nothing() -> void {
 #endif
 };
 
+inline auto median(auto const& values) -> double
+{
+  auto sorted = values;
+  std::sort(sorted.begin(), sorted.end());
+  auto size = sorted.size();
+  if (size == 0)
+    return 0;
+  else if (size == 1)
+    return sorted[0];
+  else {
+    // Conversions are easier this way, unfortunately.
+    auto left = size % 2 == 0 ? size / 2 : (size / 2 - 1);
+    return (sorted[left] + sorted[size / 2]) / 2.0;
+  }
+}
+
 struct PerfCfg {
   int watch_count;
   int event_count;
@@ -252,6 +268,21 @@ inline auto vec_cat(auto... vs) -> std::vector<PerfResult>
   return res;
 };
 
+inline auto watch_times_of(auto const& res) -> std::vector<long long>
+{
+  auto watch_time = std::vector<long long>{};
+  for (auto r : res)
+    watch_time.push_back(r.time_taken_watch.count());
+  return watch_time;
+}
+
+inline auto fsops_times_of(auto const& res) -> std::vector<long long>
+{
+  auto fsops_time = std::vector<long long>{};
+  for (auto r : res)
+    fsops_time.push_back(r.time_taken_fsops.count());
+  return fsops_time;
+}
 
 }  /*  namespace test_watcher */
 }  /*  namespace wtr */
