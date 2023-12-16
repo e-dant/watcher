@@ -389,17 +389,29 @@ run-test() {
   # a unique message and grep for it.
   # The match count is the return value.
   uniq_msg=b5c02513073841751ea8628d2b45e1e1
-  nfailed=$(
+  nnotperffailed=$(
     all-existing-buildtarget-paths \
     | grep -i this/debug/wtr.test_watcher \
     | existing-matching-targets-in-pathptrn \
     | while read -r target
       do
         echo "$(basename "$target")" 1>&2
-        "$target" 1>&2 || echo "$uniq_msg"
+        "$target" '[not-perf]' 1>&2 || echo "$uniq_msg"
       done \
     | grep -c "$uniq_msg"
   )
+  nperffailed=$(
+    all-existing-buildtarget-paths \
+    | grep -i this/debug/wtr.test_watcher \
+    | existing-matching-targets-in-pathptrn \
+    | while read -r target
+      do
+        echo "$(basename "$target")" 1>&2
+        "$target" '[perf]' 1>&2 || echo "$uniq_msg"
+      done \
+    | grep -c "$uniq_msg"
+  )
+  nfailed=$((nnotperffailed + nperffailed))
   if [ "$nfailed" -eq 0 ]
   then echo "All test suites passed"
        return 0
