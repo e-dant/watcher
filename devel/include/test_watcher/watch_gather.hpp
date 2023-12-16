@@ -100,26 +100,27 @@ auto watch_gather(
           std::string("s/self/live@").append(p.string()),
           wtr::event::effect_type::create,
           wtr::event::path_type::watcher});
+
       for (auto const& p : watch_path_list)
         mk_events(p, path_count, &event_sent_list);
+
       for (auto const& p : watch_path_list)
-        if (! fs::exists(p)) assert(fs::exists(p));
+        REQUIRE(fs::exists(p));
+
       for (int i = 0;; i++) {
-        auto timeout = 1000 + (concurrency_level * 500);
+        auto timeout = 1000 + (concurrency_level * 10);
         std::this_thread::sleep_for(10ms);
         auto _ = std::scoped_lock<std::mutex>{event_recv_list_mtx};
         if (event_recv_list.size() == event_sent_list.size()) break;
-        if (i > timeout) REQUIRE(! "Timeout: Waited more than one second for results");
+        if (i > timeout) REQUIRE(! "Timeout expired waiting for results");
       }
+
       for (auto const& p : watch_path_list)
         event_sent_list.emplace_back(wtr::event{
           std::string("s/self/die@").append(p.string()),
           wtr::event::effect_type::destroy,
           wtr::event::path_type::watcher});
     }
-
-    /*  And give the watchers some room to await the events */
-    std::this_thread::sleep_for(16ms);
   }
 
   /*  Clean */
