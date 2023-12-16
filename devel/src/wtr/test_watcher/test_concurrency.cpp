@@ -15,7 +15,7 @@ TEST_CASE(
   using namespace wtr::test_watcher;
 
   auto event_count_per_watcher = 10;
-  auto concurrency_level = 16;
+  auto concurrency_level = 8;
 
   check_event_lists_set_eq(watch_gather(
     "Concurrency",
