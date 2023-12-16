@@ -400,7 +400,7 @@ inline auto watch(
   auto fsevs = open_event_stream(path, queue, &ctx);
   auto state_ok = is_living.wait() == semabin::released;
   auto close_ok = close_event_stream(fsevs);
-  usleep(100);
+  usleep(1000);
   return state_ok && close_ok;
 }
 
