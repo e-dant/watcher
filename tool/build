@@ -382,7 +382,12 @@ opt-build-each() {
   [ "$VERBOSE" = 1 ] && opt-show-each-buildcmd
   opt-show-each-buildcmd | shellstrip | bash -e
 }
-run-test()  {
+run-test() {
+  # Accessing variables outside of a
+  # subshell or a pipeline is evidently
+  # not portable. Instead, we'll echo
+  # a unique message and grep for it.
+  # The match count is the return value.
   uniq_msg=b5c02513073841751ea8628d2b45e1e1
   nfailed=$(
     all-existing-buildtarget-paths \
@@ -395,11 +400,15 @@ run-test()  {
       done \
     | grep -c "$uniq_msg"
   )
-  if [ "$nfailed" -gt 0 ]
-  then echo "$nfailed tests failed"
-  else echo "All tests passed"
+  if [ "$nfailed" -eq 0 ]
+  then echo "All test suites passed"
+       return 0
+  elif [ "$nfailed" -eq 1 ]
+  then echo "$nfailed test suite failed"
+       return 1
+  else echo "$nfailed test suites failed"
+       return 1
   fi
-  return "$nfailed"
 }
 show-artifacts() {
   opt-platforms | while read -r platform
