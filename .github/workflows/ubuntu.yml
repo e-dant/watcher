@@ -32,8 +32,10 @@ jobs:
           tool/build --verbose --no-run
           ls -al out/this/Debug
           ls -al out/this/Release
-      - run: tool/build --verbose --no-build
-      - run: sudo tool/build --verbose --no-build
+      - run: tool/build --verbose --no-build --no-run-perf
+      - run: sudo tool/build --verbose --no-build --no-run-unit
+      - run: tool/build --verbose --no-build --no-run-unit
+      - run: sudo tool/build --verbose --no-build --no-run-unit
       - run: tool/test/all || tool/test/all
       - run: sudo tool/test/all || sudo tool/test/all
 

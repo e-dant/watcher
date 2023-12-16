@@ -92,7 +92,7 @@ git clone https://github.com/e-dant/watcher.git && cd watcher
 # Via Nix
 nix run | grep -oE 'cmake-is-tough'
 # With the build script
-tool/build --no-build-test --no-run-test && cd out/this/Release # Build the release version for the host platform.
+tool/build --no-build-test --no-run && cd out/this/Release # Build the release version for the host platform.
 ./wtr.watcher | grep -oE 'needle-in-a-haystack/.+"' # Use it, pipe it, whatever. (This is an .exe on Windows.)
 ```
 

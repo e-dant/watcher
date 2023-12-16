@@ -45,7 +45,8 @@ fia     --no-platform-ios || fia --no-platform || ! { fia     --platform-ios || 
 fia    --no-build-release || fia    --no-build || ! { fia    --build-release || fia    --build-all || ! fia    --build ; };    BUILD_RELEASE=$?
 fia      --no-build-debug || fia    --no-build || ! { fia      --build-debug || fia    --build-all || ! fia    --build ; };      BUILD_DEBUG=$?
 fia       --no-build-test || fia    --no-build || ! { fia       --build-test || fia    --build-all || ! fia    --build ; };       BUILD_TEST=$?
-fia         --no-run-test || fia      --no-run || ! { fia         --run-test || fia      --run-all || ! fia      --run ; };         RUN_TEST=$?
+fia         --no-run-unit || fia      --no-run || ! { fia         --run-unit || fia      --run-all || ! fia      --run ; };         RUN_UNIT=$?
+fia         --no-run-perf || fia      --no-run || ! { fia         --run-perf || fia      --run-all || ! fia      --run ; };         RUN_PERF=$?
                                                   ! { fia          --install                                           ; };          INSTALL=$?
                                                   ! { fia            --clean                                           ; };            CLEAN=$?
                                                   ! { fia             --help                                           ; };             HELP=$?
@@ -75,10 +76,9 @@ valid-flags() {
   echo -- --no-build-debug
   echo -- --no-build-test
   echo -- --no-build
-  echo -- --run-test
   echo -- --run-all
-  echo -- --no-run-test
-  echo -- --no-run-all
+  echo -- --no-run-unit
+  echo -- --no-run-perf
   echo -- --clean
   echo -- --help
   echo -- --verbose
@@ -104,7 +104,8 @@ inspect-all-options() {
   echo "   BUILD_RELEASE=$BUILD_RELEASE"
   echo "     BUILD_DEBUG=$BUILD_DEBUG"
   echo "      BUILD_TEST=$BUILD_TEST"
-  echo "        RUN_TEST=$RUN_TEST"
+  echo "        RUN_UNIT=$RUN_UNIT"
+  echo "        RUN_PERF=$RUN_PERF"
   echo "         INSTALL=$INSTALL"
   echo "           CLEAN=$CLEAN"
   echo "            HELP=$HELP"
@@ -133,7 +134,7 @@ Usage
   $0 [--help | --clean | [PLATFORM_OPTIONS] [BUILD_OPTIONS] [RUN_OPTIONS]]
 
 Default
-  $0 --platform-this --build-all --run-all
+  $0 --platform-this --build-all --run-unit
 
 Platform Options
 $(valid-flags | sed 's/ /\n  /g' | grep platform)
@@ -145,10 +146,10 @@ Run Options
 $(valid-flags | sed 's/ /\n  /g' | grep run)
 
 Examples
-  $0 --build-all --no-run-test --verbose
+  $0 --build-all --no-run-perf --verbose
   $0 --no-run --build-all --platform-all
   $0 --build-release --install
-  $0 --run-test
+  $0 --run-perf
   $0 --clean"
 }
 just-help() { help; exit 0; }
@@ -382,14 +383,14 @@ opt-build-each() {
   [ "$VERBOSE" = 1 ] && opt-show-each-buildcmd
   opt-show-each-buildcmd | shellstrip | bash -e
 }
-run-test() {
-  # Accessing variables outside of a
-  # subshell or a pipeline is evidently
-  # not portable. Instead, we'll echo
-  # a unique message and grep for it.
-  # The match count is the return value.
-  uniq_msg=b5c02513073841751ea8628d2b45e1e1
-  nnotperffailed=$(
+# Accessing variables outside of a
+# subshell or a pipeline is evidently
+# not portable. Instead, we'll echo
+# a unique message and grep for it.
+# The match count is the return value.
+uniq_msg=b5c02513073841751ea8628d2b45e1e1
+run-unit() {
+  nfailed=$(
     all-existing-buildtarget-paths \
     | grep -i this/debug/wtr.test_watcher \
     | existing-matching-targets-in-pathptrn \
@@ -400,7 +401,18 @@ run-test() {
       done \
     | grep -c "$uniq_msg"
   )
-  nperffailed=$(
+  if [ "$nfailed" -eq 0 ]
+  then echo "All test suites passed"
+       return 0
+  elif [ "$nfailed" -eq 1 ]
+  then echo "$nfailed test suite failed"
+       return "$nfailed"
+  else echo "$nfailed test suites failed"
+       return "$nfailed"
+  fi
+}
+run-perf() {
+  nfailed=$(
     all-existing-buildtarget-paths \
     | grep -i this/debug/wtr.test_watcher \
     | existing-matching-targets-in-pathptrn \
@@ -411,7 +423,6 @@ run-test() {
       done \
     | grep -c "$uniq_msg"
   )
-  nfailed=$((nnotperffailed + nperffailed))
   if [ "$nfailed" -eq 0 ]
   then echo "All test suites passed"
        return 0
@@ -437,6 +448,7 @@ flags-are-valid     || { help ; exit 1 ; }
 [ 1 = "$HELP"     ] && { help ; exit 0 ; }
 [ 1 = "$CLEAN"    ] && { clean || exit 1 ; }
 opt-build-each      || { exit 1 ; }
-[ 1 = "$RUN_TEST" ] && { run-test || exit 1 ; }
+[ 1 = "$RUN_UNIT" ] && { run-unit || exit 1 ; }
+[ 1 = "$RUN_PERF" ] && { run-perf || exit 1 ; }
 [ 1 = "$VERBOSE"  ] && { show-artifacts ; }
 exit 0
