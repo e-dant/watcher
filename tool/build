@@ -405,9 +405,9 @@ run-test() {
        return 0
   elif [ "$nfailed" -eq 1 ]
   then echo "$nfailed test suite failed"
-       return 1
+       return "$nfailed"
   else echo "$nfailed test suites failed"
-       return 1
+       return "$nfailed"
   fi
 }
 show-artifacts() {
@@ -427,4 +427,4 @@ flags-are-valid     || { help ; exit 1 ; }
 opt-build-each      || { exit 1 ; }
 [ 1 = "$RUN_TEST" ] && { run-test || exit 1 ; }
 [ 1 = "$VERBOSE"  ] && { show-artifacts ; }
-
+exit 0
