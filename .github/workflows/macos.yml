@@ -24,11 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: lukka/get-cmake@v3.27.0
-      - run: |
-          tool/build --verbose --no-run
-          ls -al out/this/Debug
-          ls -al out/this/Release
+      - run: tool/build --verbose --no-run
       - run: tool/build --verbose --no-build --no-run-perf
       - run: tool/build --verbose --no-build --no-run-unit
-      - run: tool/test/all || tool/test/all
+      - run: tool/test/all
 

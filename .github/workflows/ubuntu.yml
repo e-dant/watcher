@@ -36,6 +36,6 @@ jobs:
       - run: sudo tool/build --verbose --no-build --no-run-unit
       - run: tool/build --verbose --no-build --no-run-unit
       - run: sudo tool/build --verbose --no-build --no-run-unit
-      - run: tool/test/all || tool/test/all
-      - run: sudo tool/test/all || sudo tool/test/all
+      - run: tool/test/all
+      - run: sudo tool/test/all
 
