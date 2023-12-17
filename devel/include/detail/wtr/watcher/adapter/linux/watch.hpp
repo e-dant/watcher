@@ -30,9 +30,7 @@ inline auto watch =
       else
         for (int n = 0; n < ep_c; ++n)
           if (is_ev_of(n, sr.il.fd))
-            sr.ok = sr.il.state() == semabin::released
-                    ? result::complete
-                    : result::e_sys_api_eventfd;
+            sr.ok = result::complete;
           else if (is_ev_of(n, sr.ke.fd))
             sr.ok = do_ev_recv(cb, sr);
     }
