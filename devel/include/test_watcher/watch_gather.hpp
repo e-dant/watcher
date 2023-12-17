@@ -104,8 +104,7 @@ auto watch_gather(
       for (auto const& p : watch_path_list)
         mk_events(p, path_count, &event_sent_list);
 
-      for (auto const& p : watch_path_list)
-        REQUIRE(fs::exists(p));
+      for (auto const& p : watch_path_list) REQUIRE(fs::exists(p));
 
       for (int i = 0;; i++) {
         auto timeout = 1000 + (concurrency_level * 10);

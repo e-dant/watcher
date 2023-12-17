@@ -878,7 +878,7 @@ inline auto watch(
   auto fsevs = open_event_stream(path, queue, &ctx);
   auto state_ok = is_living.wait() == semabin::released;
   auto close_ok = close_event_stream(fsevs);
-  usleep(100);
+  usleep(1000);
   return state_ok && close_ok;
 }
 
@@ -1755,9 +1755,7 @@ inline auto watch =
       else
         for (int n = 0; n < ep_c; ++n)
           if (is_ev_of(n, sr.il.fd))
-            sr.ok = sr.il.state() == semabin::released
-                    ? result::complete
-                    : result::e_sys_api_eventfd;
+            sr.ok = result::complete;
           else if (is_ev_of(n, sr.ke.fd))
             sr.ok = do_ev_recv(cb, sr);
     }
