@@ -237,10 +237,9 @@ inline auto event_recv(
   ) noexcept -> void
 {
   auto pctx = static_cast<ctx_type*>(maybe_ctx);
-  auto ok = paths           /*  These checks are unfortunate, */
-         && flags           /*  but they are also necessary. */
-         && pctx            /*  Once in a blue moon, near an exit, */
-         && pctx->callback; /*  we are given a partial context. */
+  auto ok = paths /*  These checks are unfortunate, */
+         && flags /*  but they are also necessary. */
+         && pctx; /*  Once in a blue moon, this doesn't exist. */
 
   if (ok) {
     auto ctx = *pctx;
@@ -315,44 +314,36 @@ inline auto open_event_stream(
     return nullptr;
 }
 
-inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
+inline auto wait(semabin const& sb) noexcept
 {
-  /*  We want to handle any outstanding events before closing,
-      so we flush the event stream before stopping it.
-      `FSEventStreamInvalidate()` only needs to be called
-      if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
-      That scheduling function is deprecated (as of macOS 13).
-      Calling `FSEventStreamInvalidate()` fails an assertion
-      and produces a warning in the console. However, calling
-      `FSEventStreamRelease()` without first invalidating via
-      `FSEventStreamInvalidate()` *also* fails an assertion,
-      and produces a warning. I'm not sure what the right call
-      to make here is. */
-  return s
-      && (FSEventStreamFlushSync(s),
-          FSEventStreamStop(s),
-          FSEventStreamInvalidate(s),
-          FSEventStreamRelease(s),
-          s = nullptr,
-          true);
+  auto s = sb.state();
+  if (s == semabin::pending) {
+    dispatch_semaphore_wait(sb.sem, DISPATCH_TIME_FOREVER);
+    return semabin::released;
+  }
+  else
+    return s;
 }
 
-} /*  namespace */
+/*  We want to handle any outstanding events before closing,
+    so we flush the event stream before stopping it.
+    `FSEventStreamInvalidate()` only needs to be called
+    if we scheduled via `FSEventStreamScheduleWithRunLoop()`.
+    That scheduling function is deprecated (as of macOS 13).
+    Calling `FSEventStreamInvalidate()` fails an assertion
+    and produces a warning in the console. However, calling
+    `FSEventStreamRelease()` without first invalidating via
+    `FSEventStreamInvalidate()` *also* fails an assertion,
+    and produces a warning. I'm not sure what the right call
+    to make here is.
 
-/*  Lifetimes --
-    We *must* ensure that the queue, context and callback
-    are alive *at least* until we close the event stream.
-    We don't really have unique ownership of these resources.
-    There used to be a shared pointer between us and the system,
-    but there appeared to be a rare issue with the reference
-    counts expiring while the object should have still been
-    alive and in use by the kernel. I witnessed this bevahvior
-    when running highly concurrent performance tests with many
-    thousands of events. There may have been another factor.
-    For now, ensuring that our resources live for long enough
-    by hand with a "uniquely" owned object works well.
+    Bugs, footguns --
 
-    Why the `usleep`? --
+    The order of flush -> stop -> purge -> invalidate is
+    extremely sensitive. Purging events *after* stopping
+    the stream is necessary for some reason. Likely a bug
+    on Darwin; Should be f'ing stopped.
+
     Bug on Darwin: The system may call the FSEvent stream's
     associated callback even after we've stopped the stream.
     Only seems to happen when many thousands of events are
@@ -373,20 +364,49 @@ inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
     and deallocate. That is not going to end well when the
     system betrays us.
 
-    The only semi-reliable way of synchronizing the (should
-    be f'ing closed) stream is to sleep. I have left two of
-    the stress-tests we have, performance and rapid_open_close,
-    running on a loop for hours. I'm under no illusion that a
-    reliably looping, passing stress test makes the use of
-    time as a synchronization primitive reliable. WIP.
-
     The issue being addressed is a rare use, by FSEvents, of
     the context we give it, after the FSEvent stream has been
     released and invalidated. The issue is probably within the
     FSEvents system, or maybe dispatch, probably not with us.
     Which is why a transactional lifetime on the context we own,
     lent to FSEvents, does not work.
-*/
+
+    The only semi-reliable way of synchronizing the (should
+    be f'ing closed) stream is to maintain the order of our
+    calls to flush, stop, purge and invalidate. It's not clear
+    if flushing has much of an effect at all here, especially
+    before stopping the stream. */
+inline auto close_event_stream(FSEventStreamRef s) noexcept -> bool
+{
+  if (s) {
+    FSEventStreamFlushSync(s);
+    FSEventStreamStop(s);
+    auto event_id = FSEventsGetCurrentEventId();
+    auto device = FSEventStreamGetDeviceBeingWatched(s);
+    FSEventsPurgeEventsForDeviceUpToEventId(device, event_id);
+    FSEventStreamInvalidate(s);
+    FSEventStreamRelease(s);
+    s = nullptr;
+    return true;
+  }
+  else
+    return false;
+}
+
+} /*  namespace */
+
+/*  Lifetimes --
+    We *must* ensure that the queue, context and callback
+    are alive *at least* until we close the event stream.
+    We don't really have unique ownership of these resources.
+    There used to be a shared pointer between us and the system,
+    but there appeared to be a rare issue with the reference
+    counts expiring while the object should have still been
+    alive and in use by the kernel. I witnessed this bevahvior
+    when running highly concurrent performance tests with many
+    thousands of events. There may have been another factor.
+    For now, ensuring that our resources live for long enough
+    by hand with a "uniquely" owned object works well. */
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
@@ -398,9 +418,8 @@ inline auto watch(
   auto ctx = ctx_type{callback, &seen_created_paths, &last_rename_path};
 
   auto fsevs = open_event_stream(path, queue, &ctx);
-  auto state_ok = is_living.wait() == semabin::released;
+  auto state_ok = wait(is_living) == semabin::released;
   auto close_ok = close_event_stream(fsevs);
-  usleep(1000);
   return state_ok && close_ok;
 }
 

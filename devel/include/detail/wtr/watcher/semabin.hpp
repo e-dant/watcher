@@ -96,17 +96,6 @@ public:
     return released;
   }
 
-  inline auto wait() const noexcept -> state
-  {
-    auto s = this->is.load(std::memory_order_acquire);
-    if (s == pending) {
-      dispatch_semaphore_wait(this->sem, DISPATCH_TIME_FOREVER);
-      return released;
-    }
-    else
-      return s;
-  }
-
   inline auto state() const noexcept -> state
   {
     return this->is.load(std::memory_order_acquire);
