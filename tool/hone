@@ -95,8 +95,10 @@ tool::hone() {
     if echo "$*" | grep -q -- --help
     then echo "$USAGE"; fi
   else
-    if echo "$*" | grep -q -- --header-content-amalgam
-    then echo "$HEADER_CONTENT_AMALGAM"; fi
+    AMALGAMATED_FILE=../$PROJECT_HEADER
+    if ! diff <(echo "$HEADER_CONTENT_AMALGAM") "$AMALGAMATED_FILE" &> /dev/null
+    then echo "$HEADER_CONTENT_AMALGAM" > "$AMALGAMATED_FILE"
+    fi
   fi
 
   cd "$LAST_DIR" || return 1
