@@ -71,7 +71,7 @@ Enjoy!
 A filesystem event watcher which is
 
 1. Simple
-> The [1613](https://github.com/e-dant/watcher/blob/release/tool/sl)
+> The [1615](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines that make up *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
 and the API attempts to be practical:
 ```cpp
@@ -474,7 +474,7 @@ https://github.com/notify-rs/notify:
   static analysis: yes (borrow checked)
 
 https://github.com/e-dant/watcher:
-  lines of code: 1613
+  lines of code: 1615
   lines of tests: 865
   lines of docs: 1908
   implementation languages: cpp
