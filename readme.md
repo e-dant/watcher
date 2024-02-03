@@ -10,7 +10,7 @@
 ## Quick Start
 
 ```cpp
-#include "wtr/watcher.hpp"  // Or wherever yours is
+#include "wtr/watcher.hpp"
 #include <iostream>
 #include <string>
 
@@ -24,7 +24,7 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto show(event e) {
+auto show(event e) -> void {
   cout << to<string>(e.effect_type) + ' '
         + to<string>(e.path_type)   + ' '
         + to<string>(e.path_name)
@@ -71,7 +71,7 @@ A filesystem event watcher which is
 
 1. Simple
 > The [1615](https://github.com/e-dant/watcher/blob/release/tool/sl)
-lines that make up *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
+lines that make up the runtime of *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
 and the API attempts to be practical:
 ```cpp
 auto w = watch(path, [](event ev) { cout << ev; });
@@ -367,7 +367,7 @@ You can find the selection code for Linux [here](https://github.com/e-dant/watch
 The namespaces for our [adapters](https://github.com/e-dant/watcher/tree/release/devel/include/detail/wtr/watcher/adapter)
 are inline. When the (internal) `detail::...::watch()`
 function is [invoked](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp#L65),
-it resolved to one (and only one) platform-specifc
+it resolves to one (and only one) platform-specifc
 implementation of the `watch()` function. One symbol,
 many platforms, where the platforms are inline
 namespaces.
