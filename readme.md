@@ -24,7 +24,7 @@ using namespace wtr;
 // json-serialize and show the event like this:
 //   some_stream << event
 // Here, we'll apply our own formatting.
-auto show(event e) -> void {
+auto show(event e) {
   cout << to<string>(e.effect_type) + ' '
         + to<string>(e.path_type)   + ' '
         + to<string>(e.path_name)
