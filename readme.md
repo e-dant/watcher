@@ -253,8 +253,8 @@ See the [package here](https://conan.io/center/recipes/watcher).
 
 ```sh
 nix build # To just build
-nix run # Build and run without arguments
-nix run . -- / | jq # Build and run the default target, watch the root directory, pipe it to jq
+nix run # Build the default target, then run without arguments
+nix run . -- / | jq # Build and run, watch the root directory, pipe it to jq
 nix develop # Enter an isolated development shell with everything needed to explore this project
 ```
 
