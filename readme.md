@@ -25,24 +25,23 @@ using namespace wtr;
 //   some_stream << event
 // Here, we'll apply our own formatting.
 auto show(event e) {
-  auto s = [](auto a) { return to<string>(a); };
-  cout << s(e.effect_type) + ' '
-        + s(e.path_type)   + ' '
-        + s(e.path_name)
-        + (e.associated ? " -> " + s(e.associated->path_name) : "")
+  cout << to<string>(e.effect_type) + ' '
+        + to<string>(e.path_type)   + ' '
+        + to<string>(e.path_name)
+        + (e.associated ? " -> " + to<string>(e.associated->path_name) : "")
        << endl;
 }
 
 auto main() -> int {
   // Watch the current directory asynchronously,
-  // calling the provided function for each event.
+  // calling the provided function on each event.
   auto watcher = watch(".", show);
 
   // Do some work. (We'll just wait for a newline.)
   getchar();
 
   // The watcher would close itself around here,
-  // though we can check and close it ourselves:
+  // though we can check and close it ourselves.
   return watcher.close() ? 0 : 1;
 }
 ```
@@ -97,9 +96,12 @@ tool/build --no-build-test --no-run && cd out/this/Release # Build the release v
 ```
 
 3. Efficient
-> You can watch an *entire filesystem* with this project. In [almost all cases](https://github.com/e-dant/watcher/tree/release#exception-to-efficient-scanning),
-we use a near-zero amount of resources and make
-[efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency). We regularly test that the overhead of detecting and sending an event to the user is an order of magnitude less than the filesystem operations being measured.
+> You can watch an *entire filesystem* with this project.
+In [almost all cases](https://github.com/e-dant/watcher/tree/release#exceptions-to-efficient-scanning),
+we use a near-zero amount of resources and makes
+[efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
+We regularly test that the overhead of detecting and sending an event to the user is
+an order of magnitude less than the filesystem operations being measured.
 
 4. Safe
 > We run this project through
@@ -194,15 +196,17 @@ The last event will always be a `destroy` event from the watcher.
 You can parse it like this:
 
 ```cpp
-  auto is_last = ev.path_type == path_type::watcher
-              && ev.effect_type == effect_type::destroy;
+bool is_last = ev.path_type == path_type::watcher
+            && ev.effect_type == effect_type::destroy;
 ```
 
 Happy hacking.
 
 ### Your Project
 
-It is trivial to build programs that yield something useful.
+This project tries to make it easy for you to work with
+filesystem events. I think good tools are easy to use. If
+this project is not ergonomic, file an issue.
 
 Here is a snapshot of the output taken while preparing this
 commit, right before writing this paragraph.
@@ -258,7 +262,7 @@ nix develop # Enter an isolated development shell with everything needed to expl
 
 ```sh
 bazel build cli # Build, but don't run, the cli
-bazel build hdr # Ditto for the single-header
+bazel build hdr # Ditto, for the single-header
 bazel run cli # Run the cli program without arguments
 ```
 
@@ -290,16 +294,19 @@ cd out
 ./wtr.watcher 'your/favorite/path' -s 10
 ```
 
-## Notes
+## Bugs & Limitations
 
-### Minimum C++ Version
+<details>
+<summary>Safety and Darwin</summary>
 
-For the header-only library and the tiny-watcher,
-C++17 and up should be fine.
+Unsafe destruction.
 
-We might use C++20 coroutines someday.
+... Details ...
 
-### Safety and C++
+</details>
+
+<details>
+<summary>Safety and C++</summary>
 
 I was comfortable with C++ when I first wrote
 this. I later rewrote this project in Rust as
@@ -312,12 +319,15 @@ safer to express in Rust. Other things are safer,
 but this project doesn't benefit much from them.
 
 Rust really shines in usability and expression.
+That might be enough of a reason to use it.
+Among other things, we could work with async
+traits and algebraic types for great good.
 
 I'm not sure if there is a language that can
 "just" make the majority of the code in this
 project safe by definition.
 
-The guts of this project (the adapters) talk
+The guts of this project, the adapters, talk
 to the kernel. They are bound to use unsafe,
 ill-typed, caveat-rich system-level interfaces.
 
@@ -335,16 +345,36 @@ their interfaces. Like with all system-level
 interfaces, as long as we ensure the correct
 pre-and-post-conditions, and those conditions
 are well-defined, we should be fine.
+</details>
 
-### Limitations
+<details>
+<summary>Platform-specific adapter selection</summary>
 
-- Ready State
-> There is no reliable way to communicate when a watcher is
-ready to send events to the callback. For a few thousand paths,
-this may take a few milliseconds. For a few million, consider
-waiting a second or so.
+Among the platform-specific [implementations](https://github.com/e-dant/watcher/tree/release/devel/include/detail/wtr/watcher/adapter),
+the `FSEvents` API is used on Darwin and the
+`ReadDirectoryChanges` API is used on Windows.
+There is some extra work we do to select the best
+adapter on Linux. The `fanotify` adapter is used
+when the kernel version is greater than 5.9, the
+containing process has root priveleges, and the
+necessary system calls are otherwise allowed.
+The system calls associated with `fanotify` may
+be disallowed when inside a container or cgroup,
+despite the necessary priviledges and kernel
+version. The `inotify` adapter is used otherwise.
+You can find the selection code for Linux [here](https://github.com/e-dant/watcher/blob/next/devel/include/detail/wtr/watcher/adapter/linux/watch.hpp).
 
-### Exception to Efficient Scanning
+The namespaces for our [adapters](https://github.com/e-dant/watcher/tree/release/devel/include/detail/wtr/watcher/adapter)
+are inline. When the (internal) `detail::...::watch()`
+function is [invoked](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp#L65),
+it resolved to one (and only one) platform-specifc
+implementation of the `watch()` function. One symbol,
+many platforms, where the platforms are inline
+namespaces.
+</details>
+
+<details>
+<summary>Exceptions to Efficient Scanning</summary>
 
 Efficiency takes a hit when we bring out the `warthog`,
 our platform-independent adapter. This adapter is used
@@ -357,8 +387,45 @@ scanning more than one-hundred-thousand paths with `warthog`
 might stutter.
 
 I'll keep my eyes open for better kernel APIs on BSD.
+</details>
 
-### OS APIs Used
+<details>
+<summary>Ready State</summary>
+
+There is no reliable way to communicate when a
+watcher is ready to send events to the callback.
+
+For a few thousand paths, this may take a few
+milliseconds. For tens-of-thousands of paths,
+consider waiting a few seconds.
+</details>
+
+<details>
+<summary>Unsupported events</summary>
+
+The owner and attribute events are not supported.
+
+... Details ...
+</details>
+
+<details>
+<summary>Unsupported filesystems</summary>
+
+Special filesystems, including `/proc` and `/sys`,
+cannot be watched with `inotify`, `fanotify` or the
+`warthog`. Future work may involve dispatching ebpf
+programs for the kernel to use. This would allow us
+to monitor for `modify` events.
+</details>
+
+<details>
+<summary>Resource limitations</summary>
+
+The number of watched files is limited when `inotify`
+is used.
+</details>
+
+## OS APIs Used
 
 Linux
 - `inotify`
@@ -374,11 +441,18 @@ Windows
 - `ReadDirectoryChangesW`
 - `IoCompletionPort`
 
-### Cache Efficiency
+## Minimum C++ Version
+
+For the header-only library and the tiny-watcher,
+C++17 and up should be fine.
+
+We might use C++20 coroutines someday.
+
+## Cache Efficiency
 
 ```sh
-$ tool/test/dir &
-$ tool/test/file &
+$ tool/gen-event/dir &
+$ tool/gen-event/file &
 $ valgrind --tool=cachegrind wtr.watcher ~ -s 30
 ```
 
@@ -400,7 +474,7 @@ LL misses:          14,683  (     10,920 rd   +       3,763 wr)
 LL miss rate:          0.0% (        0.0%     +         0.0%  )
 ```
 
-### Namespaces and the Directory Tree
+## Namespaces and the Directory Tree
 
 Namespaces and symbols closely follow the directories in the `devel/include` folder.
 Inline namespaces are in directories with the `-` affix.
@@ -457,7 +531,8 @@ watcher
 
 > You can run [`tool/tree`](https://github.com/e-dant/watcher/blob/release/tool/tree) to view this tree locally.
 
-### Comparison with Similar Projects
+<details>
+<summary><h2>Comparison with Similar Projects</h2></summary>
 
 ```yml
 https://github.com/notify-rs/notify:
@@ -617,5 +692,4 @@ https://github.com/g0t4/Rx-FileSystemWatcher:
   static analysis: none (managed language)
 
 ```
-
-
+</details>
