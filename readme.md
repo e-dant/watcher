@@ -415,7 +415,8 @@ Special filesystems, including `/proc` and `/sys`,
 cannot be watched with `inotify`, `fanotify` or the
 `warthog`. Future work may involve dispatching ebpf
 programs for the kernel to use. This would allow us
-to monitor for `modify` events.
+to monitor for `modify` events on some of those
+special filesystem.
 </details>
 
 <details>
