@@ -48,18 +48,32 @@
               nativeBuildInputs = build_deps ++ maybe_sys_deps ++ [ snitch ];
               env.WTR_WATCHER_USE_SYSTEM_SNITCH = 1;
               buildPhase = ''
-                for target in $targets
-                do cmake --build . --target "$target" --config "$buildcfg" &
-                done
-                wait
+                echo "Building in $PWD/$buildcfg"
+                cmake \
+                  -S .. \
+                  -B "$buildcfg" \
+                  -DCMAKE_BUILD_TYPE="$buildcfg" \
+                  -DCMAKE_INSTALL_PREFIX="$out"
+                cmake \
+                  --build "$buildcfg" \
+                  --config "$buildcfg" \
+                  --parallel "$(nproc)"
               '';
               installPhase = ''
+                echo "Installing components (${toString components}) from $PWD/buildcfg to $out"
                 for component in $components
-                do cmake --install . --prefix "$out" --config "$buildcfg" --component "$component"
+                do
+                  cmake \
+                    --install "$buildcfg" \
+                    --component "$component" \
+                    --prefix "$out"
                 done
+
+                echo "Installed:"
                 for target in $targets
                 do find "$out" -name "$target" -exec ls -al {} \;
                 done
+
                 if [ -n "${installBashScript}" ]
                 then
                   echo "${installBashScript}" | tee -a "$out/bin/${installBashScriptName}"
