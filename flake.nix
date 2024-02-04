@@ -54,26 +54,28 @@
                   -B "$buildcfg" \
                   -DCMAKE_BUILD_TYPE="$buildcfg" \
                   -DCMAKE_INSTALL_PREFIX="$out"
-                cmake \
-                  --build "$buildcfg" \
-                  --config "$buildcfg" \
-                  --parallel "$(nproc)"
-              '';
-              installPhase = ''
-                echo "Installing components (${toString components}) from $PWD/buildcfg to $out"
-                for component in $components
+                for target in $targets
                 do
                   cmake \
-                    --install "$buildcfg" \
-                    --component "$component" \
-                    --prefix "$out"
+                    --build "$buildcfg" \
+                    --config "$buildcfg" \
+                    --target "$target" \
+                    --parallel "$(nproc)"
                 done
-
-                echo "Installed:"
+              '';
+              installPhase = ''
+                echo "Installing targets (${toString targets}) from $PWD/buildcfg to $out"
+                mkdir -p "$out/bin"
+                mkdir -p "$out/include"
                 for target in $targets
-                do find "$out" -name "$target" -exec ls -al {} \;
+                do
+                  if echo "$target" | grep -q 'hrd_'
+                  then to=include
+                  else to=bin
+                  fi
+                  find "$buildcfg" -name "$target" -exec cp {} "$out/$to/$target" \;
+                  find "$out" -name "$target" -exec ls -al {} \;
                 done
-
                 if [ -n "${installBashScript}" ]
                 then
                   echo "${installBashScript}" | tee -a "$out/bin/${installBashScriptName}"
