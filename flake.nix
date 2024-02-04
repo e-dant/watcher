@@ -38,12 +38,11 @@
             , pname
             , buildcfg
             , targets
-            , components
-            # TODO Just make this a regular cmake target
+            # We should just make this a regular target
             , installBashScriptName ? ""
             , installBashScript ? ""
             }: pkgs.stdenv.mkDerivation {
-              inherit src pname buildcfg targets components;
+              inherit src pname buildcfg targets;
               version = "0.9.5"; # hook: tool/release
               nativeBuildInputs = build_deps ++ maybe_sys_deps ++ [ snitch ];
               env.WTR_WATCHER_USE_SYSTEM_SNITCH = 1;
@@ -61,20 +60,26 @@
                     --config "$buildcfg" \
                     --target "$target" \
                     --parallel "$(nproc)"
+                  if echo "$target" | grep -q 'hdr_'
+                  then cp ../include/wtr/watcher.hpp "$buildcfg"
+                  fi
                 done
               '';
               installPhase = ''
-                echo "Installing targets (${toString targets}) from $PWD/buildcfg to $out"
-                mkdir -p "$out/bin"
-                mkdir -p "$out/include"
+                echo "Installing targets (${toString targets}) from $PWD/$buildcfg to $out"
+                ls -al "$buildcfg"
                 for target in $targets
                 do
-                  if echo "$target" | grep -q 'hrd_'
-                  then to=include
-                  else to=bin
+                  if echo "$target" | grep -q 'hdr_'
+                  then to=$out/include/wtr/watcher.hpp
+                  else to=$out/bin/$target
                   fi
-                  find "$buildcfg" -name "$target" -exec cp {} "$out/$to/$target" \;
-                  find "$out" -name "$target" -exec ls -al {} \;
+                  fromfile=$(basename "$to")
+                  todir=$(dirname "$to")
+                  test -d "$todir" || mkdir -p "$todir"
+                  mv "$buildcfg/$fromfile" "$to"
+                  echo "$target -> $to"
+                  stat "$to"
                 done
                 if [ -n "${installBashScript}" ]
                 then
@@ -88,29 +93,30 @@
             src        = self;
             pname      = "wtr.watcher";
             buildcfg   = "Release";
-            targets    = [ "wtr.watcher" "wtr.hdr_watcher" ];
-            components = [ "bin" "include" ];
+            targets    = [ "wtr.watcher"
+                           "wtr.hdr_watcher" ];
           };
           watcher-cli = mkWatcherDerivation {
             src        = self;
             pname      = "wtr.watcher";
             buildcfg   = "Release";
             targets    = [ "wtr.watcher" ];
-            components = [ "bin" ];
           };
           watcher-hdr = mkWatcherDerivation {
             src        = self;
             pname      = "exit";
             buildcfg   = "Release";
             targets    = [ "wtr.hdr_watcher" ];
-            components = [ "include" ];
           };
           watcher-test = mkWatcherDerivation {
             src        = self;
             pname      = "wtr.test_watcher.allsan";
             buildcfg   = "Debug";
-            targets    = [ "wtr.test_watcher" "wtr.test_watcher.asan" "wtr.test_watcher.msan" "wtr.test_watcher.tsan" "wtr.test_watcher.ubsan" ];
-            components = [ "test-bin" ];
+            targets    = [ "wtr.test_watcher"
+                           "wtr.test_watcher.asan"
+                           "wtr.test_watcher.msan"
+                           "wtr.test_watcher.tsan"
+                           "wtr.test_watcher.ubsan" ];
             installBashScriptName = "wtr.test_watcher.allsan";
             installBashScript = ''
               #!/usr/bin/env bash
