@@ -299,9 +299,43 @@ cd out
 <details>
 <summary>Safety and Darwin</summary>
 
-Unsafe destruction.
+Darwin's adapter, `FSEvents` and `dispatch`, is
+not safe during destruction. It's not clear to me
+what the root problem is, though it appears to be
+a bug in Apple's implementation of one of these APIs
+which allows it to call into the associated callback
+of an already-destroyed `FSEvents` stream. This only
+seems to happen during heavy load -- many `FSEvents`
+streams coming and going and many filesystem events
+being created. Here is an examplem backtrace:
 
-... Details ...
+```
+... Userland symbols here and above in garbage memory ...
+4   FSEvents                      	       0x18cf54ef0 implementation_callback_rpc + 3656
+5   FSEvents                      	       0x18cf54020 _Xcallback_rpc + 220
+6   FSEvents                      	       0x18cf53f18 FSEventsD2F_server + 68
+7   FSEvents                      	       0x18cf57720 receive_and_dispatch_rcv_msg + 316
+8   libdispatch.dylib             	       0x18457f910 _dispatch_client_callout + 20
+9   libdispatch.dylib             	       0x184582dc8 _dispatch_continuation_pop + 600
+10  libdispatch.dylib             	       0x184596be4 _dispatch_source_latch_and_call + 420
+11  libdispatch.dylib             	       0x1845957b4 _dispatch_source_invoke + 832
+12  libdispatch.dylib             	       0x18459261c _dispatch_root_queue_drain_deferred_wlh + 288
+13  libdispatch.dylib             	       0x184591e90 _dispatch_workloop_worker_thread + 404
+14  libsystem_pthread.dylib       	       0x184729114 _pthread_wqthread + 288
+15  libsystem_pthread.dylib       	       0x184727e30 start_wqthread + 8
+```
+
+[This performance test](https://github.com/e-dant/watcher/blob/next/devel/src/wtr/test_watcher/test_performance.cpp#L23)
+seems to trigger the issue most reliably. The test for
+[opening and closing watchers](https://github.com/e-dant/watcher/blob/next/devel/src/wtr/test_watcher/test_openclose.cpp#L7)
+without many filesystem events in the background is a
+less reliable reproducer. Purging old events when closing
+the `FSEvents` stream seems to ameliorate, but not fully
+prevent, the issue. A minimal reproducer is [here](https://github.com/e-dant/watcher/blob/next/etc/wip-fsevents-issue/main.cpp).
+
+```
+
+```
 
 </details>
 
@@ -403,9 +437,16 @@ consider waiting a few seconds.
 <details>
 <summary>Unsupported events</summary>
 
-The owner and attribute events are not supported.
+None of the platform-specific implementations provide
+information on what attributes were changed from.
+This makes supporting those events dependant on storing
+this information ourselves. Storing maps of paths to
+`stat` structures, diffing them on attribute changes,
+is a non-insignificant memory commitment.
 
-... Details ...
+The owner and attribute events are unsupported because
+I'm not sure how to support those events efficienty.
+
 </details>
 
 <details>
