@@ -24,7 +24,12 @@ security.md\
 |cmake\
 |flake.nix\
 |flake.lock\
-|portable-destructive-rename"
+|portable-destructive-rename\
+|etc\
+|result\
+|container-devel\
+|WORKSPACE\
+|BUILD.bazel"
 
 (
   cd "$(dirname "$0")/.." || exit 1
