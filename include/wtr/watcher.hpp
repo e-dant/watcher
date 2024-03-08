@@ -502,11 +502,18 @@ private:
     bool exchange_when_current_is,
     bool want_value) -> bool
   {
+#ifdef WTR_ALLOW_NON_SEQUENTIAL_CONSISTENCY
+    constexpr auto relord = std::memory_order_release;
+    constexpr auto acqord = std::memory_order_acquire;
+#else
+    constexpr auto relord = std::memory_order_seq_cst;
+    constexpr auto acqord = std::memory_order_seq_cst;
+#endif
     return current_value.compare_exchange_strong(
       exchange_when_current_is,
       want_value,
-      std::memory_order_release,
-      std::memory_order_acquire);
+      acqord,
+      relord);
   }
 
   inline static auto try_take(std::atomic<bool>& owner_flag) -> bool
