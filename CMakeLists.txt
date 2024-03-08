@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.9)
 
 project(
   wtr.watcher
-  VERSION 0.9.5 # hook: tool/release
+  VERSION 0.10.0 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES
