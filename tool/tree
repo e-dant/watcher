@@ -29,9 +29,7 @@ security.md\
 |result\
 |container-devel\
 |WORKSPACE\
-|BUILD.bazel\
-|flake.nix\
-|flake.lock"
+|BUILD.bazel"
 
 (
   cd "$(dirname "$0")/.." || exit 1
