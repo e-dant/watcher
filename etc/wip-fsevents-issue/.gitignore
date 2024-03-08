@@ -1,4 +1,4 @@
-fsevents-issue
-fsevents-issue-c
-fsevents-issue-cpp
+fsevents-issue*
+!*.c
+!*.cpp
 

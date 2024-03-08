@@ -44,10 +44,12 @@ void ctx_self_dbgprint(struct Ctx* ctx)
     ctx->bytes_in_use);
 }
 
-char* ctx_insert(struct Ctx* ctx, char const* path, unsigned path_len)
+char* ctx_insert(struct Ctx** octx, char const* path, unsigned path_len)
 {
-  if (! ctx || ! path) return NULL;
+  if (! octx || ! *octx || ! path) return NULL;
+  struct Ctx* ctx = *octx;
   if (ctx->bytes_in_use + path_len + 1 > ctx->bytes_capacity) {
+    return NULL;
     unsigned new_cap = ctx->bytes_capacity * 2;
     void* new_memory = realloc(ctx->memory, new_cap);
     if (! new_memory) return NULL;
@@ -76,9 +78,18 @@ void event_recv(
     char ev_path_buf[1024];
     memset(ev_path_buf, 0, sizeof(ev_path_buf));
     path_from_event_at(ev_path_buf, ev_path_buf_len, paths, i);
-    char* inserted_at = ctx_insert(ctx, ev_path_buf, strlen(ev_path_buf));
-    assert(inserted_at);
-    fprintf(stderr, "inserted: %s\n", inserted_at);
+    if (ctx->bytes_in_use + ev_path_buf_len + 1 > ctx->bytes_capacity) {
+      unsigned new_cap = ctx->bytes_capacity * 2;
+      void* new_memory = realloc(ctx->memory, new_cap);
+      if (! new_memory) continue;
+      ctx->memory = new_memory;
+      ctx->bytes_capacity = new_cap;
+    }
+    char* insertion = ((char*)ctx->memory) + ctx->bytes_in_use;
+    memset(insertion, 0, ev_path_buf_len);
+    memcpy(insertion, ev_path_buf, ev_path_buf_len - 1);
+    ctx->bytes_in_use += ev_path_buf_len;
+    fprintf(stderr, "inserted: %s\n", insertion);
   }
 }
 
@@ -141,10 +152,12 @@ struct Watcher {
 
 #define n_watchers 5
 #define event_count 500
-#define ctx_default_capacity 1024
+#define ctx_default_capacity 2048
 
 int main()
 {
+  return 0;
+
   dispatch_queue_t queue =
     dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 
@@ -164,10 +177,9 @@ int main()
 
   // Some events in the background
   for (int i = 0; i < event_count; i++) {
-    char path_buf[32];
+    char path_buf[256];
     memset(path_buf, 0, sizeof(path_buf));
     snprintf(path_buf, sizeof(path_buf), "/tmp/hi%d", i);
-    fprintf(stderr, "create/destroy @ %s\n", path_buf);
     FILE* f = fopen(path_buf, "w");
     fclose(f);
     unlink(path_buf);

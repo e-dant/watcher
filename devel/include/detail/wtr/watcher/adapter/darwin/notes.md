@@ -1,5 +1,61 @@
 # Notes
 
+## Darwin's Native Inter-Process Communication (Also inter-thread, ofc)
+
+```
+inline CFDataRef on_listening_port_response(
+  CFMessagePortRef,  // on_port
+  SInt32,            // msgid
+  CFDataRef req,
+  void*  // ctx
+)
+{
+  long const len = 2;
+  if (! req || CFDataGetLength(req) < len) { return nullptr; }
+  // Should always be 2, but let wiggles happen.
+  CFRange req_range = CFRangeMake(0, len);
+  unsigned char req_bytes[len] = {0};
+  CFDataGetBytes(req, req_range, req_bytes);
+  req_bytes[len - 1] = 0;
+  unsigned char res_byte_head = req_bytes[0] == 'x' ? 'o' : '?';
+  unsigned char res_bytes[len] = {res_byte_head, 0};
+  CFDataRef res = CFDataCreate(NULL, res_bytes, sizeof(res_bytes));
+  return res;
+}
+
+inline CFMessagePortRef open_listening_port(char const* const port_name)
+{
+  CFStringRef cf_port_name =
+    CFStringCreateWithCString(NULL, port_name, kCFStringEncodingASCII);
+
+  CFMessagePortContext context = {0, nullptr, nullptr, nullptr, nullptr};
+  CFMessagePortRef port = CFMessagePortCreateLocal(
+    kCFAllocatorDefault,
+    cf_port_name,
+    on_listening_port_response,
+    &context,
+    nullptr);
+  CFRunLoopSourceRef source =
+    CFMessagePortCreateRunLoopSource(kCFAllocatorDefault, port, 0);
+  auto sched = CFRunLoopGetCurrent();
+  CFRunLoopAddSource(sched, source, kCFRunLoopCommonModes);
+  CFRelease(source);
+  CFRelease(cf_port_name);
+
+  return port;
+}
+
+inline void send_msg_to_port(
+  CFMessagePortRef to_port,
+  unsigned char const* const message,
+  unsigned message_len)
+{
+  CFDataRef data = CFDataCreate(NULL, message, message_len);
+  CFMessagePortSendRequest(to_port, 0, data, 1, 1, kCFRunLoopDefaultMode, NULL);
+  CFRelease(data);
+}
+```
+
 ## The "Rename Triplet"
 
 ```
