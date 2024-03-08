@@ -7,7 +7,6 @@
 #include <CoreServices/CoreServices.h>
 #include <dispatch/dispatch.h>
 #include <filesystem>
-#include <mutex>
 #include <string>
 #include <unordered_set>
 
@@ -69,7 +68,7 @@ struct ContextData {
   ::wtr::watcher::event::callback const& callback{};
   pathset* seen_created_paths{nullptr};
   fspath* last_rename_path{nullptr};
-  std::mutex* mtx{nullptr};
+  Synchronized::Primitive* in_use{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -245,13 +244,13 @@ inline auto event_recv(
               && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
-  if (! ctx.mtx->try_lock()) return;
+  auto synced = Synchronized::try_from(*ctx.in_use);
+  if (! synced) return;
   for (unsigned long i = 0; i < count; i++) {
     auto path = path_from_event_at(paths, i);
     auto flag = flags[i];
     event_recv_one(ctx, path, flag);
   }
-  ctx.mtx->unlock();
 }
 
 static_assert(event_recv == FSEventStreamCallback{event_recv});
@@ -386,7 +385,7 @@ inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
   -> bool
 {
   if (! stream) return false;
-  auto _ = std::scoped_lock{*ctx.mtx};
+  auto _ = Synchronized::eventually_from(*ctx.in_use);
   FSEventStreamFlushSync(stream);
   FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
@@ -414,8 +413,8 @@ inline auto watch(
   static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
-  auto mtx = std::mutex{};
-  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &mtx};
+  auto in_use = Synchronized::Primitive{};
+  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &in_use};
 
   auto fsevs = open_event_stream(path, queue, &ctx);
 

@@ -6,6 +6,7 @@
 // clang-format off
 #include "wtr/watcher-/event.hpp"
 #include "detail/wtr/watcher/semabin.hpp"
+#include "detail/wtr/watcher/synchronized.hpp"
 #include "detail/wtr/watcher/adapter/darwin/watch.hpp"
 #include "detail/wtr/watcher/adapter/linux/sysres.hpp"
 #include "detail/wtr/watcher/adapter/linux/fanotify/watch.hpp"
