@@ -20,6 +20,8 @@ Replaced a constant delay with a timeout in the "simple" test.
 
 Updated the flake lockfile.
 
+Synchronize access to a shared context, between us and the OS, on Darwin, because the OS lies about stopping execution, and we need to be tidy.
+
 The `watch` constructor makes the given `path` absolute or, if
 the path cannot be made absolute (likely because it doesn't exist),
 then the watcher refuses to watch.
