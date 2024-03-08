@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1
+
+Updated the readme and directory tree display.
+
 ## 0.10.0
 
 Added an associated event to the fields of the event object. (The event object is recursive now.) This field stores a renamed-to effect type, associated with the rename-from “parent” event. Currently, the only possible associated event is a renamed-to event. In the future, we may store other kinds of associated events there. Ownership changes are a good candidate. This kind of structure allows more room for future changes if needed, although admittedly the intended use of associated events may be a bit less obvious to the user than I’d like. 
