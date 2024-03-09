@@ -34,18 +34,9 @@ private:
     bool exchange_when_current_is,
     bool want_value) -> bool
   {
-#ifdef WTR_ALLOW_NON_SEQUENTIAL_CONSISTENCY
-    constexpr auto relord = std::memory_order_release;
-    constexpr auto acqord = std::memory_order_acquire;
-#else
-    constexpr auto relord = std::memory_order_seq_cst;
-    constexpr auto acqord = std::memory_order_seq_cst;
-#endif
     return current_value.compare_exchange_strong(
       exchange_when_current_is,
-      want_value,
-      acqord,
-      relord);
+      want_value);
   }
 
   inline static auto try_take(std::atomic<bool>& owner_flag) -> bool
@@ -53,14 +44,14 @@ private:
     return exchange_when(owner_flag, false, true);
   }
 
-  inline static auto try_leave(std::atomic<bool>& owner_flag) -> bool
-  {
-    return exchange_when(owner_flag, true, false);
-  }
-
   inline static auto eventually_take(std::atomic<bool>& owner_flag)
   {
-    while (! try_take(owner_flag)) { std::this_thread::yield(); }
+    while (! try_take(owner_flag)) { ; }
+  }
+
+  inline static auto leave(std::atomic<bool>& owner_flag) -> void
+  {
+    owner_flag.store(false);
   }
 
 #else
@@ -70,7 +61,7 @@ private:
     return mtx.try_lock();
   }
 
-  inline static auto try_leave(std::mutex& mtx) { mtx.unlock(); }
+  inline static auto leave(std::mutex& mtx) { mtx.unlock(); }
 
   inline static auto eventually_take(std::mutex& mtx) { mtx.lock(); }
 
@@ -92,7 +83,7 @@ public:
     return Synchronized{primitive};
   }
 
-  inline ~Synchronized() { try_leave(this->primitive); }
+  inline ~Synchronized() { leave(this->primitive); }
 };
 
 #endif
