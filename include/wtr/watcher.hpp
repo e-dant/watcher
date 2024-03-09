@@ -470,88 +470,124 @@ public:
 
 #ifdef __APPLE__
 
-#define WTR_WITH_ATOMIC_OWNERSHIP
+#define WTR_USE_POSIX_SYNC
 
 #include <optional>
 
-#ifdef WTR_WITH_ATOMIC_OWNERSHIP
-#include <atomic>
-#include <thread>
+#ifdef WTR_USE_POSIX_SYNC
+#include <pthread.h>
 #else
 #include <mutex>
 #endif
 
-class Synchronized {
+class Mutex {
 public:
-#ifdef WTR_WITH_ATOMIC_OWNERSHIP
-  using Primitive = std::atomic<bool>;
+#ifdef WTR_USE_POSIX_SYNC
+  using Primitive = pthread_mutex_t;
 #else
   using Primitive = std::mutex;
 #endif
 
 private:
-  Primitive& primitive;
-
-  inline Synchronized(Primitive& primitive)
-      : primitive{primitive}
-  {}
-
-#ifdef WTR_WITH_ATOMIC_OWNERSHIP
-  inline static auto exchange_when(
-    std::atomic<bool>& current_value,
-    bool exchange_when_current_is,
-    bool want_value) -> bool
+#ifdef WTR_USE_POSIX_SYNC
+  inline static auto make_primitive() -> Primitive
   {
-    return current_value.compare_exchange_strong(
-      exchange_when_current_is,
-      want_value);
+    pthread_mutexattr_t attr = {};
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+    pthread_mutex_t mtx = {};
+    pthread_mutex_init(&mtx, &attr);
+    return mtx;
   }
 
-  inline static auto try_take(std::atomic<bool>& owner_flag) -> bool
+  inline static auto try_take(pthread_mutex_t& mtx) -> bool
   {
-    return exchange_when(owner_flag, false, true);
+    return pthread_mutex_trylock(&mtx) == 0;
   }
 
-  inline static auto eventually_take(std::atomic<bool>& owner_flag)
+  inline static auto eventually_take(pthread_mutex_t& mtx) -> bool
   {
-    while (! try_take(owner_flag)) { ; }
+    return pthread_mutex_lock(&mtx) == 0;
   }
 
-  inline static auto leave(std::atomic<bool>& owner_flag) -> void
+  inline static auto try_leave(pthread_mutex_t& mtx) -> bool
   {
-    owner_flag.store(false);
+    return pthread_mutex_unlock(&mtx) == 0;
   }
 
+  inline static auto destroy(pthread_mutex_t& mtx) -> void
+  {
+    pthread_mutex_destroy(&mtx);
+  }
 #else
+  inline static auto make_primitive() -> Primitive { return {}; }
 
   inline static auto try_take(std::mutex& mtx) -> bool
   {
     return mtx.try_lock();
   }
 
-  inline static auto leave(std::mutex& mtx) { mtx.unlock(); }
+  inline static auto eventually_take(std::mutex& mtx) -> bool
+  {
+    mtx.lock();
+    return true;
+  }
 
-  inline static auto eventually_take(std::mutex& mtx) { mtx.lock(); }
+  inline static auto try_leave(std::mutex& mtx) -> bool
+  {
+    mtx.unlock();
+    return true;
+  }
 
+  inline static auto destroy(std::mutex& mtx) -> void {}
 #endif
 
+  Primitive mtx = make_primitive();
+
+  inline auto try_take() -> bool { return try_take(mtx); }
+
+  inline auto eventually_take() -> bool { return eventually_take(mtx); }
+
+  inline auto try_leave() -> bool { return try_leave(mtx); }
+
+  class Synchronized {
+  private:
+    Mutex& mtx;
+
+    inline Synchronized(Mutex& mtx)
+        : mtx{mtx}
+    {}
+
+  public:
+    inline static auto try_from(Mutex& mtx) -> std::optional<Synchronized>
+    {
+      if (mtx.try_take())
+        return Synchronized{mtx};
+      else
+        return std::nullopt;
+    }
+
+    inline static auto eventually_from(Mutex& mtx) -> Synchronized
+    {
+      mtx.eventually_take();
+      return Synchronized{mtx};
+    }
+
+    inline ~Synchronized() { mtx.try_leave(); }
+  };
+
 public:
-  inline static auto try_from(Primitive& primitive)
-    -> std::optional<Synchronized>
+  inline auto try_sync() -> std::optional<Synchronized>
   {
-    if (try_take(primitive))
-      return Synchronized{primitive};
-    else
-      return std::nullopt;
+    return Synchronized::try_from(*this);
   }
 
-  inline static auto eventually_from(Primitive& primitive) -> Synchronized
+  inline auto eventually_sync() -> Synchronized
   {
-    eventually_take(primitive);
-    return Synchronized{primitive};
+    return Synchronized::eventually_from(*this);
   }
 
-  inline ~Synchronized() { leave(this->primitive); }
+  inline ~Mutex() { destroy(mtx); }
 };
 
 #endif
@@ -623,7 +659,7 @@ struct ContextData {
   ::wtr::watcher::event::callback const& callback{};
   pathset* seen_created_paths{nullptr};
   fspath* last_rename_path{nullptr};
-  Synchronized::Primitive* in_use{nullptr};
+  Mutex* in_use{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -799,7 +835,7 @@ inline auto event_recv(
               && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
-  auto synced = Synchronized::try_from(*ctx.in_use);
+  auto synced = ctx.in_use->try_sync();
   if (! synced) return;
   for (unsigned long i = 0; i < count; i++) {
     auto path = path_from_event_at(paths, i);
@@ -940,7 +976,7 @@ inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
   -> bool
 {
   if (! stream) return false;
-  auto _ = Synchronized::eventually_from(*ctx.in_use);
+  auto _ = ctx.in_use->eventually_sync();
   FSEventStreamFlushSync(stream);
   FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
@@ -968,7 +1004,7 @@ inline auto watch(
   static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
-  auto in_use = Synchronized::Primitive{};
+  auto in_use = Mutex{};
   auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &in_use};
 
   auto fsevs = open_event_stream(path, queue, &ctx);

@@ -68,7 +68,7 @@ struct ContextData {
   ::wtr::watcher::event::callback const& callback{};
   pathset* seen_created_paths{nullptr};
   fspath* last_rename_path{nullptr};
-  Synchronized::Primitive* in_use{nullptr};
+  Mutex* in_use{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -244,7 +244,7 @@ inline auto event_recv(
               && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
-  auto synced = Synchronized::try_from(*ctx.in_use);
+  auto synced = ctx.in_use->try_sync();
   if (! synced) return;
   for (unsigned long i = 0; i < count; i++) {
     auto path = path_from_event_at(paths, i);
@@ -385,7 +385,7 @@ inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
   -> bool
 {
   if (! stream) return false;
-  auto _ = Synchronized::eventually_from(*ctx.in_use);
+  auto _ = ctx.in_use->eventually_sync();
   FSEventStreamFlushSync(stream);
   FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
@@ -413,7 +413,7 @@ inline auto watch(
   static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
-  auto in_use = Synchronized::Primitive{};
+  auto in_use = Mutex{};
   auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &in_use};
 
   auto fsevs = open_event_stream(path, queue, &ctx);
