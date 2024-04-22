@@ -141,7 +141,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto pathof(fanotify_event_metadata const* const mtd) -> std::string
+inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
@@ -151,31 +152,28 @@ inline auto pathof(fanotify_event_metadata const* const mtd) -> std::string
   ssize_t file_name_offset = 0;
 
   /*  Directory name */
-  {
-    constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
-    int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
-    if (fd > 0) {
-      /*  If we have a pid with more than 128 digits... Well... */
-      char fs_ev_pidpath[128];
-      snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
-      file_name_offset = readlink(fs_ev_pidpath, path_buf, path_ulim);
-      close(fd);
-    }
-    path_buf[file_name_offset] = 0;
-    /*  todo: Is is an error if we can't get the directory name? */
+  constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
+  int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
+  if (fd <= 0) {
+    *ec = errno;
+    return {};
   }
+  /*  If we have a pid with more than 128 digits... Well... */
+  char fs_ev_pidpath[128];
+  snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
+  file_name_offset = readlink(fs_ev_pidpath, path_buf, path_ulim);
+  close(fd);
+  path_buf[file_name_offset] = 0;
 
   /*  File name ("Directory entry")
       If we wrote the directory name before here, we
       can start writing the file name after its offset. */
-  {
-    if (file_name_offset > 0) {
-      char* file_name = ((char*)dir_fh->f_handle + dir_fh->handle_bytes);
-      auto not_selfdir = strcmp(file_name, ".") != 0;
-      auto beg = path_buf + file_name_offset;
-      auto end = PATH_MAX - file_name_offset;
-      if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
-    }
+  if (file_name_offset > 0) {
+    char* file_name = ((char*)dir_fh->f_handle + dir_fh->handle_bytes);
+    auto not_selfdir = strcmp(file_name, ".") != 0;
+    auto beg = path_buf + file_name_offset;
+    auto end = PATH_MAX - file_name_offset;
+    if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
   }
 
   return {path_buf};
@@ -199,7 +197,8 @@ struct Parsed {
   unsigned this_len = 0;
 };
 
-inline auto parse_ev(fanotify_event_metadata const* const m, size_t read_len)
+inline auto
+parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
   -> Parsed
 {
   using ev = ::wtr::watcher::event;
@@ -214,13 +213,15 @@ inline auto parse_ev(fanotify_event_metadata const* const m, size_t read_len)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto e = [et, pt](auto*... m) -> ev { return ev(ev(pathof(m), et, pt)...); };
-  auto one = [&](auto* m) -> Parsed { return {e(m), n, m->event_len}; };
+  auto one = [&](auto* m) -> Parsed {
+    return {ev(pathof(m, ec), et, pt), n, m->event_len};
+  };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);
     auto here_to_nnn = m->event_len + n->event_len;
-    return {e(m, n), nn, here_to_nnn};
+    auto e = ev(ev(pathof(m, ec), et, pt), ev(pathof(n, ec), et, pt));
+    return {e, nn, here_to_nnn};
   };
   return ! n                        ? one(m)
        : isfromto(m->mask, n->mask) ? assoc(m, n)
@@ -287,7 +288,9 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (! ev_has_dirname(mtd))
         return result::w_sys_bad_meta;
       else {
-        auto [ev, n, l] = parse_ev(mtd, read_len);
+        int ec = 0;
+        auto [ev, n, l] = parse_ev(mtd, read_len, &ec);
+        if (ec) return result::w_sys_bad_fd;
         do_mark_if_newdir(ev, sr.ke.fd, cb);
         cb(ev);
         mtd = n;

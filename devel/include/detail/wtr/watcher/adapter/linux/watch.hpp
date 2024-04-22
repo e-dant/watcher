@@ -33,6 +33,8 @@ inline auto watch =
             sr.ok = result::complete;
           else if (is_ev_of(n, sr.ke.fd))
             sr.ok = do_ev_recv(cb, sr);
+          else
+            sr.ok = result::e_sys_api_epoll;
     }
 
     /*  We aren't worried about losing data after
