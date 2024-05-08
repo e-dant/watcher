@@ -139,20 +139,20 @@ check_event_lists_eq(auto const& event_sent_list, auto const& event_recv_list)
     if (event_sent_list[i].path_type != wtr::event::path_type::watcher) {
       if (event_sent_list[i].path_name != event_recv_list[i].path_name)
         std::cerr << "Bad .path_name field... (" << event_sent_list[i].path_name
-                  << " vs " << event_recv_list[i].path_name
-                  << "):" << "\n Sent:\n " << event_sent_list[i]
-                  << "\n Received:\n " << event_recv_list[i] << "\n";
+                  << " vs " << event_recv_list[i].path_name << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i] << "\n";
       if (event_sent_list[i].effect_type != event_recv_list[i].effect_type)
         std::cerr << "Bad .effect_type field... ("
                   << event_sent_list[i].effect_type << " vs "
-                  << event_recv_list[i].effect_type << "):" << "\n Sent:\n "
-                  << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i].effect_type << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
                   << event_recv_list[i] << "\n";
       if (event_sent_list[i].path_type != event_recv_list[i].path_type)
         std::cerr << "Bad .path_type field... (" << event_sent_list[i].path_type
-                  << " vs " << event_recv_list[i].path_type
-                  << "):" << "\n Sent:\n " << event_sent_list[i]
-                  << "\n Received:\n " << event_recv_list[i] << "\n";
+                  << " vs " << event_recv_list[i].path_type << "):"
+                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i] << "\n";
       CHECK(event_sent_list[i].path_name == event_recv_list[i].path_name);
       CHECK(event_sent_list[i].effect_type == event_recv_list[i].effect_type);
       CHECK(event_sent_list[i].path_type == event_recv_list[i].path_type);
