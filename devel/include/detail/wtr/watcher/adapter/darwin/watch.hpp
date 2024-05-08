@@ -7,6 +7,7 @@
 #include <CoreServices/CoreServices.h>
 #include <dispatch/dispatch.h>
 #include <filesystem>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 
@@ -68,7 +69,7 @@ struct ContextData {
   ::wtr::watcher::event::callback const& callback{};
   pathset* seen_created_paths{nullptr};
   fspath* last_rename_path{nullptr};
-  Mutex* in_use{nullptr};
+  std::mutex* mtx{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -244,13 +245,13 @@ inline auto event_recv(
               && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
-  auto synced = ctx.in_use->try_sync();
-  if (! synced) return;
+  if (! ctx.mtx->try_lock()) return;
   for (unsigned long i = 0; i < count; i++) {
     auto path = path_from_event_at(paths, i);
     auto flag = flags[i];
     event_recv_one(ctx, path, flag);
   }
+  ctx.mtx->unlock();
 }
 
 static_assert(event_recv == FSEventStreamCallback{event_recv});
@@ -381,11 +382,11 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
-  -> bool
+inline auto
+close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 {
   if (! stream) return false;
-  auto _ = ctx.in_use->eventually_sync();
+  auto _ = std::scoped_lock{*ctx.mtx};
   FSEventStreamFlushSync(stream);
   FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
@@ -413,8 +414,8 @@ inline auto watch(
   static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
-  auto in_use = Mutex{};
-  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &in_use};
+  auto mtx = std::mutex{};
+  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &mtx};
 
   auto fsevs = open_event_stream(path, queue, &ctx);
 

@@ -61,30 +61,35 @@ public:
     std::filesystem::path const& path,
     event::callback const& callback) noexcept
       : watching{std::async(
-        std::launch::async,
-        [this, path, callback]
-        {
-          using ::detail::wtr::watcher::adapter::watch;
+          std::launch::async,
+          [this, path, callback]
+          {
+            using ::detail::wtr::watcher::adapter::watch;
 
-          auto ec = std::error_code{};
-          auto abs_path = std::filesystem::absolute(path, ec);
-          auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
-                     && ! ec && this->is_living.state() == sb::state::pending;
+            auto ec = std::error_code{};
+            auto abs_path = std::filesystem::absolute(path, ec);
+            auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
+                       && ! ec && this->is_living.state() == sb::state::pending;
 
-          auto live_msg =
-            (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
-          callback(
-            {live_msg, event::effect_type::create, event::path_type::watcher});
+            auto live_msg =
+              (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
+            callback(
+              {live_msg,
+               event::effect_type::create,
+               event::path_type::watcher});
 
-          auto post_ok = ! pre_ok || watch(abs_path, callback, this->is_living);
+            auto post_ok =
+              ! pre_ok || watch(abs_path, callback, this->is_living);
 
-          auto die_msg =
-            (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
-          callback(
-            {die_msg, event::effect_type::destroy, event::path_type::watcher});
+            auto die_msg =
+              (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
+            callback(
+              {die_msg,
+               event::effect_type::destroy,
+               event::path_type::watcher});
 
-          return pre_ok && post_ok;
-        })}
+            return pre_ok && post_ok;
+          })}
   {}
 
   inline auto close() noexcept -> bool

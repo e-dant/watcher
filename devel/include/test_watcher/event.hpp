@@ -28,9 +28,8 @@ template<class T>
 inline auto to(::wtr::watcher::event_without_time const& from) noexcept -> T;
 
 template<>
-inline auto
-to<std::string>(::wtr::watcher::event_without_time const& from) noexcept
-  -> std::string
+inline auto to<std::string>(
+  ::wtr::watcher::event_without_time const& from) noexcept -> std::string
 {
   using wtr::to, std::string;
   auto&& fields = "\n  path_name:    " + to<string>(from.path_name)
@@ -43,9 +42,8 @@ to<std::string>(::wtr::watcher::event_without_time const& from) noexcept
 
 template<>
 struct std::hash<wtr::watcher::event_without_time> {
-  inline auto
-  operator()(wtr::watcher::event_without_time const& ev) const noexcept
-    -> std::size_t
+  inline auto operator()(
+    wtr::watcher::event_without_time const& ev) const noexcept -> std::size_t
   {
     return std::hash<decltype(ev.path_name.string())>{}(ev.path_name.string())
 #ifdef _WIN32
@@ -141,20 +139,20 @@ check_event_lists_eq(auto const& event_sent_list, auto const& event_recv_list)
     if (event_sent_list[i].path_type != wtr::event::path_type::watcher) {
       if (event_sent_list[i].path_name != event_recv_list[i].path_name)
         std::cerr << "Bad .path_name field... (" << event_sent_list[i].path_name
-                  << " vs " << event_recv_list[i].path_name << "):"
-                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
-                  << event_recv_list[i] << "\n";
+                  << " vs " << event_recv_list[i].path_name
+                  << "):" << "\n Sent:\n " << event_sent_list[i]
+                  << "\n Received:\n " << event_recv_list[i] << "\n";
       if (event_sent_list[i].effect_type != event_recv_list[i].effect_type)
         std::cerr << "Bad .effect_type field... ("
                   << event_sent_list[i].effect_type << " vs "
-                  << event_recv_list[i].effect_type << "):"
-                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
+                  << event_recv_list[i].effect_type << "):" << "\n Sent:\n "
+                  << event_sent_list[i] << "\n Received:\n "
                   << event_recv_list[i] << "\n";
       if (event_sent_list[i].path_type != event_recv_list[i].path_type)
         std::cerr << "Bad .path_type field... (" << event_sent_list[i].path_type
-                  << " vs " << event_recv_list[i].path_type << "):"
-                  << "\n Sent:\n " << event_sent_list[i] << "\n Received:\n "
-                  << event_recv_list[i] << "\n";
+                  << " vs " << event_recv_list[i].path_type
+                  << "):" << "\n Sent:\n " << event_sent_list[i]
+                  << "\n Received:\n " << event_recv_list[i] << "\n";
       CHECK(event_sent_list[i].path_name == event_recv_list[i].path_name);
       CHECK(event_sent_list[i].effect_type == event_recv_list[i].effect_type);
       CHECK(event_sent_list[i].path_type == event_recv_list[i].path_type);

@@ -468,136 +468,13 @@ public:
 
 } /*  namespace detail::wtr::watcher */
 
-#ifdef __APPLE__
-
-#define WTR_USE_POSIX_SYNC
-
-#include <optional>
-
-#ifdef WTR_USE_POSIX_SYNC
-#include <pthread.h>
-#else
-#include <mutex>
-#endif
-
-class Mutex {
-public:
-#ifdef WTR_USE_POSIX_SYNC
-  using Primitive = pthread_mutex_t;
-#else
-  using Primitive = std::mutex;
-#endif
-
-private:
-#ifdef WTR_USE_POSIX_SYNC
-  inline static auto make_primitive() -> Primitive
-  {
-    pthread_mutexattr_t attr = {};
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-    pthread_mutex_t mtx = {};
-    pthread_mutex_init(&mtx, &attr);
-    return mtx;
-  }
-
-  inline static auto try_take(pthread_mutex_t& mtx) -> bool
-  {
-    return pthread_mutex_trylock(&mtx) == 0;
-  }
-
-  inline static auto eventually_take(pthread_mutex_t& mtx) -> bool
-  {
-    return pthread_mutex_lock(&mtx) == 0;
-  }
-
-  inline static auto try_leave(pthread_mutex_t& mtx) -> bool
-  {
-    return pthread_mutex_unlock(&mtx) == 0;
-  }
-
-  inline static auto destroy(pthread_mutex_t& mtx) -> void
-  {
-    pthread_mutex_destroy(&mtx);
-  }
-#else
-  inline static auto make_primitive() -> Primitive { return {}; }
-
-  inline static auto try_take(std::mutex& mtx) -> bool
-  {
-    return mtx.try_lock();
-  }
-
-  inline static auto eventually_take(std::mutex& mtx) -> bool
-  {
-    mtx.lock();
-    return true;
-  }
-
-  inline static auto try_leave(std::mutex& mtx) -> bool
-  {
-    mtx.unlock();
-    return true;
-  }
-
-  inline static auto destroy(std::mutex& mtx) -> void {}
-#endif
-
-  Primitive mtx = make_primitive();
-
-  inline auto try_take() -> bool { return try_take(mtx); }
-
-  inline auto eventually_take() -> bool { return eventually_take(mtx); }
-
-  inline auto try_leave() -> bool { return try_leave(mtx); }
-
-  class Synchronized {
-  private:
-    Mutex& mtx;
-
-    inline Synchronized(Mutex& mtx)
-        : mtx{mtx}
-    {}
-
-  public:
-    inline static auto try_from(Mutex& mtx) -> std::optional<Synchronized>
-    {
-      if (mtx.try_take())
-        return Synchronized{mtx};
-      else
-        return std::nullopt;
-    }
-
-    inline static auto eventually_from(Mutex& mtx) -> Synchronized
-    {
-      mtx.eventually_take();
-      return Synchronized{mtx};
-    }
-
-    inline ~Synchronized() { mtx.try_leave(); }
-  };
-
-public:
-  inline auto try_sync() -> std::optional<Synchronized>
-  {
-    return Synchronized::try_from(*this);
-  }
-
-  inline auto eventually_sync() -> Synchronized
-  {
-    return Synchronized::eventually_from(*this);
-  }
-
-  inline ~Mutex() { destroy(mtx); }
-};
-
-#endif
-
 #if defined(__APPLE__)
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 #include <dispatch/dispatch.h>
 #include <filesystem>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 
@@ -659,7 +536,7 @@ struct ContextData {
   ::wtr::watcher::event::callback const& callback{};
   pathset* seen_created_paths{nullptr};
   fspath* last_rename_path{nullptr};
-  Mutex* in_use{nullptr};
+  std::mutex* mtx{nullptr};
 };
 
 /*  We make a path from a C string...
@@ -835,13 +712,13 @@ inline auto event_recv(
               && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
-  auto synced = ctx.in_use->try_sync();
-  if (! synced) return;
+  if (! ctx.mtx->try_lock()) return;
   for (unsigned long i = 0; i < count; i++) {
     auto path = path_from_event_at(paths, i);
     auto flag = flags[i];
     event_recv_one(ctx, path, flag);
   }
+  ctx.mtx->unlock();
 }
 
 static_assert(event_recv == FSEventStreamCallback{event_recv});
@@ -972,11 +849,11 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
-  -> bool
+inline auto
+close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 {
   if (! stream) return false;
-  auto _ = ctx.in_use->eventually_sync();
+  auto _ = std::scoped_lock{*ctx.mtx};
   FSEventStreamFlushSync(stream);
   FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
@@ -1004,8 +881,8 @@ inline auto watch(
   static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
-  auto in_use = Mutex{};
-  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &in_use};
+  auto mtx = std::mutex{};
+  auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &mtx};
 
   auto fsevs = open_event_stream(path, queue, &ctx);
 
@@ -1336,8 +1213,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
-  -> std::string
+inline auto
+pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
@@ -1408,9 +1285,8 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto one = [&](auto* m) -> Parsed {
-    return {ev(pathof(m, ec), et, pt), n, m->event_len};
-  };
+  auto one = [&](auto* m) -> Parsed
+  { return {ev(pathof(m, ec), et, pt), n, m->event_len}; };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);
@@ -1662,9 +1538,9 @@ inline auto make_sysres = [](
   };
 };
 
-inline auto
-peek(inotify_event const* const in_ev, inotify_event const* const ev_tail)
-  -> inotify_event*
+inline auto peek(
+  inotify_event const* const in_ev,
+  inotify_event const* const ev_tail) -> inotify_event*
 {
   auto len_to_next = sizeof(inotify_event) + (in_ev ? in_ev->len : 0);
   auto next = (inotify_event*)((char*)in_ev + len_to_next);
@@ -1696,12 +1572,10 @@ inline auto parse_ev(
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed {
-    return {ev(pathof(a), et, pt), next};
-  };
-  auto assoc = [&](auto* a, auto* b) -> parsed {
-    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
-  };
+  auto one = [&](auto* a, auto* next) -> parsed
+  { return {ev(pathof(a), et, pt), next}; };
+  auto assoc = [&](auto* a, auto* b) -> parsed
+  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
 
   return ! isassoc(in, next) ? one(in, next)
@@ -2497,30 +2371,35 @@ public:
     std::filesystem::path const& path,
     event::callback const& callback) noexcept
       : watching{std::async(
-        std::launch::async,
-        [this, path, callback]
-        {
-          using ::detail::wtr::watcher::adapter::watch;
+          std::launch::async,
+          [this, path, callback]
+          {
+            using ::detail::wtr::watcher::adapter::watch;
 
-          auto ec = std::error_code{};
-          auto abs_path = std::filesystem::absolute(path, ec);
-          auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
-                     && ! ec && this->is_living.state() == sb::state::pending;
+            auto ec = std::error_code{};
+            auto abs_path = std::filesystem::absolute(path, ec);
+            auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
+                       && ! ec && this->is_living.state() == sb::state::pending;
 
-          auto live_msg =
-            (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
-          callback(
-            {live_msg, event::effect_type::create, event::path_type::watcher});
+            auto live_msg =
+              (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
+            callback(
+              {live_msg,
+               event::effect_type::create,
+               event::path_type::watcher});
 
-          auto post_ok = ! pre_ok || watch(abs_path, callback, this->is_living);
+            auto post_ok =
+              ! pre_ok || watch(abs_path, callback, this->is_living);
 
-          auto die_msg =
-            (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
-          callback(
-            {die_msg, event::effect_type::destroy, event::path_type::watcher});
+            auto die_msg =
+              (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
+            callback(
+              {die_msg,
+               event::effect_type::destroy,
+               event::path_type::watcher});
 
-          return pre_ok && post_ok;
-        })}
+            return pre_ok && post_ok;
+          })}
   {}
 
   inline auto close() noexcept -> bool

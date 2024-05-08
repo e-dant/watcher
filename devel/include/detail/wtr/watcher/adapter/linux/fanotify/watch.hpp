@@ -141,8 +141,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
-  -> std::string
+inline auto
+pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
@@ -213,9 +213,8 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto one = [&](auto* m) -> Parsed {
-    return {ev(pathof(m, ec), et, pt), n, m->event_len};
-  };
+  auto one = [&](auto* m) -> Parsed
+  { return {ev(pathof(m, ec), et, pt), n, m->event_len}; };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);

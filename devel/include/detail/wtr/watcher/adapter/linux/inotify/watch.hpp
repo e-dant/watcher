@@ -164,9 +164,9 @@ inline auto make_sysres = [](
   };
 };
 
-inline auto
-peek(inotify_event const* const in_ev, inotify_event const* const ev_tail)
-  -> inotify_event*
+inline auto peek(
+  inotify_event const* const in_ev,
+  inotify_event const* const ev_tail) -> inotify_event*
 {
   auto len_to_next = sizeof(inotify_event) + (in_ev ? in_ev->len : 0);
   auto next = (inotify_event*)((char*)in_ev + len_to_next);
@@ -198,12 +198,10 @@ inline auto parse_ev(
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed {
-    return {ev(pathof(a), et, pt), next};
-  };
-  auto assoc = [&](auto* a, auto* b) -> parsed {
-    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
-  };
+  auto one = [&](auto* a, auto* next) -> parsed
+  { return {ev(pathof(a), et, pt), next}; };
+  auto assoc = [&](auto* a, auto* b) -> parsed
+  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
 
   return ! isassoc(in, next) ? one(in, next)
