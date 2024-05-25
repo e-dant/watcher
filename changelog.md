@@ -10,6 +10,8 @@ Removed the sources for a minimally reproducible Darwin issue in Dispatch. I'm n
 
 Improved some of the internal error handling for stale files on the Linux `fanotify` adapter.
 
+Minor maintenance on our CI. Updated some dependencies, cleaned some things up.
+
 ## 0.10.0
 
 Added an associated event to the fields of the event object. (The event object is recursive now.) This field stores a renamed-to effect type, associated with the rename-from “parent” event. Currently, the only possible associated event is a renamed-to event. In the future, we may store other kinds of associated events there. Ownership changes are a good candidate. This kind of structure allows more room for future changes if needed, although admittedly the intended use of associated events may be a bit less obvious to the user than I’d like. 
