@@ -16,7 +16,7 @@ jobs:
           - windows-2022
           - windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: aminya/setup-cpp@v1
         with:
           compiler: 'msvc'

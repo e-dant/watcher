@@ -1,4 +1,5 @@
 name: CodeQL
+
 on:
   push:
     branches: [ release, next ]
@@ -6,6 +7,7 @@ on:
     branches: [ release, next ]
   schedule:
     - cron: '00 3 * * 5' # At 3:00am on Friday. Every week, every month.
+
 jobs:
   analyze:
     permissions:
@@ -19,7 +21,7 @@ jobs:
         os:
           - ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Cache
         uses: actions/cache@v3
         id: cache
@@ -31,11 +33,11 @@ jobs:
       - name: Setup CodeQL
         uses: github/codeql-action/init@v2
         with:
-          languages: 'cpp'
+          languages: c-cpp
       - name: Build
         run: |
           cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE=Debug
           cmake --build out/this/codeql --config Debug
       - name: Analyze
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
 

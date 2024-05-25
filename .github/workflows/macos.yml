@@ -22,7 +22,7 @@ jobs:
         install_location:
           - .local
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: lukka/get-cmake@v3.27.0
       - run: tool/build --verbose --no-run
       - run: tool/build --verbose --no-build --no-run-perf
