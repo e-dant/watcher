@@ -1,0 +1,13 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     fsevents-issue-c
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _path_from_event_at, symObjAddr: 0x0, symBinAddr: 0x100003754, symSize: 0x180 }
+  - { offsetInCU: 0x9C, offset: 0x9C, size: 0x8, addend: 0x0, symName: _path_from_event_at, symObjAddr: 0x0, symBinAddr: 0x100003754, symSize: 0x180 }
+  - { offsetInCU: 0x126, offset: 0x126, size: 0x8, addend: 0x0, symName: _ctx_self_dbgprint, symObjAddr: 0x180, symBinAddr: 0x1000038D4, symSize: 0x64 }
+  - { offsetInCU: 0x14A, offset: 0x14A, size: 0x8, addend: 0x0, symName: _ctx_insert, symObjAddr: 0x1E4, symBinAddr: 0x100003938, symSize: 0x124 }
+  - { offsetInCU: 0x1AA, offset: 0x1AA, size: 0x8, addend: 0x0, symName: _event_recv, symObjAddr: 0x308, symBinAddr: 0x100003A5C, symSize: 0x224 }
+  - { offsetInCU: 0x2A8, offset: 0x2A8, size: 0x8, addend: 0x0, symName: _open_event_stream, symObjAddr: 0x52C, symBinAddr: 0x100003C80, symSize: 0x110 }
+  - { offsetInCU: 0x340, offset: 0x340, size: 0x8, addend: 0x0, symName: _close_event_stream, symObjAddr: 0x63C, symBinAddr: 0x100003D90, symSize: 0x84 }
+  - { offsetInCU: 0x368, offset: 0x368, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x6C0, symBinAddr: 0x100003E14, symSize: 0x54 }
+...
