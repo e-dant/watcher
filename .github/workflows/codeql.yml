@@ -1,20 +1,11 @@
-#
-# CodeQl Workflow
-#
-
-# https://github.com/cpp-best-practices/gui_starter_template
-
 name: CodeQL
-
 on:
   push:
     branches: [ release, next ]
   pull_request:
     branches: [ release, next ]
-  # At 3:00am on Friday. Every week, every month.
   schedule:
-    - cron: '00 3 * * 5'
-
+    - cron: '00 3 * * 5' # At 3:00am on Friday. Every week, every month.
 jobs:
   analyze:
     permissions:
@@ -27,12 +18,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        cxx_compiler:
-          - g++
-        build_type:
-          - Debug
-        install_location:
-          - .local
     steps:
       - uses: actions/checkout@v3
       - name: Setup Cache
@@ -40,7 +25,7 @@ jobs:
         id: cache
         with:
           path: |
-            ${{github.workspace}}/${{matrix.install_location}}
+            ${{github.workspace}}/.local
             ${{github.workspace}}/out
           key: codeql-${{runner.os}}-${{matrix.os}}-dependencies
       - name: Setup CodeQL
@@ -49,9 +34,8 @@ jobs:
           languages: 'cpp'
       - name: Build
         run: |
-          export CXX="$(which "${{matrix.cxx_compiler}}")"
-          cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE="${{matrix.build_type}}"
-          cmake --build out/this/codeql --config "${{matrix.build_type}}"
+          cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE=Debug
+          cmake --build out/this/codeql --config Debug
       - name: Analyze
         uses: github/codeql-action/analyze@v2
 
