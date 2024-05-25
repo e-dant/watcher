@@ -70,7 +70,7 @@ Enjoy!
 A filesystem event watcher which is
 
 1. Simple
-> The [1615](https://github.com/e-dant/watcher/blob/release/tool/sl)
+> The [1623](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines that make up the runtime of *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
 and the API attempts to be practical:
 ```cpp
