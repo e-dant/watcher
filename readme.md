@@ -545,23 +545,23 @@ https://github.com/notify-rs/notify:
   interface languages: rust
   supported platforms: linux, windows, darwin, bsd
   kernel apis: inotify, readdirectorychanges, fsevents, kqueue
-  non-blocking: yes (with api caveats)
+  non-blocking: yes
   dependencies: none
-  tests: yes (many)
-  static analysis: yes (borrow checked)
+  tests: yes
+  static analysis: yes (borrow checked, memory and concurrency safe language)
 
 https://github.com/e-dant/watcher:
-  lines of code: 1615
-  lines of tests: 865
-  lines of docs: 1908
+  lines of code: 1623
+  lines of tests: 881
+  lines of docs: 2103
   implementation languages: cpp
   interface languages: cpp, shells
   supported platforms: linux, darwin, windows, bsd
   kernel apis: inotify, fanotify, fsevents, readdirectorychanges
   non-blocking: yes
   dependencies: none
-  tests: yes (many)
-  static analysis: yes (all available)
+  tests: yes
+  static analysis: yes
 
 https://github.com/facebook/watchman.git:
   lines of code: 37435
