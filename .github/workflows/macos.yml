@@ -23,7 +23,7 @@ jobs:
           - .local
     steps:
       - uses: actions/checkout@v4
-      - uses: lukka/get-cmake@v3.27.0
+      - uses: lukka/get-cmake@v3.29.3
       - run: tool/build --verbose --no-run
       - run: tool/build --verbose --no-build --no-run-perf
       - run: tool/build --verbose --no-build --no-run-unit
