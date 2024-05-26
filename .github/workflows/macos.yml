@@ -32,7 +32,7 @@ jobs:
         with:
           path: out
           key: cache.${{matrix.target-double}}.${{matrix.os}}
-      - uses: chetan/git-restore-mtime-action@v1
+      - uses: chetan/git-restore-mtime-action@v2
       - run: tool/build --verbose --no-run
       - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
       - uses: actions/upload-artifact@v4

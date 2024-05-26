@@ -29,7 +29,7 @@ jobs:
         with:
           path: out
           key: cache.${{matrix.target-double}}.${{matrix.os}}
-      - uses: chetan/git-restore-mtime-action@v1
+      - uses: chetan/git-restore-mtime-action@v2
       - uses: aminya/setup-cpp@v1
         with:
           compiler: 'msvc'
