@@ -18,7 +18,7 @@ Minor maintenance on our CI. Updated some dependencies, cleaned some things up. 
 
 Removed some cruft around our git tree. Some old "tellfiles" and small readmes were removed.
 - The tellfiles were similar to what the Just (command runner) does. A little system I hacked up for myself in a shell script. These became unnecessary as our tools (directory) became nicer.
-- The readmes come from a time when I though that every directory needed a readme. The thinking was that if something lacks documentation, it might be either useless or bloat. I overlooked that a directory structure can just be useful for organization, so some of the readmes ended up verbose and meaningless.
+- The readmes come from a time when I believed that if something lacks documentation, it is unjustified complexity or bloat. I overlooked that a directory structure can just be useful for organization, so some of the readmes ended up verbose and meaningless.
 
 Removed CI for some of our older platforms. Generally, only the two latest platform versions of some OS will be tested in CI. Namely:
 - Android NDKs
