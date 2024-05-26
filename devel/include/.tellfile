@@ -1,7 +1,0 @@
-- given name
-echo watcher include directory
-- given build
-echo ../../tool/build
-- given run
-echo ../../build/out/this/release/wtr.watcher
-
