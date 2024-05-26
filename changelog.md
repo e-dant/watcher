@@ -2,6 +2,10 @@
 
 ## 0.10.1
 
+CI jobs will uplaod some of their artifacts. I don't recommend using them yet because we don't compile to known architectures. (We just compile to "target doubles", using whatever architecture the runner is on.)
+
+Build artifacts are attested to with this [fancy new action](https://github.com/actions/attest).
+
 Updated the readme and directory tree display.
 
 Removed some unused, experimental sync routines from the Darwin implementation.
