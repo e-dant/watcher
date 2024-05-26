@@ -51,6 +51,7 @@ fia         --no-run-perf || fia      --no-run || ! { fia         --run-perf || 
                                                   ! { fia            --clean                                           ; };            CLEAN=$?
                                                   ! { fia             --help                                           ; };             HELP=$?
                                                   ! { fia          --verbose                                           ; };          VERBOSE=$?
+                                                  ! { fia   --show-artifacts                                           ; };   SHOW_ARTIFACTS=$?
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 
 valid-flags() {
@@ -82,6 +83,7 @@ valid-flags() {
   echo -- --clean
   echo -- --help
   echo -- --verbose
+  echo -- --show-artifacts
 }
 
 flags-are-valid() {
@@ -330,7 +332,7 @@ existing-targets-of-platform() {
   # find has no equivalent of -x
     all-buildcfgs \
   | while read -r buildcfg
-    do find "$(opo "$buildcfg")" -maxdepth 1 -name 'wtr.*' \
+    do find "$(opo "$buildcfg")" -maxdepth 1 -name 'wtr*' -or -name 'tw*' \
   | while read -r target
     do if [[ -x "$target" && -f "$target" ]]
        then echo "$target"
@@ -437,6 +439,8 @@ show-artifacts() {
   opt-platforms | while read -r platform
   do existing-targets-of-platform "$platform"
   done
+  echo "$PWD/include"
+  echo "$PWD/src"
 }
 
 #
@@ -447,6 +451,7 @@ flags-are-valid     || { help ; exit 1 ; }
 [ 1 = "$VERBOSE"  ] && { inspect-options ; }
 [ 1 = "$HELP"     ] && { help ; exit 0 ; }
 [ 1 = "$CLEAN"    ] && { clean || exit 1 ; }
+[ 1 = "$SHOW_ARTIFACTS"  ] && { show-artifacts ; exit 0 ; }
 opt-build-each      || { exit 1 ; }
 [ 1 = "$RUN_UNIT" ] && { run-unit || exit 1 ; }
 [ 1 = "$RUN_PERF" ] && { run-perf || exit 1 ; }

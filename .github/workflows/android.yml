@@ -1,9 +1,3 @@
-#
-# Android Workflow
-#
-
-# https://github.com/filipdutescu/modern-cpp-template/blob/master/.github/workflows
-
 name: Android
 
 on:
@@ -15,17 +9,44 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     strategy:
-      fail-fast: false
       matrix:
+        target-double:
+          - linux-android
+        target-platform:
+          - android
         android_ndk_maj_v:
           - '24'
           - '25'
           - '26'
-        install_location:
-          - .local
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/cache@v4
+        with:
+          path: out
+          key: cache.${{matrix.target-double}}.${{matrix.os}}
       - run: |
           export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android_ndk_maj_v}}*' | head -n 1)
-          tool/build --verbose --platform-android --no-build-test --no-run
+          tool/build --verbose --platform-${{matrix.target-platform}} --no-build-test --no-run
+      - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.target-double}}
+          path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-platform}}
+      - run: tool/test/all
+      - run: tool/build --verbose --no-build --no-run-perf
+      - run: tool/build --verbose --no-build --no-run-unit
+      - run: ls -al out/${{matrix.target-platform}}/Debug
+      - run: ls -al out/${{matrix.target-platform}}/Release

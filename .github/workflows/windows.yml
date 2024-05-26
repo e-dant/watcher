@@ -9,18 +9,32 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     strategy:
-      fail-fast: false
       matrix:
+        target-double:
+          - pc-windows-msvc
+        target-platform:
+          - this
         os:
           - windows-2022
           - windows-2019
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/cache@v4
+        with:
+          path: out
+          key: cache.${{matrix.target-double}}.${{matrix.os}}
+      - uses: chetan/git-restore-mtime-action@v1
       - uses: aminya/setup-cpp@v1
         with:
           compiler: 'msvc'
-          vcvarsall: true # Truly a masterpiece, what a great idea Windows :)
+          vcvarsall: true # Wow, what a great idea Windows :)
           cmake: true
           ccache: false
           ninja: false
@@ -35,13 +49,25 @@ jobs:
           bash -c 'ls -hal tiny.exe'
       - shell: bash
         run: |
-          cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Release
-          cmake -S . -B out/manual ; cmake --build out/manual --target wtr.test_watcher --config Debug
+          cmake -S . -B out/${{matrix.target-double}}/Debug
+          cmake --build out/${{matrix.target-double}}/Debug --target wtr.test_watcher --config Debug
+          cmake -S . -B out/${{matrix.target-double}}/Release
+          cmake --build out/${{matrix.target-double}}/Release --target wtr.test_watcher --config Release
+      - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.target-double}}
+          path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-platform}}
       - shell: bash
         env:
           VERBOSE: 1
         run: |
-          out/manual/Debug/wtr.test_watcher.exe || echo f windows
-          out/manual/Release/wtr.test_watcher.exe || echo f windows
+          out/${{matrix.target-double}}/Debug/wtr.test_watcher.exe || echo f windows
+          out/${{matrix.target-double}}/Release/wtr.test_watcher.exe || echo f windows
       - run: echo windows is an abomination
-

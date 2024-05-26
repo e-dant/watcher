@@ -16,28 +16,28 @@ jobs:
       security-events: write
     runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
+        target-double:
+          - unknown-linux-gnu
+        target-platform:
+          - this
         os:
           - ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Cache
-        uses: actions/cache@v3
-        id: cache
         with:
-          path: |
-            ${{github.workspace}}/.local
-            ${{github.workspace}}/out
-          key: codeql-${{runner.os}}-${{matrix.os}}-dependencies
+          fetch-depth: 0
+      - uses: actions/cache@v4
+        with:
+          path: out
+          key: cache.${{matrix.target-double}}.${{matrix.os}}
       - name: Setup CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: c-cpp
       - name: Build
         run: |
-          cmake -S . -B out/this/codeql -DCMAKE_BUILD_TYPE=Debug
-          cmake --build out/this/codeql --config Debug
+          cmake -S . -B out/${{matrix.target-platform}}/codeql -DCMAKE_BUILD_TYPE=Debug
+          cmake --build out/${{matrix.target-platform}}/codeql --config Debug
       - name: Analyze
         uses: github/codeql-action/analyze@v3
-

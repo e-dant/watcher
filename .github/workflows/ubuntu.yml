@@ -9,33 +9,42 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     strategy:
-      fail-fast: false
       matrix:
+        target-double:
+          - unknown-linux-gnu
+        target-platform:
+          - this
         os:
           - ubuntu-22.04
           - ubuntu-latest
-        cxx_compiler:
-          # See issue 41 re. clang++
-          - g++
-        install_location:
-          - .local
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
         with:
-          path: |
-            ${{github.workspace}}/${{matrix.install_location}}
-            ${{github.workspace}}/out
-          key: ubuntu-${{runner.os}}-${{matrix.os}}-dependencies
-      - run: |
-          tool/build --verbose --no-run
-          ls -al out/this/Debug
-          ls -al out/this/Release
-      - run: tool/build --verbose --no-build --no-run-perf
-      - run: sudo tool/build --verbose --no-build --no-run-unit
-      - run: tool/build --verbose --no-build --no-run-unit
-      - run: sudo tool/build --verbose --no-build --no-run-unit
+          fetch-depth: 0
+      - uses: actions/cache@v4
+        with:
+          path: out
+          key: cache.${{matrix.target-double}}.${{matrix.os}}
+      - uses: chetan/git-restore-mtime-action@v1
+      - run: tool/build --verbose --no-run
+      - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.target-double}}
+          path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-double}}.tar.gz
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: out/${{matrix.target-platform}}
       - run: tool/test/all
-      - run: sudo tool/test/all
-
+      - run: tool/build --verbose --no-build --no-run-perf
+      - run: tool/build --verbose --no-build --no-run-unit
+      - run: ls -al out/${{matrix.target-platform}}/Debug
+      - run: ls -al out/${{matrix.target-platform}}/Release
