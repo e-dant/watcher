@@ -10,11 +10,23 @@ Updated the readme and directory tree display.
 
 Removed some unused, experimental sync routines from the Darwin implementation.
 
-Removed the sources for a minimally reproducible Darwin issue in Dispatch. I'm not sure how to file a bug report to Apple, or if it's worth the time, and we've worked around this issue.
+Removed the sources for a minimally reproducible Darwin issue in Dispatch. I'm not sure how to file a bug report to Apple, or if it's worth the time, and we've mostly worked around this issue.
 
 Improved some of the internal error handling for stale files on the Linux `fanotify` adapter.
 
-Minor maintenance on our CI. Updated some dependencies, cleaned some things up.
+Minor maintenance on our CI. Updated some dependencies, cleaned some things up. Made the caches *actually* work.
+
+Removed some cruft around our git tree. Some old "tellfiles" and small readmes were removed.
+- The tellfiles were similar to what the Just (command runner) does. A little system I hacked up for myself in a shell script. These became unnecessary as our tools (directory) became nicer.
+- The readmes come from a time when I though that every directory needed a readme. The thinking was that if something lacks documentation, it might be either useless or bloat. I overlooked that a directory structure can just be useful for organization, so some of the readmes ended up verbose and meaningless.
+
+Removed CI for some of our older platforms. Generally, only the two latest platform versions of some OS will be tested in CI. Namely:
+- Android NDKs
+- Ubuntu LTS releases
+- MacOS versions
+- But -- Only the most recent Windows Server
+Re. Windows: The one previous is from 2019. At the time of writing, that was released 5 years ago. (Which is why I dropped CI for it.)
+Dropping CI for some platforms speeds up the pipeline a bit and reduces cost.
 
 ## 0.10.0
 
