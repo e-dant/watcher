@@ -19,7 +19,7 @@ jobs:
           - linux-android
         target-platform:
           - android
-        android_ndk_maj_v:
+        android-ndk-maj-v:
           - '24'
           - '25'
           - '26'
@@ -32,12 +32,12 @@ jobs:
           path: out
           key: cache.${{matrix.target-double}}.${{matrix.os}}
       - run: |
-          export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android_ndk_maj_v}}*' | head -n 1)
+          export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android-ndk-maj-v}}*' | head -n 1)
           tool/build --verbose --platform-${{matrix.target-platform}} --no-build-test --no-run
       - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.target-double}}
+          name: ${{matrix.target-double}}.built-on-${{matrix.os}}.used-ndk-${{android-ndk-maj-v}}
           path: out/${{matrix.target-double}}.tar.gz
       - uses: actions/attest-build-provenance@v1
         with:
