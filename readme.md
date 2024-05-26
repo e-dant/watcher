@@ -69,10 +69,10 @@ Enjoy!
 
 A filesystem event watcher which is
 
-1. Simple
-> The [1623](https://github.com/e-dant/watcher/blob/release/tool/sl)
-lines that make up the runtime of *Watcher* are kept [reasonably simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
-and the API attempts to be practical:
+1. User-Friendly
+> I try to keep the [1623](https://github.com/e-dant/watcher/blob/release/tool/sl)
+lines that make up the runtime of *Watcher* [relatively simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
+and the API practical:
 ```cpp
 auto w = watch(path, [](event ev) { cout << ev; });
 ```
@@ -103,20 +103,20 @@ we use a near-zero amount of resources and makes
 We regularly test that the overhead of detecting and sending an event to the user is
 an order of magnitude less than the filesystem operations being measured.
 
-4. Safe
+4. Pretty Good Safety
 > We run this project through
 [unit tests against all available sanitiziers](https://github.com/e-dant/watcher/actions).
 The code is safe (with reasonable certainty) and simple.
 (This includes thread, memory, bounds, type and resource safety.)
 
-5. Dependency free
+5. Dependency Minimal
 > *Watcher* depends on the C++ Standard Library. For efficiency,
 we use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
 debugging, we use [Snitch](https://github.com/cschreib/snitch) and
 [Sanitizers](https://clang.llvm.org/docs/index.html).
 
-6. Runnable anywhere
+6. Runnable Mostly Anywhere
 > *Watcher* is runnable almost anywhere. The only requirement
 is a filesystem.
 
