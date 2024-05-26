@@ -22,7 +22,7 @@ jobs:
         target-platform:
           - this
         os:
-          - ubuntu-latest
+          - ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:

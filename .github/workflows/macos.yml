@@ -20,8 +20,6 @@ jobs:
         target-platform:
           - this
         os:
-          - macos-11
-          - macos-12
           - macos-13
           - macos-14
     steps:
