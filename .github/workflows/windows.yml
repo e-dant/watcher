@@ -61,9 +61,6 @@ jobs:
       - uses: actions/attest-build-provenance@v1
         with:
           subject-path: out/${{matrix.target-double}}.tar.gz
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: out/${{matrix.target-platform}}
       - shell: bash
         env:
           VERBOSE: 1

@@ -40,9 +40,6 @@ jobs:
       - uses: actions/attest-build-provenance@v1
         with:
           subject-path: out/${{matrix.target-double}}.tar.gz
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: out/${{matrix.target-platform}}
       - run: tool/test/all
       - run: tool/build --verbose --no-build --no-run-perf
       - run: tool/build --verbose --no-build --no-run-unit
