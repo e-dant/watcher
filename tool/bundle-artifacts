@@ -9,18 +9,16 @@
   echo "    The name of the platform to build the artifacts for, or 'this' for the host platform."
   exit 1
 }
-out_dir=$1
-[ ! -d "$(dirname "$out_dir")" ] && mkdir -p "$(dirname "$out_dir")"
-out_dir=$(realpath "$(dirname "$out_dir")")/$(basename "$out_dir")
-platform_name=$2
 
-(
-  tmp=$(mktemp -d) || exit 1
-  rootdir=$(realpath "$(dirname "$0")/..") || exit 1
-  "$rootdir/tool/build" --show-artifacts | grep -E "$platform_name/Release|include|src" | while read -r p
-  do cp -r "$p" "$tmp" || exit 1
-  done
-  [ -d "$out_dir" ] && rm -rf "$out_dir"
-  (cd "$tmp" && tar -czf "$out_dir.tar.gz" . || exit 1) && echo "$out_dir.tar.gz"
-  cp -r "$tmp" "$out_dir" && echo "$out_dir"
-)
+out_dir=$1
+out_dir=$(dirname "$out_dir")/$(basename "$out_dir")
+platform_name=$2
+tmp=$(mktemp -d) || exit 1
+
+"$(dirname "$0")/../tool/build" --show-artifacts | grep -E "$platform_name/Release|include|src" | while read -r p
+do cp -r "$p" "$tmp" || exit 1
+done
+[ -d "$out_dir" ] && rm -rf "$out_dir"
+(cd "$tmp" && tar -czf "$out_dir.tar.gz" . || exit 1) && echo "$out_dir.tar.gz"
+cp -r "$tmp" "$out_dir" && echo "$out_dir"
+
