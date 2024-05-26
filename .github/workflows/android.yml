@@ -37,7 +37,7 @@ jobs:
       - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.target-double}}.built-on-${{matrix.os}}.used-ndk-${{android-ndk-maj-v}}
+          name: ${{matrix.target-double}}.built-on-${{matrix.os}}.used-ndk-${{matrix.android-ndk-maj-v}}
           path: out/${{matrix.target-double}}.tar.gz
       - uses: actions/attest-build-provenance@v1
         with:

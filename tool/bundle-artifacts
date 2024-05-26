@@ -13,12 +13,14 @@
 out_dir=$1
 out_dir=$(dirname "$out_dir")/$(basename "$out_dir")
 platform_name=$2
-tmp=$(mktemp -d) || exit 1
+tmp_artifacts_dir=$(mktemp -d) || exit 1
+tmp_tar_dir=$(mktemp -d) || exit 1
+tmp_tar_file=$tmp_tar_dir/$(basename "$out_dir").tar.gz
 
 "$(dirname "$0")/../tool/build" --show-artifacts | grep -E "$platform_name/Release|include|src" | while read -r p
-do cp -r "$p" "$tmp" || exit 1
+do cp -r "$p" "$tmp_artifacts_dir" || exit 1
 done
 [ -d "$out_dir" ] && rm -rf "$out_dir"
-(cd "$tmp" && tar -czf "$out_dir.tar.gz" . || exit 1) && echo "$out_dir.tar.gz"
-cp -r "$tmp" "$out_dir" && echo "$out_dir"
+(cd "$tmp_artifacts_dir" && tar -czf "$tmp_tar_file" . || exit 1) && mv "$tmp_tar_file" "$out_dir.tar.gz" && echo "$out_dir.tar.gz"
+cp -r "$tmp_artifacts_dir" "$out_dir" && echo "$out_dir"
 
