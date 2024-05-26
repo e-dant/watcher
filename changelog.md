@@ -20,13 +20,11 @@ Removed some cruft around our git tree. Some old "tellfiles" and small readmes w
 - The tellfiles were similar to what the Just (command runner) does. A little system I hacked up for myself in a shell script. These became unnecessary as our tools (directory) became nicer.
 - The readmes come from a time when I believed that if something lacks documentation, it is unjustified complexity or bloat. I overlooked that a directory structure can just be useful for organization, so some of the readmes ended up verbose and meaningless.
 
-Removed CI for some of our older platforms. Generally, only the two latest platform versions of some OS will be tested in CI. Namely:
+Dropping CI for some platforms speeds up the pipeline a bit and reduces cost. So, CI for some of our older platforms was removed. Generally, only the two latest platform versions of some OS will be tested in CI. Namely:
 - Android NDKs
 - Ubuntu LTS releases
 - MacOS versions
-- But -- Only the most recent Windows Server
-Re. Windows: The one previous is from 2019. At the time of writing, that was released 5 years ago. (Which is why I dropped CI for it.)
-Dropping CI for some platforms speeds up the pipeline a bit and reduces cost.
+- But -- Only the most recent Windows Server. The one previous is from 2019. At the time of writing, that was released 5 years ago. (Which is why I dropped CI for it.)
 
 ## 0.10.0
 
