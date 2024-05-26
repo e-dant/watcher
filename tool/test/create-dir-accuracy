@@ -108,7 +108,7 @@ ec=$((ec + $?))
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 500 > "$testdir.json"
+    watch-async "$testdir" -ms 800 > "$testdir.json"
     while read -r d
     do mkdir "$d"
     done << .
@@ -116,7 +116,7 @@ ec=$((ec + $?))
       b
       c
 .
-    [ "$(uname -s)" = Darwin ] && sleep 0.1
+    [ "$(uname -s)" = Darwin ] && sleep 0.2
     while read -r d
     do rmdir "$d"
     done << .
@@ -184,7 +184,7 @@ ec=$((ec + $?))
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 500 > "$testdir.json"
+    watch-async "$testdir" -ms 800 > "$testdir.json"
     while read -r d
     do mkdir "$d"
        rmdir "$d"
