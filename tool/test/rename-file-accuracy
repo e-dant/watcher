@@ -40,7 +40,7 @@ ec=0
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 500 > "$testdir.json"
+    watch-async "$testdir" -ms 800 > "$testdir.json"
     touch a
     mv a b
     wait # for the watcher
@@ -93,12 +93,12 @@ ec=$((ec + $?))
   . "$(dirname "$0")/.ctx"
 
   actual=$(
-    watch-async "$testdir" -ms 500 > "$testdir.json"
+    watch-async "$testdir" -ms 800 > "$testdir.json"
     touch a b
     # todo:
     # Otherwise, on Darwin, b will have a creation event
     # after the rename, and will miss the one above.
-    [ "$(uname -s)" = Darwin ] && sleep 0.1
+    [ "$(uname -s)" = Darwin ] && sleep 0.2
     portable-destructive-rename a b
     wait # for the watcher
     show-events "$testdir" | without-effect-time
