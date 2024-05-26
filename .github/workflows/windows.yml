@@ -34,7 +34,7 @@ jobs:
       - uses: aminya/setup-cpp@v1
         with:
           compiler: 'msvc'
-          vcvarsall: true # Wow, what a great idea Windows :)
+          vcvarsall: true
           cmake: true
           ccache: false
           ninja: false
@@ -49,10 +49,10 @@ jobs:
           bash -c 'ls -hal tiny.exe'
       - shell: bash
         run: |
-          cmake -S . -B out/${{matrix.target-double}}/Debug
-          cmake --build out/${{matrix.target-double}}/Debug --target wtr.test_watcher --config Debug
-          cmake -S . -B out/${{matrix.target-double}}/Release
-          cmake --build out/${{matrix.target-double}}/Release --target wtr.test_watcher --config Release
+          cmake -S . -B out/${{matrix.target-platform}}/Debug
+          cmake --build out/${{matrix.target-platform}}/Debug --target wtr.test_watcher --config Debug
+          cmake -S . -B out/${{matrix.target-platform}}/Release
+          cmake --build out/${{matrix.target-platform}}/Release --target wtr.test_watcher --config Release
       - run: tool/bundle-artifacts out/${{matrix.target-double}} ${{matrix.target-platform}}
       - uses: actions/upload-artifact@v4
         with:
