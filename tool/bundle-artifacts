@@ -11,7 +11,6 @@
 }
 
 out_dir=$1
-out_dir=$(dirname "$out_dir")/$(basename "$out_dir")
 platform_name=$2
 tmp_artifacts_dir=$(mktemp -d) || exit 1
 tmp_tar_dir=$(mktemp -d) || exit 1
@@ -21,6 +20,7 @@ tmp_tar_file=$tmp_tar_dir/$(basename "$out_dir").tar.gz
 do cp -r "$p" "$tmp_artifacts_dir" || exit 1
 done
 [ -d "$out_dir" ] && rm -rf "$out_dir"
-(cd "$tmp_artifacts_dir" && tar -czf "$tmp_tar_file" . || exit 1) && mv "$tmp_tar_file" "$out_dir.tar.gz" && echo "$out_dir.tar.gz"
+[ ! -d "$(dirname "$out_dir")" ] && mkdir -p "$(dirname "$out_dir")"
 cp -r "$tmp_artifacts_dir" "$out_dir" && echo "$out_dir"
+(cd "$tmp_artifacts_dir" && tar -czf "$tmp_tar_file" . || exit 1) && mv "$tmp_tar_file" "$out_dir.tar.gz" && echo "$out_dir.tar.gz"
 
