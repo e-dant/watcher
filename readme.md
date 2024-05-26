@@ -106,9 +106,9 @@ an order of magnitude less than the filesystem operations being measured.
 4. Well Tested
 > We run this project through
 [unit tests against all available sanitiziers](https://github.com/e-dant/watcher/actions).
-The code is safe (with reasonable certainty) and simple.
-(This includes thread, memory, bounds, type and resource safety.)
-At least for some definitions of safety, this project probably fits.
+This code tries hard to be thread, memory, bounds, type and resource-safe. What we lack
+from the language, we try to make up for with testing. For some practical definition of safety,
+this project probably fits.
 
 5. Dependency Minimal
 > *Watcher* depends on the C++ Standard Library. For efficiency,
