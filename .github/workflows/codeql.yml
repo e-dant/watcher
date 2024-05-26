@@ -10,11 +10,11 @@ on:
 
 jobs:
   analyze:
+    runs-on: ${{matrix.os}}
     permissions:
       actions: read
       contents: read
       security-events: write
-    runs-on: ${{matrix.os}}
     strategy:
       matrix:
         target-double:

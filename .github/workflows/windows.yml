@@ -16,12 +16,11 @@ jobs:
     strategy:
       matrix:
         target-double:
-          - pc-windows-msvc
+          - uwp-windows-msvc
         target-platform:
           - this
         os:
           - windows-2022
-          - windows-2019
     steps:
       - uses: actions/checkout@v4
         with:
