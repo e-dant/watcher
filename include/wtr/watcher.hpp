@@ -1966,6 +1966,32 @@ inline auto do_event_send(
 
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
+  struct RenameEventTracker
+  {
+    std::filesystem::path path_name;
+    enum ::wtr::watcher::event::effect_type effect_type;
+    enum ::wtr::watcher::event::path_type path_type;
+    bool set = false;
+  };
+  // Rename events on Windows send two individual messages
+  // that correspond with the old data and the new data
+  // While it is believed that these are sent sequentially
+  // with the old data first, there is no guarantee in the documentation.
+  // These trackers are used to ensure all data is available for the callback
+  // regardless of the order
+  RenameEventTracker old_tracker;
+  RenameEventTracker new_tracker;
+  const auto trigger_rename_callback = [&]()
+  {
+      ::wtr::watcher::event old_event{old_tracker.path_name, old_tracker.effect_type, old_tracker.path_type};
+      ::wtr::watcher::event new_event{new_tracker.path_name, new_tracker.effect_type, new_tracker.path_type};
+      callback({old_event, std::move(new_event)});
+
+      // Reset for the possibility of more events
+      old_tracker = {};
+      new_tracker = {};
+  };
+
   if (is_valid(w)) {
     while (buf + sizeof(FILE_NOTIFY_INFORMATION)
            <= buf + w.event_buf_len_ready) {
@@ -1998,7 +2024,31 @@ inline auto do_event_send(
           }
         }();
 
-        callback({path_name, effect_type, path_type});
+        if (buf->Action == FILE_ACTION_RENAMED_OLD_NAME)
+        {
+          old_tracker.path_name = path_name;
+          old_tracker.effect_type = effect_type;
+          old_tracker.path_type = path_type;
+          old_tracker.set = true;
+
+          if (new_tracker.set)
+            trigger_rename_callback();
+            
+        }
+        else if (buf->Action == FILE_ACTION_RENAMED_NEW_NAME)
+        {
+          new_tracker.path_name = path_name;
+          new_tracker.effect_type = effect_type;
+          new_tracker.path_type = path_type;
+          new_tracker.set = true;
+
+          if (old_tracker.set)
+            trigger_rename_callback();
+        }
+        else
+        {
+          callback({path_name, effect_type, path_type});
+        }
 
         if (buf->NextEntryOffset == 0)
           break;
