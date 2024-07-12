@@ -495,8 +495,7 @@ namespace {
     of inactivity" to, and I'm not sure it matters. */
 inline constexpr unsigned fsev_listen_for
   = kFSEventStreamCreateFlagFileEvents
-  | kFSEventStreamCreateFlagUseExtendedData
-  | kFSEventStreamCreateFlagUseCFTypes;
+  ;
 inline constexpr auto fsev_listen_since
   = kFSEventStreamEventIdSinceNow;
 inline constexpr unsigned fsev_flag_path_file
@@ -514,10 +513,11 @@ inline constexpr unsigned fsev_flag_effect_remove
   = kFSEventStreamEventFlagItemRemoved;
 inline constexpr unsigned fsev_flag_effect_modify
   = kFSEventStreamEventFlagItemModified
-  | kFSEventStreamEventFlagItemInodeMetaMod
-  | kFSEventStreamEventFlagItemFinderInfoMod
   | kFSEventStreamEventFlagItemChangeOwner
-  | kFSEventStreamEventFlagItemXattrMod;
+  | kFSEventStreamEventFlagItemXattrMod
+  | kFSEventStreamEventFlagItemFinderInfoMod
+  | kFSEventStreamEventFlagItemInodeMetaMod
+  ;
 inline constexpr unsigned fsev_flag_effect_rename
   = kFSEventStreamEventFlagItemRenamed;
 inline constexpr unsigned fsev_flag_effect_any
@@ -568,22 +568,9 @@ struct ContextData {
 inline auto path_from_event_at(void* event_recv_paths, unsigned long i)
   -> std::filesystem::path
 {
-  if (event_recv_paths)
-    if (
-      void const* from_arr = CFArrayGetValueAtIndex(
-        static_cast<CFArrayRef>(event_recv_paths),
-        static_cast<CFIndex>(i)))
-      if (
-        void const* from_dict = CFDictionaryGetValue(
-          static_cast<CFDictionaryRef>(from_arr),
-          kFSEventStreamEventExtendedDataPathKey))
-        if (
-          char const* as_cstr = CFStringGetCStringPtr(
-            static_cast<CFStringRef>(from_dict),
-            kCFStringEncodingUTF8))
-          return {as_cstr};
-
-  return {};
+  if (! event_recv_paths) return {};
+  auto paths = static_cast<char const**>(event_recv_paths);
+  return {paths[i]};
 }
 
 inline auto event_recv_one(
@@ -636,8 +623,10 @@ inline auto event_recv_one(
     }
   }
   if (flags & fsev_flag_effect_modify) {
-    auto et = effect_type::modify;
-    cb({path, et, pt});
+    if (! (flags & kFSEventStreamEventFlagItemInodeMetaMod)) {
+      auto et = effect_type::modify;
+      cb({path, et, pt});
+    }
   }
   if (flags & fsev_flag_effect_rename) {
     /*  Assumes that the last "renamed-from" path
@@ -707,9 +696,9 @@ inline auto event_recv(
   FSEventStreamEventId const* /*  A unique stream id */
   ) -> void
 {
-  auto data_ok = paths      /*  These checks are unfortunate, */
-              && flags      /*  but they are also necessary. */
-              && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
+  /*  These checks are unfortunate, but they are also necessary.
+      Once in a blue moon, some of them are missing. */
+  auto data_ok = paths && flags && maybe_ctx;
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
   if (! ctx.mtx->try_lock()) return;
@@ -1849,28 +1838,19 @@ inline constexpr auto event_buf_len_max = 8192;
 class watch_event_proxy {
 public:
   bool is_valid{true};
-
   std::filesystem::path path{};
-
   wchar_t path_name[256]{L""};
-
   HANDLE path_handle{nullptr};
-
   HANDLE event_completion_token{nullptr};
-
   HANDLE event_token{CreateEventW(nullptr, true, false, nullptr)};
-
   OVERLAPPED event_overlap{};
-
   FILE_NOTIFY_INFORMATION event_buf[event_buf_len_max];
-
   DWORD event_buf_len_ready{0};
 
   watch_event_proxy(std::filesystem::path const& path) noexcept
       : path{path}
   {
     memcpy(path_name, path.c_str(), path.string().size());
-
     path_handle = CreateFileW(
       path.c_str(),
       FILE_LIST_DIRECTORY,
@@ -1879,11 +1859,9 @@ public:
       OPEN_EXISTING,
       FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
       nullptr);
-
     if (path_handle)
       event_completion_token =
         CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-
     if (event_completion_token)
       is_valid = CreateIoCompletionPort(
                    path_handle,
@@ -1926,9 +1904,9 @@ inline auto do_event_recv(
     event_buf_len_max,
     true,
     FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
-      | FILE_NOTIFY_CHANGE_LAST_WRITE
-      | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_ATTRIBUTES
-      | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
+      | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE
+      | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_DIR_NAME
+      | FILE_NOTIFY_CHANGE_FILE_NAME,
     &bytes_returned,
     &w.event_overlap,
     nullptr);
@@ -1963,16 +1941,15 @@ inline auto do_event_send(
   ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
   using namespace ::wtr::watcher;
-
   FILE_NOTIFY_INFORMATION* buf = w.event_buf;
 
-  struct RenameEventTracker
-  {
+  struct RenameEventTracker {
     std::filesystem::path path_name;
     enum ::wtr::watcher::event::effect_type effect_type;
     enum ::wtr::watcher::event::path_type path_type;
     bool set = false;
   };
+
   // Rename events on Windows send two individual messages
   // that correspond with the old data and the new data
   // While it is believed that these are sent sequentially
@@ -1981,15 +1958,20 @@ inline auto do_event_send(
   // regardless of the order
   RenameEventTracker old_tracker;
   RenameEventTracker new_tracker;
-  const auto trigger_rename_callback = [&]()
+  auto const trigger_rename_callback = [&]()
   {
-      ::wtr::watcher::event old_event{old_tracker.path_name, old_tracker.effect_type, old_tracker.path_type};
-      ::wtr::watcher::event new_event{new_tracker.path_name, new_tracker.effect_type, new_tracker.path_type};
-      callback({old_event, std::move(new_event)});
-
-      // Reset for the possibility of more events
-      old_tracker = {};
-      new_tracker = {};
+    auto renamed_from = ::wtr::watcher::event{
+      old_tracker.path_name,
+      old_tracker.effect_type,
+      old_tracker.path_type};
+    auto renamed_to = ::wtr::watcher::event{
+      new_tracker.path_name,
+      new_tracker.effect_type,
+      new_tracker.path_type};
+    callback({renamed_from, std::move(renamed_to)});
+    // Reset for the possibility of more events
+    old_tracker = {};
+    new_tracker = {};
   };
 
   if (is_valid(w)) {
@@ -2024,32 +2006,23 @@ inline auto do_event_send(
           }
         }();
 
-        if (buf->Action == FILE_ACTION_RENAMED_OLD_NAME)
-        {
+        if (buf->Action == FILE_ACTION_RENAMED_OLD_NAME) {
           old_tracker.path_name = path_name;
           old_tracker.effect_type = effect_type;
           old_tracker.path_type = path_type;
           old_tracker.set = true;
-
-          if (new_tracker.set)
-            trigger_rename_callback();
-            
+          if (new_tracker.set) trigger_rename_callback();
         }
-        else if (buf->Action == FILE_ACTION_RENAMED_NEW_NAME)
-        {
+        else if (buf->Action == FILE_ACTION_RENAMED_NEW_NAME) {
           new_tracker.path_name = path_name;
           new_tracker.effect_type = effect_type;
           new_tracker.path_type = path_type;
           new_tracker.set = true;
-
-          if (old_tracker.set)
-            trigger_rename_callback();
+          if (old_tracker.set) trigger_rename_callback();
         }
-        else
-        {
+        else {
           callback({path_name, effect_type, path_type});
         }
-
         if (buf->NextEntryOffset == 0)
           break;
         else
@@ -2059,7 +2032,6 @@ inline auto do_event_send(
     }
     return true;
   }
-
   else {
     return false;
   }
@@ -2077,25 +2049,19 @@ inline auto watch(
   semabin const& is_living) noexcept -> bool
 {
   using namespace ::wtr::watcher;
-
   auto w = watch_event_proxy{path};
-
   if (is_valid(w)) {
     do_event_recv(w, callback);
-
     while (is_valid(w) && has_event(w)) { do_event_send(w, callback); }
-
     while (is_living.state() == semabin::state::pending) {
       ULONG_PTR completion_key{0};
       LPOVERLAPPED overlap{nullptr};
-
       bool complete = GetQueuedCompletionStatus(
         w.event_completion_token,
         &w.event_buf_len_ready,
         &completion_key,
         &overlap,
         delay_ms_dw);
-
       if (complete && overlap) {
         while (is_valid(w) && has_event(w)) {
           do_event_send(w, callback);
@@ -2103,7 +2069,6 @@ inline auto watch(
         }
       }
     }
-
     return true;
   }
   else {

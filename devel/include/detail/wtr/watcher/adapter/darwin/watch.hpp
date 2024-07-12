@@ -27,9 +27,7 @@ namespace {
     be noticeable. I'm not sure what Darwin sets the "period
     of inactivity" to, and I'm not sure it matters. */
 inline constexpr unsigned fsev_listen_for
-  = kFSEventStreamCreateFlagFileEvents
-  | kFSEventStreamCreateFlagUseExtendedData
-  | kFSEventStreamCreateFlagUseCFTypes;
+  = kFSEventStreamCreateFlagFileEvents;
 inline constexpr auto fsev_listen_since
   = kFSEventStreamEventIdSinceNow;
 inline constexpr unsigned fsev_flag_path_file
@@ -47,10 +45,10 @@ inline constexpr unsigned fsev_flag_effect_remove
   = kFSEventStreamEventFlagItemRemoved;
 inline constexpr unsigned fsev_flag_effect_modify
   = kFSEventStreamEventFlagItemModified
-  | kFSEventStreamEventFlagItemInodeMetaMod
-  | kFSEventStreamEventFlagItemFinderInfoMod
   | kFSEventStreamEventFlagItemChangeOwner
-  | kFSEventStreamEventFlagItemXattrMod;
+  | kFSEventStreamEventFlagItemXattrMod
+  | kFSEventStreamEventFlagItemFinderInfoMod
+  | kFSEventStreamEventFlagItemInodeMetaMod;
 inline constexpr unsigned fsev_flag_effect_rename
   = kFSEventStreamEventFlagItemRenamed;
 inline constexpr unsigned fsev_flag_effect_any
@@ -101,22 +99,9 @@ struct ContextData {
 inline auto path_from_event_at(void* event_recv_paths, unsigned long i)
   -> std::filesystem::path
 {
-  if (event_recv_paths)
-    if (
-      void const* from_arr = CFArrayGetValueAtIndex(
-        static_cast<CFArrayRef>(event_recv_paths),
-        static_cast<CFIndex>(i)))
-      if (
-        void const* from_dict = CFDictionaryGetValue(
-          static_cast<CFDictionaryRef>(from_arr),
-          kFSEventStreamEventExtendedDataPathKey))
-        if (
-          char const* as_cstr = CFStringGetCStringPtr(
-            static_cast<CFStringRef>(from_dict),
-            kCFStringEncodingUTF8))
-          return {as_cstr};
-
-  return {};
+  if (! event_recv_paths) return {};
+  auto paths = static_cast<char const**>(event_recv_paths);
+  return {paths[i]};
 }
 
 inline auto event_recv_one(
@@ -169,8 +154,10 @@ inline auto event_recv_one(
     }
   }
   if (flags & fsev_flag_effect_modify) {
-    auto et = effect_type::modify;
-    cb({path, et, pt});
+    if (! (flags & kFSEventStreamEventFlagItemInodeMetaMod)) {
+      auto et = effect_type::modify;
+      cb({path, et, pt});
+    }
   }
   if (flags & fsev_flag_effect_rename) {
     /*  Assumes that the last "renamed-from" path
@@ -240,9 +227,9 @@ inline auto event_recv(
   FSEventStreamEventId const* /*  A unique stream id */
   ) -> void
 {
-  auto data_ok = paths      /*  These checks are unfortunate, */
-              && flags      /*  but they are also necessary. */
-              && maybe_ctx; /*  Once in a blue moon, this doesn't exist */
+  /*  These checks are unfortunate, but they are also necessary.
+      Once in a blue moon, some of them are missing. */
+  auto data_ok = paths && flags && maybe_ctx;
   if (! data_ok) return;
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
   if (! ctx.mtx->try_lock()) return;
