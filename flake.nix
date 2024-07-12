@@ -96,6 +96,12 @@
             targets    = [ "wtr.watcher"
                            "wtr.hdr_watcher" ];
           };
+          tw = mkWatcherDerivation {
+            src        = self;
+            pname      = "tw";
+            buildcfg   = "Release";
+            targets    = [ "tw" ];
+          };
           watcher-cli = mkWatcherDerivation {
             src        = self;
             pname      = "wtr.watcher";
@@ -135,12 +141,12 @@
           # Bring watcher's tree and all of its dependencies in via inputsFrom,
           # and pre-build watcher via buildInputs so that we can use it right away.
           watcher-devshell = pkgs.mkShell {
-            inputsFrom = [ watcher-cli watcher-hdr watcher-test ];
+            inputsFrom = [ tw watcher-cli watcher-hdr watcher-test ];
             buildInputs = [ watcher ];
           };
 
         in {
-          packages = { inherit watcher watcher-cli watcher-hdr watcher-test; };
+          packages = { inherit watcher tw watcher-cli watcher-hdr watcher-test; };
           defaultApp = flake-utils.lib.mkApp { drv = watcher-cli; };
           defaultPackage = watcher;
           devShell = watcher-devshell;
