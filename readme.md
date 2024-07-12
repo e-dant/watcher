@@ -98,7 +98,7 @@ tool/build --no-build-test --no-run && cd out/this/Release # Build the release v
 3. Efficient
 > You can watch an *entire filesystem* with this project.
 In [almost all cases](https://github.com/e-dant/watcher/tree/release#exceptions-to-efficient-scanning),
-we use a near-zero amount of resources and makes
+we use a near-zero amount of resources and make
 [efficient use of the cache](https://github.com/e-dant/watcher/tree/release#cache-efficiency).
 We regularly test that the overhead of detecting and sending an event to the user is
 an order of magnitude less than the filesystem operations being measured.
@@ -296,6 +296,27 @@ cd out
 ```
 
 ## Bugs & Limitations
+
+<summary>"Access" events are ignored</summary>
+Watchers on all platforms intentionally ignore
+modification events which only change the acess
+time on a file or directory.
+
+The utility of those events was questionable.
+
+It seemed more harmful than good. Other watchers,
+like Microsoft's C# watcher, ignore them by default.
+Some user applications rely on modification events
+to know when themselves to reload a file.
+
+Better, more complete solutions exist, and these
+defaults might again change.
+
+Providing a way to ignore events from a process-id,
+a shorthand from "this" process, and a way to specify
+which kinds of event sources we are interested in
+are good candidates for more complete solutions.
+</details>
 
 <details>
 <summary>Safety and C++</summary>
