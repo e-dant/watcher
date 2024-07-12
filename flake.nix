@@ -43,7 +43,7 @@
             , installBashScript ? ""
             }: pkgs.stdenv.mkDerivation {
               inherit src pname buildcfg targets;
-              version = "0.10.1"; # hook: tool/release
+              version = "0.11.0"; # hook: tool/release
               nativeBuildInputs = build_deps ++ maybe_sys_deps ++ [ snitch ];
               env.WTR_WATCHER_USE_SYSTEM_SNITCH = 1;
               buildPhase = ''
