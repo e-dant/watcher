@@ -70,55 +70,13 @@ struct ContextData {
   std::mutex* mtx{nullptr};
 };
 
-/*  We make a path from a C string...
-    In an array, in a dictionary...
-    Without type safety...
-    Because most of darwin's apis are `void*`-typed.
-
-    We should be guarenteed that nothing in here is
-    or can be null, but I'm skeptical. We ask Darwin
-    for utf8 strings from a dictionary of utf8 strings
-    which it gave us. Nothing should be able to be null.
-    We'll check anyway, just in case Darwin lies.
-
-    The dictionary contains looks like this:
-      { "path": String
-      , "fileID": Number
-      }
-    We can only call `CFStringGetCStringPtr()`
-    on the `path` field. Not sure what function
-    the `fileID` requires, or if it's different
-    from what we'd get from `stat()`. (Is it an
-    inode number?) Anyway, we seem to get this:
-      -[__NSCFNumber length]: unrecognized ...
-    Whenever we try to inspect it with Int or
-    CStringPtr functions for CFStringGet...().
-    The docs don't say much about these fields.
-    I don't think they mention fileID at all.
-*/
-inline auto path_from_event_at(void* event_recv_paths, unsigned long i)
-  -> std::filesystem::path
-{
-  if (! event_recv_paths) return {};
-  auto paths = static_cast<char const**>(event_recv_paths);
-  return {paths[i]};
-}
-
-inline auto event_recv_one(
-  ContextData& ctx,
-  std::filesystem::path const& path,
-  unsigned flags)
+inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
 {
   using ::wtr::watcher::event;
   using path_type = enum ::wtr::watcher::event::path_type;
   using effect_type = enum ::wtr::watcher::event::effect_type;
 
-  auto cb = ctx.callback;
-
-  auto path_str = path.string();
-
   /*  A single path won't have different "types". */
-
   auto pt = flags & fsev_flag_path_file      ? path_type::file
           : flags & fsev_flag_path_dir       ? path_type::dir
           : flags & fsev_flag_path_sym_link  ? path_type::sym_link
@@ -128,9 +86,8 @@ inline auto event_recv_one(
   /*  We want to report odd events (even with an empty path)
       but we can bail early if we don't recognize the effect
       because everything else we do depends on that. */
-
   if (! (flags & fsev_flag_effect_any)) {
-    cb({path, effect_type::other, pt});
+    ctx.callback({path, effect_type::other, pt});
     return;
   }
 
@@ -139,24 +96,24 @@ inline auto event_recv_one(
 
   if (flags & fsev_flag_effect_create) {
     auto et = effect_type::create;
-    auto at = ctx.seen_created_paths->find(path_str);
+    auto at = ctx.seen_created_paths->find(path);
     if (at == ctx.seen_created_paths->end()) {
-      ctx.seen_created_paths->emplace(path_str);
-      cb({path, et, pt});
+      ctx.seen_created_paths->emplace(path);
+      ctx.callback({path, et, pt});
     }
   }
   if (flags & fsev_flag_effect_remove) {
     auto et = effect_type::destroy;
-    auto at = ctx.seen_created_paths->find(path_str);
+    auto at = ctx.seen_created_paths->find(path);
     if (at != ctx.seen_created_paths->end()) {
       ctx.seen_created_paths->erase(at);
-      cb({path, et, pt});
+      ctx.callback({path, et, pt});
     }
   }
   if (flags & fsev_flag_effect_modify) {
     if (! (flags & kFSEventStreamEventFlagItemInodeMetaMod)) {
       auto et = effect_type::modify;
-      cb({path, et, pt});
+      ctx.callback({path, et, pt});
     }
   }
   if (flags & fsev_flag_effect_rename) {
@@ -191,7 +148,7 @@ inline auto event_recv_one(
     auto differs = ! lr_path.empty() && lr_path != path;
     auto missing = access(lr_path.c_str(), F_OK) == -1;
     if (differs && missing) {
-      cb({
+      ctx.callback({
         {lr_path, et, pt},
         {   path, et, pt}
       });
@@ -222,21 +179,20 @@ inline auto event_recv(
   ConstFSEventStreamRef,      /*  `ConstFS..` is important */
   void* maybe_ctx,            /*  Arguments passed to us */
   unsigned long count,        /*  Event count */
-  void* paths,                /*  Paths with events */
+  void* maybe_paths,          /*  Paths with events */
   unsigned const* flags,      /*  Event flags */
   FSEventStreamEventId const* /*  A unique stream id */
   ) -> void
 {
   /*  These checks are unfortunate, but they are also necessary.
       Once in a blue moon, some of them are missing. */
-  auto data_ok = paths && flags && maybe_ctx;
+  auto data_ok = maybe_paths && flags && maybe_ctx;
   if (! data_ok) return;
+  auto paths = static_cast<char const**>(maybe_paths);
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
   if (! ctx.mtx->try_lock()) return;
   for (unsigned long i = 0; i < count; i++) {
-    auto path = path_from_event_at(paths, i);
-    auto flag = flags[i];
-    event_recv_one(ctx, path, flag);
+    event_recv_one(ctx, paths[i], flags[i]);
   }
   ctx.mtx->unlock();
 }
