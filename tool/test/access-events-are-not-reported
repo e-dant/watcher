@@ -49,9 +49,13 @@ ec=0
     mkdir a
     sleep 0.01 # Else events can be batched and sent in an unpredictable order
     touch a/a
+    sleep 0.01
     touch a
+    sleep 0.01
     touch a/a
+    sleep 0.01
     rm a/a
+    sleep 0.01
     rmdir a
     wait # for the watcher
     show-events "$testdir" | without-effect-time
