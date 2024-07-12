@@ -47,15 +47,15 @@ ec=0
   actual=$(
     watch-async "$testdir" -ms 500 > "$testdir.json"
     mkdir a
-    sleep 0.01 # Else events can be batched and sent in an unpredictable order
+    sleep 0.005 # Else events can be batched and sent in an unpredictable order
     touch a/a
-    sleep 0.01
+    sleep 0.005
     touch a
-    sleep 0.01
+    sleep 0.005
     touch a/a
-    sleep 0.01
+    sleep 0.005
     rm a/a
-    sleep 0.01
+    sleep 0.005
     rmdir a
     wait # for the watcher
     show-events "$testdir" | without-effect-time
