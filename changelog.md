@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0
+
+"Access" events -- which only modify the access time on a file or directory -- are no longer reported.
+Refs: #43, #46 and d9d9d8b
+
+Windows learned how to properly report rename events, thanks to @iwubcode in #45.
+
+Various housekeeping. Added `tw` to the Nix flake, updated the flake's lockfile. Some formatting.
+
 ## 0.10.1
 
 CI jobs will uplaod some of their artifacts. I don't recommend using them yet because we don't compile to known architectures. (We just compile to "target doubles", using whatever architecture the runner is on.)
