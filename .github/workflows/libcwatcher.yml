@@ -31,9 +31,8 @@ jobs:
           restore-keys: |
             cache.libcwatcher.${{matrix.target-triple}}.apt-cache
       - run: |
-          apt-get update -yqq
-          apt-get install -yqq python3 python3-pip python3-setuptools python3-wheel ninja-build
-          pip3 install meson
+          which python3 || apt-get install -yqq python3 python3-pip python3-setuptools python3-wheel ninja-build
+          which meson || pip3 install meson
       - run: |
           meson setup --cross-file libcwatcher/cross-files/${{matrix.target-triple}}.txt ${{matrix.target-triple}}
           meson compile -C ${{matrix.target-triple}}
