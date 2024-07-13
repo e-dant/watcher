@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+Documentation and formatting.
+
 ## 0.11.0
 
 "Access" events -- which only modify the access time on a file or directory -- are no longer reported.

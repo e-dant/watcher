@@ -215,17 +215,17 @@ commit, right before writing this paragraph.
 ```json
 {
   "1666393024210001000": {
-    "path_name": "./watcher/.git/logs/HEAD",
+    "path_name": "/home/edant/dev/watcher/.git/logs/HEAD",
     "effect_type": "modify",
     "path_type": "file"
   },
   "1666393024210026000": {
-    "path_name": "./watcher/.git/logs/refs/heads/next",
+    "path_name": "/home/edant/dev/watcher/.git/logs/refs/heads/next",
     "effect_type": "modify",
     "path_type": "file"
   },
   "1666393024210032000": {
-    "path_name": "./watcher/.git/refs/heads/next.lock",
+    "path_name": "/home/edant/dev/watcher/.git/refs/heads/next.lock",
     "effect_type": "create",
     "path_type": "other"
   }
