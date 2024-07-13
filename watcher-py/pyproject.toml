@@ -1,0 +1,21 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "watcher"
+version = "0.12.0"
+authors = ["Will"]
+homepage = "https://github.com/e-dant/watcher"
+description = "Filesystem watcher. Works anywhere. Simple, efficient, and friendly."
+license = "MIT"
+keywords = ["watcher", "filesystem", "events", "async"]
+packages = [{include = "watcher"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+meson = "^0.59"
+
+[tool.poetry.scripts]
+build-libcwatcher = "build:build"
+
