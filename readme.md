@@ -246,11 +246,14 @@ This project is accessible through:
 - CMake: Includes header, cli, test and benchmark targets
 - Just copying the header file
 
-### Conan
+<details>
+<summary>Conan</summary>
 
 See the [package here](https://conan.io/center/recipes/watcher).
+</details>
 
-### Nix
+<details>
+<summary>Nix</summary>
 
 ```sh
 nix build # To just build
@@ -258,16 +261,20 @@ nix run # Build the default target, then run without arguments
 nix run . -- / | jq # Build and run, watch the root directory, pipe it to jq
 nix develop # Enter an isolated development shell with everything needed to explore this project
 ```
+</details>
 
-### Bazel
+<details>
+<summary>Bazel</summary>
 
 ```sh
 bazel build cli # Build, but don't run, the cli
 bazel build hdr # Ditto, for the single-header
 bazel run cli # Run the cli program without arguments
 ```
+</details>
 
-### `tool/build`
+<details>
+<summary>`tool/build`</summary>
 
 ```sh
 tool/build
@@ -281,8 +288,10 @@ cd out/this/Release
 
 This will take care of some platform-specifics, building the
 release, debug, and sanitizer variants, and running some tests.
+</details>
 
-### CMake
+<details>
+<summary>CMake</summary>
 
 ```sh
 cmake -S . -B out
@@ -294,6 +303,7 @@ cd out
 # watches some path for 10 seconds
 ./wtr.watcher 'your/favorite/path' -s 10
 ```
+</details>
 
 ## Bugs & Limitations
 
@@ -426,7 +436,6 @@ is a non-insignificant memory commitment.
 
 The owner and attribute events are unsupported because
 I'm not sure how to support those events efficienty.
-
 </details>
 
 <details>
@@ -449,19 +458,23 @@ is used.
 
 ## Relevant OS APIs Used
 
-Linux
+<details>
+<summary>Linux</summary>
 - `inotify`
 - `fanotify`
 - `epoll`
 - `eventfd`
-
-Darwin
+</details>
+<details>
+<summary>Darwin</summary>
 - `FSEvents`
 - `dispatch`
-
-Windows
+</details>
+<details>
+<summary>Windows</summary>
 - `ReadDirectoryChangesW`
 - `IoCompletionPort`
+</details>
 
 ## Minimum C++ Version
 
