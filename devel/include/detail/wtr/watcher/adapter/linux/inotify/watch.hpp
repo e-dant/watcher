@@ -118,10 +118,9 @@ inline auto do_mark =
     return send_msg(e, dirpath, cb), e;
 };
 
-inline auto make_sysres = [](
-                            char const* const base_path,
-                            auto const& cb,
-                            semabin const& is_living) -> sysres
+inline auto
+make_sysres(char const* const base_path, auto const& cb, semabin const& living)
+  -> sysres
 {
   auto make_inotify = [](result* ok) -> int
   {
@@ -151,15 +150,14 @@ inline auto make_sysres = [](
   auto ok = result::pending;
   auto in_fd = make_inotify(&ok);
   auto dm = make_dm(&ok, in_fd);
-  auto ep = make_ep(&ok, in_fd, is_living.fd);
-
+  auto ep = make_ep(&ok, in_fd, living.fd);
   return sysres{
     .ok = ok,
     .ke{
         .fd = in_fd,
         .dm = std::move(dm),
         },
-    .il = is_living,
+    .il = living,
     .ep = ep,
   };
 };
@@ -203,7 +201,6 @@ inline auto parse_ev(
   auto assoc = [&](auto* a, auto* b) -> parsed
   { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
-
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
@@ -312,7 +309,7 @@ struct defer_dm_rm_wd {
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
 {
   auto is_parity_lost = [](unsigned msk) -> bool
   { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };

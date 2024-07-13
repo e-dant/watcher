@@ -418,7 +418,7 @@ struct rename_pair_pattern {
 ## Lifetime Management and Asio
 
 ```
-/*  Keeping this here, away from the `while (is_living())
+/*  Keeping this here, away from the `while (living())
     ...` loop, because I'm thinking about moving all the
     lifetime management up a layer or two. Maybe the
     user-facing `watch` class can take over the sleep timer,
@@ -429,7 +429,7 @@ struct rename_pair_pattern {
     The sleep timer and threading are probably unnecessary,
     anyway. Maybe there's some stop token or something more
     asio-like that we can use instead of the
-    sleep/`is_living()` loop. Instead of threading, we should
+    sleep/`living()` loop. Instead of threading, we should
     just become part of an `io_context` and let `asio` handle
     the runtime.
 

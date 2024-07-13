@@ -43,18 +43,21 @@ inline constexpr unsigned fsev_flag_effect_create
   = kFSEventStreamEventFlagItemCreated;
 inline constexpr unsigned fsev_flag_effect_remove
   = kFSEventStreamEventFlagItemRemoved;
-inline constexpr unsigned fsev_flag_effect_modify
+inline constexpr unsigned fsev_flag_effect_modify_any
   = kFSEventStreamEventFlagItemModified
   | kFSEventStreamEventFlagItemChangeOwner
   | kFSEventStreamEventFlagItemXattrMod
   | kFSEventStreamEventFlagItemFinderInfoMod
   | kFSEventStreamEventFlagItemInodeMetaMod;
+inline constexpr unsigned fsev_flag_effect_modify
+  = fsev_flag_effect_modify_any
+  & ~kFSEventStreamEventFlagItemInodeMetaMod;
 inline constexpr unsigned fsev_flag_effect_rename
   = kFSEventStreamEventFlagItemRenamed;
 inline constexpr unsigned fsev_flag_effect_any
   = fsev_flag_effect_create
   | fsev_flag_effect_remove
-  | fsev_flag_effect_modify
+  | fsev_flag_effect_modify_any
   | fsev_flag_effect_rename;
 
 // clang-format on
@@ -72,49 +75,40 @@ struct ContextData {
 
 inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
 {
-  using ::wtr::watcher::event;
-  using path_type = enum ::wtr::watcher::event::path_type;
-  using effect_type = enum ::wtr::watcher::event::effect_type;
+  using pty = enum ::wtr::watcher::event::path_type;
+  using ety = enum ::wtr::watcher::event::effect_type;
 
   /*  A single path won't have different "types". */
-  auto pt = flags & fsev_flag_path_file      ? path_type::file
-          : flags & fsev_flag_path_dir       ? path_type::dir
-          : flags & fsev_flag_path_sym_link  ? path_type::sym_link
-          : flags & fsev_flag_path_hard_link ? path_type::hard_link
-                                             : path_type::other;
-
-  /*  We want to report odd events (even with an empty path)
+  auto pt = flags & fsev_flag_path_file      ? pty::file
+          : flags & fsev_flag_path_dir       ? pty::dir
+          : flags & fsev_flag_path_sym_link  ? pty::sym_link
+          : flags & fsev_flag_path_hard_link ? pty::hard_link
+                                             : pty::other;
+  /*  More than one thing can happen to the same path.
+      (So these `if`s are mostly not exclusive.)
+      We want to report odd events (even with an empty path)
       but we can bail early if we don't recognize the effect
       because everything else we do depends on that. */
   if (! (flags & fsev_flag_effect_any)) {
-    ctx.callback({path, effect_type::other, pt});
+    ctx.callback({path, ety::other, pt});
     return;
   }
-
-  /*  More than one thing can happen to the same path.
-      (So these `if`s are not exclusive.) */
-
   if (flags & fsev_flag_effect_create) {
-    auto et = effect_type::create;
     auto at = ctx.seen_created_paths->find(path);
     if (at == ctx.seen_created_paths->end()) {
       ctx.seen_created_paths->emplace(path);
-      ctx.callback({path, et, pt});
+      ctx.callback({path, ety::create, pt});
     }
   }
   if (flags & fsev_flag_effect_remove) {
-    auto et = effect_type::destroy;
     auto at = ctx.seen_created_paths->find(path);
     if (at != ctx.seen_created_paths->end()) {
       ctx.seen_created_paths->erase(at);
-      ctx.callback({path, et, pt});
+      ctx.callback({path, ety::destroy, pt});
     }
   }
   if (flags & fsev_flag_effect_modify) {
-    if (! (flags & kFSEventStreamEventFlagItemInodeMetaMod)) {
-      auto et = effect_type::modify;
-      ctx.callback({path, et, pt});
-    }
+    ctx.callback({path, ety::modify, pt});
   }
   if (flags & fsev_flag_effect_rename) {
     /*  Assumes that the last "renamed-from" path
@@ -142,21 +136,17 @@ inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
         rename events, see this directory's
         notes (in the `notes.md` file).
     */
-
-    auto et = effect_type::rename;
     auto lr_path = *ctx.last_rename_path;
     auto differs = ! lr_path.empty() && lr_path != path;
     auto missing = access(lr_path.c_str(), F_OK) == -1;
-    if (differs && missing) {
+    if (differs && missing)
       ctx.callback({
-        {lr_path, et, pt},
-        {   path, et, pt}
-      });
-      ctx.last_rename_path->clear();
-    }
-    else {
+        {lr_path, ety::rename, pt},
+        {   path, ety::rename, pt}
+      }),
+        ctx.last_rename_path->clear();
+    else
       *ctx.last_rename_path = path;
-    }
   }
 }
 
@@ -174,7 +164,6 @@ inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
     So, we filter out duplicate events when they're sent
     in a batch. We do this by storing and pruning the
     set of paths which we've seen created. */
-
 inline auto event_recv(
   ConstFSEventStreamRef,      /*  `ConstFS..` is important */
   void* maybe_ctx,            /*  Arguments passed to us */
@@ -186,24 +175,22 @@ inline auto event_recv(
 {
   /*  These checks are unfortunate, but they are also necessary.
       Once in a blue moon, some of them are missing. */
-  auto data_ok = maybe_paths && flags && maybe_ctx;
+  auto data_ok = maybe_ctx && maybe_paths && flags;
   if (! data_ok) return;
   auto paths = static_cast<char const**>(maybe_paths);
   auto ctx = *static_cast<ContextData*>(maybe_ctx);
   if (! ctx.mtx->try_lock()) return;
-  for (unsigned long i = 0; i < count; i++) {
+  for (unsigned long i = 0; i < count; i++)
     event_recv_one(ctx, paths[i], flags[i]);
-  }
   ctx.mtx->unlock();
 }
 
 static_assert(event_recv == FSEventStreamCallback{event_recv});
 
-inline auto open_event_stream(
-  std::filesystem::path const& path,
-  dispatch_queue_t queue,
-  void* ctx) -> FSEventStreamRef
+inline auto open_event_stream(std::filesystem::path const& path, void* ctx)
+  -> FSEventStreamRef
 {
+  static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto context = FSEventStreamContext{
     .version = 0,               /*  FSEvents.h: "Only valid value is zero." */
     .info = ctx,                /*  The context; Our "argument pointer". */
@@ -211,32 +198,26 @@ inline auto open_event_stream(
     .release = nullptr,         /*  Same reason as `.retain` */
     .copyDescription = nullptr, /*  Optional string for debugging. */
   };
-
   /*  path_cfstring and path_array appear to be managed by the
       FSEventStream, are always null when we go to close the
       stream, and shouldn't be freed before then. Would seem
       to me like we'd need to release them (in re. the Create
       rule), but we don't appear to. */
-
   void const* path_cfstring =
     CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
-
   /*  A predefined structure which is (from CFArray.h) --
       "appropriate when the values in a CFArray are CFTypes" */
   static auto const cf_arr_ty = kCFTypeArrayCallBacks;
-
   CFArrayRef path_array = CFArrayCreate(
     nullptr,        /*  A custom allocator is optional */
     &path_cfstring, /*  Data: A ptr-ptr of (in our case) strings */
     1,              /*  We're just storing one path here */
     &cf_arr_ty      /*  The type of the data we're storing */
   );
-
   /*  Request a filesystem event stream for `path` from the
       kernel. The event stream will call `event_recv` with
       `context` and some details about each filesystem event
       the kernel sees for the paths in `path_array`. */
-
   auto stream = FSEventStreamCreate(
     nullptr,           /*  A custom allocator is optional */
     &event_recv,       /*  A callable to invoke on changes */
@@ -246,25 +227,24 @@ inline auto open_event_stream(
     0.016,             /*  Seconds between scans *after inactivity* */
     fsev_listen_for    /*  Which event types to send up to us */
   );
-
-  if (stream && queue && ctx) {
-    FSEventStreamSetDispatchQueue(stream, queue);
-    FSEventStreamStart(stream);
-    return stream;
-  }
-  else
+  auto data_ok = stream && queue && path_cfstring && path_array;
+  if (! data_ok) {
+    if (stream) FSEventStreamRelease(stream);
+    if (path_cfstring) CFRelease(path_cfstring);
+    if (path_array) CFRelease(path_array);
     return nullptr;
+  }
+  FSEventStreamSetDispatchQueue(stream, queue);
+  FSEventStreamStart(stream);
+  return stream;
 }
 
 inline auto wait(semabin const& sb)
 {
   auto s = sb.state();
-  if (s == semabin::pending) {
-    dispatch_semaphore_wait(sb.sem, DISPATCH_TIME_FOREVER);
-    return semabin::released;
-  }
-  else
-    return s;
+  if (s != semabin::pending) return s;
+  dispatch_semaphore_wait(sb.sem, DISPATCH_TIME_FOREVER);
+  return semabin::released;
 }
 
 /*  Bugs, footguns
@@ -352,17 +332,14 @@ close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& cb,
-  semabin const& is_living) -> bool
+  semabin const& living) -> bool
 {
-  static auto queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
   auto mtx = std::mutex{};
   auto ctx = ContextData{cb, &seen_created_paths, &last_rename_path, &mtx};
-
-  auto fsevs = open_event_stream(path, queue, &ctx);
-
-  auto state_ok = wait(is_living) == semabin::released;
+  auto fsevs = open_event_stream(path, &ctx);
+  auto state_ok = wait(living) == semabin::released;
   auto close_ok = close_event_stream(fsevs, ctx);
   return state_ok && close_ok;
 }

@@ -19,7 +19,7 @@ inline namespace watcher {
     @param path:
       The root path to watch for filesystem events.
 
-    @param living_cb (optional):
+    @param callback:
       Something (such as a closure) to be called when events
       occur in the path being watched.
 
@@ -53,7 +53,7 @@ inline namespace watcher {
 class watch {
 private:
   using sb = ::detail::wtr::watcher::semabin;
-  sb is_living{};
+  sb living{};
   std::future<bool> watching{};
 
 public:
@@ -65,36 +65,30 @@ public:
           [this, path, callback]
           {
             using ::detail::wtr::watcher::adapter::watch;
-
             auto ec = std::error_code{};
             auto abs_path = std::filesystem::absolute(path, ec);
             auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
-                       && ! ec && this->is_living.state() == sb::state::pending;
-
+                       && ! ec && this->living.state() == sb::state::pending;
             auto live_msg =
               (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
             callback(
               {live_msg,
                event::effect_type::create,
                event::path_type::watcher});
-
-            auto post_ok =
-              ! pre_ok || watch(abs_path, callback, this->is_living);
-
+            auto post_ok = pre_ok && watch(abs_path, callback, this->living);
             auto die_msg =
               (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
             callback(
               {die_msg,
                event::effect_type::destroy,
                event::path_type::watcher});
-
             return pre_ok && post_ok;
           })}
   {}
 
   inline auto close() noexcept -> bool
   {
-    return this->is_living.release() != sb::state::pending
+    return this->living.release() != sb::state::pending
         && this->watching.valid() && this->watching.get();
   };
 

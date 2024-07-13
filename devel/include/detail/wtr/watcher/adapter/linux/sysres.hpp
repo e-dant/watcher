@@ -71,14 +71,13 @@ struct ep {
   epoll_event interests[q_ulim]{};
 };
 
-constexpr auto to_str = [](result r)
+inline constexpr auto to_str(result r)
 {
   // clang-format off
   switch (r) {
     case result::pending:                            return "pending@";
     case result::w:                                  return "w@";
     case result::w_sys_not_watched:                  return "w/sys/not_watched@";
-  //case result::w_sys_noent:                        return "w/sys/noent@";
     case result::w_sys_phantom:                      return "w/sys/phantom@";
     case result::w_sys_bad_fd:                       return "w/sys/bad_fd@";
     case result::w_sys_bad_meta:                     return "w/sys/bad_meta@";
@@ -99,7 +98,7 @@ constexpr auto to_str = [](result r)
   // clang-format on
 };
 
-inline auto send_msg = [](result r, auto path, auto const& cb)
+inline auto send_msg(result r, auto path, auto const& cb)
 {
   using et = enum ::wtr::watcher::event::effect_type;
   using pt = enum ::wtr::watcher::event::path_type;
@@ -107,7 +106,7 @@ inline auto send_msg = [](result r, auto path, auto const& cb)
   cb({msg + path, et::other, pt::watcher});
 };
 
-inline auto make_ep = [](int ev_fs_fd, int ev_il_fd) -> ep
+inline auto make_ep(int ev_fs_fd, int ev_il_fd) -> ep
 {
 #if __ANDROID_API__
   int fd = epoll_create(1);
@@ -128,9 +127,6 @@ inline auto is_dir(char const* const path) -> bool
   struct stat s;
   return stat(path, &s) == 0 && S_ISDIR(s.st_mode);
 }
-
-inline auto strany = [](char const* const s, auto... cmp) -> bool
-{ return ((strcmp(s, cmp) == 0) || ...); };
 
 /*  $ echo time wtr.watcher / -ms 1
       | sudo bash -E
@@ -155,16 +151,15 @@ inline auto strany = [](char const* const s, auto... cmp) -> bool
 template<class Fn>
 inline auto walkdir_do(char const* const path, Fn const& f) -> void
 {
-  auto pappend = [&](char* head, char* tail)
-  { return snprintf(head, PATH_MAX, "%s/%s", path, tail); };
   if (DIR* d = opendir(path)) {
     f(path);
     while (dirent* de = readdir(d)) {
       char next[PATH_MAX];
       char real[PATH_MAX];
       if (de->d_type != DT_DIR) continue;
-      if (strany(de->d_name, ".", "..")) continue;
-      if (pappend(next, de->d_name) <= 0) continue;
+      if (strcmp(de->d_name, ".") == 0) continue;
+      if (strcmp(de->d_name, "..") == 0) continue;
+      if (snprintf(next, PATH_MAX, "%s/%s", path, de->d_name) <= 0) continue;
       if (! realpath(next, real)) continue;
       walkdir_do(real, f);
     }

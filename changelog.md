@@ -454,7 +454,7 @@ Consider automatic amalgamation.
 
 Public functions defined in headers prefer `inline` over `static`.
 
-Threads may not race when `epoll_wait` resumes on long wait periods despite `is_living()` being false.
+Threads may not race when `epoll_wait` resumes on long wait periods despite `living()` being false.
 
 No warnings in `tsan/wtr.test_watcher.test_event_targets`.
 

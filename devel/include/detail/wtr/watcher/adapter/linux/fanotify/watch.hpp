@@ -46,11 +46,11 @@ struct ke_fa_ev {
     | FAN_UNLIMITED_QUEUE
     | FAN_UNLIMITED_MARKS
     | FAN_NONBLOCK;
+  /*  todo: Support change of ownership w/ FAN_ATTRIB */
   static constexpr auto recv_flags
     = FAN_ONDIR
     | FAN_CREATE
     | FAN_MODIFY
-    // | FAN_ATTRIB todo: Support change of ownership
     | FAN_MOVE
     | FAN_DELETE
     | FAN_EVENT_ON_CHILD;
@@ -68,8 +68,8 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto do_mark =
-  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
+inline auto
+do_mark(char const* const dirpath, int fa_fd, auto const& cb) -> result
 {
   auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
@@ -88,25 +88,20 @@ inline auto do_mark =
     sends diagnostics on warnings and errors.
     Walks the given base path, recursively,
     marking each directory along the way. */
-inline auto make_sysres = [](
-                            char const* const base_path,
-                            auto const& cb,
-                            semabin const& is_living) -> sysres
+inline auto
+make_sysres(char const* const base_path, auto const& cb, semabin const& living)
+  -> sysres
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
-  if (fa_fd < 1)
-    return sysres{.ok = result::e_sys_api_fanotify, .il = is_living};
-
+  if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
   walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
-
-  auto ep = make_ep(fa_fd, is_living.fd);
+  auto ep = make_ep(fa_fd, living.fd);
   if (ep.fd < 1)
-    return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = is_living};
-
+    return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = living};
   return sysres{
     .ok = result::pending,
     .ke{.fd = fa_fd},
-    .il = is_living,
+    .il = living,
     .ep = ep,
   };
 };
@@ -145,26 +140,22 @@ inline auto
 pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
+  constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
   auto dir_info = (fanotify_event_info_fid*)(mtd + 1);
   auto dir_fh = (file_handle*)(dir_info->handle);
-
   char path_buf[PATH_MAX];
   ssize_t file_name_offset = 0;
-
   /*  Directory name */
-  constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
   int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
   if (fd <= 0) {
     *ec = errno;
     return {};
   }
-  /*  If we have a pid with more than 128 digits... Well... */
-  char fs_ev_pidpath[128];
+  char fs_ev_pidpath[32] = {0};
   snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
   file_name_offset = readlink(fs_ev_pidpath, path_buf, path_ulim);
   close(fd);
   path_buf[file_name_offset] = 0;
-
   /*  File name ("Directory entry")
       If we wrote the directory name before here, we
       can start writing the file name after its offset. */
@@ -175,7 +166,6 @@ pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
     auto end = PATH_MAX - file_name_offset;
     if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
   }
-
   return {path_buf};
 }
 
@@ -260,14 +250,14 @@ inline auto do_mark_if_newdir =
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
 {
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };
   auto ev_has_dirname = [&](fanotify_event_metadata const* const m) -> bool
   { return ev_info(m)->hdr.info_type == FAN_EVENT_INFO_TYPE_DFID_NAME; };
 
-  unsigned ev_c = 0;
+  unsigned read_ev_count = 0;
   int read_len = read(sr.ke.fd, sr.ke.buf, sr.ke.buf_len);
   auto const* mtd = (fanotify_event_metadata*)(sr.ke.buf);
   if (read_len <= 0 && errno != EAGAIN)
@@ -276,7 +266,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
     return result::e_sys_api_read;
   else
     while (mtd && FAN_EVENT_OK(mtd, read_len))
-      if (ev_c++ > sr.ke.c_ulim)
+      if (read_ev_count++ > sr.ke.c_ulim)
         return result::e_sys_ret;
       else if (mtd->vers != FANOTIFY_METADATA_VERSION)
         return result::e_sys_lim_kernel_version;

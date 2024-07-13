@@ -15,18 +15,19 @@
 namespace detail::wtr::watcher {
 
 /*  A semaphore-like construct which can be
-    used with poll and friends on Linux.
+    used with the "native" async I/O APIs
+    on (currently) Linux and Darwin.
 
     On Darwin, this is a semaphore which is
     schedulable with the dispatch library.
 
-    On other platforms, this is an atomic flag
-    which can be checked in a sleep, wake loop,
-    ideally with a generous sleep time.
-
     On Linux, this is an eventfd in semaphore
     mode. The file descriptor is exposed for
     use with poll and friends.
+
+    On other platforms, this is an atomic flag
+    which can be checked in a sleep, wake loop,
+    ideally with a generous sleep time.
 */
 
 class semabin {
@@ -90,9 +91,7 @@ public:
       released,
       std::memory_order_release,
       std::memory_order_acquire);
-
     if (was_exchanged) dispatch_semaphore_signal(this->sem);
-
     return released;
   }
 

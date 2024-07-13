@@ -24,7 +24,7 @@ namespace watcher {
 namespace adapter {
 namespace {
 
-inline constexpr std::filesystem::directory_options scan_dir_options =
+inline constexpr std::filesystem::directory_options scan_dir_opts =
   std::filesystem::directory_options::skip_permission_denied
   & std::filesystem::directory_options::follow_directory_symlink;
 
@@ -44,17 +44,16 @@ inline bool scan(
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the file cannot be scanned. */
-  auto const& scan_file =
+  auto scan_file =
     [&](std::filesystem::path const& file, auto const& send_event) -> bool
   {
     using namespace ::wtr::watcher;
-    using std::filesystem::exists, std::filesystem::is_regular_file,
-      std::filesystem::last_write_time;
+    using namespace std::filesystem;
 
     if (exists(file) && is_regular_file(file)) {
       auto ec = std::error_code{};
       /*  grabbing the file's last write time */
-      auto const& timestamp = last_write_time(file, ec);
+      auto timestamp = last_write_time(file, ec);
       if (ec) {
         /*  the file changed while we were looking at it.
             so, we call the closure, indicating destruction,
@@ -83,10 +82,9 @@ inline bool scan(
         }
       }
       return true;
-    } /*  if the path doesn't exist, we nudge the callee
-          with `false` */
+    }
     else
-      return false;
+      return false; /*  if the path doesn't exist, nudge the caller. */
   };
 
   /*  - Scans a (single) directory for changes.
@@ -96,16 +94,11 @@ inline bool scan(
   auto const& scan_directory =
     [&](std::filesystem::path const& dir, auto const& send_event) -> bool
   {
-    using std::filesystem::recursive_directory_iterator,
-      std::filesystem::is_directory;
-    /*  if this thing is a directory */
+    using namespace std::filesystem;
     if (is_directory(dir)) {
-      /*  try to iterate through its contents */
-      auto dir_it_ec = std::error_code{};
-      for (auto const& file :
-           recursive_directory_iterator(dir, scan_dir_options, dir_it_ec))
-        /*  while handling errors */
-        if (dir_it_ec)
+      auto ec = std::error_code{};
+      for (auto file : recursive_directory_iterator(dir, scan_dir_opts, ec))
+        if (ec)
           return false;
         else
           scan_file(file.path(), send_event);
@@ -128,47 +121,38 @@ inline bool tend_bucket(
   bucket_type& bucket) noexcept
 {
   /*  Creates a file map, the "bucket", from `path`. */
-  auto const& populate = [&](std::filesystem::path const& path) -> bool
+  auto populate = [&](std::filesystem::path const& path) -> bool
   {
-    using std::filesystem::exists, std::filesystem::is_directory,
-      std::filesystem::recursive_directory_iterator,
-      std::filesystem::last_write_time;
+    using namespace std::filesystem;
     /*  this happens when a path was changed while we were reading it.
         there is nothing to do here; we prune later. */
-    auto dir_it_ec = std::error_code{};
+    auto dir_ec = std::error_code{};
     auto lwt_ec = std::error_code{};
-    if (exists(path)) {
-      /*  this is a directory */
-      if (is_directory(path)) {
-        for (auto const& file :
-             recursive_directory_iterator(path, scan_dir_options, dir_it_ec)) {
-          if (! dir_it_ec) {
-            auto const& lwt = last_write_time(file, lwt_ec);
-            if (! lwt_ec)
-              bucket[file.path()] = lwt;
-            else
-              bucket[file.path()] = last_write_time(path);
-          }
+    if (! exists(path))
+      return false;
+    else if (! is_directory(path))
+      bucket[path] = last_write_time(path);
+    else {
+      for (auto file :
+           recursive_directory_iterator(path, scan_dir_opts, dir_ec)) {
+        if (! dir_ec) {
+          auto lwt = last_write_time(file, lwt_ec);
+          if (! lwt_ec)
+            bucket[file.path()] = lwt;
+          else
+            bucket[file.path()] = last_write_time(path);
         }
       }
-      /*  this is a file */
-      else {
-        bucket[path] = last_write_time(path);
-      }
+      return true;
     }
-    else {
-      return false;
-    }
-    return true;
   };
 
   /*  Removes files which no longer exist from our bucket. */
-  auto const& prune =
+  auto prune =
     [&](std::filesystem::path const& path, auto const& send_event) -> bool
   {
     using namespace ::wtr::watcher;
-    using std::filesystem::exists, std::filesystem::is_regular_file,
-      std::filesystem::is_directory, std::filesystem::is_symlink;
+    using namespace std::filesystem;
 
     auto bucket_it = bucket.begin();
     /*  while looking through the bucket's contents, */
@@ -207,33 +191,22 @@ inline bool tend_bucket(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  semabin const& is_living) noexcept -> bool
+  semabin const& living) noexcept -> bool
 {
-  using std::this_thread::sleep_for, std::chrono::milliseconds;
-
-  /*  Sleep for `delay_ms`.
-
-      Then, keep running if
+  using std::this_thread::sleep_for;
+  using namespace std::chrono_literals;
+  auto bucket = bucket_type{};
+  /*  Sleep, checking if we're alive every little while.
+      Keep running if
         - We are alive
         - The bucket is doing well
         - No errors occured while scanning
-
       Otherwise, stop and return false. */
-
-  bucket_type bucket;
-
-  static constexpr auto delay_ms = 16;
-
-  while (is_living.state() == semabin::state::pending) {
-    if (
-      ! tend_bucket(path, callback, bucket) || ! scan(path, callback, bucket)) {
-      return false;
-    }
-    else {
-      if constexpr (delay_ms > 0) sleep_for(milliseconds(delay_ms));
-    }
+  while (living.state() == semabin::state::pending) {
+    if (! tend_bucket(path, callback, bucket)) return false;
+    if (! scan(path, callback, bucket)) return false;
+    sleep_for(16ms);
   }
-
   return true;
 }
 

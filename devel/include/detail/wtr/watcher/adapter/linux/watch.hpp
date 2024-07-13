@@ -3,22 +3,22 @@
 #if (defined(__linux__) || __ANDROID_API__) \
   && ! defined(WATER_WATCHER_USE_WARTHOG)
 
-#include "wtr/watcher.hpp"
 #include <linux/version.h>
-#include <unistd.h>
 
 #if KERNEL_VERSION(2, 7, 0) > LINUX_VERSION_CODE
 #error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
 
+#include "wtr/watcher.hpp"
+#include <unistd.h>
+
 namespace detail::wtr::watcher::adapter {
 
-inline auto watch =
-  [](auto const& path, auto const& cb, auto const& is_living) -> bool
+inline auto watch(auto const& path, auto const& cb, auto const& living) -> bool
 {
   auto platform_watch = [&](auto make_sysres, auto do_ev_recv) -> result
   {
-    auto sr = make_sysres(path.c_str(), cb, is_living);
+    auto sr = make_sysres(path.c_str(), cb, living);
     auto is_ev_of = [&](int nth, int fd) -> bool
     { return sr.ep.interests[nth].data.fd == fd; };
 
@@ -79,7 +79,6 @@ inline auto watch =
   auto r = try_fanotify();
   if (r == result::e_sys_api_fanotify)
     r = platform_watch(inotify::make_sysres, inotify::do_ev_recv);
-
   if (r >= result::e)
     return send_msg(r, path.c_str(), cb), false;
   else
