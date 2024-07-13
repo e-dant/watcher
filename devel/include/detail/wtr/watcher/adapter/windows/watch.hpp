@@ -117,10 +117,12 @@ inline auto do_event_send(
   watch_event_proxy& w,
   ::wtr::watcher::event::callback const& callback) noexcept -> bool
 {
+  using namespace ::wtr::watcher;
+
   struct RenameEventTracker {
     std::filesystem::path path_name;
-    enum ::wtr::watcher::event::effect_type effect_type;
-    enum ::wtr::watcher::event::path_type path_type;
+    enum event::effect_type effect_type;
+    enum event::path_type path_type;
     bool set = false;
   };
 
@@ -135,11 +137,11 @@ inline auto do_event_send(
   RenameEventTracker new_tracker;
   auto const trigger_rename_callback = [&]()
   {
-    auto renamed_from = ::wtr::watcher::event{
+    auto renamed_from = event{
       old_tracker.path_name,
       old_tracker.effect_type,
       old_tracker.path_type};
-    auto renamed_to = ::wtr::watcher::event{
+    auto renamed_to = event{
       new_tracker.path_name,
       new_tracker.effect_type,
       new_tracker.path_type};
