@@ -112,7 +112,7 @@ this project probably fits.
 
 5. Dependency Minimal
 > *Watcher* depends on the C++ Standard Library. For efficiency,
-we use [System APIs](https://github.com/e-dant/watcher/tree/release#os-apis-used)
+we [leverage the OS](https://github.com/e-dant/watcher/tree/release#os-apis-used)
 when possible on Linux, Darwin and Windows. For testing and
 debugging, we use [Snitch](https://github.com/cschreib/snitch) and
 [Sanitizers](https://clang.llvm.org/docs/index.html).
@@ -447,7 +447,7 @@ The number of watched files is limited when `inotify`
 is used.
 </details>
 
-## OS APIs Used
+## Relevant OS APIs Used
 
 Linux
 - `inotify`
