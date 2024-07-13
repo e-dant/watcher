@@ -305,8 +305,8 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
-  -> bool
+inline auto
+close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 {
   if (! stream) return false;
   auto _ = std::scoped_lock{*ctx.mtx};
