@@ -14,7 +14,8 @@
 
 namespace detail::wtr::watcher::adapter {
 
-inline auto watch(auto const& path, auto const& cb, auto const& living) -> bool
+inline auto watch =
+  [](auto const& path, auto const& cb, auto const& living) -> bool
 {
   auto platform_watch = [&](auto make_sysres, auto do_ev_recv) -> result
   {

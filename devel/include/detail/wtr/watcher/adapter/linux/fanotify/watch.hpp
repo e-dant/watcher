@@ -68,8 +68,8 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto
-do_mark(char const* const dirpath, int fa_fd, auto const& cb) -> result
+inline auto do_mark =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
 {
   auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
@@ -88,9 +88,10 @@ do_mark(char const* const dirpath, int fa_fd, auto const& cb) -> result
     sends diagnostics on warnings and errors.
     Walks the given base path, recursively,
     marking each directory along the way. */
-inline auto
-make_sysres(char const* const base_path, auto const& cb, semabin const& living)
-  -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& living) -> sysres
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
@@ -136,8 +137,8 @@ make_sysres(char const* const base_path, auto const& cb, semabin const& living)
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto
-pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
+inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
@@ -203,8 +204,9 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto one = [&](auto* m) -> Parsed
-  { return {ev(pathof(m, ec), et, pt), n, m->event_len}; };
+  auto one = [&](auto* m) -> Parsed {
+    return {ev(pathof(m, ec), et, pt), n, m->event_len};
+  };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);
@@ -250,7 +252,7 @@ inline auto do_mark_if_newdir =
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };

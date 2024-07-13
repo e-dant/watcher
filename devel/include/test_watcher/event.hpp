@@ -28,8 +28,9 @@ template<class T>
 inline auto to(::wtr::watcher::event_without_time const& from) noexcept -> T;
 
 template<>
-inline auto to<std::string>(
-  ::wtr::watcher::event_without_time const& from) noexcept -> std::string
+inline auto
+to<std::string>(::wtr::watcher::event_without_time const& from) noexcept
+  -> std::string
 {
   using wtr::to, std::string;
   auto&& fields = "\n  path_name:    " + to<string>(from.path_name)
@@ -42,8 +43,9 @@ inline auto to<std::string>(
 
 template<>
 struct std::hash<wtr::watcher::event_without_time> {
-  inline auto operator()(
-    wtr::watcher::event_without_time const& ev) const noexcept -> std::size_t
+  inline auto
+  operator()(wtr::watcher::event_without_time const& ev) const noexcept
+    -> std::size_t
   {
     return std::hash<decltype(ev.path_name.string())>{}(ev.path_name.string())
 #ifdef _WIN32

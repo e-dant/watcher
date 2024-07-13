@@ -771,8 +771,8 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto
-close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
+inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
+  -> bool
 {
   if (! stream) return false;
   auto _ = std::scoped_lock{*ctx.mtx};
@@ -914,7 +914,7 @@ inline constexpr auto to_str(result r)
   // clang-format on
 };
 
-inline auto send_msg(result r, auto path, auto const& cb)
+inline auto send_msg = [](result r, auto path, auto const& cb)
 {
   using et = enum ::wtr::watcher::event::effect_type;
   using pt = enum ::wtr::watcher::event::path_type;
@@ -936,7 +936,7 @@ inline auto make_ep(int ev_fs_fd, int ev_il_fd) -> ep
              && epoll_ctl(fd, EPOLL_CTL_ADD, ev_il_fd, &want_ev_il) >= 0;
   if (! ctl_ok && fd >= 0) close(fd), fd = -1;
   return ep{.fd = fd};
-};
+}
 
 inline auto is_dir(char const* const path) -> bool
 {
@@ -1054,8 +1054,8 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto
-do_mark(char const* const dirpath, int fa_fd, auto const& cb) -> result
+inline auto do_mark =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
 {
   auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
@@ -1074,9 +1074,10 @@ do_mark(char const* const dirpath, int fa_fd, auto const& cb) -> result
     sends diagnostics on warnings and errors.
     Walks the given base path, recursively,
     marking each directory along the way. */
-inline auto
-make_sysres(char const* const base_path, auto const& cb, semabin const& living)
-  -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& living) -> sysres
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
@@ -1122,8 +1123,8 @@ make_sysres(char const* const base_path, auto const& cb, semabin const& living)
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto
-pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
+inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
@@ -1189,8 +1190,9 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto one = [&](auto* m) -> Parsed
-  { return {ev(pathof(m, ec), et, pt), n, m->event_len}; };
+  auto one = [&](auto* m) -> Parsed {
+    return {ev(pathof(m, ec), et, pt), n, m->event_len};
+  };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);
@@ -1236,7 +1238,7 @@ inline auto do_mark_if_newdir =
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };
@@ -1396,9 +1398,10 @@ inline auto do_mark =
     return send_msg(e, dirpath, cb), e;
 };
 
-inline auto
-make_sysres(char const* const base_path, auto const& cb, semabin const& living)
-  -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& living) -> sysres
 {
   auto make_inotify = [](result* ok) -> int
   {
@@ -1440,9 +1443,9 @@ make_sysres(char const* const base_path, auto const& cb, semabin const& living)
   };
 };
 
-inline auto peek(
-  inotify_event const* const in_ev,
-  inotify_event const* const ev_tail) -> inotify_event*
+inline auto peek = [](
+                     inotify_event const* const in_ev,
+                     inotify_event const* const ev_tail) -> inotify_event*
 {
   auto len_to_next = sizeof(inotify_event) + (in_ev ? in_ev->len : 0);
   auto next = (inotify_event*)((char*)in_ev + len_to_next);
@@ -1454,10 +1457,10 @@ struct parsed {
   inotify_event* next = nullptr;
 };
 
-inline auto parse_ev(
-  std::filesystem::path const& dirname,
-  inotify_event const* const in,
-  inotify_event const* const tail) -> parsed
+inline auto parse_ev = [](
+                         std::filesystem::path const& dirname,
+                         inotify_event const* const in,
+                         inotify_event const* const tail) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
@@ -1474,16 +1477,18 @@ inline auto parse_ev(
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed
-  { return {ev(pathof(a), et, pt), next}; };
-  auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  auto one = [&](auto* a, auto* next) -> parsed {
+    return {ev(pathof(a), et, pt), next};
+  };
+  auto assoc = [&](auto* a, auto* b) -> parsed {
+    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
+  };
   auto next = peek(in, tail);
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
                              : one(in, next);
-}
+};
 
 struct defer_dm_rm_wd {
   ke_in_ev& ke;
@@ -1587,7 +1592,7 @@ struct defer_dm_rm_wd {
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
   auto is_parity_lost = [](unsigned msk) -> bool
   { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };
@@ -1649,7 +1654,8 @@ inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
 
 namespace detail::wtr::watcher::adapter {
 
-inline auto watch(auto const& path, auto const& cb, auto const& living) -> bool
+inline auto watch =
+  [](auto const& path, auto const& cb, auto const& living) -> bool
 {
   auto platform_watch = [&](auto make_sysres, auto do_ev_recv) -> result
   {
@@ -2242,29 +2248,25 @@ public:
     std::filesystem::path const& path,
     event::callback const& callback) noexcept
       : watching{std::async(
-          std::launch::async,
-          [this, path, callback]
-          {
-            using ::detail::wtr::watcher::adapter::watch;
-            auto ec = std::error_code{};
-            auto abs_path = std::filesystem::absolute(path, ec);
-            auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
-                       && ! ec && this->living.state() == sb::state::pending;
-            auto live_msg =
-              (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
-            callback(
-              {live_msg,
-               event::effect_type::create,
-               event::path_type::watcher});
-            auto post_ok = pre_ok && watch(abs_path, callback, this->living);
-            auto die_msg =
-              (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
-            callback(
-              {die_msg,
-               event::effect_type::destroy,
-               event::path_type::watcher});
-            return pre_ok && post_ok;
-          })}
+        std::launch::async,
+        [this, path, callback]
+        {
+          using ::detail::wtr::watcher::adapter::watch;
+          auto ec = std::error_code{};
+          auto abs_path = std::filesystem::absolute(path, ec);
+          auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
+                     && ! ec && this->living.state() == sb::state::pending;
+          auto live_msg =
+            (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
+          callback(
+            {live_msg, event::effect_type::create, event::path_type::watcher});
+          auto post_ok = pre_ok && watch(abs_path, callback, this->living);
+          auto die_msg =
+            (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
+          callback(
+            {die_msg, event::effect_type::destroy, event::path_type::watcher});
+          return pre_ok && post_ok;
+        })}
   {}
 
   inline auto close() noexcept -> bool

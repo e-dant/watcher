@@ -118,9 +118,10 @@ inline auto do_mark =
     return send_msg(e, dirpath, cb), e;
 };
 
-inline auto
-make_sysres(char const* const base_path, auto const& cb, semabin const& living)
-  -> sysres
+inline auto make_sysres = [](
+                            char const* const base_path,
+                            auto const& cb,
+                            semabin const& living) -> sysres
 {
   auto make_inotify = [](result* ok) -> int
   {
@@ -162,9 +163,9 @@ make_sysres(char const* const base_path, auto const& cb, semabin const& living)
   };
 };
 
-inline auto peek(
-  inotify_event const* const in_ev,
-  inotify_event const* const ev_tail) -> inotify_event*
+inline auto peek = [](
+                     inotify_event const* const in_ev,
+                     inotify_event const* const ev_tail) -> inotify_event*
 {
   auto len_to_next = sizeof(inotify_event) + (in_ev ? in_ev->len : 0);
   auto next = (inotify_event*)((char*)in_ev + len_to_next);
@@ -176,10 +177,10 @@ struct parsed {
   inotify_event* next = nullptr;
 };
 
-inline auto parse_ev(
-  std::filesystem::path const& dirname,
-  inotify_event const* const in,
-  inotify_event const* const tail) -> parsed
+inline auto parse_ev = [](
+                         std::filesystem::path const& dirname,
+                         inotify_event const* const in,
+                         inotify_event const* const tail) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
@@ -196,16 +197,18 @@ inline auto parse_ev(
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed
-  { return {ev(pathof(a), et, pt), next}; };
-  auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  auto one = [&](auto* a, auto* next) -> parsed {
+    return {ev(pathof(a), et, pt), next};
+  };
+  auto assoc = [&](auto* a, auto* b) -> parsed {
+    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
+  };
   auto next = peek(in, tail);
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
                              : one(in, next);
-}
+};
 
 struct defer_dm_rm_wd {
   ke_in_ev& ke;
@@ -309,7 +312,7 @@ struct defer_dm_rm_wd {
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_ev_recv(auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 {
   auto is_parity_lost = [](unsigned msk) -> bool
   { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };

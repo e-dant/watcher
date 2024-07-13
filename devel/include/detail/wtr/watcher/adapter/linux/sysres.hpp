@@ -98,7 +98,7 @@ inline constexpr auto to_str(result r)
   // clang-format on
 };
 
-inline auto send_msg(result r, auto path, auto const& cb)
+inline auto send_msg = [](result r, auto path, auto const& cb)
 {
   using et = enum ::wtr::watcher::event::effect_type;
   using pt = enum ::wtr::watcher::event::path_type;
@@ -120,7 +120,7 @@ inline auto make_ep(int ev_fs_fd, int ev_il_fd) -> ep
              && epoll_ctl(fd, EPOLL_CTL_ADD, ev_il_fd, &want_ev_il) >= 0;
   if (! ctl_ok && fd >= 0) close(fd), fd = -1;
   return ep{.fd = fd};
-};
+}
 
 inline auto is_dir(char const* const path) -> bool
 {
