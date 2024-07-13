@@ -25,7 +25,7 @@ jobs:
           restore-keys: |
             cache.libcwatcher.${{matrix.target-triple}}.build
       - uses: actions/cache@v3
-          with:
+        with:
           path: /var/cache/apt/archives
           key: cache.libcwatcher.${{matrix.target-triple}}.apt-cache
           restore-keys: |
