@@ -70,7 +70,7 @@ Enjoy!
 A filesystem event watcher which is
 
 1. Friendly
-> I try to keep the [1623](https://github.com/e-dant/watcher/blob/release/tool/sl)
+> I try to keep the [1579](https://github.com/e-dant/watcher/blob/release/tool/sl)
 lines that make up the runtime of *Watcher* [relatively simple](https://github.com/e-dant/watcher/blob/release/include/wtr/watcher.hpp)
 and the API practical:
 ```cpp
@@ -297,6 +297,7 @@ cd out
 
 ## Bugs & Limitations
 
+<details>
 <summary>"Access" events are ignored</summary>
 Watchers on all platforms intentionally ignore
 modification events which only change the acess
@@ -573,9 +574,9 @@ https://github.com/notify-rs/notify:
   static analysis: yes (borrow checked, memory and concurrency safe language)
 
 https://github.com/e-dant/watcher:
-  lines of code: 1623
+  lines of code: 1579
   lines of tests: 881
-  lines of docs: 2103
+  lines of docs: 1977
   implementation languages: cpp
   interface languages: cpp, shells
   supported platforms: linux, darwin, windows, bsd
