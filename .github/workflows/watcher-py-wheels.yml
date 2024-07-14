@@ -13,9 +13,7 @@ jobs:
     strategy:
       matrix:
         # macos-13 is an intel runner, macos-14 is apple silicon
-        # But macos-13 doesn't seem to have the minimum dependency
-        # for meson-python we need.
-        os: [ ubuntu-latest, macos-14 ]
+        os: [ ubuntu-latest, macos-14, macos-13 ]
     name: Build wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
     steps:
@@ -29,5 +27,5 @@ jobs:
           config-file: pyproject.toml
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{matrix.os}}-${{strategy.job-index}}
+          name: watcher-py-wheels.built-on-${{matrix.os}}
           path: wheelhouse/*.whl
