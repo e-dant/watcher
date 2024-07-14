@@ -13,7 +13,9 @@ jobs:
     strategy:
       matrix:
         # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ ubuntu-latest, windows-latest, macos-13, macos-14 ]
+        # But macos-13 doesn't seem to have the minimum dependency
+        # for meson-python we need.
+        os: [ ubuntu-latest, windows-latest, macos-14 ]
     name: Build wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
     steps:
