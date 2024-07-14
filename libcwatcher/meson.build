@@ -5,10 +5,12 @@ project(
   default_options : ['c_std=c99', 'cpp_std=c++20'],
 )
 
+# I know it's not the convential way to version a shared library...
+# But I'm not sure how to do it the "right" way in Meson.
 libname = 'cwatcher-' + meson.project_version()
 
 if target_machine.system() == 'darwin'
-  deps = dependency('appleframeworks', ['CoreServices', 'CoreFoundation'])
+  deps = dependency(['CoreServices', 'CoreFoundation'])
 else
   deps = dependency('threads')
 endif

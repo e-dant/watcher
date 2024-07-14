@@ -1,0 +1,23 @@
+name: libcwatcher-cross
+
+on:
+  push:
+    branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
+
+jobs:
+  build-all:
+    runs-on: macos-14
+    strategy:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          which meson || brew install meson
+      - run: |
+          libcwatcher/cross-compile.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          path: libcwatcher/out
