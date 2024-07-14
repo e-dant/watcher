@@ -13,7 +13,7 @@ keywords = ["watcher", "filesystem", "events", "async"]
 packages = [{include = "watcher"}]
 
 [tool.cibuildwheel]
-skip = "cp36-*"
+skip = ["cp36-*", "cp37-*"]
 free-threaded-support = true
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
