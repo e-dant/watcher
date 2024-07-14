@@ -2,6 +2,7 @@
 compile_commands.json
 tmp_test_watcher
 virtualenv
+wheelhouse
 /out
 /result
 /watcher
