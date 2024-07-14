@@ -9,7 +9,6 @@ on:
 jobs:
   build-all:
     runs-on: macos-14
-    strategy:
     steps:
       - uses: actions/checkout@v4
         with:
