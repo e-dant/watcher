@@ -24,7 +24,7 @@ _CCallback = ctypes.CFUNCTYPE(None, _CEvent, ctypes.c_void_p)
 
 
 def _lazy_static_solib_handle() -> ctypes.CDLL:
-    def so_file_ending():
+    def native_solib_file_ending():
         match os.uname().sysname:
             case "Darwin":
                 return "dylib"
@@ -33,15 +33,19 @@ def _lazy_static_solib_handle() -> ctypes.CDLL:
             case _:
                 return "so"
 
-    def libcwatcher_path():
+    def libcwatcher_lib_path():
         version = "0.12.0" # hook: tool/release
-        libname = f"libcwatcher-{version}.{so_file_ending()}"
         heredir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(heredir, "lib", libname)
+        dir_path = os.path.join(heredir, ".watcher.mesonpy.libs")
+        lib_name = f"libcwatcher-{version}.{native_solib_file_ending()}"
+        lib_path = os.path.join(dir_path, lib_name)
+        if not os.path.exists(lib_path):
+            raise RuntimeError(f"Could not find '{lib_path}', did the install dir change?")
+        return lib_path
 
     global _LIB
     if _LIB is None:
-        _LIB = ctypes.CDLL(libcwatcher_path())
+        _LIB = ctypes.CDLL(libcwatcher_lib_path())
         _LIB.wtr_watcher_open.argtypes = [ctypes.c_char_p, _CCallback, ctypes.c_void_p]
         _LIB.wtr_watcher_open.restype = ctypes.c_void_p
         _LIB.wtr_watcher_close.argtypes = [ctypes.c_void_p]
@@ -98,8 +102,9 @@ class Event:
 
 class Watch:
     def __init__(self, path: str, callback: Callable[[Event], None]):
-        def callback_bridge(event, _):
-            callback(_c_event_to_event(event))
+        def callback_bridge(c_event: _CEvent, _) -> None:
+            py_event = _c_event_to_event(c_event)
+            callback(py_event)
 
         self._lib = _lazy_static_solib_handle()
         self._path = path.encode("utf-8")
@@ -113,8 +118,7 @@ class Watch:
 
     def close(self):
         if self._watcher:
-            if not self._lib.wtr_watcher_close(self._watcher):
-                raise RuntimeError("Internal error while closing a watcher")
+            self._lib.wtr_watcher_close(self._watcher)
             self._watcher = None
 
     def __del__(self):

@@ -1,0 +1,31 @@
+name: Watcher Py Wheels
+
+on:
+  push:
+    branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
+
+
+jobs:
+  watcher_py_wheels:
+    # Ref: https://cibuildwheel.pypa.io/en/stable/setup
+    strategy:
+      matrix:
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ ubuntu-latest, windows-latest, macos-13, macos-14 ]
+    name: Build wheels on ${{matrix.os}}
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/cibuildwheel@v2.19.2
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.14"
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: pyproject.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{matrix.os}}-${{strategy.job-index}}
+          path: wheelhouse/*.whl
