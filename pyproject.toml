@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "mesonpy"
-requires = ["meson >= 1.0.0", "meson-python >= 0.14.0"]
+requires = ["meson >= 0.61.5", "meson-python >= 0.14.0"]
 
 [project]
 name = "watcher"
@@ -9,7 +9,7 @@ authors = [{name = "Will"}]
 homepage = "https://github.com/e-dant/watcher"
 description = "Filesystem watcher. Works anywhere. Simple, efficient, and friendly."
 license.text = "MIT"
-keywords = [ "watcher", "filesystem", "events", "async" ]
+keywords = ["watcher", "filesystem", "events", "async"]
 packages = [{include = "watcher"}]
 
 [tool.cibuildwheel]
