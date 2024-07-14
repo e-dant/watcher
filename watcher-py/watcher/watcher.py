@@ -34,7 +34,7 @@ def _lazy_static_solib_handle() -> ctypes.CDLL:
                 return "so"
 
     def libcwatcher_lib_path():
-        version = "0.12.0" # hook: tool/release
+        version = "0.11.0" # hook: tool/release
         heredir = os.path.dirname(os.path.abspath(__file__))
         dir_path = os.path.join(heredir, ".watcher.mesonpy.libs")
         lib_name = f"libcwatcher-{version}.{native_solib_file_ending()}"

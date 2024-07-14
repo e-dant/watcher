@@ -61,7 +61,9 @@ release::show::advance() {
 
 files-with-versions() {
   echo 'CMakeLists.txt
-flake.nix'
+flake.nix
+meson.build
+watcher-py/watcher/watcher.py'
 }
 
 release::create() {
