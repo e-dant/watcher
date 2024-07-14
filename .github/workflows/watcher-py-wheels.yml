@@ -12,8 +12,7 @@ jobs:
     # Ref: https://cibuildwheel.pypa.io/en/stable/setup
     strategy:
       matrix:
-        # macos-13 is an intel runner, macos-14 is apple silicon
-        # ... But intel mac is busted.
+        # macos-13 is an intel runner, macos-14 is apple silicon... But intel mac is busted.
         # https://github.com/e-dant/watcher/actions/runs/9929111640/job/27426247416#step:3:293
         os: [ ubuntu-latest, macos-14, windows-latest ]
     name: Build wheels on ${{matrix.os}}
