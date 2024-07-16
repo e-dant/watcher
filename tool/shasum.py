@@ -9,12 +9,14 @@ import os
 import sys
 
 
-def sha256sum(file_path) -> str:
+def sha256sum(file) -> str:
     """
     The sha256sum of a file
     """
-    with open(file_path, "rb") as f:
-        return hashlib.file_digest(f, "sha256").hexdigest()
+    h = hashlib.sha256()
+    with open(file, "rb") as f:
+        h.update(f.read())
+    return h.hexdigest()
 
 
 def sha256sum_tree(path) -> dict:
