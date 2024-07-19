@@ -38,7 +38,7 @@ void* wtr_watcher_open(
 {
   auto wrapped_callback = [callback, context](wtr::watcher::event ev_owned)
   {
-    wtr_watcher_event ev_view = {0};
+    wtr_watcher_event ev_view = {};
 #ifdef _WIN32
     char path_name[PATH_BUF_LEN] = {0};
     char associated_path_name[PATH_BUF_LEN] = {0};
