@@ -4,7 +4,7 @@
       "target_name": "watcher",
       "sources": [
         "../watcher-c/src/watcher-c.cpp",
-        "watcher-c-wrapper.cpp",
+        "watcher.cpp",
       ],
       "include_dirs": [
         "../watcher-c/include",
