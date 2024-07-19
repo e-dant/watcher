@@ -1,4 +1,4 @@
-#include "wtr/watcher-cabi.h"
+#include "wtr/watcher-c.h"
 #include <stdio.h>
 #include <string.h>
 

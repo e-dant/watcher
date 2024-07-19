@@ -1,28 +1,28 @@
 # I know it's not the convential way to version a library...
 # But I'm not sure how to do it the "right" way in Meson.
-libcwatcher_name = 'cwatcher-' + meson.project_version()
+libwatcher_c_name = 'watcher-c-' + meson.project_version()
 
 if target_machine.system() == 'darwin'
-  libcwatcher_deps = [dependency('CoreServices'), dependency('CoreFoundation')]
+  libwatcher_c_deps = [dependency('CoreServices'), dependency('CoreFoundation')]
 else
-  libcwatcher_deps = [dependency('threads')]
+  libwatcher_c_deps = [dependency('threads')]
 endif
 
-libcwatcher = library(
-  libcwatcher_name,
-  ['src/watcher-cabi.cpp'],
+libwatcher_c = library(
+  libwatcher_c_name,
+  ['src/watcher-c.cpp'],
   include_directories : ['include'],
-  dependencies : libcwatcher_deps,
+  dependencies : libwatcher_c_deps,
   build_rpath : '/usr/local/lib',
   install_rpath : '/usr/local/lib',
   install : true,
 )
 
-test_libcwatcher = executable(
-  'test-watcher-cabi',
-  ['src/test-watcher-cabi.c'],
+test_libwatcher_c = executable(
+  'test-watcher-c',
+  ['src/test-watcher-c.c'],
   include_directories : ['include'],
-  link_with : [libcwatcher],
+  link_with : [libwatcher_c],
   build_rpath : '/usr/local/lib',
   install_rpath : '/usr/local/lib',
   install : false,

@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "wtr/watcher-cabi.h"
+#include "wtr/watcher-c.h"
 #include "wtr/watcher.hpp"
 
 #ifdef _WIN32

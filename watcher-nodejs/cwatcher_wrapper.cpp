@@ -1,5 +1,5 @@
 #define NAPI_VERSION 8
-#include "wtr/watcher-cabi.h"
+#include "wtr/watcher-c.h"
 #include <node_api.h>
 #include <stdio.h>
 #include <stdlib.h>

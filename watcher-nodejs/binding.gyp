@@ -3,11 +3,11 @@
     {
       "target_name": "watcher",
       "sources": [
-        "../libcwatcher/src/watcher-cabi.cpp",
-        "cwatcher_wrapper.cpp",
+        "../watcher-c/src/watcher-c.cpp",
+        "watcher-c-wrapper.cpp",
       ],
       "include_dirs": [
-        "../libcwatcher/include",
+        "../watcher-c/include",
       ],
       "link_settings": {
         "libraries": [

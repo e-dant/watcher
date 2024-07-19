@@ -37,11 +37,11 @@ def _lazy_static_solib_handle() -> ctypes.CDLL:
             return "dll"
         return "so"
 
-    def libcwatcher_lib_path():
+    def libwatcher_c_lib_path():
         version = "0.11.0"  # hook: tool/release
         heredir = os.path.dirname(os.path.abspath(__file__))
         dir_path = os.path.join(heredir, ".watcher.mesonpy.libs")
-        lib_name = f"libcwatcher-{version}.{native_solib_file_ending()}"
+        lib_name = f"libwatcher-c-{version}.{native_solib_file_ending()}"
         lib_path = os.path.join(dir_path, lib_name)
         if not os.path.exists(lib_path):
             raise RuntimeError(f"Library does not exist: '{lib_path}'")
@@ -51,7 +51,7 @@ def _lazy_static_solib_handle() -> ctypes.CDLL:
     # pylint: disable=global-statement
     global _LIB
     if _LIB is None:
-        _LIB = ctypes.CDLL(libcwatcher_lib_path())
+        _LIB = ctypes.CDLL(libwatcher_c_lib_path())
         _LIB.wtr_watcher_open.argtypes = [ctypes.c_char_p, _CCallback, ctypes.c_void_p]
         _LIB.wtr_watcher_open.restype = ctypes.c_void_p
         _LIB.wtr_watcher_close.argtypes = [ctypes.c_void_p]
