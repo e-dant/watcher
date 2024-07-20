@@ -22,15 +22,46 @@ struct WatcherWrapper {
   void* watcher = NULL;
 };
 
-/*  Called by the callback bridge when an event is ready.
-    Forwards event to js-land for the user.
-    Expects an "owned" event, which will be freed in this scope. */
-static void callback_js_receiver(napi_env env, napi_value js_callback, void* _unused, void* ctx)
+static void effect_type_js_obj(napi_env env, napi_value* effect_obj)
 {
-  wtr_watcher_event* event = (wtr_watcher_event*)ctx;
-  napi_value event_obj;
+  napi_create_object(env, effect_obj);
+  napi_value rename, modify, create, destroy, owner, other;
+  napi_create_int32(env, WTR_WATCHER_EVENT_RENAME, &rename);
+  napi_create_int32(env, WTR_WATCHER_EVENT_MODIFY, &modify);
+  napi_create_int32(env, WTR_WATCHER_EVENT_CREATE, &create);
+  napi_create_int32(env, WTR_WATCHER_EVENT_DESTROY, &destroy);
+  napi_create_int32(env, WTR_WATCHER_EVENT_OWNER, &owner);
+  napi_create_int32(env, WTR_WATCHER_EVENT_OTHER, &other);
+  napi_set_named_property(env, *effect_obj, "rename", rename);
+  napi_set_named_property(env, *effect_obj, "modify", modify);
+  napi_set_named_property(env, *effect_obj, "create", create);
+  napi_set_named_property(env, *effect_obj, "destroy", destroy);
+  napi_set_named_property(env, *effect_obj, "owner", owner);
+  napi_set_named_property(env, *effect_obj, "other", other);
+}
+
+static void path_type_js_obj(napi_env env, napi_value* path_type_obj)
+{
+  napi_create_object(env, path_type_obj);
+  napi_value dir, file, hard_link, sym_link, watcher, other;
+  napi_create_int32(env, WTR_WATCHER_PATH_DIR, &dir);
+  napi_create_int32(env, WTR_WATCHER_PATH_FILE, &file);
+  napi_create_int32(env, WTR_WATCHER_PATH_HARD_LINK, &hard_link);
+  napi_create_int32(env, WTR_WATCHER_PATH_SYM_LINK, &sym_link);
+  napi_create_int32(env, WTR_WATCHER_PATH_WATCHER, &watcher);
+  napi_create_int32(env, WTR_WATCHER_PATH_OTHER, &other);
+  napi_set_named_property(env, *path_type_obj, "dir", dir);
+  napi_set_named_property(env, *path_type_obj, "file", file);
+  napi_set_named_property(env, *path_type_obj, "hardLink", hard_link);
+  napi_set_named_property(env, *path_type_obj, "symLink", sym_link);
+  napi_set_named_property(env, *path_type_obj, "watcher", watcher);
+  napi_set_named_property(env, *path_type_obj, "other", other);
+}
+
+static napi_value event_to_js_obj(napi_env env, wtr_watcher_event* event)
+{
+  napi_value event_obj, path_name, effect_type, path_type, effect_time, associated_path_name;
   napi_create_object(env, &event_obj);
-  napi_value path_name, effect_type, path_type, effect_time, associated_path_name;
   napi_create_string_utf8(env, event->path_name, NAPI_AUTO_LENGTH, &path_name);
   napi_create_int32(env, event->effect_type, &effect_type);
   napi_create_int32(env, event->path_type, &path_type);
@@ -41,8 +72,20 @@ static void callback_js_receiver(napi_env env, napi_value js_callback, void* _un
   napi_set_named_property(env, event_obj, "effectTime", effect_time);
   if (event->associated_path_name) {
     napi_create_string_utf8(env, event->associated_path_name, NAPI_AUTO_LENGTH, &associated_path_name);
-    napi_set_named_property(env, event_obj, "associatedPathName", associated_path_name);
+  } else {
+    napi_get_null(env, &associated_path_name);
   }
+  napi_set_named_property(env, event_obj, "associatedPathName", associated_path_name);
+  return event_obj;
+}
+
+/*  Called by the callback bridge when an event is ready.
+    Forwards event to js-land for the user.
+    Expects an "owned" event, which will be freed in this scope. */
+static void callback_js_receiver(napi_env env, napi_value js_callback, void* _unused, void* ctx)
+{
+  wtr_watcher_event* event = (wtr_watcher_event*)ctx;
+  napi_value event_obj = event_to_js_obj(env, event);
   napi_value global;
   napi_get_global(env, &global);
   napi_value result;
@@ -81,20 +124,28 @@ static napi_value close(napi_env env, napi_callback_info func_arg_info)
 {
   void* ctx;
   napi_get_cb_info(env, func_arg_info, NULL, NULL, NULL, &ctx);
+  napi_value result;
+  napi_get_boolean(env, false, &result);
+  if (! ctx) {
+    return result;
+  }
   WatcherWrapper* wrapper = (WatcherWrapper*)ctx;
+  bool closed_ok = wtr_watcher_close(wrapper->watcher);
+  napi_get_boolean(env, closed_ok, &result);
   if (wrapper->tsfn) {
     napi_release_threadsafe_function(wrapper->tsfn, napi_tsfn_release);
     wrapper->tsfn = NULL;
+  } else {
+    napi_get_boolean(env, false, &result);
   }
   if (wrapper->js_callback_ref) {
     napi_delete_reference(env, wrapper->js_callback_ref);
     wrapper->js_callback_ref = NULL;
+  } else {
+    napi_get_boolean(env, false, &result);
   }
-  bool closed_ok = wtr_watcher_close(wrapper->watcher);
   free(wrapper);
-  wrapper->watcher = NULL;
-  napi_value result;
-  napi_get_boolean(env, closed_ok, &result);
+  wrapper = NULL;
   return result;
 }
 
@@ -148,12 +199,18 @@ static napi_value watch(napi_env env, napi_callback_info func_arg_info)
   return watcher_obj;
 }
 
-/*  Module initialization. (Does this work as a non-CommonJS module?) */
+/*  Module initialization */
 static napi_value mod_init(napi_env env, napi_value exports)
 {
   napi_value watch_func;
   napi_create_function(env, NULL, 0, watch, NULL, &watch_func);
   napi_set_named_property(env, exports, "watch", watch_func);
+  napi_value effect_type_obj;
+  effect_type_js_obj(env, &effect_type_obj);
+  napi_set_named_property(env, exports, "EffectType", effect_type_obj);
+  napi_value path_type_obj;
+  path_type_js_obj(env, &path_type_obj);
+  napi_set_named_property(env, exports, "PathType", path_type_obj);
   return exports;
 }
 
