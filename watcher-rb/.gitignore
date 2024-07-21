@@ -2,5 +2,6 @@ vendor
 tmp
 pkg
 *.gem
+*.so
 ext/watcher/watcher.cpp
 ext/watcher/wtr
