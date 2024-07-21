@@ -1,0 +1,6 @@
+vendor
+tmp
+pkg
+*.gem
+ext/watcher/watcher.cpp
+ext/watcher/wtr
