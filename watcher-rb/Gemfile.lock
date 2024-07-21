@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     watcher (0.11.0)
+      ffi
 
 GEM
   remote: https://rubygems.org/
@@ -11,6 +12,8 @@ GEM
     benchmark (0.3.0)
     diff-lcs (1.5.1)
     e2mmap (0.1.0)
+    ffi (1.17.0-arm64-darwin)
+    fiddle (1.1.2)
     jaro_winkler (1.6.0)
     json (2.7.2)
     kramdown (2.4.0)
@@ -102,6 +105,8 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 2.0)
+  ffi
+  fiddle
   rake
   rspec
   solargraph

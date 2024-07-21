@@ -1,57 +1,36 @@
+# rubocop:disable Metrics/MethodLength
+# rubocop:disable Style/Documentation
 # frozen_string_literal: true
 
-require 'fiddle'
 require 'date'
+require 'fiddle'
+require 'fiddle/closure'
+require 'fiddle/cparser'
+require 'fiddle/import'
+require 'fiddle/struct'
 
 module Watcher
-  class CEvent < Fiddle::Struct
-    layout(
-      :path_name,
-      :pointer,
-      :effect_type,
-      :int8_t,
-      :path_type,
-      :int8_t,
-      :effect_time,
-      :int64_t,
-      :associated_path_name,
-      :pointer
-    )
-  end
+  C_EVENT_DATA = [
+    'char* path_name',
+    'int8_t effect_type',
+    'int8_t path_type',
+    'int64_t effect_time',
+    'char* associated_path_name'
+  ].freeze
 
-  LIB = nil
+  C_EVENT = Fiddle::Importer.struct(C_EVENT_DATA)
 
-  def native_solib_file_ending
-    case RbConfig::CONFIG['host_os']
-    when /darwin/
-      'so'
-    when /mswin|mingw|cygwin/
-      'dll'
-    else
-      'so'
+  C_EVENT_C_TYPE = Fiddle::Importer.parse_struct_signature(C_EVENT_DATA)
+
+  # Wraps: void (* wtr_watcher_callback)(struct wtr_watcher_event event, void* context)
+
+  C_CALLBACK_BRIDGE_CLOSURE = Class.new(Fiddle::Closure) {
+    def call(c_event, rb_cb)
+      rb_cb.call(Watcher.c_event_to_event(c_event))
     end
-  end
+  }.new(Fiddle::TYPE_VOID, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP])
 
-  def libwatcher_c_lib_path
-    version = '0.11.0' # hook: tool/release
-    lib_name = "libwatcher-c-#{version}.#{native_solib_file_ending}"
-    lib_path = File.join(File.dirname(__FILE__), lib_name)
-    raise "Library does not exist: '#{lib_path}'" unless File.exist?(lib_path)
-
-    puts("Using library: '#{lib_path}'")
-    lib_path
-  end
-
-  def self.lazy_static_solib_handle
-    return LIB if LIB
-
-    @lib = Fiddle.dlopen(libwatcher_c_lib_path)
-    @lib.extern('void* wtr_watcher_open(char*, void*, void*)')
-    @lib.extern('bool wtr_watcher_close(void*)')
-    @lib
-  end
-
-  def to_utf8
+  def self.to_utf8
     return '' if @value.nil?
     return @value if @value.is_a?(String)
     return @value.to_s.force_encoding('UTF-8') if @value.respond_to?(:to_s)
@@ -133,8 +112,6 @@ module Watcher
   end
 
   class Event
-    attr_reader :path_name, :effect_type, :path_type, :effect_time, :associated_path_name
-
     def initialize(path_name, effect_type, path_type, effect_time, associated_path_name)
       @path_name = path_name
       @effect_type = effect_type
@@ -155,23 +132,46 @@ module Watcher
 
   class Watch
     def initialize(path, callback)
-      @lib = Watcher.lazy_static_solib_handle
-      @path = path.encode('UTF-8')
-      @callback = callback
-      @c_callback = Fiddle::Closure::BlockCaller.new(0, [CEvent, :void]) do |c_event, _|
-        py_event = Watcher.c_event_to_event(c_event)
-        @callback.call(py_event)
-      end
-
-      @watcher = @lib.wtr_watcher_open(@path, @c_callback, nil)
-      raise 'Failed to open a watcher' unless @watcher
+      native_solib_file_ending =
+        case RbConfig::CONFIG['host_os']
+        when /darwin/
+          'so'
+        when /mswin|mingw|cygwin/
+          'dll'
+        else
+          'so'
+        end
+      version = '0.11.0' # hook: tool/release
+      lib_name = "libwatcher-c-#{version}.#{native_solib_file_ending}"
+      lib_path = File.join(File.dirname(__FILE__), lib_name)
+      puts("Using library: '#{lib_path}'")
+      @_path = path.encode('UTF-8')
+      @_callback = callback
+      @_lib = Fiddle.dlopen(lib_path)
+      @_wtr_watcher_open = Fiddle::Function.new(
+        @_lib['wtr_watcher_open'],
+        [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP],
+        Fiddle::TYPE_VOIDP
+      )
+      @_wtr_watcher_close = Fiddle::Function.new(
+        @_lib['wtr_watcher_close'],
+        [Fiddle::TYPE_VOIDP],
+        Fiddle::TYPE_VOIDP
+      )
+      @_c_callback_bridge = Fiddle::Function.new(
+        C_CALLBACK_BRIDGE_CLOSURE,
+        [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP],
+        Fiddle::TYPE_VOID
+      )
+      @_watcher = @_wtr_watcher_open.call(@_path, @_c_callback_bridge, @_callback)
+      raise 'Failed to open a watcher' unless @_watcher
     end
 
     def close
-      return unless @watcher
+      return unless _watcher
 
-      @lib.wtr_watcher_close(@watcher)
-      @watcher = nil
+      _wtr_watcher_close(_watcher)
+      _watcher = nil
     end
 
     def finalize
@@ -190,3 +190,6 @@ if __FILE__ == $PROGRAM_NAME
   ObjectSpace.define_finalizer(watcher, Watcher::Watch.method(:finalize).to_proc)
   gets
 end
+
+# rubocop:enable Style/Documentation
+# rubocop:enable Metrics/MethodLength

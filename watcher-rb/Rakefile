@@ -1,20 +1,24 @@
 # frozen_string_literal: true
 
-require "bundler/gem_tasks"
-require "rspec/core/rake_task"
+require 'bundler/gem_tasks'
+require 'rspec/core/rake_task'
 
 RSpec::Core::RakeTask.new(:spec)
 
-task build_shared_library: ["lib"] do
-  framework_deps = case RbConfig::CONFIG["host_os"]
+task build_shared_library: ['lib'] do
+  case RbConfig::CONFIG['host_os']
   when /darwin/
-    "-framework CoreServices -framework CoreFoundation"
+    framework_deps = '-framework CoreServices -framework CoreFoundation'
+    link_rpath = '-Wl,-rpath,/usr/local/lib'
   else
-    ""
+    framework_deps = ''
+    link_rpath = ''
   end
-  version = File.read("../.version").strip
+  version = File.read('../.version').strip
   libname = "libwatcher-c-#{version}.so"
-  sh "c++ -shared -std=c++17 -O2 #{framework_deps} ../watcher-c/src/watcher-c.cpp -I ../watcher-c/include -o lib/#{libname}"
+  sources = '../watcher-c/src/watcher-c.cpp'
+  includes = '../watcher-c/include'
+  sh "c++ -shared -std=c++17 -O2 #{framework_deps} #{sources} -I #{includes} -o lib/#{libname} #{link_rpath}"
 end
 
-task default: [:clobber, :build_shared_library, :spec]
+task default: %i[clobber build_shared_library spec]

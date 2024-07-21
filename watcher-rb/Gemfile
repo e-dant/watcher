@@ -4,6 +4,8 @@ source 'https://rubygems.org'
 
 gemspec
 
+gem 'ffi'
+gem 'fiddle'
 gem 'rake'
 gem 'rspec'
 gem 'solargraph'
