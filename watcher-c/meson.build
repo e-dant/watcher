@@ -10,15 +10,16 @@ watcher_hpp = custom_target(
   output : 'watcher.hpp',
   install : false,
 )
+watcher_hpp_dep = declare_dependency(sources : watcher_hpp)
 
 # I know it's not the convential way to version a library...
 # But I'm not sure how to do it the "right" way in Meson.
 libwatcher_c_name = 'watcher-c-' + meson.project_version()
 
 if target_machine.system() == 'darwin'
-  libwatcher_c_deps = [dependency('CoreServices'), dependency('CoreFoundation')]
+  libwatcher_c_deps = [dependency('CoreServices'), dependency('CoreFoundation'), watcher_hpp_dep]
 else
-  libwatcher_c_deps = [dependency('threads')]
+  libwatcher_c_deps = [dependency('threads'), watcher_hpp_dep]
 endif
 
 
