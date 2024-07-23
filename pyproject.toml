@@ -13,7 +13,8 @@ keywords = ["watcher", "filesystem", "events", "async"]
 packages = [{include = "watcher"}]
 
 [tool.cibuildwheel]
-skip = ["cp36-*", "cp37-*"]
+# Focus on recent releases, time is limited.
+skip = ["*p36-*", "*p37-*", "*p38-*", "*p39-*"]
 build = ["*"]
 free-threaded-support = true
 manylinux-x86_64-image = "manylinux2014"
@@ -24,4 +25,9 @@ musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "i686", "aarch64"]
+# Just the two most common architectures
+archs = ["x86_64", "aarch64"]
+
+[tool.cibuildwheel.macos]
+# Bug (in cibw?) prevents x86_64 builds, see action files.
+archs = ["arm64"]
