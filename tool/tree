@@ -2,6 +2,9 @@
 
 IGNORE_GLOB="\
 security.md\
+|virtualenv\
+|node_modules\
+|build\
 |license\
 |readme.md\
 |changelog.md\
