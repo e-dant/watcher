@@ -5,6 +5,8 @@ security.md\
 |virtualenv\
 |node_modules\
 |build\
+|linux-cross-compilation-containers\
+|cross-files\
 |license\
 |readme.md\
 |changelog.md\
@@ -24,6 +26,13 @@ security.md\
 |Containerfile\
 |CMakeLists.txt\
 |conanfile.txt\
+|meson.build\
+|pyproject.toml\
+|tsconfig.json\
+|package.json\
+|package-lock.json\
+|binding.gyp\
+|cross-compile.sh\
 |cmake\
 |flake.nix\
 |flake.lock\
