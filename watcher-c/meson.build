@@ -1,3 +1,16 @@
+# Libwatcher-c depends on ../include/wtr/watcher.hpp, but meson doesn't allow
+# that kind of structure. We can just copy the header file around ourselves.
+portable_cp = join_paths(meson.source_root(), 'tool', 'portable-cp')
+watcher_hpp_src = join_paths(meson.source_root(), 'include', 'wtr', 'watcher.hpp')
+watcher_hpp_dst = join_paths(meson.source_root(), 'watcher-c', 'include', 'wtr', 'watcher.hpp')
+watcher_hpp = custom_target(
+  'watcher_hpp',
+  build_by_default : true,
+  command : [portable_cp, watcher_hpp_src, watcher_hpp_dst],
+  output : 'watcher.hpp',
+  install : false,
+)
+
 # I know it's not the convential way to version a library...
 # But I'm not sure how to do it the "right" way in Meson.
 libwatcher_c_name = 'watcher-c-' + meson.project_version()
@@ -7,6 +20,7 @@ if target_machine.system() == 'darwin'
 else
   libwatcher_c_deps = [dependency('threads')]
 endif
+
 
 libwatcher_c = library(
   libwatcher_c_name,

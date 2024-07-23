@@ -126,11 +126,11 @@ class Watch:
     """
     Filesystem watcher.
     Begins watching when constructed.
-    Stops when the context manager exits (preferred to use this way).
+    Stops when the context manager exits (preferred to use it this way).
     Or when `close`, del or deinit happens, but you don't need to do that.
     Example usage:
     ```python
-        with watcher.Watch(os.path.expanduser("~"), print) as _:
+        with watcher.Watch(os.path.expanduser("~"), print):
             input()
     ```
     """
@@ -176,5 +176,5 @@ class Watch:
 
 if __name__ == "__main__":
     events_at = sys.argv[1] if len(sys.argv) > 1 else "."
-    with Watch(events_at, print) as _:
+    with Watch(events_at, print):
         input()

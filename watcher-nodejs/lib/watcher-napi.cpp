@@ -26,12 +26,12 @@ static void effect_type_js_obj(napi_env env, napi_value* effect_obj)
 {
   napi_create_object(env, effect_obj);
   napi_value rename, modify, create, destroy, owner, other;
-  napi_create_int32(env, WTR_WATCHER_EVENT_RENAME, &rename);
-  napi_create_int32(env, WTR_WATCHER_EVENT_MODIFY, &modify);
-  napi_create_int32(env, WTR_WATCHER_EVENT_CREATE, &create);
-  napi_create_int32(env, WTR_WATCHER_EVENT_DESTROY, &destroy);
-  napi_create_int32(env, WTR_WATCHER_EVENT_OWNER, &owner);
-  napi_create_int32(env, WTR_WATCHER_EVENT_OTHER, &other);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_RENAME, &rename);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_MODIFY, &modify);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_CREATE, &create);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_DESTROY, &destroy);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_OWNER, &owner);
+  napi_create_int32(env, WTR_WATCHER_EFFECT_OTHER, &other);
   napi_set_named_property(env, *effect_obj, "rename", rename);
   napi_set_named_property(env, *effect_obj, "modify", modify);
   napi_set_named_property(env, *effect_obj, "create", create);
