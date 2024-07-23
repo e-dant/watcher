@@ -64,7 +64,7 @@ struct Args {
       auto st = argc > 3 ? argv[3] : "0";
       auto stend = st + strlen(st);
       auto targis = [&](auto a) { return argis(2, a); };
-      auto ttons
+      long long ttons
         = targis("-nanoseconds")  || targis("-ns")  ?                      1e0
         : targis("-microseconds") || targis("-us")  ?                      1e3
         : targis("-milliseconds") || targis("-ms")  ?                      1e6
@@ -80,7 +80,7 @@ struct Args {
       if (is_help || td == HUGE_VAL || td <= 0)
         return nullopt;
       else
-        return nanoseconds(llroundl(td * ttons));
+        return nanoseconds(llroundl(td) * ttons);
     }();
 
     return is_help || path || time
