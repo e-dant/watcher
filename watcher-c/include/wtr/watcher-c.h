@@ -47,11 +47,11 @@ static const int8_t WTR_WATCHER_PATH_OTHER = 5;
         The time of the event in nanoseconds since epoch.
 */
 struct wtr_watcher_event {
+  int64_t effect_time;
   char const* path_name;
+  char const* associated_path_name;
   int8_t effect_type;
   int8_t path_type;
-  int64_t effect_time;
-  char const* associated_path_name;
 };
 
 /*  Ensure the user's callback can receive
