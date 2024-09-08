@@ -2,12 +2,20 @@
 
 ## 0.12.0
 
-Added support for using this project in C Python and Node.js:
+Added support for using this project in C, Python and Node.js:
 - C support as a shared or static library (one with a C-ABI)
 - Node.js support as an NPM package for a "native addon"
 - Python support as a Wheel for an FFI bridge to the C shared library
 
-The interfaces look like this:
+Each of the new bindings have a basic test suite.
+
+Some examples for these new languages.
+Each of the examples has similar behavior:
+- Watch for and display all events
+- Watch for events on every filesystem under the root directory `/`
+- Stop when any terminal input is received
+
+### C
 
 ```c
 #include "wtr/watcher-c.h"
@@ -31,12 +39,16 @@ int main() {
 }
 ```
 
+### Python
+
 ```python
 from watcher import Watch
 
 with Watch("/", print):
     input()
 ```
+
+### Node.js/TypeScript/JavaScript
 
 ```javascript
 import * as watcher from 'watcher';
@@ -50,13 +62,6 @@ process.stdin.on('data', () => {
   process.exit();
 });
 ```
-
-Each of those examples does the same thing:
-Show all events on every filesystem until the user presses enter.
-
-Added basic test suites for each of these bindings.
-
-Minor updates to documentation and formatting.
 
 ## 0.11.1
 
