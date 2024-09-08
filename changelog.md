@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.12.0
+
+Added support for using this project in C Python and Node.js:
+- C support as a shared or static library (one with a C-ABI)
+- Node.js support as an NPM package for a "native addon"
+- Python support as a Wheel for an FFI bridge to the C shared library
+
+The interfaces look like this:
+
+```c
+#include "wtr/watcher-c.h"
+#include <stdio.h>
+
+void callback(struct wtr_watcher_event event, void* _ctx) {
+    printf(
+        "path name: %s, effect type: %d path type: %d, effect time: %lld, associated path name: %s\n",
+        event.path_name,
+        event.effect_type,
+        event.path_type,
+        event.effect_time,
+        event.associated_path_name ? event.associated_path_name : ""
+    );
+}
+
+int main() {
+    void* watcher = wtr_watcher_open("/", callback, NULL);
+    getchar();
+    return ! wtr_watcher_close(watcher);
+}
+```
+
+```python
+from watcher import Watch
+
+with Watch("/", print):
+    input()
+```
+
+```javascript
+import * as watcher from 'watcher';
+
+var w = watcher.watch('/', (event) => {
+  console.log(event);
+});
+
+process.stdin.on('data', () => {
+  w.close();
+  process.exit();
+});
+```
+
+Each of those examples does the same thing:
+Show all events on every filesystem until the user presses enter.
+
+Added basic test suites for each of these bindings.
+
+Minor updates to documentation and formatting.
+
 ## 0.11.1
 
 Documentation and formatting.
