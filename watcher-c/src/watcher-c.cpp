@@ -24,14 +24,16 @@ extern "C" {
     - utf8_buf_len
       Just here conventionally. This buffer should be exactly 4096, also conventionally.
 */
-static void utf16_to_utf8(wchar_t const* utf16_buf, char* utf8_buf, int utf8_buf_len) {
+static int utf16_to_utf8(wchar_t const* utf16_buf, char* utf8_buf, int utf8_buf_len) {
   if (!utf16_buf || !utf8_buf) return;
   static int const utf16_buf_len = -1;
   int wrote = WideCharToMultiByte(CP_UTF8, 0, utf16_buf, utf16_buf_len, utf8_buf, utf8_buf_len, NULL, NULL);
   if (wrote <= 0) {
-    utf8_buf = nullptr;
+    utf8_buf[0] = 0;
+    return -1;
   } else {
     utf8_buf[wrote] = 0;
+    return wrote;
   }
 }
 #endif
@@ -47,12 +49,12 @@ void* wtr_watcher_open(
 #ifdef _WIN32
     char path_name[PATH_BUF_LEN] = {0};
     char associated_path_name[PATH_BUF_LEN] = {0};
-    utf16_to_utf8(ev_owned.path_name.c_str(), path_name, PATH_BUF_LEN);
-    if (!path_name) return;
+    int wp = utf16_to_utf8(ev_owned.path_name.c_str(), path_name, PATH_BUF_LEN);
+    if (wp <= 0) return;
     ev_view.path_name = path_name;
     if (ev_owned.associated) {
-      utf16_to_utf8(ev_owned.associated->path_name.c_str(), associated_path_name, PATH_BUF_LEN);
-      if (!associated_path_name) return;
+      int wa = utf16_to_utf8(ev_owned.associated->path_name.c_str(), associated_path_name, PATH_BUF_LEN);
+      if (wa <= 0) return;
       ev_view.associated_path_name = associated_path_name;
     }
 #else
@@ -78,12 +80,12 @@ bool wtr_watcher_close(void* watcher)
 }
 
 #ifdef _WIN32
-void* wtr_watcher_open_pipe(char const* const path, int* read_fd)
+void* wtr_watcher_open_pipe(char const* const path, int* read_fd, int* write_fd)
 {
   return NULL;
 }
 
-bool wtr_watcher_close_pipe(void* watcher, int read_fd)
+bool wtr_watcher_close_pipe(void* watcher, int read_fd, int write_fd)
 {
   return false;
 }

@@ -3,108 +3,137 @@ set -e
 cd "$(dirname "$0")/.."
 version=$(cat .version)
 verbose=$(echo "$@" | grep -q -- --verbose && echo true || echo false)
-linux-cross() {
-  while read -r triple toolchain_name
-  do
-    crossc() {
-      (
-        img=wlinkmeyer/$(uname -m)-cross
-        [ "$verbose" = true ] && set -x
-        docker run -v "$PWD:/src" --rm "$img" \
-          "${toolchain_name}-g++" \
-            --sysroot "/etc/sysroots/$triple" \
-            -I "/usr/include/$toolchain_name" \
-            -I "/etc/sysroots/$triple/usr/include" \
-            -I "/etc/sysroots/$triple/usr/include/c++/12" \
-            -I "/etc/sysroots/$triple/usr/include/$toolchain_name" \
-            -I "/etc/sysroots/$triple/usr/include/$toolchain_name/c++/12" \
-            -I /src/watcher-c/include \
-            -I /src/include \
-            -std=c++17 \
-            -fno-exceptions \
-            -fno-rtti \
-            -fexpensive-optimizations \
-            -fno-omit-frame-pointer \
-            -fstrict-enums \
-            -fstrict-overflow \
-            -fstrict-aliasing \
-            -fstack-protector-strong \
-            -Os \
-            $@
-      )
-    }
-    build() {
-      if [ -e "$1" ]
-      then echo "[$triple] Exists: $1"
-      else
-        [ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
-        crossc -o "/src/$1" "${@:2}"
-        sudo chown "$USER" "$1"
-        echo -n "[$triple] Built: " ; file "$1"
-      fi
-    }
-    echo "$@" | grep -q -- --target && { echo "$@" | grep -q -- "--target-$triple" || continue ; }
-    echo "$@" | grep -q -- --clean && rm -rf "out/$triple"
-    build "out/$triple/libwatcher-c.so" -shared -fPIC /src/watcher-c/src/watcher-c.cpp
-    build "out/$triple/watcher" /src/src/wtr/watcher/main.cpp
-    build "out/$triple/tw" /src/src/wtr/tiny_watcher/main.cpp
-    [ -e "out/$triple/libwatcher-c.so.$version" ] || cp "out/$triple/libwatcher-c.so" "out/$triple/libwatcher-c.so.$version"
-    [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
-    python3 tool/shasum.py "out/$triple" mk
-  done <<EOF
-  aarch64-unknown-linux-gnu aarch64-linux-gnu
-  armv7-unknown-linux-gnueabihf arm-linux-gnueabihf
-  x86_64-unknown-linux-gnu x86_64-linux-gnu
-  aarch64-unknown-linux-musl aarch64-linux-musl
-  armv7-unknown-linux-musleabihf arm-linux-musleabihf
-  x86_64-unknown-linux-musl x86_64-linux-musl
-EOF
-}
-macos-cross() {
-  case "$(uname -m)" in
-    arm64) triple=aarch64-apple-darwin ;;
-    *) echo "Unsupported architecture: $(uname -m)" ; exit 1 ;;
-  esac
-  cc() {
-    (
-      [ "$verbose" = true ] && set -x
-      c++ \
-        -target "$triple" \
+linux-cross-cc() {
+  if ! which docker &> /dev/null
+  then echo "[$triple] Unsupported: Docker not found" ; return 1
+  fi
+  echo "$@" | grep -q -- --supported && return 0
+  (
+    img=wlinkmeyer/$(uname -m)-cross
+    [ "$verbose" = true ] && set -x
+    docker run -v "$PWD:/src" --rm -w /src "$img" \
+      "${toolchain_name}-g++" \
+        --sysroot "/etc/sysroots/$triple" \
+        -I "/usr/include/$toolchain_name" \
+        -I "/etc/sysroots/$triple/usr/include" \
+        -I "/etc/sysroots/$triple/usr/include/c++/12" \
+        -I "/etc/sysroots/$triple/usr/include/$toolchain_name" \
+        -I "/etc/sysroots/$triple/usr/include/$toolchain_name/c++/12" \
         -I watcher-c/include \
         -I include \
         -std=c++17 \
         -fno-exceptions \
         -fno-rtti \
+        -fexpensive-optimizations \
         -fno-omit-frame-pointer \
         -fstrict-enums \
         -fstrict-overflow \
         -fstrict-aliasing \
         -fstack-protector-strong \
         -Os \
-        -framework CoreFoundation \
-        -framework CoreServices \
         $@
-    )
-  }
-  build() {
-    if [ -e "$1" ]
-    then echo "[$triple] Exists: $1"
-    else
-      [ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
-      cc -o "$1" "${@:2}"
-      echo -n "[$triple] Built: " ; file "$1"
+  )
+}
+macos-cc() {
+  if ! uname | grep -q Darwin
+  then echo "[$triple] Unsupported: Not on macOS" ; return 1
+  fi
+  echo "$@" | grep -q -- --supported && return 0
+  (
+    [ "$verbose" = true ] && set -x
+    c++ \
+      -target "$triple" \
+      -I watcher-c/include \
+      -I include \
+      -std=c++17 \
+      -fno-exceptions \
+      -fno-rtti \
+      -fno-omit-frame-pointer \
+      -fstrict-enums \
+      -fstrict-overflow \
+      -fstrict-aliasing \
+      -fstack-protector-strong \
+      -Os \
+      -framework CoreFoundation \
+      -framework CoreServices \
+      $@
+  )
+}
+windows-cc() {
+  if ! uname | grep -q MINGW
+  then echo "[$triple] Unsupported: Not on Windows" ; return 1
+  fi
+  echo "$@" | grep -q -- --supported && return 0
+  (
+    [ "$verbose" = true ] && set -x
+    clang++ \
+      -target "$triple" \
+      -I watcher-c/include \
+      -I include \
+      -std=c++17 \
+      -fno-rtti \
+      -fno-omit-frame-pointer \
+      -fstrict-enums \
+      -fstrict-overflow \
+      -fstrict-aliasing \
+      -fstack-protector-strong \
+      -Os \
+      $@
+  )
+}
+build() {
+  polycc() {
+    if echo "$triple" | grep -q apple
+    then macos-cc -o "$artifact" "${@:3}"
+    elif echo "$triple" | grep -q windows
+    then windows-cc -o "$artifact" "${@:3}"
+    else linux-cross-cc -o "$artifact" "${@:3}"
     fi
   }
-  echo "$@" | grep -q -- --target && { echo "$@" | grep -q -- "--target-$triple" || return ; }
-  echo "$@" | grep -q -- --clean && rm -rf "out/$triple"
-  build "out/$triple/libwatcher-c.so" -shared -fPIC watcher-c/src/watcher-c.cpp
-  build "out/$triple/watcher" src/wtr/watcher/main.cpp
-  build "out/$triple/tw" src/wtr/tiny_watcher/main.cpp
-  [ -e "out/$triple/libwatcher-c.so.$version" ] || cp "out/$triple/libwatcher-c.so" "out/$triple/libwatcher-c.so.$version"
-  [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
-  python3 tool/shasum.py "out/$triple" mk
+  triple=$1
+  artifact=$2
+  if echo "$@" | grep -q -- --supported
+  then polycc --supported
+  else
+    if [ -e "$artifact" ]
+    then echo "[$triple] Exists: $artifact"
+    else
+      [ -d "$(dirname "$artifact")" ] || mkdir -p "$(dirname "$artifact")"
+      polycc -o "$artifact" "${@:3}"
+      echo "$triple" | grep -q windows || sudo chown "$USER" "$artifact"
+      echo -n "[$triple] Built: " ; file "$artifact"
+    fi
+  fi
 }
-linux-cross "$@"
-if uname | grep -q Darwin
-then macos-cross "$@"
-fi
+while read -r triple toolchain_name
+do
+  echo "$@" | grep -q -- --target && { echo "$@" | grep -q -- "--target-$triple" || continue ; }
+  echo "$@" | grep -q -- --clean && rm -rf "out/$triple"
+  case "$triple" in
+    *-windows-*) so=dll ;;
+    *) so=so ;;
+  esac
+  if build "$triple" --supported
+  then
+    if echo "$triple" | grep -q -- windows
+    then build "$triple" "out/$triple/libwatcher-c.$so" -shared watcher-c/src/watcher-c.cpp
+    else build "$triple" "out/$triple/libwatcher-c.$so" -shared -fPIC watcher-c/src/watcher-c.cpp
+    fi
+    build "$triple" "out/$triple/watcher" src/wtr/watcher/main.cpp
+    build "$triple" "out/$triple/tw" src/wtr/tiny_watcher/main.cpp
+    [ -e "out/$triple/libwatcher-c.$so.$version" ] || cp "out/$triple/libwatcher-c.$so" "out/$triple/libwatcher-c.$so.$version"
+    [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
+    [ -f "out/$triple/watcher-c.h" ] || cp watcher-c/include/wtr/watcher-c.h "out/$triple/watcher-c.h"
+    python3 tool/shasum.py "out/$triple" mk
+  fi
+done <<EOF
+aarch64-unknown-linux-gnu aarch64-linux-gnu
+armv7-unknown-linux-gnueabihf arm-linux-gnueabihf
+x86_64-unknown-linux-gnu x86_64-linux-gnu
+aarch64-unknown-linux-musl aarch64-linux-musl
+armv7-unknown-linux-musleabihf arm-linux-musleabihf
+x86_64-unknown-linux-musl x86_64-linux-musl
+aarch64-apple-darwin nothing
+x86_64-pc-windows-gnu nothing
+x86_64-pc-windows-msvc nothing
+EOF

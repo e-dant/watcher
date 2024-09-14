@@ -69,17 +69,16 @@ def _main() -> None:
         sys.exit(1)
     path = sys.argv[1]
     op = sys.argv[2] if len(sys.argv) > 2 else "show"
-    match op:
-        case "mk":
-            mk_dot_sha256sums(path)
-        case "rm":
-            rm_dot_sha256sums(path)
-        case "show":
-            for file, shasum in sha256sum_tree(path).items():
-                print(f"{file}: {shasum}")
-        case _:
-            print("Invalid operation. Use mk, rm, or show.")
-            sys.exit(1)
+    if op == "mk":
+        mk_dot_sha256sums(path)
+    elif op == "rm":
+        rm_dot_sha256sums(path)
+    elif op == "show":
+        for file, shasum in sha256sum_tree(path).items():
+            print(f"{file}: {shasum}")
+    else:
+        print("Invalid operation. Use mk, rm, or show.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
