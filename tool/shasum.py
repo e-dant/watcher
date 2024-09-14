@@ -23,14 +23,22 @@ def sha256sum_tree(path) -> dict:
     """
     Similar to mk_dot_sha256sums, but returns a mapping of
     file paths to their shasums, not file path.sha256sum to shasums.
+    Skips already existing .sha256sum files, and files that already
+    have .sha256sum counterparts.
     """
     if os.path.isfile(path):
-        return {path: sha256sum(path)}
-    tree = {}
-    for root, dirs, files in os.walk(path):
-        for p in dirs + files:
-            tree.update(sha256sum_tree(os.path.join(root, p)))
-    return tree
+        if path.endswith(".sha256sum"):
+            return {}
+        elif os.path.exists(f"{path}.sha256sum"):
+            return {}
+        else:
+            return {path: sha256sum(path)}
+    else:
+        tree = {}
+        for root, dirs, files in os.walk(path):
+            for p in dirs + files:
+                tree.update(sha256sum_tree(os.path.join(root, p)))
+        return tree
 
 
 def mk_dot_sha256sums(path) -> None:

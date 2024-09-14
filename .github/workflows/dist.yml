@@ -1,0 +1,51 @@
+name: Dist
+
+on:
+  push:
+    branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
+
+jobs:
+  linux-dist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: tool/cross --target-x86_64-unknown-linux-musl --target-x86_64-unknown-linux-gnu --target-x86_64-apple-darwin --target-armv7-unknown-linux-musleabihf --target-armv7-unknown-linux-gnueabihf --target-aarch64-unknown-linux-musl --target-aarch64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: x86_64-unknown-linux-musl
+          path: out/x86_64-unknown-linux-musl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: x86_64-unknown-linux-gnu
+          path: out/x86_64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: armv7-unknown-linux-musleabihf
+          path: out/armv7-unknown-linux-musleabihf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: armv7-unknown-linux-gnueabihf
+          path: out/armv7-unknown-linux-gnueabihf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aarch64-unknown-linux-musl
+          path: out/aarch64-unknown-linux-musl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aarch64-unknown-linux-gnu
+          path: out/aarch64-unknown-linux-gnu
+  macos-dist:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: tool/cross --target-aarch64-apple-darwin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aarch64-apple-darwin
+          path: out/aarch64-apple-darwin
