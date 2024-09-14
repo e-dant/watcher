@@ -25,7 +25,7 @@ extern "C" {
       Just here conventionally. This buffer should be exactly 4096, also conventionally.
 */
 static int utf16_to_utf8(wchar_t const* utf16_buf, char* utf8_buf, int utf8_buf_len) {
-  if (!utf16_buf || !utf8_buf) return;
+  if (!utf16_buf || !utf8_buf) return -1;
   static int const utf16_buf_len = -1;
   int wrote = WideCharToMultiByte(CP_UTF8, 0, utf16_buf, utf16_buf_len, utf8_buf, utf8_buf_len, NULL, NULL);
   if (wrote <= 0) {
