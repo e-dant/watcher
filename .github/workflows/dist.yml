@@ -28,24 +28,12 @@ jobs:
         run: tool/cross --target-${{matrix.triple}}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.triple}}
-          path: out/${{matrix.triple}}
-      - uses: actions/upload-artifact@v4
-        with:
           name: ${{matrix.triple}}.tar
           path: out/${{matrix.triple}}.tar
       - uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.triple}}.tar.sha256sum
           path: out/${{matrix.triple}}.tar.sha256sum
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz
-          path: out/${{matrix.triple}}.tar.gz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz.sha256sum
-          path: out/${{matrix.triple}}.tar.gz.sha256sum
   apple-dist:
     runs-on: ${{matrix.os}}
     strategy:
@@ -62,30 +50,18 @@ jobs:
         run: tool/cross --target-${{matrix.triple}}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.triple}}
-          path: out/${{matrix.triple}}
-      - uses: actions/upload-artifact@v4
-        with:
           name: ${{matrix.triple}}.tar
           path: out/${{matrix.triple}}.tar
       - uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.triple}}.tar.sha256sum
           path: out/${{matrix.triple}}.tar.sha256sum
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz
-          path: out/${{matrix.triple}}.tar.gz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz.sha256sum
-          path: out/${{matrix.triple}}.tar.gz.sha256sum
   windows-dist:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
         os:
-          - windows-2022
+          - windows-latest
         triple:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
@@ -97,21 +73,9 @@ jobs:
         run: tool/cross --target-${{matrix.triple}}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.triple}}
-          path: out/${{matrix.triple}}
-      - uses: actions/upload-artifact@v4
-        with:
           name: ${{matrix.triple}}.tar
           path: out/${{matrix.triple}}.tar
       - uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.triple}}.tar.sha256sum
           path: out/${{matrix.triple}}.tar.sha256sum
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz
-          path: out/${{matrix.triple}}.tar.gz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.triple}}.tar.gz.sha256sum
-          path: out/${{matrix.triple}}.tar.gz.sha256sum
