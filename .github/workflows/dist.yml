@@ -7,57 +7,111 @@ on:
     branches: [ release, next ]
 
 jobs:
-  linux:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - run: tool/cross --target-x86_64-unknown-linux-musl --target-x86_64-unknown-linux-gnu --target-x86_64-apple-darwin --target-armv7-unknown-linux-musleabihf --target-armv7-unknown-linux-gnueabihf --target-aarch64-unknown-linux-musl --target-aarch64-unknown-linux-gnu
-      - uses: actions/upload-artifact@v4
-        with:
-          name: x86_64-unknown-linux-musl
-          path: out/x86_64-unknown-linux-musl
-      - uses: actions/upload-artifact@v4
-        with:
-          name: x86_64-unknown-linux-gnu
-          path: out/x86_64-unknown-linux-gnu
-      - uses: actions/upload-artifact@v4
-        with:
-          name: armv7-unknown-linux-musleabihf
-          path: out/armv7-unknown-linux-musleabihf
-      - uses: actions/upload-artifact@v4
-        with:
-          name: armv7-unknown-linux-gnueabihf
-          path: out/armv7-unknown-linux-gnueabihf
-      - uses: actions/upload-artifact@v4
-        with:
-          name: aarch64-unknown-linux-musl
-          path: out/aarch64-unknown-linux-musl
-      - uses: actions/upload-artifact@v4
-        with:
-          name: aarch64-unknown-linux-gnu
-          path: out/aarch64-unknown-linux-gnu
-  apple:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - run: tool/cross --target-aarch64-apple-darwin
-      - uses: actions/upload-artifact@v4
-        with:
-          name: aarch64-apple-darwin
-          path: out/aarch64-apple-darwin
-  windows:
-    runs-on: windows-2022
+  linux-dist:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        triple:
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl 
+          - armv7-unknown-linux-gnueabihf
+          - armv7-unknown-linux-musleabihf
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - shell: bash
-        run: tool/cross --target-x86_64-pc-windows-msvc
+        run: tool/cross --target-${{matrix.triple}}
       - uses: actions/upload-artifact@v4
         with:
-          name: x86_64-pc-windows-msvc
-          path: out/x86_64-pc-windows-msvc
+          name: ${{matrix.triple}}
+          path: out/${{matrix.triple}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar
+          path: out/${{matrix.triple}}.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.sha256sum
+          path: out/${{matrix.triple}}.tar.sha256sum
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz
+          path: out/${{matrix.triple}}.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz.sha256sum
+          path: out/${{matrix.triple}}.tar.gz.sha256sum
+  apple-dist:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+        triple:
+          - aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - shell: bash
+        run: tool/cross --target-${{matrix.triple}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}
+          path: out/${{matrix.triple}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar
+          path: out/${{matrix.triple}}.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.sha256sum
+          path: out/${{matrix.triple}}.tar.sha256sum
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz
+          path: out/${{matrix.triple}}.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz.sha256sum
+          path: out/${{matrix.triple}}.tar.gz.sha256sum
+  windows-dist:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os:
+          - windows-2022
+        triple:
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - shell: bash
+        run: tool/cross --target-${{matrix.triple}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}
+          path: out/${{matrix.triple}}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar
+          path: out/${{matrix.triple}}.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.sha256sum
+          path: out/${{matrix.triple}}.tar.sha256sum
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz
+          path: out/${{matrix.triple}}.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.triple}}.tar.gz.sha256sum
+          path: out/${{matrix.triple}}.tar.gz.sha256sum

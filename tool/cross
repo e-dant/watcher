@@ -6,6 +6,8 @@ verbose=$(echo "$@" | grep -q -- --verbose && echo true || echo false)
 linux-cross-cc() {
   if ! which docker &> /dev/null
   then echo "[$triple] Unsupported: Docker not found" ; return 1
+  elif uname | grep -q MINGW
+  then echo "[$triple] Unsupported: Host is Windows" ; return 1
   fi
   echo "$@" | grep -q -- --supported && return 0
   (
@@ -125,15 +127,21 @@ do
     [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
     [ -f "out/$triple/watcher-c.h" ] || cp watcher-c/include/wtr/watcher-c.h "out/$triple/watcher-c.h"
     python3 tool/shasum.py "out/$triple" mk
+    [ -e "out/$triple.tar" ] || (cd out && tar -cf "$triple.tar" "$triple")
+    python3 tool/shasum.py "out/$triple.tar" mk
+    [ -e "out/$triple.tar.gz" ] || gzip -c "out/$triple.tar" > "out/$triple.tar.gz"
+    python3 tool/shasum.py "out/$triple.tar.gz" mk
   fi
 done <<EOF
-aarch64-unknown-linux-gnu aarch64-linux-gnu
-armv7-unknown-linux-gnueabihf arm-linux-gnueabihf
-x86_64-unknown-linux-gnu x86_64-linux-gnu
-aarch64-unknown-linux-musl aarch64-linux-musl
-armv7-unknown-linux-musleabihf arm-linux-musleabihf
-x86_64-unknown-linux-musl x86_64-linux-musl
 aarch64-apple-darwin nothing
+aarch64-pc-windows-gnu nothing
+aarch64-pc-windows-msvc nothing
+aarch64-unknown-linux-gnu aarch64-linux-gnu
+aarch64-unknown-linux-musl aarch64-linux-musl
+armv7-unknown-linux-gnueabihf arm-linux-gnueabihf
+armv7-unknown-linux-musleabihf arm-linux-musleabihf
 x86_64-pc-windows-gnu nothing
 x86_64-pc-windows-msvc nothing
+x86_64-unknown-linux-gnu x86_64-linux-gnu
+x86_64-unknown-linux-musl x86_64-linux-musl
 EOF
