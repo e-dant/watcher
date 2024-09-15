@@ -59,6 +59,7 @@ macos-cc() {
       -framework CoreFoundation \
       -framework CoreServices \
       $@
+    install_name_tool -add_rpath /usr/local/lib "$artifact"
   )
 }
 windows-cc() {
