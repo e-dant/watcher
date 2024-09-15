@@ -152,7 +152,7 @@ do
   then echo "$triple"
   elif echo "$@" | grep -q -- --list-supported-targets
   then build "$triple" --supported &> /dev/null && echo "$triple"
-  elif echo "$@" | grep -q -- --target && echo "$@" | grep -q -- "--target-$triple"
+  elif echo "$@" | grep -q -- --target && ! echo "$@" | grep -q -- "--target-$triple"
   then continue
   else
     echo "$@" | grep -q -- --clean && rm -rf "out/$triple"
