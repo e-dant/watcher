@@ -19,17 +19,20 @@ def sha256sum(file) -> str:
     return h.hexdigest()
 
 
-def sha256sum_tree(path) -> dict:
+def sha256sum_tree(path, skip_files_with_sha256sum_counterparts: bool = True) -> dict:
     """
     Similar to mk_dot_sha256sums, but returns a mapping of
     file paths to their shasums, not file path.sha256sum to shasums.
-    Skips already existing .sha256sum files, and files that already
-    have .sha256sum counterparts.
+    Skips already existing .sha256sum files, and optionally skip
+    files that already have .sha256sum counterparts.
     """
     if os.path.isfile(path):
         if path.endswith(".sha256sum"):
             return {}
-        elif os.path.exists(f"{path}.sha256sum"):
+        elif (
+            os.path.exists(f"{path}.sha256sum")
+            and skip_files_with_sha256sum_counterparts
+        ):
             return {}
         else:
             return {path: sha256sum(path)}
@@ -37,7 +40,11 @@ def sha256sum_tree(path) -> dict:
         tree = {}
         for root, dirs, files in os.walk(path):
             for p in dirs + files:
-                tree.update(sha256sum_tree(os.path.join(root, p)))
+                subpath = os.path.join(root, p)
+                subtree = sha256sum_tree(
+                    subpath, skip_files_with_sha256sum_counterparts
+                )
+                tree.update(subtree)
         return tree
 
 
@@ -74,7 +81,8 @@ def _main() -> None:
     elif op == "rm":
         rm_dot_sha256sums(path)
     elif op == "show":
-        for file, shasum in sha256sum_tree(path).items():
+        tree = sha256sum_tree(path, skip_files_with_sha256sum_counterparts=False)
+        for file, shasum in tree.items():
             print(f"{file}: {shasum}")
     else:
         print("Invalid operation. Use mk, rm, or show.")
