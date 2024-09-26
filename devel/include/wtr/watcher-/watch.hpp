@@ -88,7 +88,7 @@ public:
 
   inline auto close() noexcept -> bool
   {
-    return this->living.release() != sb::state::pending
+    return this->living.release() != sb::state::error
         && this->watching.valid() && this->watching.get();
   };
 
