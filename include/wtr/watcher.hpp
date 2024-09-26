@@ -771,8 +771,8 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
-  -> bool
+inline auto
+close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 {
   if (! stream) return false;
   auto _ = std::scoped_lock{*ctx.mtx};
@@ -1123,8 +1123,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
-  -> std::string
+inline auto
+pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
@@ -1190,9 +1190,8 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                  : ev_et::other;
   auto isfromto = [et](unsigned a, unsigned b) -> bool
   { return et == ev_et::rename && a & FAN_MOVED_FROM && b & FAN_MOVED_TO; };
-  auto one = [&](auto* m) -> Parsed {
-    return {ev(pathof(m, ec), et, pt), n, m->event_len};
-  };
+  auto one = [&](auto* m) -> Parsed
+  { return {ev(pathof(m, ec), et, pt), n, m->event_len}; };
   auto assoc = [&](auto* m, auto* n) -> Parsed
   {
     auto nn = peek(n, read_len);
@@ -1477,12 +1476,10 @@ inline auto parse_ev = [](
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed {
-    return {ev(pathof(a), et, pt), next};
-  };
-  auto assoc = [&](auto* a, auto* b) -> parsed {
-    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
-  };
+  auto one = [&](auto* a, auto* next) -> parsed
+  { return {ev(pathof(a), et, pt), next}; };
+  auto assoc = [&](auto* a, auto* b) -> parsed
+  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
@@ -2250,30 +2247,34 @@ public:
     std::filesystem::path const& path,
     event::callback const& callback) noexcept
       : watching{std::async(
-        std::launch::async,
-        [this, path, callback]
-        {
-          using ::detail::wtr::watcher::adapter::watch;
-          auto ec = std::error_code{};
-          auto abs_path = std::filesystem::absolute(path, ec);
-          auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
-                     && ! ec && this->living.state() == sb::state::pending;
-          auto live_msg =
-            (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
-          callback(
-            {live_msg, event::effect_type::create, event::path_type::watcher});
-          auto post_ok = pre_ok && watch(abs_path, callback, this->living);
-          auto die_msg =
-            (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
-          callback(
-            {die_msg, event::effect_type::destroy, event::path_type::watcher});
-          return pre_ok && post_ok;
-        })}
+          std::launch::async,
+          [this, path, callback]
+          {
+            using ::detail::wtr::watcher::adapter::watch;
+            auto ec = std::error_code{};
+            auto abs_path = std::filesystem::absolute(path, ec);
+            auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
+                       && ! ec && this->living.state() == sb::state::pending;
+            auto live_msg =
+              (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
+            callback(
+              {live_msg,
+               event::effect_type::create,
+               event::path_type::watcher});
+            auto post_ok = pre_ok && watch(abs_path, callback, this->living);
+            auto die_msg =
+              (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
+            callback(
+              {die_msg,
+               event::effect_type::destroy,
+               event::path_type::watcher});
+            return pre_ok && post_ok;
+          })}
   {}
 
   inline auto close() noexcept -> bool
   {
-    return this->living.release() != sb::state::pending
+    return this->living.release() != sb::state::error
         && this->watching.valid() && this->watching.get();
   };
 
