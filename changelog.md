@@ -2,6 +2,30 @@
 
 ## 0.12.0
 
+Various documentation improvements in the readme, especially around new features.
+
+Added (heavily optimized) builds in CI for our "important" artifacts:
+- The "minimal" CLI: `tw`
+- The "full" CLI: `wtr.watcher`
+- The new C (currently built as a shared) library: `watcher.so.<version>` and `watcher-c.h`
+- Python wheels
+
+These artifacts are available for a wide range of platforms. The CLI and C
+shared library are built for these triplets:
+- `aarch64-apple-darwin`
+- `aarch64-pc-windows-msvc`
+- `aarch64-unknown-linux-gnu`
+- `aarch64-unknown-linux-musl`
+- `armv7-unknown-linux-gnueabihf`
+- `armv7-unknown-linux-musleabihf`
+- `x86_64-pc-windows-msvc`
+- `x86_64-unknown-linux-gnu`
+- `x86_64-unknown-linux-musl`
+
+The Python wheels are built for these platforms Linux and Apple on Python 3.8 and up.
+On Linux, the musl and gnu libcs, and the architectures `x86_64` and `aarch64`, are supported. 
+On Apple, only `aarch64` is supported (because of a bug on intel runners; see the workflow).
+
 Added support for using this project in C, Python and Node.js:
 - C support as a shared or static library (one with a C-ABI)
 - Node.js support as an NPM package for a "native addon"
