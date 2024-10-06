@@ -9,6 +9,9 @@
 
 ## Quick Start
 
+<details>
+<summary>C++</summary>
+
 ```cpp
 #include "wtr/watcher.hpp"
 #include <iostream>
@@ -54,6 +57,63 @@ eval c++ -std=c++17 -Iinclude src/wtr/tiny_watcher/main.cpp -o watcher $PLATFORM
 # Run
 ./watcher
 ```
+</details>
+
+<details>
+<summary>C</summary>
+
+```c
+#include "wtr/watcher-c.h"
+#include <stdio.h>
+
+void callback(struct wtr_watcher_event event, void* _ctx) {
+    printf(
+        "path name: %s, effect type: %d path type: %d, effect time: %lld, associated path name: %s\n",
+        event.path_name,
+        event.effect_type,
+        event.path_type,
+        event.effect_time,
+        event.associated_path_name ? event.associated_path_name : ""
+    );
+}
+
+int main() {
+    void* watcher = wtr_watcher_open("/", callback, NULL);
+    getchar();
+    return ! wtr_watcher_close(watcher);
+}
+```
+</details>
+
+<details>
+<summary>Python</summary>
+
+```python
+from watcher import Watch
+
+with Watch("/", print):
+    input()
+```
+</details>
+
+<details>
+<summary>Node.js/TypeScript/JavaScript</summary>
+
+```javascript
+import * as watcher from 'watcher';
+
+var w = watcher.watch('/', (event) => {
+  console.log(event);
+});
+
+process.stdin.on('data', () => {
+  w.close();
+  process.exit();
+});
+```
+</details>
+
+In all cases, the output will be similar to this:
 
 ```
 modify file /home/e-dant/dev/watcher/.git/refs/heads/next.lock
@@ -309,6 +369,7 @@ cd out
 
 <details>
 <summary>"Access" events are ignored</summary>
+
 Watchers on all platforms intentionally ignore
 modification events which only change the acess
 time on a file or directory.
