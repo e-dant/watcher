@@ -191,46 +191,48 @@ is a filesystem.
 
 The important pieces are the (header-only) library and the (optional) CLI program.
 
-- Library: `include/wtr/watcher.hpp`. Include this to use *Watcher* in your project.
-- Program: `src/wtr/watcher/main.cpp`. Build this to use *Watcher* from the command line.
+- C++ Header-Only Library: `include/wtr/watcher.hpp`.
+  Include this to use *Watcher* in your C++ project. Copying this into your project, and
+  including it as `#include "wtr/watcher.hpp"` (or similar) is sufficient to get up and
+  running in this language. Some extra documentation and high-level library internals can
+  be found in the [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/event.hpp)
+  and [watch](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp) headers.
+- C Library: `watcher-c`.
+  Build this to use *Watcher* from C or through an FFI in other languages.
+- Full CLI Program: `src/wtr/watcher/main.cpp`.
+  Build this to use *Watcher* from the command line. The output is an exhaustive JSON stream.
+- Minimal CLI Program: `src/wtr/tiny_watcher/main.cpp`.
+  A very minimal, more human-readable, CLI program. The source for this is almost identical
+  to the example usage for C++.
 
 A directory tree is [in the notes below](https://github.com/e-dant/watcher/tree/release#namespaces-and-the-directory-tree).
 
 ### The Library
 
-Copy the `include` directory into your project. Include `watcher` like this:
-
-```cpp
-#include "wtr/watcher.hpp"
-```
-
-The [event](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/event.hpp)
-and [watch](https://github.com/e-dant/watcher/blob/release/devel/include/wtr/watcher-/watch.hpp) headers
-are short and approachable. (You only ever need to include `wtr/watcher.hpp`.)
-
-There are two things the user needs:
-  - The `watch` function
-  - The `event` object
+The two fundamental building blocks here are:
+  - The `watch` function or class (depending on the language)
+  - The `event` object (or similarly named, again depending on the language)
 
 `watch` takes a path, which is a string-like thing, and a
-callback, with is a function-like thing. Passing `watch`
-a character array and a lambda would work well.
+callback, with is a function-like thing. For example, passing
+`watch` a character array and a closure would work well in C++.
 
-Typical use looks like this:
+Typical use looks like this in C++:
 
 ```cpp
 auto watcher = watch(path, [](event ev) { cout << ev; });
 ```
 
-`watch` will happily continue watching until you stop
+Examples for other languages can be found in the [Quick Start](https://github.com/e-dant/watcher/tree/release#quick-start),
+but the pattern is similar.
+
+The watcher will happily continue watching until you stop
 it or it hits an unrecoverable error.
 
 The `event` object is used to pass information about
-filesystem events to the (user-supplied) callback
-given to `watch`.
+filesystem events to the callback given (by you) to `watch`.
 
 The `event` object will contain:
-  - `associated`, another event, associated with this one, such as a renamed-to path. (This is a recursive structure.)
   - `path_name`, which is an absolute path to the event.
   - `path_type`, the type of path. One of:
     - `dir`
@@ -247,6 +249,16 @@ The `event` object will contain:
     - `owner`
     - `other`
   - `effect_time`, the time of the event in nanoseconds since epoch.
+  - `associated` (an event, C++) or `associated_path_name` (all other implementations, a single path name):
+    - For the C++ implementation, this is a recursive structure. Another event, associated with "this" one, is stored here.
+      The only events stored here, currently, are the renamed-to part of rename events.
+    - For all other implementations, this field represents the path name of an associated event.
+    - The implementation in C++, a recursive structure, was chosen to future-proof the library in the event that
+      we need to support other associated events.
+
+(Note that, for JavaScript, we use the camel-case, to be consistent with that language's ecosystem.)
+
+#### State Changes and Special Events
 
 The `watcher` type is special.
 
@@ -254,11 +266,11 @@ Events with this type will include messages from
 the watcher. You may recieve error messages or
 important status updates.
 
-This format was chosen to support asynchronous messages from the
-watcher in a variety of languages.
+This format was chosen to support asynchronous messages
+from the watcher in a generic, portable format.
 
 Two of the most important "watcher" events are the
-initial "live" event and the final "die event.
+initial "live" event and the final "die" event.
 
 The message appears prepended to the watched base path.
 
