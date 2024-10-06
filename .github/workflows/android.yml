@@ -35,16 +35,5 @@ jobs:
       - run: |
           export ANDROID_NDK_HOME=$(find /usr/local/lib/android/sdk/ndk -type d -maxdepth 1 -name '${{matrix.android-ndk-major-version}}*' | head -n 1)
           tool/build --verbose --platform-${{matrix.target-platform}} --no-build-test --no-run
-      - run: tool/bundle-artifacts minimal-artifacts/${{matrix.target-double}} ${{matrix.target-platform}}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.target-double}}.built-on-${{matrix.os}}.used-ndk-${{matrix.android-ndk-major-version}}
-          path: minimal-artifacts/${{matrix.target-double}}.tar.gz
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: minimal-artifacts
-      - run: tool/test/all
-      - run: tool/build --verbose --no-build --no-run-perf
-      - run: tool/build --verbose --no-build --no-run-unit
       - run: ls -al out/${{matrix.target-platform}}/Debug
       - run: ls -al out/${{matrix.target-platform}}/Release

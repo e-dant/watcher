@@ -52,17 +52,6 @@ jobs:
           cmake --build out/${{matrix.target-platform}} --target wtr.test_watcher --config Debug
           cmake --build out/${{matrix.target-platform}} --target wtr.test_watcher --config Release
       - shell: bash
-        run: tool/build --show-artifacts
-      - shell: bash
-        run: tool/bundle-artifacts minimal-artifacts/${{matrix.target-double}} ${{matrix.target-platform}}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.target-double}}.built-on-${{matrix.os}}
-          path: minimal-artifacts/${{matrix.target-double}}.tar.gz
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: minimal-artifacts
-      - shell: bash
         env:
           VERBOSE: 1
         run: |
