@@ -3,6 +3,7 @@
 ## 0.12.0
 
 Various documentation improvements in the readme, especially around new features.
+The readme for the C project was contributed by @AlliBalliBaba in #53
 
 Added (heavily optimized) builds in CI for our "important" artifacts:
 - The "minimal" CLI: `tw`
