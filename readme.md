@@ -252,15 +252,40 @@ The `watcher` type is special.
 
 Events with this type will include messages from
 the watcher. You may recieve error messages or
-important status updates, such as when it first
-becomes alive and when it dies.
+important status updates.
+
+This format was chosen to support asynchronous messages from the
+watcher in a variety of languages.
+
+Two of the most important "watcher" events are the
+initial "live" event and the final "die event.
+
+The message appears prepended to the watched base path.
+
+For example, after opening a watcher at `/a/path`, you may receive these
+messages from the watcher:
+- `s/self/live@/a/path`
+- `e/self/die@/a/path`
+
+The messages always begin with either an `s`, indicating a
+successful operation, a `w`, indicating a non-fatal warning,
+or an `e`, indicating a fatal error.
+
+Importantly, closing the watcher will always produce an error if
+- The `self/live` message has not yet been sent; or, in other words,
+  if the watcher has not fully started. In this case, the watcher
+  will immediately close after fully opening and report an error
+  in all calls to close.
+- Any repeated calls to close the watcher. In other words, it is
+  considered an error to close a watcher which has already been
+  closed, or which does not exist. For the C API, this is also true
+  for passing a null object to close.
 
 The last event will always be a `destroy` event from the watcher.
-You can parse it like this:
+You can parse it like this, for some event `ev`:
 
 ```cpp
-bool is_last = ev.path_type == path_type::watcher
-            && ev.effect_type == effect_type::destroy;
+ev.path_type == path_type::watcher && ev.effect_type == effect_type::destroy;
 ```
 
 Happy hacking.
