@@ -74,38 +74,19 @@ void do_poll_read_loop(int read_fd)
 int main(int argc, char** argv)
 {
   char path[4096];
-  char op[32];
   memset(path, 0, sizeof(path));
-  memset(op, 0, sizeof(op));
   bool badargs = argc != 2 && argc != 3;
   bool ishelp = ! badargs && strcmp(argv[1], "-h") == 0;
   if (badargs || ishelp) {
-    fprintf(stderr, "Usage: %s <op> [path]\n", argv[0]);
-    fprintf(stderr, "  op: pipe, cb-with-ctx\n");
+    fprintf(stderr, "Usage: %s [path]\n", argv[0]);
     fprintf(stderr, "  path: path to watch\n");
     return 1;
   }
-  if (argc >= 2) strncpy(op, argv[1], sizeof(op) - 1);
   if (argc == 3) strncpy(path, argv[2], sizeof(path) - 1);
-  if (strcmp(op, "cb-with-ctx") == 0) {
-    int count = 0;
-    void* watcher = wtr_watcher_open(path, callback, &count);
-    if (! watcher) return 1;
-    getchar();
-    if (! wtr_watcher_close(watcher)) return 1;
-    return 0;
-  } else if (strcmp(op, "pipe") == 0) {
-    int read_fd = -1;
-    int write_fd = -1;
-    void* watcher = wtr_watcher_open_pipe(path, &read_fd, &write_fd);
-    if (! watcher) return 1;
-    if (read_fd < 0) return 1;
-    if (write_fd < 0) return 1;
-    do_poll_read_loop(read_fd);
-    if (! wtr_watcher_close_pipe(watcher, read_fd, write_fd)) return 1;
-    return 0;
-  } else {
-    fprintf(stderr, "Unknown op: %s\n", op);
-    return 1;
-  }
+  int count = 0;
+  void* watcher = wtr_watcher_open(path, callback, &count);
+  if (! watcher) return 1;
+  getchar();
+  if (! wtr_watcher_close(watcher)) return 1;
+  return 0;
 }

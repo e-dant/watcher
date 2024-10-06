@@ -7,11 +7,6 @@
 #define PATH_BUF_LEN 4096
 #include <windows.h>
 #include <stringapiset.h>
-#else
-// We support a pipe-based API for non-Windows platforms.
-#include <unistd.h>
-#include <fcntl.h>
-#include <string>
 #endif
 
 extern "C" {
@@ -78,58 +73,5 @@ bool wtr_watcher_close(void* watcher)
   delete (wtr::watcher::watch*)watcher;
   return true;
 }
-
-#ifdef _WIN32
-void* wtr_watcher_open_pipe(char const* const path, int* read_fd, int* write_fd)
-{
-  return NULL;
-}
-
-bool wtr_watcher_close_pipe(void* watcher, int read_fd, int write_fd)
-{
-  return false;
-}
-#else
-void* wtr_watcher_open_pipe(char const* const path, int* read_fd, int* write_fd)
-{
-  if (! path) { fprintf(stderr, "Path is null.\n"); return NULL; }
-  if (! read_fd) { fprintf(stderr, "Read fd is null.\n"); return NULL; }
-  if (! write_fd) { fprintf(stderr, "Write fd is null.\n"); return NULL; }
-  if (*read_fd > 0) { fprintf(stderr, "Read fd is already open.\n"); return NULL; }
-  if (*write_fd > 0) { fprintf(stderr, "Write fd is already open.\n"); return NULL; }
-  int pipe_fds[2];
-  memset(pipe_fds, 0, sizeof(pipe_fds));
-  if (pipe(pipe_fds) == -1) { perror("pipe"); return NULL; }
-  if (pipe_fds[0] <= 0) { fprintf(stderr, "Read fd is invalid.\n"); return NULL; }
-  if (pipe_fds[1] <= 0) { fprintf(stderr, "Write fd is invalid.\n"); return NULL; }
-  fcntl(pipe_fds[0], F_SETFL, O_NONBLOCK);
-  fcntl(pipe_fds[1], F_SETFL, O_NONBLOCK);
-  *read_fd = pipe_fds[0];
-  *write_fd = pipe_fds[1];
-  auto json_serialize_event_to_pipe = [pipe_fds](wtr::watcher::event event) {
-    auto json = wtr::to<std::string>(event) + "\n";
-    write(pipe_fds[1], json.c_str(), json.size());
-  };
-  auto w = new wtr::watcher::watch(path, json_serialize_event_to_pipe);
-  if (! w) {
-    perror("new wtr::watcher::watch");
-    close(pipe_fds[0]);
-    close(pipe_fds[1]);
-    return NULL;
-  }
-  *read_fd = pipe_fds[0];
-  return (void*)w;
-}
-
-bool wtr_watcher_close_pipe(void* watcher, int read_fd, int write_fd)
-{
-  bool ok = false;
-  ok |= watcher && ((wtr::watcher::watch*)watcher)->close();
-  ok |= write_fd > 0 && close(write_fd);
-  ok |= read_fd > 0 && close(read_fd);
-  if (watcher) delete (wtr::watcher::watch*)watcher;
-  return ok;
-}
-#endif
 
 }  // extern "C"

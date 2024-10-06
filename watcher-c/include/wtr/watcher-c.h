@@ -62,15 +62,6 @@ void* wtr_watcher_open(char const* const path, wtr_watcher_callback callback, vo
 
 bool wtr_watcher_close(void* watcher);
 
-/*  The user, or the language we're working with,
-    might not prefer a callback-style API.
-    We provide a pipe-based API for these cases.
-    Instead of forwarding events to a callback,
-    we write json-serialized events to a pipe. */
-void* wtr_watcher_open_pipe(char const* const path, int* read_fd, int* write_fd);
-
-bool wtr_watcher_close_pipe(void* watcher, int read_fd, int write_fd);
-
 #ifdef __cplusplus
 }
 #endif
