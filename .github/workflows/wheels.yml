@@ -1,4 +1,4 @@
-name: Watcher Py Wheels
+name: Wheels
 
 on:
   push:
@@ -15,7 +15,7 @@ on:
 # - https://cibuildwheel.pypa.io/en/stable/setup
 # - https://github.com/scikit-image/scikit-image/blob/main/.github/workflows/wheels_recipe.yml
 jobs:
-  watcher-py-wheels-linux:
+  wheels-linux:
     name: (x86_64|aarch64)-unknown-linux-(gnu|musl)
     runs-on: ubuntu-latest
     steps:
@@ -32,9 +32,9 @@ jobs:
       - run: python3 tool/shasum.py wheelhouse mk
       - uses: actions/upload-artifact@v4
         with:
-          name: watcher-py-wheels-linux
+          name: wheels-linux
           path: wheelhouse/*
-  watcher-py-wheels-apple:
+  wheels-apple:
     name: aarch64-apple-darwin
     runs-on: macos-latest
     steps:
@@ -50,5 +50,5 @@ jobs:
       - run: python3 tool/shasum.py wheelhouse mk
       - uses: actions/upload-artifact@v4
         with:
-          name: watcher-py-wheels-apple
+          name: wheels-apple
           path: wheelhouse/*
