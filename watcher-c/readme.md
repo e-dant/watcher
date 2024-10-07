@@ -2,19 +2,26 @@
 
 The watcher can also be used from C by including the `watcher-c.h` file on compilation and in your project.
 
-You can cross compile the library via the `watcher-c/cross-compile.sh` script or download the precompiled library from the releases.
+You can cross compile the library via the `watcher-c/cross-compile.sh` script or download the precompiled library from
+the releases.
 
 ### Compiling the library from source
 
 If you want to compile the library yourself you can follow the following example:
 
-First check out the `next` branch, compile a shared `libwatcher-c.so` library with `gcc` and install
-it in the `/usr/local/lib` directory:
+First check out a branch or release, here we'll use the 'next' branch.
+You can then compile the library with meson (or c++, clang, gcc, ...).
 
 ```bash
 curl -L https://github.com/e-dant/watcher/archive/refs/heads/next.tar.gz | tar xz
 cd watcher-next/watcher-c
-gcc -o libwatcher-c.so ./src/watcher-c.cpp -I ./include -I ../include -std=c++17 -O3 -Wall -Wextra -fPIC -shared
+c++ -o libwatcher-c.so ./src/watcher-c.cpp -I ./include -I ../include -std=c++17 -fPIC -shared
+```
+
+This gives us a `libwatcher-c.so` library that we can now install on our system.
+In most container based environments you can just copy the library like this:
+
+```bash
 cp libwatcher-c.so /usr/local/lib/libwatcher-c.so
 ldconfig
 ```
@@ -27,8 +34,5 @@ After installing the library, copy the `watcher-c.h` file to your project and in
 #include "watcher-c.h"
 ```
 
-You will then be able to use the `wtr_watcher_open` and `wtr_watcher_close` functions by linking against the library (`-lwatcher-c`).
-
-`wtr_watcher_close` will always return `false` if the watcher is closed before the first `@live` event has been sent.
-
-Note that the watcher depends on the c++ standard library.
+You will then be able to use the functions 
+[provided by the library](https://github.com/e-dant/watcher?tab=readme-ov-file#the-library).
