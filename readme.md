@@ -1,6 +1,6 @@
 # Watcher
 
-[![Builds for Distribution](https://github.com/e-dant/watcher/actions/workflows/wheels.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/wheels.yml)
+[![Builds for Distribution](https://github.com/e-dant/watcher/actions/workflows/dist.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/dist.yml)
 [![Python Wheels](https://github.com/e-dant/watcher/actions/workflows/wheels.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/wheels.yml)
 [![Conan Center](https://img.shields.io/conan/v/watcher)](https://conan.io/center/recipes/watcher)
 [![CodeQL Tests](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/codeql.yml)
@@ -80,7 +80,7 @@ void callback(struct wtr_watcher_event event, void* _ctx) {
 }
 
 int main() {
-    void* watcher = wtr_watcher_open("/", callback, NULL);
+    void* watcher = wtr_watcher_open(".", callback, NULL);
     getchar();
     return ! wtr_watcher_close(watcher);
 }
@@ -93,18 +93,18 @@ int main() {
 ```python
 from watcher import Watch
 
-with Watch("/", print):
+with Watch(".", print):
     input()
 ```
 </details>
 
 <details>
-<summary>Node.js/TypeScript/JavaScript</summary>
+<summary>Node.js</summary>
 
 ```javascript
 import * as watcher from 'watcher';
 
-var w = watcher.watch('/', (event) => {
+var w = watcher.watch('.', (event) => {
   console.log(event);
 });
 
@@ -122,6 +122,8 @@ modify file /home/e-dant/dev/watcher/.git/refs/heads/next.lock
 rename file /home/e-dant/dev/watcher/.git/refs/heads/next.lock -> /home/e-dant/dev/watcher/.git/refs/heads/next
 create file /home/e-dant/dev/watcher/.git/HEAD.lock
 ```
+
+(Output format depending on the language.)
 
 Enjoy!
 
