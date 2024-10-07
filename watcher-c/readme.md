@@ -11,7 +11,7 @@ If you want to compile the library yourself you can follow the following example
 
 First check out a branch or release, here we'll use the 'next' branch.
 You can then compile the library with meson or a tool of your choice, 
-we will use c++.
+we will use `c++`.
 
 ```bash
 curl -L https://github.com/e-dant/watcher/archive/refs/heads/next.tar.gz | tar xz
@@ -19,7 +19,7 @@ cd watcher-next/watcher-c
 c++ -o libwatcher-c.so ./src/watcher-c.cpp -I ./include -I ../include -std=c++17 -fPIC -shared
 ```
 
-This gives us a `libwatcher-c.so` library that we can now install on our system.
+This gives us a `libwatcher-c.so` library that you can now install on your system.
 In most container based environments you can just copy the library like this:
 
 ```bash
