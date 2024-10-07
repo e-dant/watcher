@@ -115,15 +115,13 @@ process.stdin.on('data', () => {
 ```
 </details>
 
-In all cases, the output will be similar to this:
+The output of each above will be something this, depending on the format:
 
 ```
 modify file /home/e-dant/dev/watcher/.git/refs/heads/next.lock
 rename file /home/e-dant/dev/watcher/.git/refs/heads/next.lock -> /home/e-dant/dev/watcher/.git/refs/heads/next
 create file /home/e-dant/dev/watcher/.git/HEAD.lock
 ```
-
-(Output format depending on the language.)
 
 Enjoy!
 
