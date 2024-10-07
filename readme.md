@@ -217,14 +217,8 @@ The two fundamental building blocks here are:
 callback, with is a function-like thing. For example, passing
 `watch` a character array and a closure would work well in C++.
 
-Typical use looks like this in C++:
-
-```cpp
-auto watcher = watch(path, [](event ev) { cout << ev; });
-```
-
-Examples for other languages can be found in the [Quick Start](https://github.com/e-dant/watcher/tree/release#quick-start),
-but the pattern is similar.
+Examples for a variety of languages can be found in the [Quick Start](https://github.com/e-dant/watcher/tree/release#quick-start).
+The API is relatively consistent across languages.
 
 The watcher will happily continue watching until you stop
 it or it hits an unrecoverable error.
