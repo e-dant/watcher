@@ -10,7 +10,8 @@ the releases.
 If you want to compile the library yourself you can follow the following example:
 
 First check out a branch or release, here we'll use the 'next' branch.
-You can then compile the library with meson (or c++, clang, gcc, ...).
+You can then compile the library with meson or a tool of your choice, 
+we will use c++.
 
 ```bash
 curl -L https://github.com/e-dant/watcher/archive/refs/heads/next.tar.gz | tar xz
