@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1
+
+Meson learned how to instahh the header files for the C library, thank you @toge (in #56)
+
+Fixed an automatic version bump in the release script for some of our newer build files.
+
 ## 0.12.0
 
 Various documentation improvements in the readme, especially around new features.
