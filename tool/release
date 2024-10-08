@@ -80,7 +80,7 @@ release::create() {
     | while read -r f
       do
         sed \
-          -E -e "s|( +)(\"?)([0-9]+\.[0-9]+\.[0-9]+)(.+# hook: tool/release)|\1\2$SEMVER\4|" \
+          -E -e "s|( +)([\"']?)([0-9]+\.[0-9]+\.[0-9]+)(.+# hook: tool/release)|\1\2$SEMVER\4|" \
           -i -- "$f"
         git add "$f"
       done
