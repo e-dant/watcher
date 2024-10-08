@@ -41,3 +41,5 @@ test_libwatcher_c = executable(
   install_rpath : '/usr/local/lib',
   install : false,
 )
+
+subdir('include')
