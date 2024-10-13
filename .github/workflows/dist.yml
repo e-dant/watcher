@@ -140,32 +140,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
   # Ref: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows
-  publish-wheels-testpypi:
-    name: Publish Wheels (TestPyPI)
-    runs-on: ubuntu-latest
-    needs:
-      - wheels-apple
-      - wheels-linux
-    environment:
-      name: dist
-      url: https://test.pypi.org/p/wtr-watcher
-    permissions: write-all
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ github.token }}
-      - run: |
-          tool/fetch-release-artifacts --no-zip
-          mkdir dist
-          find out/dist -name '*.whl' | while read f
-          do cp "$f" dist ; echo "$f"
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          verbose: true
   publish-wheels-pypi:
     name: Publish Wheels
     if: ${{ github.ref == 'refs/heads/release' }}
