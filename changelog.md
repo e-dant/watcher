@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.2
+
+Added CI for Github releases and Python/pip publishing.
+
 ## 0.12.1
 
 Meson learned how to instahh the header files for the C library, thank you @toge (in #56)
