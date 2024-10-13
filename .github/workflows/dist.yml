@@ -165,5 +165,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://pypi.org/legacy/
           verbose: true
