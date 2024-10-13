@@ -6,7 +6,7 @@ Added CI for Github releases and Python/pip publishing.
 
 ## 0.12.1
 
-Meson learned how to insta the header files for the C library, thank you @toge (in #56)
+Meson learned how to install the header files for the C library, thank you @toge (in #56)
 
 Fixed an automatic version bump in the release script for some of our newer build files.
 
