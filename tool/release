@@ -63,6 +63,7 @@ files-with-versions() {
   echo 'CMakeLists.txt
 flake.nix
 meson.build
+pyproject.toml
 watcher-py/watcher/watcher.py'
 }
 
@@ -83,6 +84,7 @@ release::create() {
           -E -e "s|( +)([\"']?)([0-9]+\.[0-9]+\.[0-9]+)(.+# hook: tool/release)|\1\2$SEMVER\4|" \
           -i -- "$f"
         git add "$f"
+        [ -e "$f--" ] && rm "$f--"
       done
 
     git commit -m "release: $SEMVER"

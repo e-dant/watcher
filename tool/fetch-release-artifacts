@@ -1,5 +1,15 @@
 #! /usr/bin/env bash
 set -e
+usage() {
+  cat <<EOF
+Usage: $0 [OPTIONS]
+Options:
+  -h, --help    Show this help message and exit
+  --no-zip      Do not zip the artifacts
+EOF
+}
+echo "$@" | grep -q -- --help && usage && exit 0
+echo "$@" | grep -q -- -h && usage && exit 0
 heredir=$(realpath "$(dirname "$0")/..")
 (
   [ -d out/dist-unzipped-nested-tmp ] && rm -rf out/dist-unzipped-nested-tmp
@@ -13,9 +23,16 @@ heredir=$(realpath "$(dirname "$0")/..")
     done
     (
       mkdir dist-tmp
-      find . -type f | while read f
-      do zip -r "$f.zip" "$f" && mv "$f.zip" "dist-tmp/$(basename "$f").zip"
-      done
+      if echo "$@" | grep -q -- --no-zip
+      then
+        find . -type f | while read f
+        do mv "$f" "dist-tmp/$(basename "$f")"
+        done
+      else
+        find . -type f | while read f
+        do zip -r "$f.zip" "$f" && mv "$f.zip" "dist-tmp/$(basename "$f").zip"
+        done
+      fi
       [ -d "$heredir/out/dist" ] && rm -rf "$heredir/out/dist"
       [ -d "$heredir/out" ] || mkdir -p "$heredir/out"
       mv dist-tmp "$heredir/out/dist"
