@@ -17,11 +17,11 @@ _LIB: ctypes.CDLL | None = None
 # pylint: disable=too-few-public-methods
 class _CEvent(ctypes.Structure):
     _fields_ = [
+        ("effect_time", ctypes.c_int64),
         ("path_name", ctypes.c_char_p),
+        ("associated_path_name", ctypes.c_char_p),
         ("effect_type", ctypes.c_int8),
         ("path_type", ctypes.c_int8),
-        ("effect_time", ctypes.c_int64),
-        ("associated_path_name", ctypes.c_char_p),
     ]
 
 
@@ -29,20 +29,21 @@ _CCallback = ctypes.CFUNCTYPE(None, _CEvent, ctypes.c_void_p)
 
 
 def _lazy_static_solib_handle() -> ctypes.CDLL:
-    def native_solib_file_ending():
+    def solib_name():
+        version = "0.12.1"  # hook: tool/release
+        v_major = version.split(".")[0]
         sysname = os.uname().sysname
         if sysname == "Darwin":
-            return "dylib"
-        if sysname == "Windows":
-            return "dll"
-        return "so"
+            return f"libwatcher-c.{v_major}.dylib"
+        elif sysname == "Windows":
+            return f"libwatcher-c.dll.{version}"
+        else:
+            return f"libwatcher-c.so.{version}"
 
-    def libwatcher_c_lib_path():
-        version = "0.12.1"  # hook: tool/release
+    def solib_path():
         heredir = os.path.dirname(os.path.abspath(__file__))
-        dir_path = os.path.join(heredir, ".watcher.mesonpy.libs")
-        lib_name = f"libwatcher-c-{version}.{native_solib_file_ending()}"
-        lib_path = os.path.join(dir_path, lib_name)
+        dir_path = os.path.join(heredir, ".wtr_watcher.mesonpy.libs")
+        lib_path = os.path.join(dir_path, solib_name())
         if not os.path.exists(lib_path):
             raise RuntimeError(f"Library does not exist: '{lib_path}'")
         return lib_path
@@ -51,7 +52,7 @@ def _lazy_static_solib_handle() -> ctypes.CDLL:
     # pylint: disable=global-statement
     global _LIB
     if _LIB is None:
-        _LIB = ctypes.CDLL(libwatcher_c_lib_path())
+        _LIB = ctypes.CDLL(solib_path())
         _LIB.wtr_watcher_open.argtypes = [ctypes.c_char_p, _CCallback, ctypes.c_void_p]
         _LIB.wtr_watcher_open.restype = ctypes.c_void_p
         _LIB.wtr_watcher_close.argtypes = [ctypes.c_void_p]
