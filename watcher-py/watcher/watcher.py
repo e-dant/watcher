@@ -30,7 +30,7 @@ _CCallback = ctypes.CFUNCTYPE(None, _CEvent, ctypes.c_void_p)
 
 def _lazy_static_solib_handle() -> ctypes.CDLL:
     def solib_name():
-        version = "0.12.1"  # hook: tool/release
+        version = "0.12.2"  # hook: tool/release
         v_major = version.split(".")[0]
         sysname = os.uname().sysname
         if sysname == "Darwin":
