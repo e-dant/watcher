@@ -4,6 +4,8 @@
 
 Added CI for Github releases and Python/pip publishing.
 
+Updated the readme to reflect the Python package name: `wtr-watcher`.
+
 ## 0.12.1
 
 Meson learned how to install the header files for the C library, thank you @toge (in #56)
