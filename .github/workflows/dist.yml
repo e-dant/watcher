@@ -142,7 +142,7 @@ jobs:
   # Ref: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows
   publish-wheels-pypi:
     name: Publish Wheels
-    #if: ${{ github.ref == 'refs/heads/release' }}
+    if: ${{ github.ref == 'refs/heads/release' }}
     runs-on: ubuntu-latest
     needs:
       - wheels-apple
