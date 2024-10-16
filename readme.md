@@ -1,7 +1,6 @@
 # Watcher
 
-[![Builds for Distribution](https://github.com/e-dant/watcher/actions/workflows/dist.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/dist.yml)
-[![Python Wheels](https://github.com/e-dant/watcher/actions/workflows/wheels.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/wheels.yml)
+[![Builds and Publishing for Distribution](https://github.com/e-dant/watcher/actions/workflows/dist.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/dist.yml)
 [![Conan Center](https://img.shields.io/conan/v/watcher)](https://conan.io/center/recipes/watcher)
 [![CodeQL Tests](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/codeql.yml)
 [![Linux Tests](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml)
@@ -89,6 +88,10 @@ int main() {
 
 <details>
 <summary>Python</summary>
+
+```sh
+pip install wtr-watcher
+```
 
 ```python
 from watcher import Watch
