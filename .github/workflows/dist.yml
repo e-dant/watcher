@@ -131,6 +131,8 @@ jobs:
       - linux-dist
       - apple-dist
       - windows-dist
+      - wheels-apple
+      - wheels-linux
     steps:
       - uses: actions/checkout@v4
       - run: |
