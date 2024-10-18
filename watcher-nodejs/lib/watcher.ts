@@ -20,6 +20,7 @@ export enum EffectType {
 }
 
 export interface Event {
+  effectTime: number;
   pathName: string;
   effectType: EffectType;
   pathType: PathType;
@@ -27,6 +28,7 @@ export interface Event {
 }
 
 interface CEvent {
+  effectTime: number;
   pathName: string;
   associatedPathName: string | null;
   effectType: number;
@@ -36,6 +38,7 @@ interface CEvent {
 export const watch = (path: string, cb: (event: Event) => void): { close: () => boolean } => {
   let typedCb: null | ((_: CEvent) => void) = (cEvent) => {
     let event: Event = {
+      effectTime: cEvent.effectTime,
       pathName: cEvent.pathName,
       associatedPathName: cEvent.associatedPathName,
       effectType: Object.keys(EffectType)[cEvent.effectType] as EffectType,

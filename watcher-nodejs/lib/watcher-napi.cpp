@@ -31,7 +31,7 @@ static napi_value event_to_js_obj(napi_env env, wtr_watcher_event* event)
   napi_value effect_type = NULL;
   napi_value path_type = NULL;
   napi_create_object(env, &event_obj);
-  napi_create_bigint_int64(env, event->effect_time, &effect_time);
+  napi_create_int64(env, event->effect_time, &effect_time);
   napi_create_string_utf8(env, event->path_name, NAPI_AUTO_LENGTH, &path_name);
   if (event->associated_path_name) {
     napi_create_string_utf8(env, event->associated_path_name, NAPI_AUTO_LENGTH, &associated_path_name);
