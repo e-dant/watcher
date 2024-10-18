@@ -25,26 +25,26 @@ struct watcher_lifetime {
 static napi_value event_to_js_obj(napi_env env, wtr_watcher_event* event)
 {
   napi_value event_obj = NULL;
+  napi_value effect_time = NULL;
   napi_value path_name = NULL;
+  napi_value associated_path_name = NULL;
   napi_value effect_type = NULL;
   napi_value path_type = NULL;
-  napi_value effect_time = NULL;
-  napi_value associated_path_name = NULL;
   napi_create_object(env, &event_obj);
-  napi_create_string_utf8(env, event->path_name, NAPI_AUTO_LENGTH, &path_name);
-  napi_create_int32(env, event->effect_type, &effect_type);
-  napi_create_int32(env, event->path_type, &path_type);
   napi_create_bigint_int64(env, event->effect_time, &effect_time);
+  napi_create_string_utf8(env, event->path_name, NAPI_AUTO_LENGTH, &path_name);
   if (event->associated_path_name) {
     napi_create_string_utf8(env, event->associated_path_name, NAPI_AUTO_LENGTH, &associated_path_name);
   } else {
     napi_get_null(env, &associated_path_name);
   }
+  napi_create_int32(env, event->effect_type, &effect_type);
+  napi_create_int32(env, event->path_type, &path_type);
+  napi_set_named_property(env, event_obj, "effectTime", effect_time);
   napi_set_named_property(env, event_obj, "pathName", path_name);
+  napi_set_named_property(env, event_obj, "associatedPathName", associated_path_name);
   napi_set_named_property(env, event_obj, "effectType", effect_type);
   napi_set_named_property(env, event_obj, "pathType", path_type);
-  napi_set_named_property(env, event_obj, "effectTime", effect_time);
-  napi_set_named_property(env, event_obj, "associatedPathName", associated_path_name);
   return event_obj;
 }
 
@@ -74,11 +74,11 @@ static void callback_bridge(struct wtr_watcher_event event_view, void* ctx)
   struct watcher_lifetime* w = (struct watcher_lifetime*)ctx;
 #if WITH_TSFN_NONBLOCKING
   wtr_watcher_event* event_owned = (wtr_watcher_event*)malloc(sizeof(wtr_watcher_event));
+  event_owned->effect_time = event_view.effect_time;
   event_owned->path_name = event_view.path_name ? strdup(event_view.path_name) : NULL;
+  event_owned->associated_path_name = event_view.associated_path_name ? strdup(event_view.associated_path_name) : NULL;
   event_owned->effect_type = event_view.effect_type;
   event_owned->path_type = event_view.path_type;
-  event_owned->effect_time = event_view.effect_time;
-  event_owned->associated_path_name = event_view.associated_path_name ? strdup(event_view.associated_path_name) : NULL;
   if (w->tsfn) {
     napi_call_threadsafe_function(w->tsfn, event_owned, napi_tsfn_nonblocking);
   }

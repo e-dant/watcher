@@ -28,18 +28,18 @@ export interface Event {
 
 interface CEvent {
   pathName: string;
+  associatedPathName: string | null;
   effectType: number;
   pathType: number;
-  associatedPathName: string | null;
 }
 
 export const watch = (path: string, cb: (event: Event) => void): { close: () => boolean } => {
   let typedCb: null | ((_: CEvent) => void) = (cEvent) => {
     let event: Event = {
       pathName: cEvent.pathName,
+      associatedPathName: cEvent.associatedPathName,
       effectType: Object.keys(EffectType)[cEvent.effectType] as EffectType,
       pathType: Object.keys(PathType)[cEvent.pathType] as PathType,
-      associatedPathName: cEvent.associatedPathName,
     };
     cb(event);
   };
