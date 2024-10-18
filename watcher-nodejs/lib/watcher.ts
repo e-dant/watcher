@@ -34,13 +34,14 @@ interface CEvent {
 }
 
 export const watch = (path: string, cb: (event: Event) => void): { close: () => boolean } => {
-  let typedCb: null | ((_: CEvent) => void) = (event) => {
-    cb({
-      pathName: event.pathName,
-      effectType: Object.keys(EffectType)[event.effectType] as EffectType,
-      pathType: Object.keys(PathType)[event.pathType] as PathType,
-      associatedPathName: event.associatedPathName,
-    });
+  let typedCb: null | ((_: CEvent) => void) = (cEvent) => {
+    let event: Event = {
+      pathName: cEvent.pathName,
+      effectType: Object.keys(EffectType)[cEvent.effectType] as EffectType,
+      pathType: Object.keys(PathType)[cEvent.pathType] as PathType,
+      associatedPathName: cEvent.associatedPathName,
+    };
+    cb(event);
   };
   let watcher = wcw.watch(path, typedCb);
   return {
