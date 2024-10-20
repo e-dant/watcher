@@ -124,7 +124,6 @@ jobs:
           name: wheels-apple
           path: wheelhouse/*
   create-gh-release:
-    name: Create GitHub Release
     if: ${{ github.ref == 'refs/heads/release' }}
     runs-on: ubuntu-latest
     needs:
@@ -143,7 +142,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
   # Ref: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows
   publish-wheels-pypi:
-    name: Publish Wheels
     if: ${{ github.ref == 'refs/heads/release' }}
     runs-on: ubuntu-latest
     needs:
@@ -168,3 +166,17 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
+  publish-crates-io:
+    # Refs:
+    # - https://github.com/azriel91/peace/blob/main/.github/workflows/publish.yml
+    # - https://users.rust-lang.org/t/does-anyone-use-github-actions-to-run-cargo-publish/92374
+    if: ${{ github.ref == 'refs/heads/release' }}
+    environment:
+      name: publish-crates-io
+      url: https://crates.io/crates/wtr-watcher
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: cargo publish
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
