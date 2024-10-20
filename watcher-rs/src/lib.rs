@@ -2,13 +2,24 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 include!(concat!(env!("OUT_DIR"), "/watcher_c.rs"));
+use core::ffi::c_char;
 use core::ffi::c_void;
+use core::ffi::CStr;
+use core::mem::transmute;
+use core::pin::Pin;
+use core::str;
+use core::task::Context;
+use core::task::Poll;
+use futures::Stream;
 use serde::Deserialize;
 use serde::Serialize;
+use std::ffi::CString;
+use tokio::sync::mpsc::channel as async_channel;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
 pub enum EffectType {
     Rename,
     Modify,
@@ -19,6 +30,7 @@ pub enum EffectType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
 pub enum PathType {
     Dir,
     File,
@@ -29,59 +41,65 @@ pub enum PathType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename = "event")]
 pub struct Event {
     pub effect_time: i64,
     pub path_name: String,
-    pub associated_path_name: String,
+    pub associated_path_name: Option<String>,
     pub effect_type: EffectType,
     pub path_type: PathType,
 }
 
-fn c_ptr_as_str<'a>(ptr: *const std::os::raw::c_char) -> &'a str {
-    if ptr.is_null() {
-        return "";
+fn c_chars_as_str<'a>(ptr: *const c_char) -> Option<&'a str> {
+    match ptr.is_null() {
+        true => None,
+        false => {
+            let b = unsafe { CStr::from_ptr(ptr).to_bytes() };
+            let s = str::from_utf8(b).unwrap_or_default();
+            Some(s)
+        }
     }
-    let b = unsafe { std::ffi::CStr::from_ptr(ptr).to_bytes() };
-    std::str::from_utf8(b).unwrap_or_default()
 }
 
 fn effect_type_from_c(effect_type: i8) -> EffectType {
+    use EffectType::*;
     match effect_type {
-        WTR_WATCHER_EFFECT_RENAME => EffectType::Rename,
-        WTR_WATCHER_EFFECT_MODIFY => EffectType::Modify,
-        WTR_WATCHER_EFFECT_CREATE => EffectType::Create,
-        WTR_WATCHER_EFFECT_DESTROY => EffectType::Destroy,
-        WTR_WATCHER_EFFECT_OWNER => EffectType::Owner,
-        WTR_WATCHER_EFFECT_OTHER => EffectType::Other,
-        _ => EffectType::Other,
+        WTR_WATCHER_EFFECT_RENAME => Rename,
+        WTR_WATCHER_EFFECT_MODIFY => Modify,
+        WTR_WATCHER_EFFECT_CREATE => Create,
+        WTR_WATCHER_EFFECT_DESTROY => Destroy,
+        WTR_WATCHER_EFFECT_OWNER => Owner,
+        WTR_WATCHER_EFFECT_OTHER => Other,
+        _ => Other,
     }
 }
 
 fn path_type_from_c(path_type: i8) -> PathType {
+    use PathType::*;
     match path_type {
-        WTR_WATCHER_PATH_DIR => PathType::Dir,
-        WTR_WATCHER_PATH_FILE => PathType::File,
-        WTR_WATCHER_PATH_HARD_LINK => PathType::HardLink,
-        WTR_WATCHER_PATH_SYM_LINK => PathType::SymLink,
-        WTR_WATCHER_PATH_WATCHER => PathType::Watcher,
-        WTR_WATCHER_PATH_OTHER => PathType::Other,
-        _ => PathType::Other,
+        WTR_WATCHER_PATH_DIR => Dir,
+        WTR_WATCHER_PATH_FILE => File,
+        WTR_WATCHER_PATH_HARD_LINK => HardLink,
+        WTR_WATCHER_PATH_SYM_LINK => SymLink,
+        WTR_WATCHER_PATH_WATCHER => Watcher,
+        WTR_WATCHER_PATH_OTHER => Other,
+        _ => Other,
     }
 }
 
-fn ev_from_c<'a>(event: wtr_watcher_event) -> Event {
+fn ev_from_c<'a>(ev: wtr_watcher_event) -> Event {
     Event {
-        effect_time: event.effect_time,
-        path_name: c_ptr_as_str(event.path_name).to_string(),
-        associated_path_name: c_ptr_as_str(event.associated_path_name).to_string(),
-        effect_type: effect_type_from_c(event.effect_type),
-        path_type: path_type_from_c(event.path_type),
+        effect_time: ev.effect_time,
+        path_name: c_chars_as_str(ev.path_name).unwrap_or_default().to_string(),
+        associated_path_name: c_chars_as_str(ev.associated_path_name).map(str::to_string),
+        effect_type: effect_type_from_c(ev.effect_type),
+        path_type: path_type_from_c(ev.path_type),
     }
 }
 
-unsafe extern "C" fn callback_bridge(event: wtr_watcher_event, data: *mut c_void) {
-    let ev = ev_from_c(event);
-    let tx = std::mem::transmute::<*mut c_void, &Sender<Event>>(data);
+unsafe extern "C" fn callback_bridge(ev: wtr_watcher_event, cx: *mut c_void) {
+    let ev = ev_from_c(ev);
+    let tx = transmute::<*mut c_void, &Sender<Event>>(cx);
     let _ = tx.blocking_send(ev);
 }
 
@@ -94,31 +112,21 @@ pub struct Watch {
 
 impl Watch {
     pub fn try_new(path: &str) -> Result<Watch, &'static str> {
-        let path = std::ffi::CString::new(path).unwrap();
-        let (ev_tx, ev_rx) = tokio::sync::mpsc::channel(1);
+        let path = CString::new(path).unwrap();
+        let (ev_tx, ev_rx) = async_channel(1);
         let ev_tx = Box::new(ev_tx);
-        let ev_tx_opaque = unsafe { std::mem::transmute::<&Sender<Event>, *mut c_void>(&ev_tx) };
-        match unsafe { wtr_watcher_open(path.as_ptr(), Some(callback_bridge), ev_tx_opaque) } {
-            watcher if watcher.is_null() => Err("wtr_watcher_open"),
-            watcher => Ok(Watch {
-                watcher,
-                ev_rx,
-                ev_tx,
-            }),
-        }
-        /*
-        let watcher_opaque =
+        let ev_tx_opaque = unsafe { transmute::<&Sender<Event>, *mut c_void>(&ev_tx) };
+        let watcher =
             unsafe { wtr_watcher_open(path.as_ptr(), Some(callback_bridge), ev_tx_opaque) };
-        if watcher_opaque.is_null() {
+        if watcher.is_null() {
             Err("wtr_watcher_open")
         } else {
-            Ok(Watcher {
-                watcher_opaque,
+            Ok(Watch {
+                watcher,
                 ev_rx,
                 ev_tx,
             })
         }
-        */
     }
 
     pub fn close(&self) -> Result<(), &'static str> {
@@ -129,13 +137,10 @@ impl Watch {
     }
 }
 
-impl futures::Stream for Watch {
+impl Stream for Watch {
     type Item = Event;
 
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context,
-    ) -> std::task::Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Event>> {
         self.ev_rx.poll_recv(cx)
     }
 }
