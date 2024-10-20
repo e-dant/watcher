@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.13.0
+
+Added a Rust crate for the Watcher.
+
+```rust
+use futures::StreamExt;
+use wtr_watcher::Watch;
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let show = |e| async move { println!("{e:?}") };
+    let events = Watch::try_new(".")?;
+    events.for_each(show).await;
+    Ok(())
+}
+```
+
+The crate is available on [crates.io](https://crates.io/crates/wtr-watcher).
+
+Made the Github release CI depend on Wheels being built (and from uploading stale wheels because of that).
+
+Various documentations improvements:
+- Example usage for the new Rust crate
+- PyPi and Crates.io badges in the readme
+
+Various chores around the watcher-nodejs project:
+- Simplified the napi bindings
+  - Left more of the type definitions to the typescript side (insteaf of the napi side)
+  - Various C paranoia fixes, out of caution, in case napi doesn't initialize various things
+
+Fixed (was missing) the `effect_time` field in the watcher-nodejs project's event type.
+
 ## 0.12.2
 
 Added CI for Github releases and Python/pip publishing.
