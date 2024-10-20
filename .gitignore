@@ -3,7 +3,10 @@ compile_commands.json
 tmp_test_watcher
 virtualenv
 wheelhouse
+target
 /out
 /result
 /watcher
 /bazel-*
+# Because our tool/release script doesn't handle the project version in this file
+Cargo.lock
