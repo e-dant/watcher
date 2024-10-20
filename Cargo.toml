@@ -39,14 +39,15 @@ name = "show-events"
 path = "watcher-rs/examples/show-events.rs"
 
 [features]
-cli = ["serde_json", "tokio/rt", "tokio/macros", "tokio/signal"]
-default = ["cli"]
+serde = ["dep:serde"]
+cli = ["dep:serde", "serde_json", "tokio", "tokio/rt", "tokio/macros", "tokio/signal"]
+default = ["cli", "serde"]
 
 [dependencies]
-futures = { version = "0.3.31", default-features = false }
-serde = { version = "1.0.205", features = ["derive"] }
+futures = { version = "0.3.31", features = ["alloc", "std"], default-features = false }
+serde = { version = "1.0.205", features = ["derive"], optional = true }
 serde_json = { version = "1.0.122", optional = true }
-tokio = { version = "1.0.1", features = ["sync"], default-features = false }
+tokio = { version = "1.0.1", default-features = false, optional = true }
 
 [build-dependencies]
 cc = "1"
