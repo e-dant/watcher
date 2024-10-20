@@ -64,7 +64,8 @@ files-with-versions() {
 flake.nix
 meson.build
 pyproject.toml
-watcher-py/watcher/watcher.py'
+watcher-py/watcher/watcher.py
+Cargo.toml'
 }
 
 release::create() {
