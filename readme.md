@@ -3,6 +3,7 @@
 [![Builds and Publishing for Distribution](https://github.com/e-dant/watcher/actions/workflows/dist.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/dist.yml)
 [![Conan Center](https://img.shields.io/conan/v/watcher)](https://conan.io/center/recipes/watcher)
 [![PyPI/Pip Package](https://badge.fury.io/py/wtr-watcher.svg)](https://badge.fury.io/py/wtr-watcher)
+[![Rust/Cargo Crate](https://img.shields.io/crates/v/wtr-watcher.svg)](https://crates.io/crates/wtr-watcher)
 [![CodeQL Tests](https://github.com/e-dant/watcher/actions/workflows/codeql.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/codeql.yml)
 [![Linux Tests](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/ubuntu.yml)
 [![macOS Tests](https://github.com/e-dant/watcher/actions/workflows/macos.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/macos.yml)
