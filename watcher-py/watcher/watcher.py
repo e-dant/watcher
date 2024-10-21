@@ -9,7 +9,6 @@ import sys
 from typing import Callable
 from dataclasses import dataclass
 from enum import Enum
-from datetime import datetime
 
 _LIB: ctypes.CDLL | None = None
 
@@ -73,12 +72,12 @@ def _as_utf8(s: str | bytes | memoryview | None) -> str:
 
 
 def _c_event_to_event(c_event: _CEvent) -> Event:
+    effect_time = c_event.effect_time
     path_name = _as_utf8(c_event.path_name)
-    associated_path_name = _as_utf8(c_event.associated_path_name)
+    associated_path_name = _as_utf8(c_event.associated_path_name) or None
     effect_type = EffectType(c_event.effect_type)
     path_type = PathType(c_event.path_type)
-    effect_time = datetime.fromtimestamp(c_event.effect_time / 1e9)
-    return Event(path_name, effect_type, path_type, effect_time, associated_path_name)
+    return Event(effect_time, path_name, associated_path_name, effect_type, path_type)
 
 
 class EffectType(Enum):
@@ -110,17 +109,45 @@ class PathType(Enum):
     OTHER = 5
 
 
+_ET_TO_S = {
+    EffectType.RENAME: "rename",
+    EffectType.MODIFY: "modify",
+    EffectType.CREATE: "create",
+    EffectType.DESTROY: "destroy",
+    EffectType.OWNER: "owner",
+    EffectType.OTHER: "other",
+}
+
+_PT_TO_S = {
+    PathType.DIR: "dir",
+    PathType.FILE: "file",
+    PathType.HARD_LINK: "hard_link",
+    PathType.SYM_LINK: "sym_link",
+    PathType.WATCHER: "watcher",
+    PathType.OTHER: "other",
+}
+
+
 @dataclass
 class Event:
     """
     Represents an event witnessed on the filesystem.
     """
 
+    effect_time: int
     path_name: str
+    associated_path_name: str | None
     effect_type: EffectType
     path_type: PathType
-    effect_time: datetime
-    associated_path_name: str
+
+    def to_json(self) -> str:
+        apn = f'"{self.associated_path_name}"' if self.associated_path_name else "null"
+        return f'{{\
+"effect_time":{self.effect_time},\
+"path_name":"{self.path_name}",\
+"associated_path_name":{apn},\
+"effect_type":"{_ET_TO_S[self.effect_type]}",\
+"path_type":"{_PT_TO_S[self.path_type]}"}}'
 
 
 class Watch:
@@ -177,5 +204,10 @@ class Watch:
 
 if __name__ == "__main__":
     events_at = sys.argv[1] if len(sys.argv) > 1 else "."
-    with Watch(events_at, print):
+
+    def show(e: Event):
+        print(e.to_json())
+        sys.stdout.flush()
+
+    with Watch(events_at, show):
         input()
