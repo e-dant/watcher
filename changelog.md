@@ -32,6 +32,12 @@ Various chores around the watcher-nodejs project:
 
 Fixed (was missing) the `effect_time` field in the watcher-nodejs project's event type.
 
+Made the Python project consistent with our other languages:
+- The event object's field are in the same order as C/Rust/Js
+- The output of the "example" CLI is the same JSON event format as the other languages (was previously a Python object dump)
+- The effect time is represented as a number (nanosecond since epoch), not a datetime (which loses precision and is inconsistent with the other languages)
+- The associated path name is an optional string, not a maybe empty string
+
 ## 0.12.2
 
 Added CI for Github releases and Python/pip publishing.
