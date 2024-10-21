@@ -27,7 +27,7 @@ Various documentations improvements:
 
 Various chores around the watcher-nodejs project:
 - Simplified the napi bindings
-  - Left more of the type definitions to the typescript side (insteaf of the napi side)
+  - Left more of the type definitions to the typescript side (instead of the napi side)
   - Various C paranoia fixes, out of caution, in case napi doesn't initialize various things
 
 Fixed (was missing) the `effect_time` field in the watcher-nodejs project's event type.
