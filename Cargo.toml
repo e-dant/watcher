@@ -44,10 +44,10 @@ cli = ["dep:serde", "serde_json", "tokio", "tokio/rt", "tokio/macros", "tokio/si
 default = ["cli", "serde"]
 
 [dependencies]
-futures = { version = "0.3.31", features = ["alloc", "std"], default-features = false }
-serde = { version = "1.0.205", features = ["derive"], optional = true }
-serde_json = { version = "1.0.122", optional = true }
-tokio = { version = "1.0.1", default-features = false, optional = true }
+futures = { version = "0", features = ["alloc", "std"], default-features = false }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+tokio = { version = "1", default-features = false, optional = true }
 
 [build-dependencies]
 cc = "1"

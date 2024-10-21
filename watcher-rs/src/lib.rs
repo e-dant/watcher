@@ -16,6 +16,7 @@ use futures::channel::mpsc::UnboundedSender as Tx;
 use futures::Stream;
 use serde::Deserialize;
 use serde::Serialize;
+use std::ffi::CString;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -114,12 +115,12 @@ pub struct Watch {
 
 impl Watch {
     pub fn try_new(path: &str) -> Result<Watch, &'static str> {
-        let p = path.as_ptr() as *const c_char;
+        let p = CString::new(path).unwrap();
         let (tx, rx) = async_channel();
         let tx = Box::new(tx);
         let rx = Box::pin(rx);
         let cx = unsafe { transmute::<&Tx<Event>, *mut c_void>(&tx) };
-        match unsafe { wtr_watcher_open(p, Some(fwd_ev), cx) } {
+        match unsafe { wtr_watcher_open(p.as_ptr(), Some(fwd_ev), cx) } {
             w if w.is_null() => Err("wtr_watcher_open"),
             w => Ok(Watch { w, tx, rx }),
         }
