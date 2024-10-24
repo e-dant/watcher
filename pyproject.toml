@@ -4,7 +4,7 @@ requires = ["meson >= 0.61.5", "meson-python >= 0.14.0"]
 
 [project]
 name = "wtr-watcher"
-version = "0.13.0" # hook: tool/release
+version = "0.13.1" # hook: tool/release
 authors = [{name = "Will"}]
 homepage = "https://github.com/e-dant/watcher"
 description = "Filesystem watcher. Works anywhere. Simple, efficient, and friendly."
