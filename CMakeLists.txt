@@ -112,7 +112,6 @@ else()
   endif()
 endif()
 
-set(INCLUDE_PATH_SINGLE_HEADER "include")
 set(INCLUDE_PATH_DEVEL "devel/include")
 
 set(WTR_WATCHER_ALLOWED_ASAN        0)
@@ -226,23 +225,30 @@ function(wtr_add_bin_target
   endif()
 endfunction()
 
-function(wtr_add_hdr_target NAME INCLPATH HDR_NAME)
+function(wtr_add_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE)
   include(GNUInstallDirs)
-  add_library(
-    "${NAME}"
-    INTERFACE
-    "${INCLPATH}/wtr/${HDR_NAME}"
-  )
-  target_include_directories(
-    "${NAME}"
-    INTERFACE
-    "${INCLPATH}"
-  )
+  add_library("${NAME}" "${LIB_TYPE}" "${SRC_SET}")
+  target_include_directories("${NAME}" PRIVATE "${INC_SET}")
+  set_property(TARGET "${NAME}" PROPERTY CXX_STANDARD "${WTR_WATCHER_CXX_STD}")
+  set_property(TARGET "${NAME}" PROPERTY VERSION "${PROJECT_VERSION}")
+  set_property(TARGET "${NAME}" PROPERTY SOVERSION "${PROJECT_VERSION_MAJOR}")
+  set_property(TARGET "${NAME}" PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_property(TARGET "${NAME}" PROPERTY OUTPUT_NAME "${OUTPUT_NAME}")
+  target_compile_options("${NAME}" PRIVATE "${COMPILE_OPTIONS}")
+  target_link_options("${NAME}" PRIVATE "${LINK_OPTIONS}")
+  target_link_libraries("${NAME}" PRIVATE "${LINK_LIBRARIES}")
   install(
-    FILES "${INCLPATH}/wtr/${HDR_NAME}"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr"
-    COMPONENT "include"
+    TARGETS "${NAME}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    COMPONENT "lib"
   )
+endfunction()
+
+function(wtr_add_hdr_target NAME HDR_SET)
+  include(GNUInstallDirs)
+  add_library("${NAME}" INTERFACE "${HDR_SET}")
+  target_include_directories("${NAME}" INTERFACE "${INCLPATH}")
+  install(FILES "${HDR_SET}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr" COMPONENT "include")
 endfunction()
 
 function(wtr_add_rel_bin_target NAME SRC_SET)
@@ -253,7 +259,7 @@ function(wtr_add_rel_bin_target NAME SRC_SET)
     "${SRC_SET}"
     "${COMPILE_OPTIONS}"
     "${LINK_OPTIONS}"
-    "${INCLUDE_PATH_SINGLE_HEADER}"
+    "include"
     "${LINK_LIBRARIES}"
   )
 endfunction()
@@ -295,7 +301,7 @@ function(wtr_add_autosan_bin_target NAME SRC_SET)
         "${SRC_SET}"
         "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
-        "${INCLUDE_PATH_SINGLE_HEADER}"
+        "include"
         "${LINK_LIBRARIES}"
       )
     endif()
@@ -317,8 +323,28 @@ endfunction()
 
 wtr_add_hdr_target(
   "wtr.hdr_watcher"
-  "${INCLUDE_PATH_SINGLE_HEADER}"
-  "watcher.hpp"
+  "include/wtr/watcher.hpp"
+)
+
+wtr_add_hdr_target(
+  "watcher-c-hdr"
+  "watcher-c/include/wtr/watcher-c.h"
+)
+
+wtr_add_lib_target(
+  "watcher-c-shared"
+  "watcher-c"
+  "watcher-c/src/watcher-c.cpp"
+  "watcher-c/include;${CMAKE_SRC_DIR}/include"
+  "SHARED"
+)
+
+wtr_add_lib_target(
+  "watcher-c-static"
+  "watcher-c"
+  "watcher-c/src/watcher-c.cpp"
+  "watcher-c/include;${CMAKE_SRC_DIR}/include"
+  "STATIC"
 )
 
 wtr_add_autosan_bin_target(
