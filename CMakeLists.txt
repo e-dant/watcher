@@ -23,11 +23,15 @@ project(
 # Options, Variable & Constants
 #
 
-option(WTR_WATCHER_BUILD_TEST  "Create a target for the test programs"                ON)
-option(WTR_WATCHER_BUILD_ASAN  "Create a target for the address sanitizer"            ON)
-option(WTR_WATCHER_BUILD_MSAN  "Create a target for the memory sanitizer"             ON)
-option(WTR_WATCHER_BUILD_TSAN  "Create a target for the thread sanitizer"             ON)
-option(WTR_WATCHER_BUILD_UBSAN "Create a target for the undefined behavior sanitizer" ON)
+option(BUILD_LIB   "Create a target for the watcher-c libraries"          ON)
+option(BUILD_BIN   "Create a target for the CLI binaries"                 ON)
+option(BUILD_HDR   "Create a target for the watcher headers"              ON)
+option(BUILD_TEST  "Create a target for the test programs"                ON)
+option(BUILD_SAN   "Mega-option to allow sanitizers"                      ON)
+option(BUILD_ASAN  "Create a target for the address sanitizer"            ON)
+option(BUILD_MSAN  "Create a target for the memory sanitizer"             ON)
+option(BUILD_TSAN  "Create a target for the thread sanitizer"             ON)
+option(BUILD_UBSAN "Create a target for the undefined behavior sanitizer" ON)
 
 set(WTR_WATCHER_CXX_STD 17)
 
@@ -114,34 +118,26 @@ endif()
 
 set(INCLUDE_PATH_DEVEL "devel/include")
 
-set(WTR_WATCHER_ALLOWED_ASAN        0)
-set(WTR_WATCHER_ALLOWED_MSAN        0)
-set(WTR_WATCHER_ALLOWED_TSAN        0)
-set(WTR_WATCHER_ALLOWED_UBSAN       0)
-set(WTR_WATCHER_ALLOWED_STACKSAN    0)
-set(WTR_WATCHER_ALLOWED_DATAFLOWSAN 0)
-set(WTR_WATCHER_ALLOWED_CFISAN      0)
-set(WTR_WATCHER_ALLOWED_KCFISAN     0)
-if(NOT WIN32)
-  set(WTR_WATCHER_ALLOWED_ASAN      1)
+set(ALLOWED_asan        0)
+set(ALLOWED_msan        0)
+set(ALLOWED_tsan        0)
+set(ALLOWED_ubsan       0)
+set(ALLOWED_stacksan    0)
+set(ALLOWED_dataflowsan 0)
+set(ALLOWED_cfisan      0)
+set(ALLOWED_kcfisan     0)
+if(NOT WIN32 OR NOT BUILD_ASAN OR NOT BUILD_SAN)
+  set(ALLOWED_asan      1)
 endif()
-if(IS_CC_CLANG)
-  set(WTR_WATCHER_ALLOWED_MSAN      1)
+if(IS_CC_CLANG OR NOT BUILD_MSAN OR NOT BUILD_SAN)
+  set(ALLOWED_msan      1)
 endif()
-if(NOT (ANDROID OR WIN32))
-  set(WTR_WATCHER_ALLOWED_TSAN      1)
+if(NOT ANDROID OR NOT WIN32 OR NOT BUILD_TSAN OR NOT BUILD_SAN)
+  set(ALLOWED_tsan      1)
 endif()
-if(NOT WIN32)
-  set(WTR_WATCHER_ALLOWED_UBSAN     1)
+if(NOT WIN32 OR NOT BUILD_UBSAN OR NOT BUILD_SAN)
+  set(ALLOWED_ubsan     1)
 endif()
-set(WTR_WATCHER_ALLOWED_asan        ${WTR_WATCHER_ALLOWED_ASAN})
-set(WTR_WATCHER_ALLOWED_msan        ${WTR_WATCHER_ALLOWED_MSAN})
-set(WTR_WATCHER_ALLOWED_tsan        ${WTR_WATCHER_ALLOWED_TSAN})
-set(WTR_WATCHER_ALLOWED_ubsan       ${WTR_WATCHER_ALLOWED_UBSAN})
-set(WTR_WATCHER_ALLOWED_stacksan    ${WTR_WATCHER_ALLOWED_STACKSAN})
-set(WTR_WATCHER_ALLOWED_dataflowsan ${WTR_WATCHER_ALLOWED_DATAFLOWSAN})
-set(WTR_WATCHER_ALLOWED_cfisan      ${WTR_WATCHER_ALLOWED_CFISAN})
-set(WTR_WATCHER_ALLOWED_kcfisan     ${WTR_WATCHER_ALLOWED_KCFISAN})
 set(SAN_NAMES                       "asan" "msan" "tsan" "ubsan")
 set(CCLL_EXTOPT_SET_ASAN            "-fno-omit-frame-pointer" "-fsanitize=address")
 set(CCLL_EXTOPT_SET_MSAN            "-fno-omit-frame-pointer" "-fsanitize=memory")
@@ -154,7 +150,7 @@ set(CCLL_EXTOPT_SET_KCFISAN         "-fno-omit-frame-pointer" "-fsanitize=kcfi")
 
 set(SAN_SUPPORTED)
 foreach(SAN ${SAN_NAMES})
-  if(WTR_WATCHER_ALLOWED_${SAN})
+  if(ALLOWED_${SAN})
     list(APPEND SAN_SUPPORTED ${SAN})
   endif()
 endforeach()
@@ -174,6 +170,18 @@ function(wtr_add_bin_target
       LL_OPT_SET
       INCLUDE_PATH
       LLIB_SET)
+  if(NOT IS_TEST AND NOT BUILD_BIN)
+    message(STATUS "${NAME}: Skipped (BUILD_BIN=${BUILD_BIN})")
+    return()
+  elseif(NOT IS_TEST)
+    message(STATUS "${NAME}: Added (BUILD_BIN=${BUILD_BIN})")
+  endif()
+  if(IS_TEST AND NOT BUILD_TEST)
+    message(STATUS "${NAME}: Skipped (BUILD_TEST=${BUILD_TEST})")
+    return()
+  elseif(IS_TEST)
+    message(STATUS "${NAME}: Added (BUILD_TEST=${BUILD_TEST})")
+  endif()
   include(CheckIPOSupported)
   include(FetchContent)
   include(GNUInstallDirs)
@@ -192,7 +200,6 @@ function(wtr_add_bin_target
     TARGET "${NAME}"
     PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.${NAME}")
   endif()
-
   if(IS_TEST)
     if(DEFINED ENV{WTR_WATCHER_USE_SYSTEM_SNITCH})
       find_package(snitch REQUIRED)
@@ -215,7 +222,6 @@ function(wtr_add_bin_target
       FetchContent_MakeAvailable(snitch)
     endif()
   endif()
-
   if(BIN_COMPONENT_NAME)
     install(
       TARGETS "${NAME}"
@@ -226,6 +232,11 @@ function(wtr_add_bin_target
 endfunction()
 
 function(wtr_add_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE)
+  if(NOT BUILD_LIB)
+    message(STATUS "${NAME}: Skipped (BUILD_LIB=${BUILD_LIB})")
+    return()
+  endif()
+  message(STATUS "${NAME}: Added (BUILD_LIB=${BUILD_LIB})")
   include(GNUInstallDirs)
   add_library("${NAME}" "${LIB_TYPE}" "${SRC_SET}")
   target_include_directories("${NAME}" PRIVATE "${INC_SET}")
@@ -245,6 +256,11 @@ function(wtr_add_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE)
 endfunction()
 
 function(wtr_add_hdr_target NAME HDR_SET)
+  if(NOT BUILD_HDR)
+    message(STATUS "${NAME}: Skipped (BUILD_HDR=${BUILD_HDR})")
+    return()
+  endif()
+  message(STATUS "${NAME}: Added (BUILD_HDR=${BUILD_HDR})")
   include(GNUInstallDirs)
   add_library("${NAME}" INTERFACE "${HDR_SET}")
   target_include_directories("${NAME}" INTERFACE "${INCLPATH}")
@@ -290,29 +306,31 @@ function(wtr_add_san_test_bin_target NAME SRC_SET SAN)
   )
 endfunction()
 
-function(wtr_add_autosan_bin_target NAME SRC_SET)
-  wtr_add_rel_bin_target("${NAME}" "${SRC_SET}")
+function(wtr_add_autosan_bin_target NAME SRC_SET IS_TEST)
+  if(IS_TEST)
+    wtr_add_test_bin_target("${NAME}" "${SRC_SET}")
+  else()
+    wtr_add_rel_bin_target("${NAME}" "${SRC_SET}")
+  endif()
   foreach(SAN ${SAN_NAMES})
-    if(WTR_WATCHER_ALLOWED_${SAN})
+    string(TOUPPER ${SAN} UPPER_SAN)
+    if(NOT BUILD_SAN)
+      message(STATUS "${NAME}.${SAN}: Skipped (BUILD_SAN=${BUILD_SAN})")
+    elseif(NOT BUILD_${UPPER_SAN})
+      message(STATUS "${NAME}.${SAN}: Skipped (BUILD_${UPPER_SAN}=${BUILD_${UPPER_SAN}})")
+    elseif(NOT ALLOWED_${SAN})
+      message(STATUS "${NAME}.${SAN}: Skipped (Unsupported on ${CMAKE_SYSTEM}/${CMAKE_CXX_COMPILER_ID})")
+    else()
       wtr_add_bin_target(
         "${NAME}.${SAN}"
         "san-bin"
-        "OFF" # is test
+        "${IS_TEST}"
         "${SRC_SET}"
         "${COMPILE_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "${LINK_OPTIONS};${CCLL_EXTOPT_SET_${SAN}}"
         "include"
         "${LINK_LIBRARIES}"
       )
-    endif()
-  endforeach()
-endfunction()
-
-function(wtr_add_autosan_test_bin_target NAME SRC_SET)
-  wtr_add_test_bin_target("${NAME}" "${SRC_SET}")
-  foreach(SAN ${SAN_NAMES})
-    if(WTR_WATCHER_ALLOWED_${SAN})
-      wtr_add_san_test_bin_target("${NAME}" "${SRC_SET}" "${SAN}")
     endif()
   endforeach()
 endfunction()
@@ -350,11 +368,13 @@ wtr_add_lib_target(
 wtr_add_autosan_bin_target(
   "wtr.watcher"
   "src/wtr/watcher/main.cpp"
+  IS_TEST OFF
 )
 
 wtr_add_autosan_bin_target(
   "tw"
   "src/wtr/tiny_watcher/main.cpp"
+  IS_TEST ON
 )
 
 set(WTR_TEST_WATCHER_SOURCE_SET
@@ -365,9 +385,10 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "devel/src/wtr/test_watcher/test_performance.cpp"
   "devel/src/wtr/test_watcher/test_openclose.cpp"
 )
-wtr_add_autosan_test_bin_target(
+wtr_add_autosan_bin_target(
   "wtr.test_watcher"
   "${WTR_TEST_WATCHER_SOURCE_SET}"
+  ON
 )
 
 # Used in the tool/test suite. Platforms vary
@@ -377,7 +398,7 @@ wtr_add_autosan_test_bin_target(
 wtr_add_bin_target(
   "portable-destructive-rename"
   "test-bin"
-  "OFF"
+  ON
   "devel/src/portable-destructive-rename/main.c"
   ""
   ""
