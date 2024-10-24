@@ -335,7 +335,7 @@ wtr_add_lib_target(
   "watcher-c-shared"
   "watcher-c"
   "watcher-c/src/watcher-c.cpp"
-  "watcher-c/include;${CMAKE_SRC_DIR}/include"
+  "watcher-c/include;${CMAKE_SOURCE_DIR}/include"
   "SHARED"
 )
 
@@ -343,7 +343,7 @@ wtr_add_lib_target(
   "watcher-c-static"
   "watcher-c"
   "watcher-c/src/watcher-c.cpp"
-  "watcher-c/include;${CMAKE_SRC_DIR}/include"
+  "watcher-c/include;${CMAKE_SOURCE_DIR}/include"
   "STATIC"
 )
 
