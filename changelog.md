@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.1
+
+Added `watcher-c`, as a (versioned) shared library, as a static library, and with headers, to the CMake build file.
+
+They are included in the "lib" and "include" components, respectively.
+
 ## 0.13.0
 
 Added a Rust crate for the Watcher.
