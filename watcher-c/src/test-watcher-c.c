@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <poll.h>
 
-void callback(struct wtr_watcher_event event, void* data)
+void callback(struct wtr_watcher_event* event, void* data)
 {
   int* count = (int*)data;
   *count += 1;
@@ -27,11 +27,11 @@ void callback(struct wtr_watcher_event event, void* data)
     "associated path name: %s\n",
 #endif
     *count,
-    event.path_name,
-    event.effect_type,
-    event.path_type,
-    event.effect_time,
-    event.associated_path_name ? event.associated_path_name : "");
+    event->path_name,
+    event->effect_type,
+    event->path_type,
+    event->effect_time,
+    event->associated_path_name ? event->associated_path_name : "");
 }
 
 void do_poll_read_loop(int read_fd)
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
   }
   if (argc == 3) strncpy(path, argv[2], sizeof(path) - 1);
   int count = 0;
-  void* watcher = wtr_watcher_open(path, callback, &count);
+  void* watcher = wtr_watcher_open_eventref_stream(path, callback, &count);
   if (! watcher) return 1;
   getchar();
   if (! wtr_watcher_close(watcher)) return 1;
