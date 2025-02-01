@@ -2,12 +2,19 @@
 
 ## 0.13.3
 
-On Linux, fixed the behavior of reporting on very quickly added nested directories.
-Previously, we'd mostly only report on what either inotify or fanotify told us about
-events on paths which we already had marked. If a nested directory (`a/b`) was added
-before we marked `a`, then we wouldn't report on `a/b`. Now, we will. The fix was to
-walk the newly-created directory tree (in this case, walking `a`), marking and reporting
-on every child we find within it.
+On Linux:
+- Fixed the behavior of reporting on very quickly added nested directories.
+  Previously, we'd mostly only report on what either inotify or fanotify told us about
+  events on paths which we already had marked. If a nested directory (`a/b`) was added
+  before we marked `a`, then we wouldn't report on `a/b`. Now, we will. The fix was to
+  walk the newly-created directory tree (in this case, walking `a`), marking and reporting
+  on every child we find within it.
+- For inotify, fixed the reporting of the path name on associated events. Previously,
+  we did not lookup which `(watch descript, path name)` pair the event was relative to.
+  The kernel documents the behavior [here](https://github.com/torvalds/linux/blob/cabb4685d57ed50cd197498d2ac946ad5b6272e7/include/uapi/linux/inotify.h#L15-L27).
+  Our behavior was changed to always perform this lookup on associated events, whereas
+  before the behavior was to only perform this lookup on the "base" event. Note that
+  currently, and probably for all time, the only associated event is a rename event.
 
 ## 0.13.2
 
