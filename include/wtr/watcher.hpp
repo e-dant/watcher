@@ -1621,11 +1621,21 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, dmhit->second.c_str(), cb);
       else if (is_real_event(msk)) {
-        auto [ev, next] = parse_ev(dmhit->second, in_ev, in_ev_tail);
+        auto parsed = parse_ev(dmhit->second, in_ev, in_ev_tail);
         if (msk & IN_ISDIR && msk & IN_CREATE)
-          do_mark(ev.path_name.c_str(), sr.ke.fd, sr.ke.dm, cb);
-        cb(ev);
-        in_ev_next = next;
+          // In case of nested subdirectories which were
+          // created before we had an opportunity to mark
+          // the parent, walk the newly created directory
+          // tree, marking and reporting on the children.
+          walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
+            do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
+            cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
+          });
+        else
+          // Or, in the case of any other kind of file,
+          // no need to descend or mark things.
+          cb(parsed.ev);
+        in_ev_next = parsed.next;
       }
       in_ev = in_ev_next;
     }
