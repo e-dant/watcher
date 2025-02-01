@@ -104,6 +104,13 @@ struct sysres {
   adapter::ep ep{};
 };
 
+inline auto known_pathof_wd_or_default =
+  [](ke_in_ev::paths const& dm, int wd) -> std::filesystem::path
+{
+  auto dmhit = dm.find(wd);
+  return dmhit != dm.end() ? dmhit->second : "";
+};
+
 inline auto do_mark =
   [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> result
 {
@@ -178,7 +185,7 @@ struct parsed {
 };
 
 inline auto parse_ev = [](
-                         std::filesystem::path const& dirname,
+                         ke_in_ev::paths const& dm,
                          inotify_event const* const in,
                          inotify_event const* const tail) -> parsed
 {
@@ -186,7 +193,7 @@ inline auto parse_ev = [](
   using ev_pt = enum ev::path_type;
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
-  { return dirname / std::filesystem::path{m->name}; };
+  { return known_pathof_wd_or_default(dm, m->wd) / m->name; };
   auto pt = in->mask & IN_ISDIR ? ev_pt::dir : ev_pt::file;
   auto et = in->mask & IN_CREATE ? ev_et::create
           : in->mask & IN_DELETE ? ev_et::destroy
@@ -332,17 +339,14 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
     while (in_ev && in_ev < in_ev_tail) {
       auto in_ev_next = peek(in_ev, in_ev_tail);
       unsigned msk = in_ev->mask;
-      auto dmhit = sr.ke.dm.find(in_ev->wd);
       if (in_ev_c++ > ke_in_ev::c_ulim)
         return result::e_sys_ret;
       else if (is_parity_lost(msk) && ! dmrm.push(in_ev->wd))
         return result::e_sys_ret;
-      else if (dmhit == sr.ke.dm.end())
-        send_msg(result::w_sys_phantom, "", cb);
       else if (msk & IN_Q_OVERFLOW)
-        send_msg(result::w_sys_q_overflow, dmhit->second.c_str(), cb);
+        send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        auto parsed = parse_ev(dmhit->second, in_ev, in_ev_tail);
+        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
