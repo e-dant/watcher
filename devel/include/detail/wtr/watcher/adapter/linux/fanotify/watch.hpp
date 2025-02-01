@@ -219,15 +219,10 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
                                     : one(m);
 }
 
-inline auto do_mark_if_newdir =
-  [](::wtr::watcher::event const& ev, int fa_fd, auto const& cb) -> result
+inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
 {
-  auto is_newdir = ev.effect_type == ::wtr::watcher::event::effect_type::create
-                && ev.path_type == ::wtr::watcher::event::path_type::dir;
-  if (is_newdir)
-    return do_mark(ev.path_name.c_str(), fa_fd, cb);
-  else
-    return result::complete;
+  return ev.effect_type == ::wtr::watcher::event::effect_type::create
+      && ev.path_type == ::wtr::watcher::event::path_type::dir;
 };
 
 /*  Read some events from what fanotify gives
@@ -281,8 +276,13 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         int ec = 0;
         auto [ev, n, l] = parse_ev(mtd, read_len, &ec);
         if (ec) return result::w_sys_bad_fd;
-        do_mark_if_newdir(ev, sr.ke.fd, cb);
-        cb(ev);
+        if (is_newdir(ev))
+          walkdir_do(ev.path_name.c_str(), [&](auto dir) {
+            do_mark(dir, sr.ke.fd, cb);
+            cb({dir, ev.effect_type, ev.path_type});
+          });
+        else
+          cb(ev);
         mtd = n;
         read_len -= l;
       }
