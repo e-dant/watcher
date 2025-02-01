@@ -57,11 +57,7 @@ struct wtr_watcher_event {
     events and will return nothing. */
 typedef void (* wtr_watcher_callback)(struct wtr_watcher_event event, void* context);
 
-typedef void (* wtr_watcher_eventref_callback)(struct wtr_watcher_event* event, void* context);
-
 void* wtr_watcher_open(char const* const path, wtr_watcher_callback callback, void* context);
-
-void* wtr_watcher_open_eventref_stream(char const* const path, wtr_watcher_eventref_callback callback, void* context);
 
 bool wtr_watcher_close(void* watcher);
 

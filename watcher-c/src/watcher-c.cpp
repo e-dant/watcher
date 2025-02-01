@@ -33,13 +33,17 @@ static int utf16_to_utf8(wchar_t const* utf16_buf, char* utf8_buf, int utf8_buf_
 }
 #endif
 
-#ifndef _WIN32
-inline int make_ev_view(wtr::watcher::event const& ev_owned, wtr_watcher_event& ev_view)
-#else
-inline int make_ev_view(wtr::watcher::event const& ev_owned, wtr_watcher_event& ev_view, char* path_name, char* associated_path_name)
-#endif
+void* wtr_watcher_open(
+  char const* const path,
+  wtr_watcher_callback callback,
+  void* context)
 {
+  auto wrapped_callback = [callback, context](wtr::watcher::event ev_owned)
+  {
+    wtr_watcher_event ev_view = {};
 #ifdef _WIN32
+    char path_name[PATH_BUF_LEN] = {0};
+    char associated_path_name[PATH_BUF_LEN] = {0};
     int wp = utf16_to_utf8(ev_owned.path_name.c_str(), path_name, PATH_BUF_LEN);
     if (wp <= 0) return;
     ev_view.path_name = path_name;
@@ -57,45 +61,7 @@ inline int make_ev_view(wtr::watcher::event const& ev_owned, wtr_watcher_event& 
     ev_view.effect_type = (int8_t)ev_owned.effect_type;
     ev_view.path_type = (int8_t)ev_owned.path_type;
     ev_view.effect_time = ev_owned.effect_time;
-    return 0;
-}
-
-void* wtr_watcher_open(
-  char const* const path,
-  wtr_watcher_callback callback,
-  void* context)
-{
-  auto wrapped_callback = [callback, context](wtr::watcher::event ev_owned)
-  {
-    wtr_watcher_event ev_view = {};
-#ifdef _WIN32
-    char path_name[PATH_BUF_LEN] = {0};
-    char associated_path_name[PATH_BUF_LEN] = {0};
-    if (make_ev_view(ev_owned, ev_view, path_name, associated_path_name)) return;
-#else
-    if (make_ev_view(ev_owned, ev_view)) return;
-#endif
     callback(ev_view, context);
-  };
-  return (void*)new wtr::watcher::watch(path, wrapped_callback);
-}
-
-void* wtr_watcher_open_eventref_stream(
-  char const* const path,
-  wtr_watcher_eventref_callback callback,
-  void* context)
-{
-  auto wrapped_callback = [callback, context](wtr::watcher::event ev_owned)
-  {
-    wtr_watcher_event ev_view = {};
-#ifdef _WIN32
-    char path_name[PATH_BUF_LEN] = {0};
-    char associated_path_name[PATH_BUF_LEN] = {0};
-    if (make_ev_view(ev_owned, ev_view, path_name, associated_path_name)) return;
-#else
-    if (make_ev_view(ev_owned, ev_view)) return;
-#endif
-    callback(&ev_view, context);
   };
   return (void*)new wtr::watcher::watch(path, wrapped_callback);
 }
