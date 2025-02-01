@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.3
+
+On Linux, fixed the behavior of reporting on very quickly added nested directories.
+Previously, we'd mostly only report on what either inotify or fanotify told us about
+events on paths which we already had marked. If a nested directory (`a/b`) was added
+before we marked `a`, then we wouldn't report on `a/b`. Now, we will. The fix was to
+walk the newly-created directory tree (in this case, walking `a`), marking and reporting
+on every child we find within it.
+
 ## 0.13.2
 
 CMake now:
