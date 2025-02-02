@@ -141,7 +141,7 @@ process.stdin.on('data', () => {
 ```
 </details>
 
-The output of each above will be something this, depending on the format:
+The output of each above will be something like this, depending on the example:
 
 ```
 modify file /home/e-dant/dev/watcher/.git/refs/heads/next.lock
