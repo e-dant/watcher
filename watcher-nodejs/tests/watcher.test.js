@@ -18,6 +18,11 @@ const withTestDir = async (func) => {
   await fs.rm(d, { recursive: true });
 };
 
+const withoutEffectTime = (event) => {
+  const { effectTime, ...rest } = event;
+  return rest;
+}
+
 const mkCbCheckingLifetime = (testDir, checkingEventFunc) => {
   const testDirCreationEvent = (testDir) => ({
     pathName: testDir,
@@ -62,7 +67,7 @@ describe('Watcher', () => {
         });
         w.close();
       });
-      const w = watcher.watch(testDir, cb);
+      const w = watcher.watch(testDir, (event) => cb(withoutEffectTime(event)));
       setTimeout(() => { fs.open(testFile, 'w'); }, 200);
       setTimeout(w.close, 300);
       await sleep(300);
