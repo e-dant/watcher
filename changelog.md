@@ -2,10 +2,9 @@
 
 ## 0.13.4
 
-For watcher-nodejs:
-- Moved `node-gyp` to `devDependencies` from `dependencies`, where it should be.
-- Maintenance on the Node.js tests, which now ignore the very much non-idempotent
-  `event.effectTime` field when comparing events.
+- readme: Grammar fixes.
+- watcher-nodejs: Moved `node-gyp` to `devDependencies` from `dependencies`, where it should be.
+- watcher-nodejs: Maintenance on the Node.js tests, which now ignore the very much non-idempotent `event.effectTime` field when comparing events.
 
 ## 0.13.3
 
