@@ -1260,17 +1260,17 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         return result::w_sys_bad_meta;
       else {
         int ec = 0;
-        auto [ev, n, l] = parse_ev(mtd, read_len, &ec);
+        auto r = parse_ev(mtd, read_len, &ec);
         if (ec) return result::w_sys_bad_fd;
-        if (is_newdir(ev))
-          walkdir_do(ev.path_name.c_str(), [&](auto dir) {
+        if (is_newdir(r.ev))
+          walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, cb);
-            cb({dir, ev.effect_type, ev.path_type});
+            cb({dir, r.ev.effect_type, r.ev.path_type});
           });
         else
-          cb(ev);
-        mtd = n;
-        read_len -= l;
+          cb(r.ev);
+        mtd = r.next;
+        read_len -= r.this_len;
       }
   return result::pending;
 };

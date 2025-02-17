@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.5
+- C++17 compatibility fixes on Linux (avoid captured structured bindings).
+
 ## 0.13.4
 
 - readme: Grammar fixes.
