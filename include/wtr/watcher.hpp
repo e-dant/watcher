@@ -984,6 +984,9 @@ inline auto walkdir_do(
   std::vector<std::string> const& ignored_paths,
   Fn const& f) -> void
 {
+  if (should_skip(path, ignored_paths)) {
+    return;
+  }
   if (DIR* d = opendir(path)) {
     f(path);
     while (dirent* de = readdir(d)) {
