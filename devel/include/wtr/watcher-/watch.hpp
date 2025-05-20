@@ -59,10 +59,11 @@ private:
 public:
   inline watch(
     std::filesystem::path const& path,
-    event::callback const& callback) noexcept
+    event::callback const& callback,
+    std::vector<std::string> const& ignored_paths = {}) noexcept
       : watching{std::async(
           std::launch::async,
-          [this, path, callback]
+          [this, path, callback, ignored_paths]
           {
             using ::detail::wtr::watcher::adapter::watch;
             auto ec = std::error_code{};
@@ -75,7 +76,8 @@ public:
               {live_msg,
                event::effect_type::create,
                event::path_type::watcher});
-            auto post_ok = pre_ok && watch(abs_path, callback, this->living);
+            auto post_ok =
+              pre_ok && watch(abs_path, callback, this->living, ignored_paths);
             auto die_msg =
               (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
             callback(
