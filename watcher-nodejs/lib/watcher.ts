@@ -35,7 +35,11 @@ interface CEvent {
   pathType: number;
 }
 
-export const watch = (path: string, cb: (event: Event) => void): { close: () => boolean } => {
+export const watch = (
+  path: string,
+  cb: (event: Event) => void,
+  ignoredPaths: string[] = []
+): { close: () => boolean } => {
   let typedCb: null | ((_: CEvent) => void) = (cEvent) => {
     let event: Event = {
       effectTime: cEvent.effectTime,
@@ -46,7 +50,7 @@ export const watch = (path: string, cb: (event: Event) => void): { close: () => 
     };
     cb(event);
   };
-  let watcher = wcw.watch(path, typedCb);
+  let watcher = wcw.watch(path, typedCb, ignoredPaths);
   return {
     close: (): boolean => {
       if (!watcher || !typedCb) {

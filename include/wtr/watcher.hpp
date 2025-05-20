@@ -4,6 +4,7 @@
 #include <array>
 #include <charconv>
 #include <chrono>
+#include <algorithm>
 #include <filesystem>
 #include <functional>
 #include <ios>
@@ -944,6 +945,19 @@ inline auto is_dir(char const* const path) -> bool
   return stat(path, &s) == 0 && S_ISDIR(s.st_mode);
 }
 
+// Helper function to check if the current dir should be skipped
+inline auto should_skip =
+  [](
+    char const* const dir,
+    std::vector<std::string> const& ignored_paths) -> bool
+{
+  return std::any_of(
+    ignored_paths.begin(),
+    ignored_paths.end(),
+    [&](std::string const& ignored)
+    { return strcmp(dir, ignored.c_str()) == 0; });
+};
+
 /*  $ echo time wtr.watcher / -ms 1
       | sudo bash -E
       ...
@@ -965,7 +979,10 @@ inline auto is_dir(char const* const path) -> bool
     not having a full picture.
 */
 template<class Fn>
-inline auto walkdir_do(char const* const path, Fn const& f) -> void
+inline auto walkdir_do(
+  char const* const path,
+  std::vector<std::string> const& ignored_paths,
+  Fn const& f) -> void
 {
   if (DIR* d = opendir(path)) {
     f(path);
@@ -976,8 +993,9 @@ inline auto walkdir_do(char const* const path, Fn const& f) -> void
       if (strcmp(de->d_name, ".") == 0) continue;
       if (strcmp(de->d_name, "..") == 0) continue;
       if (snprintf(next, PATH_MAX, "%s/%s", path, de->d_name) <= 0) continue;
+      if (should_skip(next, ignored_paths)) continue;
       if (! realpath(next, real)) continue;
-      walkdir_do(real, f);
+      walkdir_do(real, ignored_paths, f);
     }
     (void)closedir(d);
   }
@@ -1074,14 +1092,19 @@ inline auto do_mark =
     sends diagnostics on warnings and errors.
     Walks the given base path, recursively,
     marking each directory along the way. */
-inline auto make_sysres = [](
-                            char const* const base_path,
-                            auto const& cb,
-                            semabin const& living) -> sysres
+inline auto make_sysres =
+  [](
+    char const* const base_path,
+    auto const& cb,
+    semabin const& living,
+    std::vector<std::string> const& ignored_paths = {}) -> sysres
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
-  walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+  walkdir_do(
+    base_path,
+    ignored_paths,
+    [&](auto dir) { do_mark(dir, fa_fd, cb); });
   auto ep = make_ep(fa_fd, living.fd);
   if (ep.fd < 1)
     return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = living};
@@ -1232,7 +1255,11 @@ inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
     The `metadata->vers` field may differ between
     kernel versions, so we check it against the
     version we were compiled with. */
-inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv =
+  [](
+    auto const& cb,
+    sysres& sr,
+    std::vector<std::string> const& ignored_paths = {}) -> result
 {
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };
@@ -1263,7 +1290,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         auto r = parse_ev(mtd, read_len, &ec);
         if (ec) return result::w_sys_bad_fd;
         if (is_newdir(r.ev))
-          walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
+          walkdir_do(r.ev.path_name.c_str(), ignored_paths, [&](auto dir) {
             do_mark(dir, sr.ke.fd, cb);
             cb({dir, r.ev.effect_type, r.ev.path_type});
           });
@@ -1404,10 +1431,12 @@ inline auto do_mark =
     return send_msg(e, dirpath, cb), e;
 };
 
-inline auto make_sysres = [](
-                            char const* const base_path,
-                            auto const& cb,
-                            semabin const& living) -> sysres
+inline auto make_sysres =
+  [](
+    char const* const base_path,
+    auto const& cb,
+    semabin const& living,
+    std::vector<std::string> const& ignored_paths = {}) -> sysres
 {
   auto make_inotify = [](result* ok) -> int
   {
@@ -1421,7 +1450,10 @@ inline auto make_sysres = [](
   {
     auto dm = ke_in_ev::paths{};
     if (*ok >= result::e) return dm;
-    walkdir_do(base_path, [&](auto dir) { do_mark(dir, in_fd, dm, cb); });
+    walkdir_do(
+      base_path,
+      ignored_paths,
+      [&](auto dir) { do_mark(dir, in_fd, dm, cb); });
     if (dm.empty()) *ok = result::e_self_noent;
     return dm;
   };
@@ -1596,7 +1628,11 @@ struct defer_dm_rm_wd {
     If this happens for some other
     reason, we're in trouble.
 */
-inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
+inline auto do_ev_recv =
+  [](
+    auto const& cb,
+    sysres& sr,
+    std::vector<std::string> const& ignored_paths = {}) -> result
 {
   auto is_parity_lost = [](unsigned msk) -> bool
   { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };
@@ -1627,7 +1663,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (is_real_event(msk)) {
         auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
         if (msk & IN_ISDIR && msk & IN_CREATE)
-          walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
+          walkdir_do(parsed.ev.path_name.c_str(), ignored_paths, [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
@@ -1659,12 +1695,16 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 
 namespace detail::wtr::watcher::adapter {
 
-inline auto watch =
-  [](auto const& path, auto const& cb, auto const& living) -> bool
+inline auto watch = [](
+                      auto const& path,
+                      auto const& cb,
+                      auto const& living,
+                      std::vector<std::string> const& ignored_paths =
+                        std::vector<std::string>{}) -> bool
 {
   auto platform_watch = [&](auto make_sysres, auto do_ev_recv) -> result
   {
-    auto sr = make_sysres(path.c_str(), cb, living);
+    auto sr = make_sysres(path.c_str(), cb, living, ignored_paths);
     auto is_ev_of = [&](int nth, int fd) -> bool
     { return sr.ep.interests[nth].data.fd == fd; };
 
@@ -1678,7 +1718,7 @@ inline auto watch =
           if (is_ev_of(n, sr.il.fd))
             sr.ok = result::complete;
           else if (is_ev_of(n, sr.ke.fd))
-            sr.ok = do_ev_recv(cb, sr);
+            sr.ok = do_ev_recv(cb, sr, ignored_paths);
           else
             sr.ok = result::e_sys_api_epoll;
     }
@@ -2253,10 +2293,11 @@ private:
 public:
   inline watch(
     std::filesystem::path const& path,
-    event::callback const& callback) noexcept
+    event::callback const& callback,
+    std::vector<std::string> const& ignored_paths = {}) noexcept
       : watching{std::async(
           std::launch::async,
-          [this, path, callback]
+          [this, path, callback, ignored_paths]
           {
             using ::detail::wtr::watcher::adapter::watch;
             auto ec = std::error_code{};
@@ -2269,7 +2310,8 @@ public:
               {live_msg,
                event::effect_type::create,
                event::path_type::watcher});
-            auto post_ok = pre_ok && watch(abs_path, callback, this->living);
+            auto post_ok =
+              pre_ok && watch(abs_path, callback, this->living, ignored_paths);
             auto die_msg =
               (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
             callback(

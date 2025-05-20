@@ -120,16 +120,15 @@ static napi_value close(napi_env env, napi_callback_info func_arg_info)
 
 /*  Opens a watcher on a path (and any children).
     Calls the provided callback when events happen.
-    Accepts two arguments, a path and a callback.
+    Accepts three arguments: path, callback, and optional ignoredPaths array.
     Returns an object with a single method: close.
-    Call `.close()` when you don't want to watch
-    things anymore. */
+    Call `.close()` when you don't want to watch things anymore. */
 static napi_value watch(napi_env env, napi_callback_info func_arg_info)
 {
-  size_t argc = 2;
-  napi_value args[2];
+  size_t argc = 3;
+  napi_value args[3];
   napi_get_cb_info(env, func_arg_info, &argc, args, NULL, NULL);
-  if (argc != 2) {
+  if (argc < 2) {
     napi_throw_error(env, NULL, "Wrong number of arguments");
     return NULL;
   }
@@ -155,10 +154,48 @@ static napi_value watch(napi_env env, napi_callback_info func_arg_info)
     NULL,
     callback_js_receiver,
     &wrapper->tsfn);
-  wrapper->watcher = wtr_watcher_open(path, callback_bridge, wrapper);
+
+  // Handle ignoredPaths argument (optional third argument)
+  char** ignored_paths = NULL;
+  size_t ignored_paths_len = 0;
+  if (argc >= 3) {
+    bool is_array = false;
+    napi_is_array(env, args[2], &is_array);
+    if (is_array) {
+      uint32_t arr_len = 0;
+      napi_get_array_length(env, args[2], &arr_len);
+      ignored_paths_len = arr_len;
+      if (arr_len > 0) {
+        ignored_paths = (char**)malloc(arr_len * sizeof(char*));
+        for (uint32_t i = 0; i < arr_len; ++i) {
+          napi_value str_val;
+          napi_get_element(env, args[2], i, &str_val);
+          size_t str_len = 0;
+          napi_get_value_string_utf8(env, str_val, NULL, 0, &str_len);
+          ignored_paths[i] = (char*)malloc(str_len + 1);
+          napi_get_value_string_utf8(
+            env, str_val, ignored_paths[i], str_len + 1, &str_len
+          );
+        }
+      }
+    }
+  }
+
+  wrapper->watcher = wtr_watcher_open(
+    path, callback_bridge, wrapper, ignored_paths, ignored_paths_len);
   if (wrapper->watcher == NULL) {
     napi_throw_error(env, NULL, "Failed to open watcher");
+    // Free ignored_paths
+    if (ignored_paths) {
+      for (size_t i = 0; i < ignored_paths_len; ++i) free(ignored_paths[i]);
+      free(ignored_paths);
+    }
     return NULL;
+  }
+  // Free ignored_paths after watcher is created
+  if (ignored_paths) {
+    for (size_t i = 0; i < ignored_paths_len; ++i) free(ignored_paths[i]);
+    free(ignored_paths);
   }
   napi_value watcher_obj = NULL;
   napi_create_object(env, &watcher_obj);
