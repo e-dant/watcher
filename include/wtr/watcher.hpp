@@ -1412,7 +1412,7 @@ inline auto make_sysres = [](
   auto make_inotify = [](result* ok) -> int
   {
     if (*ok >= result::e) return -1;
-    int in_fd = inotify_init(IN_CLOEXEC | IN_NONBLOCK);
+    int in_fd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
     if (in_fd < 0) *ok = result::e_sys_api_inotify;
     return in_fd;
   };
