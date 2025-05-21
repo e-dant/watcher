@@ -945,7 +945,6 @@ inline auto is_dir(char const* const path) -> bool
   return stat(path, &s) == 0 && S_ISDIR(s.st_mode);
 }
 
-// Helper function to check if the current dir should be skipped
 inline auto should_skip =
   [](
     char const* const dir,
