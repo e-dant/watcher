@@ -996,7 +996,6 @@ inline auto walkdir_do(
       if (strcmp(de->d_name, ".") == 0) continue;
       if (strcmp(de->d_name, "..") == 0) continue;
       if (snprintf(next, PATH_MAX, "%s/%s", path, de->d_name) <= 0) continue;
-      if (should_skip(next, ignored_paths)) continue;
       if (! realpath(next, real)) continue;
       walkdir_do(real, ignored_paths, f);
     }
@@ -1665,11 +1664,17 @@ inline auto do_ev_recv =
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
         auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
-        if (msk & IN_ISDIR && msk & IN_CREATE)
-          walkdir_do(parsed.ev.path_name.c_str(), ignored_paths, [&](auto dir) {
-            do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
-            cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
-          });
+        if (
+          msk & IN_ISDIR && msk & IN_CREATE
+          && !should_skip(parsed.ev.path_name.c_str(), ignored_paths))
+          walkdir_do(
+            parsed.ev.path_name.c_str(),
+            ignored_paths,
+            [&](auto dir)
+            {
+              do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
+              cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
+            });
         else
           cb(parsed.ev);
         in_ev_next = parsed.next;
