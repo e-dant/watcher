@@ -57,18 +57,6 @@ struct wtr_watcher_event {
     events and will return nothing. */
 typedef void (* wtr_watcher_callback)(struct wtr_watcher_event event, void* context);
 
-/**
- * Open a watcher on a path (and any children).
- * Calls the provided callback when events happen.
- * Optionally accepts a list of ignored paths.
- *
- * @param path The root path to watch.
- * @param callback The callback to invoke on events.
- * @param context User data for the callback.
- * @param ignored_paths Array of ignored path strings (can be NULL).
- * @param ignored_paths_len Number of ignored paths (0 if none).
- * @return A watcher handle, or NULL on error.
- */
 void* wtr_watcher_open(
   char const* const path,
   wtr_watcher_callback callback,
