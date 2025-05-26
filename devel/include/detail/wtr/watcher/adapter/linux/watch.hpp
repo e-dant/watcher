@@ -29,8 +29,6 @@ inline auto watch =
       if (ep_c < 0) {
         if (errno != EINTR) sr.ok = result::e_sys_api_epoll;
       }
-      if (ep_c < 0)
-        sr.ok = result::e_sys_api_epoll;
       else
         for (int n = 0; n < ep_c; ++n)
           if (is_ev_of(n, sr.il.fd))

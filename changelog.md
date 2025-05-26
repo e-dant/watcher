@@ -8,6 +8,7 @@
 - **PR#76, jordan-woyak**
   Linux: Fix `epoll_wait` failing with `EINTR`.
   `epoll_wait` can spontaneously fail with `EINTR`.
+- Fixed Issue 73 (Rename events are occasionally split into two events on linux).
 
 ## 0.13.5
 - C++17 compatibility fixes on Linux (avoid captured structured bindings).

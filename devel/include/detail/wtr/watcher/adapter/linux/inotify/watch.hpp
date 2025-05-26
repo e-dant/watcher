@@ -187,7 +187,8 @@ struct parsed {
 inline auto parse_ev = [](
                          ke_in_ev::paths const& dm,
                          inotify_event const* const in,
-                         inotify_event const* const tail) -> parsed
+                         inotify_event const* const tail,
+                         int* ec) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
@@ -212,7 +213,7 @@ inline auto parse_ev = [](
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
-                             : one(in, next);
+                             : (*ec = 1, one(in, next));
 };
 
 struct defer_dm_rm_wd {
@@ -346,13 +347,14 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
+        int ec = 0;
+        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &ec);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        else
+        else if (! ec)
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }

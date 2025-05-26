@@ -1135,7 +1135,7 @@ pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
   /*  Directory name */
   int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
   if (fd <= 0) {
-    *ec = errno;
+    *ec = -errno;
     return {};
   }
   char fs_ev_pidpath[32] = {0};
@@ -1174,6 +1174,9 @@ struct Parsed {
   unsigned this_len = 0;
 };
 
+// The error code is -errno if there was a system error which prevents
+// correctly parsing the event, or a positive error if the event was
+// malformed or unexpected (without a system error).
 inline auto
 parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
   -> Parsed
@@ -1199,10 +1202,11 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
     auto e = ev(ev(pathof(m, ec), et, pt), ev(pathof(n, ec), et, pt));
     return {e, nn, here_to_nnn};
   };
-  return ! n                        ? one(m)
+  return et != ev_et::rename        ? one(m)
+       : ! n                        ? (*ec = 2, one(m))
        : isfromto(m->mask, n->mask) ? assoc(m, n)
        : isfromto(n->mask, m->mask) ? assoc(n, m)
-                                    : one(m);
+       : (*ec = 2, one(m));
 }
 
 inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
@@ -1261,13 +1265,13 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else {
         int ec = 0;
         auto r = parse_ev(mtd, read_len, &ec);
-        if (ec) return result::w_sys_bad_fd;
+        if (ec < 0) return result::w_sys_bad_fd;
         if (is_newdir(r.ev))
           walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, cb);
             cb({dir, r.ev.effect_type, r.ev.path_type});
           });
-        else
+        else if (ec == 0)
           cb(r.ev);
         mtd = r.next;
         read_len -= r.this_len;
@@ -1466,7 +1470,8 @@ struct parsed {
 inline auto parse_ev = [](
                          ke_in_ev::paths const& dm,
                          inotify_event const* const in,
-                         inotify_event const* const tail) -> parsed
+                         inotify_event const* const tail,
+                         int* ec) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
@@ -1491,7 +1496,7 @@ inline auto parse_ev = [](
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
-                             : one(in, next);
+                             : (*ec = 1, one(in, next));
 };
 
 struct defer_dm_rm_wd {
@@ -1625,13 +1630,14 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
+        int ec = 0;
+        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &ec);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        else
+        else if (! ec)
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }
