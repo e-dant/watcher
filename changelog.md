@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.6
+
+- **PR#77, DanielCodesphere**
+  fix(inotify): add `IN_CLOEXEC` and `IN_NONBLOCK` flags to inotify init.
+  This stops child processes from inheriting open inotify watches
+- **PR#76, jordan-woyak**
+  Linux: Fix `epoll_wait` failing with `EINTR`.
+  `epoll_wait` can spontaneously fail with `EINTR`.
+
 ## 0.13.5
 - C++17 compatibility fixes on Linux (avoid captured structured bindings).
 

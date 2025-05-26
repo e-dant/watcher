@@ -26,6 +26,9 @@ inline auto watch =
     while (sr.ok < result::complete) {
       int ep_c =
         epoll_wait(sr.ep.fd, sr.ep.interests, sr.ep.q_ulim, sr.ep.wake_ms);
+      if (ep_c < 0) {
+        if (errno != EINTR) sr.ok = result::e_sys_api_epoll;
+      }
       if (ep_c < 0)
         sr.ok = result::e_sys_api_epoll;
       else
