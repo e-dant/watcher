@@ -38,6 +38,11 @@ done)
   }
 ]
 .
+  if [ "$(uname -s)" = Darwin ]
+  then
+    echo "$desc ... [Skipped on macOS, see issue nr. 80 on GitHub]"
+    exit 0
+  fi
   echo -n "$desc ... "
 
   . "$(dirname "$0")/.ctx"
@@ -54,4 +59,4 @@ done)
 
   check-result "$expect" "$actual"
 )
-ec=$((ec + $?))
+exit $?
