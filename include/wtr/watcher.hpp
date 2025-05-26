@@ -1478,7 +1478,14 @@ inline auto parse_ev = [](
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
   { return known_pathof_wd_or_default(dm, m->wd) / m->name; };
-  auto pt = in->mask & IN_ISDIR ? ev_pt::dir : ev_pt::file;
+  auto calc_pt = [&](inotify_event const* const ev_ptr) -> ev_pt
+  {
+    // Return other type if pointer is null
+    if (! ev_ptr) return ev_pt::other;
+    return ev_ptr->mask & IN_ISDIR    ? ev_pt::dir
+         : is_symlink(pathof(ev_ptr)) ? ev_pt::sym_link
+                                      : ev_pt::file;
+  };
   auto et = in->mask & IN_CREATE ? ev_et::create
           : in->mask & IN_DELETE ? ev_et::destroy
           : in->mask & IN_MOVE   ? ev_et::rename
@@ -1489,9 +1496,14 @@ inline auto parse_ev = [](
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
   auto one = [&](auto* a, auto* next) -> parsed
-  { return {ev(pathof(a), et, pt), next}; };
+  { return {ev(pathof(a), et, calc_pt(a)), next}; };
   auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  {
+    auto pt_b = calc_pt(b);
+    return {
+      ev(ev(pathof(a), et, pt_b), ev(pathof(b), et, pt_b)),
+      peek(b, tail)};
+  };
   auto next = peek(in, tail);
   return ! isassoc(in, next) ? one(in, next)
        : isfromto(in, next)  ? assoc(in, next)
