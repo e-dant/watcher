@@ -149,7 +149,7 @@ pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
   /*  Directory name */
   int fd = open_by_handle_at(AT_FDCWD, dir_fh, ofl);
   if (fd <= 0) {
-    *ec = errno;
+    *ec = -errno;
     return {};
   }
   char fs_ev_pidpath[32] = {0};
@@ -188,6 +188,9 @@ struct Parsed {
   unsigned this_len = 0;
 };
 
+// The error code is -errno if there was a system error which prevents
+// correctly parsing the event, or a positive error if the event was
+// malformed or unexpected (without a system error).
 inline auto
 parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
   -> Parsed
@@ -213,10 +216,11 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
     auto e = ev(ev(pathof(m, ec), et, pt), ev(pathof(n, ec), et, pt));
     return {e, nn, here_to_nnn};
   };
-  return ! n                        ? one(m)
+  return et != ev_et::rename        ? one(m)
+       : ! n                        ? (*ec = 2, one(m))
        : isfromto(m->mask, n->mask) ? assoc(m, n)
        : isfromto(n->mask, m->mask) ? assoc(n, m)
-                                    : one(m);
+       : (*ec = 2, one(m));
 }
 
 inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
@@ -275,13 +279,13 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else {
         int ec = 0;
         auto r = parse_ev(mtd, read_len, &ec);
-        if (ec) return result::w_sys_bad_fd;
+        if (ec < 0) return result::w_sys_bad_fd;
         if (is_newdir(r.ev))
           walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, cb);
             cb({dir, r.ev.effect_type, r.ev.path_type});
           });
-        else
+        else if (ec == 0)
           cb(r.ev);
         mtd = r.next;
         read_len -= r.this_len;

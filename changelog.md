@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.6
+
+Special thanks to @DanielCodesphere and @jordan-woyak for their important contributions in this release.
+
+- **PR#77, DanielCodesphere**
+  fix(inotify): add `IN_CLOEXEC` and `IN_NONBLOCK` flags to inotify init.
+  This stops child processes from inheriting open inotify watches
+- **PR#76, jordan-woyak**
+  Linux: Fix `epoll_wait` failing with `EINTR`.
+  `epoll_wait` can spontaneously fail with `EINTR`.
+- Fixed Issue 73 (Rename events are occasionally split into two events on linux).
+- **PR#78, DanielCodesphere**
+  fix(inotify): correct event type for symlinks
+
 ## 0.13.5
 - C++17 compatibility fixes on Linux (avoid captured structured bindings).
 
