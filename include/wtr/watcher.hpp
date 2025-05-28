@@ -2249,6 +2249,12 @@ inline auto watch(
 namespace wtr {
 inline namespace watcher {
 
+struct opts {
+  std::filesystem::path path;
+  event::callback callback;
+  std::set<std::string> ignored_paths = {};
+};
+
 /*  An asynchronous filesystem watcher.
 
     Begins watching when constructed.
@@ -2292,13 +2298,6 @@ inline namespace watcher {
     That's it.
 
     Happy hacking. */
-
-struct opts {
-  std::filesystem::path path;
-  event::callback callback;
-  std::set<std::string> ignored_paths = {};
-};
-
 class watch {
 private:
   using sb = ::detail::wtr::watcher::semabin;
