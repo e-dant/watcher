@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cstdio>
-#include <vector>
 #include <string>
+#include <set>
 #include "wtr/watcher-c.h"
 #include "wtr/watcher.hpp"
 
@@ -42,10 +42,10 @@ void* wtr_watcher_open(
   char const* const* ignored_paths,
   size_t ignored_paths_len)
 {
-  std::vector<std::string> ignored_vec;
+  std::set<std::string> ignored_set;
   if (ignored_paths && ignored_paths_len > 0) {
     for (size_t i = 0; i < ignored_paths_len; ++i) {
-      if (ignored_paths[i]) ignored_vec.emplace_back(ignored_paths[i]);
+      if (ignored_paths[i]) ignored_set.emplace(ignored_paths[i]);
     }
   }
   auto wrapped_callback = [callback, context](wtr::watcher::event ev_owned)
@@ -73,7 +73,7 @@ void* wtr_watcher_open(
     ev_view.effect_time = ev_owned.effect_time;
     callback(ev_view, context);
   };
-  return (void*)new wtr::watcher::watch({path, wrapped_callback, ignored_vec});
+  return (void*)new wtr::watcher::watch({path, wrapped_callback, ignored_set});
 }
 
 bool wtr_watcher_close(void* watcher)

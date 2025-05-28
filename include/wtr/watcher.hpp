@@ -4,12 +4,12 @@
 #include <array>
 #include <charconv>
 #include <chrono>
-#include <algorithm>
 #include <filesystem>
 #include <functional>
 #include <ios>
 #include <limits>
 #include <memory>
+#include <set>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -946,16 +946,8 @@ inline auto is_dir(char const* const path) -> bool
 }
 
 inline auto should_skip =
-  [](
-    char const* const dir,
-    std::vector<std::string> const& ignored_paths) -> bool
-{
-  return std::any_of(
-    ignored_paths.begin(),
-    ignored_paths.end(),
-    [&](std::string const& ignored)
-    { return strcmp(dir, ignored.c_str()) == 0; });
-};
+  [](char const* const dir, std::set<std::string> const& ignored_paths) -> bool
+{ return ignored_paths.find(dir) != ignored_paths.end(); };
 
 /*  $ echo time wtr.watcher / -ms 1
       | sudo bash -E
@@ -980,7 +972,7 @@ inline auto should_skip =
 template<class Fn>
 inline auto walkdir_do(
   char const* const path,
-  std::vector<std::string> const& ignored_paths,
+  std::set<std::string> const& ignored_paths,
   Fn const& f) -> void
 {
   if (should_skip(path, ignored_paths)) {
@@ -1098,7 +1090,7 @@ inline auto make_sysres =
     char const* const base_path,
     auto const& cb,
     semabin const& living,
-    std::vector<std::string> const& ignored_paths = {}) -> sysres
+    std::set<std::string> const& ignored_paths = {}) -> sysres
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
@@ -1264,7 +1256,7 @@ inline auto do_ev_recv =
   [](
     auto const& cb,
     sysres& sr,
-    std::vector<std::string> const& ignored_paths = {}) -> result
+    std::set<std::string> const& ignored_paths = {}) -> result
 {
   auto ev_info = [](fanotify_event_metadata const* const m)
   { return (fanotify_event_info_fid*)(m + 1); };
@@ -1441,7 +1433,7 @@ inline auto make_sysres =
     char const* const base_path,
     auto const& cb,
     semabin const& living,
-    std::vector<std::string> const& ignored_paths = {}) -> sysres
+    std::set<std::string> const& ignored_paths = {}) -> sysres
 {
   auto make_inotify = [](result* ok) -> int
   {
@@ -1641,7 +1633,7 @@ inline auto do_ev_recv =
   [](
     auto const& cb,
     sysres& sr,
-    std::vector<std::string> const& ignored_paths = {}) -> result
+    std::set<std::string> const& ignored_paths = {}) -> result
 {
   auto is_parity_lost = [](unsigned msk) -> bool
   { return msk & IN_DELETE_SELF && ! (msk & IN_MOVE_SELF); };
@@ -1714,8 +1706,8 @@ inline auto watch = [](
                       auto const& path,
                       auto const& cb,
                       auto const& living,
-                      std::vector<std::string> const& ignored_paths =
-                        std::vector<std::string>{}) -> bool
+                      std::set<std::string> const& ignored_paths =
+                        std::set<std::string>{}) -> bool
 {
   auto platform_watch = [&](auto make_sysres, auto do_ev_recv) -> result
   {
@@ -2304,7 +2296,7 @@ inline namespace watcher {
 struct opts {
   std::filesystem::path path;
   event::callback callback;
-  std::vector<std::string> ignored_paths = {};
+  std::set<std::string> ignored_paths = {};
 };
 
 class watch {
