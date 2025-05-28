@@ -133,7 +133,7 @@ inline auto make_sysres = [](
   auto make_inotify = [](result* ok) -> int
   {
     if (*ok >= result::e) return -1;
-    int in_fd = inotify_init();
+    int in_fd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
     if (in_fd < 0) *ok = result::e_sys_api_inotify;
     return in_fd;
   };
@@ -187,14 +187,18 @@ struct parsed {
 inline auto parse_ev = [](
                          ke_in_ev::paths const& dm,
                          inotify_event const* const in,
-                         inotify_event const* const tail) -> parsed
+                         inotify_event const* const tail,
+                         int* ec) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
   { return known_pathof_wd_or_default(dm, m->wd) / m->name; };
-  auto pt = in->mask & IN_ISDIR ? ev_pt::dir : ev_pt::file;
+  auto in_path = pathof(in);
+  auto pt = in->mask & IN_ISDIR ? ev_pt::dir
+          : is_symlink(in_path) ? ev_pt::sym_link
+                                : ev_pt::file;
   auto et = in->mask & IN_CREATE ? ev_et::create
           : in->mask & IN_DELETE ? ev_et::destroy
           : in->mask & IN_MOVE   ? ev_et::rename
@@ -204,15 +208,15 @@ inline auto parse_ev = [](
   { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
   auto isfromto = [](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* a, auto* next) -> parsed
-  { return {ev(pathof(a), et, pt), next}; };
+  auto one = [&](auto* next) -> parsed
+  { return {ev(in_path, et, pt), next}; };
   auto assoc = [&](auto* a, auto* b) -> parsed
   { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
-  return ! isassoc(in, next) ? one(in, next)
+  return ! isassoc(in, next) ? one(next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
-                             : one(in, next);
+                             : (*ec = 1, one(next));
 };
 
 struct defer_dm_rm_wd {
@@ -346,13 +350,14 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail);
+        int ec = 0;
+        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &ec);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        else
+        else if (! ec)
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }
