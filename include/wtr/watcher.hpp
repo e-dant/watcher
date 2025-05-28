@@ -2300,6 +2300,13 @@ inline namespace watcher {
     That's it.
 
     Happy hacking. */
+
+struct opts {
+  std::filesystem::path path;
+  event::callback callback;
+  std::vector<std::string> ignored_paths = {};
+};
+
 class watch {
 private:
   using sb = ::detail::wtr::watcher::semabin;
@@ -2307,35 +2314,42 @@ private:
   std::future<bool> watching{};
 
 public:
-  inline watch(
-    std::filesystem::path const& path,
-    event::callback const& callback,
-    std::vector<std::string> const& ignored_paths = {}) noexcept
+  inline watch(opts const& options) noexcept
       : watching{std::async(
           std::launch::async,
-          [this, path, callback, ignored_paths]
+          [this, options]
           {
             using ::detail::wtr::watcher::adapter::watch;
             auto ec = std::error_code{};
-            auto abs_path = std::filesystem::absolute(path, ec);
+            auto abs_path = std::filesystem::absolute(options.path, ec);
             auto pre_ok = ! ec && std::filesystem::is_directory(abs_path, ec)
                        && ! ec && this->living.state() == sb::state::pending;
             auto live_msg =
               (pre_ok ? "s/self/live@" : "e/self/live@") + abs_path.string();
-            callback(
+            options.callback(
               {live_msg,
                event::effect_type::create,
                event::path_type::watcher});
-            auto post_ok =
-              pre_ok && watch(abs_path, callback, this->living, ignored_paths);
+            auto post_ok = pre_ok
+                        && watch(
+                             abs_path,
+                             options.callback,
+                             this->living,
+                             options.ignored_paths);
             auto die_msg =
               (post_ok ? "s/self/die@" : "e/self/die@") + abs_path.string();
-            callback(
+            options.callback(
               {die_msg,
                event::effect_type::destroy,
                event::path_type::watcher});
             return pre_ok && post_ok;
           })}
+  {}
+
+  inline watch(
+    std::filesystem::path const& path,
+    event::callback const& callback) noexcept
+      : watch(opts{path, callback})
   {}
 
   inline auto close() noexcept -> bool

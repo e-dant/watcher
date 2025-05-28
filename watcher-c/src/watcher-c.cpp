@@ -73,7 +73,7 @@ void* wtr_watcher_open(
     ev_view.effect_time = ev_owned.effect_time;
     callback(ev_view, context);
   };
-  return (void*)new wtr::watcher::watch(path, wrapped_callback, ignored_vec);
+  return (void*)new wtr::watcher::watch({path, wrapped_callback, ignored_vec});
 }
 
 bool wtr_watcher_close(void* watcher)
