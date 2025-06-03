@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +58,12 @@ struct wtr_watcher_event {
     events and will return nothing. */
 typedef void (* wtr_watcher_callback)(struct wtr_watcher_event event, void* context);
 
-void* wtr_watcher_open(char const* const path, wtr_watcher_callback callback, void* context);
+void* wtr_watcher_open(
+  char const* const path,
+  wtr_watcher_callback callback,
+  void* context,
+  char const* const* ignored_paths,
+  size_t ignored_paths_len);
 
 bool wtr_watcher_close(void* watcher);
 
