@@ -799,7 +799,8 @@ close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& cb,
-  semabin const& living) -> bool
+  semabin const& living,
+  std::set<std::string> const& ignored_paths = std::set<std::string>{}) -> bool
 {
   auto seen_created_paths = ContextData::pathset{};
   auto last_rename_path = ContextData::fspath{};
@@ -1997,7 +1998,9 @@ inline auto do_event_send(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  semabin const& living) noexcept -> bool
+  semabin const& living,
+  std::set<std::string> const& ignored_paths = std::set<std::string>{}) noexcept
+  -> bool
 {
   using namespace ::wtr::watcher;
   auto w = watch_event_proxy{path};
@@ -2217,7 +2220,9 @@ inline bool tend_bucket(
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& callback,
-  semabin const& living) noexcept -> bool
+  semabin const& living,
+  std::set<std::string> const& ignored_paths = std::set<std::string>{}) noexcept
+  -> bool
 {
   using std::this_thread::sleep_for;
   using namespace std::chrono_literals;
