@@ -3,8 +3,9 @@
 ## 0.13.7
 
 - Added `pkg-config` files for `watcher` and `watcher-c`.
-- Switched to `command -v` from `which` in `tool/test` for portability.
+- Portability fixes in the `tool/test` suite.
 - Updated documentation in the Darwin adapter.
+- Added test targets to CMake in the idiomatic way, i.e. `enable_testing()` and `add_test()`.
 
 ## 0.13.6
 
