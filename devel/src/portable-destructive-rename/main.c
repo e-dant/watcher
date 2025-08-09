@@ -28,10 +28,13 @@ void phelp(FILE* file)
 
 int main(int argc, char* argv[])
 {
+  if (argc != 3 && argc != 2)
+    return (phelp(stderr), 0);
+
   char* a = argc > 1 ? argv[1] : "";
   char* b = argc > 2 ? argv[2] : "";
 
-  if (strcmp(a, "--help") == 0)
+  if (strcmp(a, "--help") == 0 && argc == 2)
     return (phelp(stdout), 0);
 
   else if (rename(a, b) == 0)

@@ -23,13 +23,15 @@ include(CheckIPOSupported)
 include(FetchContent)
 include(GNUInstallDirs)
 
+enable_testing()
+
 #
 # Options, Variable & Constants
 #
 
 option(BUILD_LIB        "Create targets for the watcher-c libraries" ON)
 option(BUILD_BIN        "Create targets for the CLI binaries" ON)
-option(BUILD_PKC_CONFIG "Create targets for the pkg-config files" ON)
+option(BUILD_PKG_CONFIG "Create targets for the pkg-config files" ON)
 option(BUILD_HDR        "Create targets for the headers (both the C++ single-header library and the watcher-c library header)" ON)
 option(BUILD_TESTING    "Create targets for the test programs" OFF)
 option(BUILD_SAN        "Mega-option to allow sanitizers" OFF)
@@ -227,6 +229,7 @@ function(wtr_add_bin_target
       )
       FetchContent_MakeAvailable(snitch)
     endif()
+    add_test(NAME "${NAME}" COMMAND "${NAME}")
   endif()
   if(BIN_COMPONENT_NAME)
     install(
@@ -352,6 +355,14 @@ function(wtr_add_autosan_bin_target NAME SRC_SET IS_TEST)
   endforeach()
 endfunction()
 
+function(wtr_add_autosan_rel_bin_target NAME SRC_SET)
+  wtr_add_autosan_bin_target("${NAME}" "${SRC_SET}" OFF)
+endfunction()
+
+function(wtr_add_autosan_test_bin_target NAME SRC_SET)
+  wtr_add_autosan_bin_target("${NAME}" "${SRC_SET}" ON)
+endfunction()
+
 function(wtr_add_san_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE SAN)
   string(TOUPPER "${SAN}" UPPER_SAN)
   if (NOT BUILD_LIB)
@@ -376,6 +387,16 @@ function(wtr_add_autosan_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE)
     string(TOUPPER ${SAN} UPPER_SAN)
     wtr_add_san_lib_target("${NAME}.${SAN}" "${OUTPUT_NAME}.${SAN}" "${SRC_SET}" "${INC_SET}" "${LIB_TYPE}" "${SAN}")
   endforeach()
+endfunction()
+
+function(wtr_add_pkg_config_target NAME SRC)
+  if(BUILD_PKG_CONFIG)
+    message(STATUS "${NAME}: Added (BUILD_PKG_CONFIG=${BUILD_PKG_CONFIG})")
+    configure_file("${SRC}" "${CMAKE_BINARY_DIR}/${DST}" @ONLY)
+    install(FILES "${CMAKE_BINARY_DIR}/${NAME}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT pkgconfig)
+  else()
+    message(STATUS "${NAME}: Skipped (BUILD_PKG_CONFIG=${BUILD_PKG_CONFIG})")
+  endif()
 endfunction()
 
 #
@@ -408,16 +429,14 @@ wtr_add_autosan_lib_target(
   "STATIC"
 )
 
-wtr_add_autosan_bin_target(
+wtr_add_autosan_rel_bin_target(
   "wtr.watcher"
   "src/wtr/watcher/main.cpp"
-  OFF
 )
 
-wtr_add_autosan_bin_target(
+wtr_add_autosan_rel_bin_target(
   "tw"
   "src/wtr/tiny_watcher/main.cpp"
-  OFF
 )
 
 set(WTR_TEST_WATCHER_SOURCE_SET
@@ -428,10 +447,9 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "devel/src/wtr/test_watcher/test_performance.cpp"
   "devel/src/wtr/test_watcher/test_openclose.cpp"
 )
-wtr_add_autosan_bin_target(
+wtr_add_autosan_test_bin_target(
   "wtr.test_watcher"
   "${WTR_TEST_WATCHER_SOURCE_SET}"
-  ON
 )
 
 # Used in the tool/test suite. Platforms vary
@@ -449,24 +467,33 @@ wtr_add_bin_target(
   ""
 )
 
-if(BUILD_HDR AND BUILD_PKC_CONFIG)
-  message(STATUS "Generating watcher.pc (BUILD_HDR=${BUILD_HDR}, BUILD_PKC_CONFIG=${BUILD_PKC_CONFIG})")
-  set(PC_WATCHER_LIBS_PRIVATE "${LINK_LIBRARIES}")
-  set(PC_WATCHER_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
-  set(PC_WATCHER_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
-  configure_file("watcher.pc.in" "${CMAKE_BINARY_DIR}/watcher.pc" @ONLY)
-  install(FILES "${CMAKE_BINARY_DIR}/watcher.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT "include")
-else()
-  message(STATUS "Skipping watcher.pc generation (BUILD_HDR=${BUILD_HDR}, BUILD_PKC_CONFIG=${BUILD_PKC_CONFIG})")
-endif()
+set(PC_WATCHER_LIBS_PRIVATE "${LINK_LIBRARIES}")
+set(PC_WATCHER_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(PC_WATCHER_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
+wtr_add_pkg_config_target("watcher.pc" "watcher.pc.in")
 
-if(BUILD_LIB AND BUILD_PKC_CONFIG)
-  message(STATUS "Generating watcher-c.pc (BUILD_LIB=${BUILD_LIB}, BUILD_PKC_CONFIG=${BUILD_PKC_CONFIG})")
-  set(PC_LIBWATCHER_C_LIBS_PRIVATE "${LINK_LIBRARIES}")
-  set(PC_LIBWATCHER_C_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
-  set(PC_LIBWATCHER_C_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
-  configure_file("watcher-c/watcher-c.pc.in" "${CMAKE_BINARY_DIR}/watcher-c.pc" @ONLY)
-  install(FILES "${CMAKE_BINARY_DIR}/watcher-c.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT "include")
+set(PC_LIBWATCHER_C_LIBS_PRIVATE "${LINK_LIBRARIES}")
+set(PC_LIBWATCHER_C_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(PC_LIBWATCHER_C_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
+wtr_add_pkg_config_target("watcher-c.pc" "watcher-c/watcher-c.pc.in")
+
+if(BUILD_TESTING)
+  message(STATUS "wtr.test_tool_test_all: Added (BUILD_TESTING=${BUILD_TESTING})")
+  add_test(
+    NAME wtr.test_tool_test_all
+    COMMAND sh -c "PATH=$<TARGET_FILE_DIR:portable-destructive-rename>:$ENV{PATH} WATCHER=$<TARGET_FILE:wtr.watcher> ${CMAKE_SOURCE_DIR}/tool/test/all"
+  )
+  foreach(SAN ${SAN_NAMES})
+    if(ALLOWED_${SAN} AND (BUILD_SAN OR BUILD_${SAN}))
+      message(STATUS "wtr.test_tool_test_all.${SAN}: Added (BUILD_SAN=${BUILD_SAN}, BUILD_${SAN}=${BUILD_${SAN}})")
+      add_test(
+        NAME wtr.test_tool_test_all.${SAN}
+        COMMAND sh -c "PATH=$<TARGET_FILE_DIR:portable-destructive-rename>:$ENV{PATH} WATCHER=$<TARGET_FILE:wtr.watcher.${SAN}> ${CMAKE_SOURCE_DIR}/tool/test/all"
+      )
+    else()
+      message(STATUS "wtr.test_tool_test_all.${SAN}: Skipped (BUILD_SAN=${BUILD_SAN}, BUILD_${SAN}=${BUILD_${SAN}}, ALLOWED_${SAN}=${ALLOWED_${SAN}})")
+    endif()
+  endforeach()
 else()
-  message(STATUS "Skipping watcher-c.pc generation (BUILD_LIB=${BUILD_LIB}, BUILD_PKC_CONFIG=${BUILD_PKC_CONFIG})")
+  message(STATUS "wtr.test_tool_test_all: Skipped (BUILD_TESTING=${BUILD_TESTING})")
 endif()
