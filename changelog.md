@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.7
+
+Added `pkg-config` files for `watcher` and `watcher-c`.
+
 ## 0.13.6
 
 Special thanks to @DanielCodesphere and @jordan-woyak for their important contributions in this release.
