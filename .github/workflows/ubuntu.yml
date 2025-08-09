@@ -33,6 +33,8 @@ jobs:
       - uses: chetan/git-restore-mtime-action@v2
       - run: tool/build --verbose --no-run
       - run: tool/test/all
+        env:
+          WATCHER: ${{github.workspace}}/out/${{matrix.target-platform}}/Debug/wtr.watcher.asan
       - run: tool/build --verbose --no-build --no-run-perf
       - run: tool/build --verbose --no-build --no-run-unit
       - run: ls -al out/${{matrix.target-platform}}/Debug
