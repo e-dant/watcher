@@ -38,7 +38,7 @@ show-output() {
   {  test -n "$1" \
   && test -d "$d" \
   && test -f "$f" \
-  && which jq > /dev/null
+  && command -v jq > /dev/null
   } || return 1
 
   sed "s|$d|d|g" "$f" \
