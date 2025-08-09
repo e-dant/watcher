@@ -2,7 +2,9 @@
 
 ## 0.13.7
 
-Added `pkg-config` files for `watcher` and `watcher-c`.
+- Added `pkg-config` files for `watcher` and `watcher-c`.
+- Switched to `command -v` from `which` in `tool/test` for portability.
+- Updated documentation in the Darwin adapter.
 
 ## 0.13.6
 
