@@ -253,7 +253,7 @@ inline auto wait(semabin const& sb)
     When we flood the filesystem with events, Darwin may choose,
     for reason I don't fully understand, to tell us about events
     after we are long gone. Maybe the FSEvent stream (which should
-    be f'ing closed) sometimes ignores us having asking it to stop.
+    be f'ing closed) sometimes ignores us having asked it to stop.
     Maybe some tasks in the dispatch queue are not being cleared
     properly. I'm not sure.
 
@@ -264,20 +264,16 @@ inline auto wait(semabin const& sb)
     streams either during or shortly after the events stop happening
     to the filesystem, but before they have all been reported.
 
-    A minimal-ish reproducer is in /etc/wip-fsevents-issue.
-
     Whatever the reason, sometimes, Darwin seems happy call into
-    our event handler with resource after we have left the memory
+    our event handler with resources after we have left the memory
     space those resources belong to. I consider that a bug somewhere
     in FSEvents, Dispatch or maybe something deeper.
 
     At one point, I thought that purging events for the device
     would help. Even that fails under sufficiently high load.
-    The positive side effect may have effectively been a sleep.
-    Sometimes I even consider adding a deliberate  sleep here.
-    Because time is not a synchronization primitive, that will
-    also eventually fail. Though, if it's the best we can do,
-    despite the kernel, maybe it's worth it. I'm not sure.
+    The positive side effect of that may have effectively been
+    a sleep; We spent time processing the purge, which avoided
+    an unrelated race condition.
 
     Before that, I added a bunch of synchronization primitives
     to the context and made the lifetime of the context a bit
@@ -287,8 +283,6 @@ inline auto wait(semabin const& sb)
     on before cleaning up. All well and good, but then again,
     it's not like any of that memory *even exists* when Darwin
     calls into it after we've asked it to stop and left.
-
-    There's a minimal-ish reproducer in /etc/wip-fsevents-issue.
 
     "Worse is better."
 
@@ -327,8 +321,7 @@ close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
     is self-inconsistent but well-meaning. Sometimes, Apple
     will use our resources after we've asked it not to. I
     consider that a bug somewhere in FSEvents, Dispatch or
-    maybe something deeper. There's a minimal-ish reproducer
-    in the `/etc/wip-fsevents-issue` directory.  */
+    maybe something deeper.  */
 inline auto watch(
   std::filesystem::path const& path,
   ::wtr::watcher::event::callback const& cb,
