@@ -27,6 +27,11 @@ watch-async() {
 }
 export -f watch-async
 
+strip-tmpdir() {
+  # Darwin prepends /private to tmp dirs
+  sed -E "s;$1|/private$1;d;g" "$@"
+}
+
 show-output() {
   d=$1
   f=$d.json
@@ -37,7 +42,7 @@ show-output() {
   && command -v jq > /dev/null
   } || return 1
 
-  sed "s|$d|d|g" "$f" \
+  strip-tmpdir "$d" "$f" \
   | jq '
     { path_type: .path_type
     , path_name: .path_name
