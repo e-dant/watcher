@@ -33,11 +33,6 @@ jobs:
           path: out
           key: cache.${{matrix.target-double}}.${{matrix.os}}
       - uses: chetan/git-restore-mtime-action@v2
-      - run: tool/build --verbose --no-run
-      - run: tool/test/all
-        env:
-          WATCHER: ${{github.workspace}}/out/${{matrix.target-platform}}/Debug/wtr.watcher.asan
-      - run: tool/build --verbose --no-build --no-run-perf
-      - run: tool/build --verbose --no-build --no-run-unit
-      - run: ls -al out/${{matrix.target-platform}}/Debug
-      - run: ls -al out/${{matrix.target-platform}}/Release
+      - run: cmake -S . -B out -DBUILD_TESTING=ON -DBUILD_SAN=ON
+      - run: make -C out -j$(nproc)
+      - run: cd out && ctest -V

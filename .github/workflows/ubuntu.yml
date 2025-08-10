@@ -33,4 +33,4 @@ jobs:
       - uses: chetan/git-restore-mtime-action@v2
       - run: cmake -S . -B out -DBUILD_TESTING=ON -DBUILD_SAN=ON
       - run: make -C out -j$(nproc)
-      - run: make -C out test || cat out/Testing/Temporary/LastTest.log
+      - run: cd out && ctest -V
