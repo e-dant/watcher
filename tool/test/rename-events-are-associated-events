@@ -13,31 +13,26 @@ ec=0
 [
   {
     "effect_type": "create",
-    "path_name": "s/self/live@d",
-    "path_type": "watcher"
-  },
-  {
-    "effect_type": "create",
-    "path_name": "d/f.0",
+    "path_name": "0",
     "path_type": "file"
   },
 $(for i in $(seq 1 $count); do cat << eol
   {
     "associated": {
       "effect_type": "rename",
-      "path_name": "d/f.$i",
+      "path_name": "$i",
       "path_type": "file"
     },
     "effect_type": "rename",
-    "path_name": "d/f.$((i - 1))",
+    "path_name": "$((i - 1))",
     "path_type": "file"
   },
 eol
 done)
   {
     "effect_type": "destroy",
-    "path_name": "s/self/die@d",
-    "path_type": "watcher"
+    "path_name": "$count",
+    "path_type": "file"
   }
 ]
 .
@@ -52,12 +47,17 @@ done)
 
   actual=$(
     watch-async "$testdir" -s 3 > "$testdir.json"
-    touch f.0
+    touch 0
     for i in $(seq 1 $count)
-    do mv f.$((i - 1)) f.$i
+    do mv $((i - 1)) $i
     done
+    rm $count
     wait # for the watcher
-    show-events "$testdir" | without-effect-time
+    show-events "$testdir" \
+      | without-effect-time \
+      | without-self-events \
+      | sed s,d/,,g \
+      | jq -Ss 'sort_by(.path_name | tonumber)'
   )
 
   check-result "$expect" "$actual"

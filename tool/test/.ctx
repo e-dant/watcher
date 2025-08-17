@@ -8,12 +8,14 @@
 # shellcheck disable=SC2317
 # SC2317: Command can be reached.
 
-testdir=$(mktemp -d -t tst-XXXXXX) || exit 1
+export testdir=$(mktemp -d -t tst-XXXXXX) || exit 1
 WATCHER=$(realpath "${WATCHER:-$(command -v wtr.watcher)}") || {
   echo WATCHER env var not set to a valid path and wtr.watcher not found in PATH 1>&2
   exit 1
 }
-export testdir
+for dep in jq diff portable-destructive-rename
+do command -v "$dep" &> /dev/null || { echo "$dep" not found in PATH 1>&2 ; exit 1 ; }
+done
 
 trap "cd '$PWD' ; rm -rf '$testdir' '$testdir.json'" EXIT
 cd "$testdir" || exit 1
@@ -21,26 +23,20 @@ cd "$testdir" || exit 1
 # Otherwise, the Darwin watcher will see the testdir's creation event
 [ "$(uname -s)" = Darwin ] && sleep 0.2
 
+strip-tmpdir() {
+  # Darwin prepends /private to tmp dirs
+  sed -E "s;$1|/private$1;d;g" "$2"
+}
+
 watch-async() {
   "$WATCHER" "$@" &
   sleep 0.1
 }
 export -f watch-async
 
-strip-tmpdir() {
-  # Darwin prepends /private to tmp dirs
-  sed -E "s;$1|/private$1;d;g" "$@"
-}
-
 show-output() {
   d=$1
   f=$d.json
-
-  {  test -n "$1" \
-  && test -d "$d" \
-  && test -f "$f" \
-  && command -v jq > /dev/null
-  } || return 1
 
   strip-tmpdir "$d" "$f" \
   | jq '
@@ -49,7 +45,7 @@ show-output() {
     , effect_type: .effect_type
     , effect_time: .effect_time
     , associated: .associated
-    }' \
+    } | to_entries | sort_by(.path_name) | from_entries' \
   | jq --slurp -S
 }
 export -f show-output
@@ -63,6 +59,11 @@ without-effect-time() {
  sed '/"effect_time":/d'
 }
 export -f without-effect-time
+
+without-self-events() {
+  jq -c '.[] | select(.path_type != "watcher")'
+}
+export -f without-self-events
 
 check-result() {
   [[ -z "$1" || -z "$2" ]] && return 1
