@@ -1992,7 +1992,7 @@ inline auto watch(
 #if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__)  && ! defined(_WIN32)
 #define WATER_WATCHER_USE_WARTHOG 1
 #else
-#define WATER_WATCHER_USE_WARTHOG 1 // 0
+#define WATER_WATCHER_USE_WARTHOG 0
 #endif
 #endif
 
