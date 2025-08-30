@@ -220,19 +220,25 @@ inline auto parse_ev = [](
       } else if (isfromto(next, in)) {
         return assoc(next, in);
       } else {
-        fprintf(stderr, "[warn] impossible rename event, neither from a->b nor b->a; in_path: %s, next_path: %s, in_mask: %u, next_mask: %u\n",
+        fprintf(stderr, "[warn] impossible rename event, neither from a->b nor b->a; in_path: %s, in_mask: %u, in_cookie: %u, next_path: %s, next_mask: %u, next_cookie: %u\n",
                 in_path.c_str(),
-                next ? pathof(next).c_str() : "(null)",
                 in->mask,
-                next ? next->mask : 0);
+                in->cookie,
+                next ? pathof(next).c_str() : "(null)",
+                next ? next->mask : 0,
+                next ? next->cookie : 0
+        );
         return (*ec = 1, one(next));
       }
     } else {
-      fprintf(stderr, "[warn] impossible rename event, unassociated; in_path: %s, next_path: %s, in_mask: %u, next_mask: %u\n",
+      fprintf(stderr, "[warn] impossible rename event, unassociated; in_path: %s, in_mask: %u, in_cookie: %u, next_path: %s, next_mask: %u, next_cookie: %u\n",
               in_path.c_str(),
-              next ? pathof(next).c_str() : "(null)",
               in->mask,
-              next ? next->mask : 0);
+              in->cookie,
+              next ? pathof(next).c_str() : "(null)",
+              next ? next->mask : 0,
+              next ? next->cookie : 0
+      );
       return (*ec = 1, one(next));
     }
   } else {
