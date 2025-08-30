@@ -18,8 +18,9 @@ namespace fs = filesystem;
 
 struct Args {
   static constexpr auto help =
-    "wtr.watcher <PATH=. [-UNIT <TIME>]>\n"
-    "wtr.watcher <-h | --help>\n"
+    "wtr.watcher PATH=. [-UNIT TIME]\n"
+    "wtr.watcher -h, --help\n"
+    "wtr.watcher -v, --version\n"
     "\n"
     "  PATH\n"
     "    Any path. Relative or absolute.\n"
@@ -42,8 +43,16 @@ struct Args {
     "\n"
     "  TIME\n"
     "    Any positive integer, as long as it's\n"
-    "    less than ULONG_MAX. Which is large.\n";
+    "    less than ULONG_MAX. Which is large.\n"
+    "\n"
+    "  -h, --help\n"
+    "    Show this help message and exit.\n"
+    "\n"
+    "  -v, --version\n"
+    "    Show version information and exit.\n";
+  static constexpr auto version = WTR_WATCHER_VERSION_S;
   bool const is_help;
+  bool const is_version;
   optional<fs::path> const path;
   optional<nanoseconds> const time;
 
@@ -53,6 +62,7 @@ struct Args {
     { return argc > i ? strcmp(a, argv[i]) == 0 : false; };
 
     bool is_help = argis(1, "-h") || argis(1, "--help");
+    bool is_version = argis(1, "-v") || argis(1, "--version");
 
     auto path =
       is_help ? nullopt
@@ -83,8 +93,8 @@ struct Args {
         return nanoseconds(llroundl(td) * ttons);
     }();
 
-    return is_help || path || time
-           ? optional(Args{is_help, path, time})
+    return is_help || is_version || path || time
+           ? optional(Args{is_help, is_version, path, time})
            : nullopt;
   }
 };
@@ -113,6 +123,7 @@ int main(int argc, char const* const* const argv)
   auto args = Args::try_parse(argc, argv);
   return ! args ? (cerr << Args::help, 1)
        : args->is_help ? (cout << Args::help, 0)
+       : args->is_version ? (cout << Args::version, 0)
        : ! args->path ? (cerr << Args::help, 1)
        : [&] { auto w = watch(*args->path, cb);
                if (! args->time) cin.get();

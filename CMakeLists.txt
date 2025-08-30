@@ -403,6 +403,8 @@ endfunction()
 # Actual work
 #
 
+add_compile_definitions(WTR_WATCHER_VERSION_S="${PROJECT_VERSION}")
+
 wtr_add_hdr_target(
   "wtr.hdr_watcher"
   "include/wtr/watcher.hpp"
