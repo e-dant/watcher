@@ -1480,15 +1480,62 @@ inline auto parse_ev = [](
           : in->mask & IN_MOVE   ? ev_et::rename
           : in->mask & IN_MODIFY ? ev_et::modify
                                  : ev_et::other;
+  bool debug = et == ev_et::rename;
+
   auto isassoc = [&](auto* a, auto* b) -> bool
-  { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
-  auto isfromto = [](auto* a, auto* b) -> bool
-  { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
+  {
+    bool v = b && b->cookie && b->cookie == a->cookie && et == ev_et::rename;
+    if (debug) {
+      fprintf(stderr, "[dbg] isassoc = %s (%s <-> %s)\n", v ? "true" : "false", pathof(a).c_str(), pathof(b).c_str());
+    }
+    return v;
+  };
+
+  auto isfromto = [&](auto* a, auto* b) -> bool
+  {
+    bool v = (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO);
+    if (debug) {
+      fprintf(stderr, "[dbg] isfromto = %s (from: %s, to: %s)\n", v ? "true" : "false", a->name, b->name);
+    }
+    return v;
+  };
+
   auto one = [&](auto* next) -> parsed
   { return {ev(in_path, et, pt), next}; };
+
   auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  {
+    return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)};
+  };
+
   auto next = peek(in, tail);
+
+  if (et == ev_et::rename) {
+    if (isassoc(in, next)) {
+      if (isfromto(in, next)) {
+        return assoc(in, next);
+      } else if (isfromto(next, in)) {
+        return assoc(next, in);
+      } else {
+        fprintf(stderr, "[warn] impossible rename event, neither from a->b nor b->a; in_path: %s, next_path: %s, in_mask: %u, next_mask: %u\n",
+                in_path.c_str(),
+                next ? pathof(next).c_str() : "(null)",
+                in->mask,
+                next ? next->mask : 0);
+        return (*ec = 1, one(next));
+      }
+    } else {
+      fprintf(stderr, "[warn] impossible rename event, unassociated; in_path: %s, next_path: %s, in_mask: %u, next_mask: %u\n",
+              in_path.c_str(),
+              next ? pathof(next).c_str() : "(null)",
+              in->mask,
+              next ? next->mask : 0);
+      return (*ec = 1, one(next));
+    }
+  } else {
+    return one(next);
+  }
+
   return ! isassoc(in, next) ? one(next)
        : isfromto(in, next)  ? assoc(in, next)
        : isfromto(next, in)  ? assoc(next, in)
