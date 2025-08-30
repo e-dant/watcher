@@ -121,7 +121,7 @@ polybuild() {
     then build "$triple" "out/$triple/libwatcher-c.$so" -shared watcher-c/src/watcher-c.cpp
     else build "$triple" "out/$triple/libwatcher-c.$so" -shared -fPIC watcher-c/src/watcher-c.cpp
     fi
-    build "$triple" "out/$triple/watcher" src/wtr/watcher/main.cpp
+    build "$triple" "out/$triple/watcher" src/wtr/watcher/main.cpp -DWTR_WATCHER_VERSION_S=\""$(cat .version)"\"
     build "$triple" "out/$triple/tw" src/wtr/tiny_watcher/main.cpp
     [ -e "out/$triple/libwatcher-c.$so.$version" ] || cp "out/$triple/libwatcher-c.$so" "out/$triple/libwatcher-c.$so.$version"
     [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
