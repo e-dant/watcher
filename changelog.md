@@ -7,7 +7,7 @@
 - Updated documentation in the Darwin adapter.
 - Added test targets to CMake in the idiomatic way, i.e. `enable_testing()` and `add_test()` (#84).
 - Added a version (`-v, --version`) flag to the CLI program `wtr.watcher` (#86).
-- Fixed C++17 compatibility issues in the portable Warthog adapter, especially for BSDs (#87).
+- Fixed C++17 compatibility issues in the portable Warthog adapter, especially for BSDs (#87, #88).
 
 ## 0.13.6
 
