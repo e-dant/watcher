@@ -32,7 +32,7 @@ jobs:
           path: out
           key: cache.${{matrix.target-double}}.${{matrix.os}}
       - name: Setup CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: c-cpp
       - name: Build
