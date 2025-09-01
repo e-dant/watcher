@@ -87,17 +87,19 @@ public:
     other,
   };
 
-  std::filesystem::path const path_name{};
+  std::filesystem::path path_name{};
 
-  enum effect_type const effect_type {};
+  enum effect_type effect_type{};
 
-  enum path_type const path_type {};
+  enum path_type path_type{};
 
-  long long const effect_time{std::chrono::duration_cast<Nanos>(
-                                TimePoint{Clock::now()}.time_since_epoch())
-                                .count()};
+  long long effect_time{std::chrono::duration_cast<Nanos>(
+                          TimePoint{Clock::now()}.time_since_epoch())
+                          .count()};
 
-  std::unique_ptr<event> const associated{nullptr};
+  std::unique_ptr<event> associated{nullptr};
+
+  inline event() noexcept = default;
 
   inline event(event const& from) noexcept
       : path_name{from.path_name}
@@ -123,6 +125,18 @@ public:
       , associated{std::make_unique<event>(std::forward<event>(associated))} {};
 
   inline ~event() noexcept = default;
+
+  inline auto operator=(event const& from) noexcept -> event const&
+  {
+    this->path_name = from.path_name;
+    this->effect_type = from.effect_type;
+    this->path_type = from.path_type;
+    this->effect_time = from.effect_time;
+    this->associated = from.associated
+                     ? std::make_unique<event>(*from.associated)
+                     : nullptr;
+    return *this;
+  };
 
   /*  An equality comparison for all the fields in this object.
       Includes the `effect_time`, which might not be wanted,
@@ -1363,6 +1377,8 @@ struct ke_in_ev {
     | IN_MOVED_TO;
 
   int fd = -1;
+  ::wtr::watcher::event last_rename_ev{};
+  uint32_t last_rename_cookie = 0;
   using paths = std::unordered_map<int, std::filesystem::path>;
   paths dm{};
   alignas(inotify_event) char ev_buf[buf_len]{0};
@@ -1460,11 +1476,23 @@ struct parsed {
   inotify_event* next = nullptr;
 };
 
+/* Constructs a `parsed` event from an read(2)-populated inotify event buffer.
+   If there is another `inotify_event` available after `in`, it is returned
+   along with the `watcher::event`. This can be used to update the caller's
+   position in the buffer.
+
+   If the event is a rename event, and there is no associated event immediately
+   following the the current event, then `cookie` is set to a unique value
+   which can be used to associate this event with a future event by the caller.
+   The cookie is otherwise set to zero, and the event is fully parsed.
+   Generally, rename events are a pair of adjacent `MOVED_FROM`/`TO` events in
+   the same buffer. In some rare cases (see issue #89), they are not adjacent,
+   or not in the same buffer. */
 inline auto parse_ev = [](
                          ke_in_ev::paths const& dm,
                          inotify_event const* const in,
                          inotify_event const* const tail,
-                         int* ec) -> parsed
+                         uint32_t* cookie) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
@@ -1481,7 +1509,7 @@ inline auto parse_ev = [](
           : in->mask & IN_MODIFY ? ev_et::modify
                                  : ev_et::other;
   auto isassoc = [&](auto* a, auto* b) -> bool
-  { return b && b->cookie && b->cookie == a->cookie && et == ev_et::rename; };
+  { return b && b->cookie && b->cookie == a->cookie; };
   auto isfromto = [&](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
   auto one = [&](auto* next) -> parsed
@@ -1489,37 +1517,11 @@ inline auto parse_ev = [](
   auto assoc = [&](auto* a, auto* b) -> parsed
   { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
-  if (et == ev_et::rename) {
-    if (isassoc(in, next)) {
-      if (isfromto(in, next)) {
-        return assoc(in, next);
-      } else if (isfromto(next, in)) {
-        return assoc(next, in);
-      } else {
-        fprintf(stderr, "[warn] impossible rename event, neither from a->b nor b->a; in_path: %s, in_mask: %u, in_cookie: %u, next_path: %s, next_mask: %u, next_cookie: %u\n",
-                in_path.c_str(),
-                in->mask,
-                in->cookie,
-                next ? pathof(next).c_str() : "(null)",
-                next ? next->mask : 0,
-                next ? next->cookie : 0
-        );
-        return (*ec = 1, one(next));
-      }
-    } else {
-      fprintf(stderr, "[warn] impossible rename event, unassociated; in_path: %s, in_mask: %u, in_cookie: %u, next_path: %s, next_mask: %u, next_cookie: %u\n",
-              in_path.c_str(),
-              in->mask,
-              in->cookie,
-              next ? pathof(next).c_str() : "(null)",
-              next ? next->mask : 0,
-              next ? next->cookie : 0
-      );
-      return (*ec = 1, one(next));
-    }
-  } else {
-    return one(next);
-  }
+  *cookie = et == ev_et::rename && ! isassoc(in, next) ? in->cookie : 0;
+  return ! isassoc(in, next) ? one(next)
+         : isfromto(in, next) ? assoc(in, next)
+         : isfromto(next, in) ? assoc(next, in)
+         : one(next);
 };
 
 struct defer_dm_rm_wd {
@@ -1642,6 +1644,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
     auto const* in_ev = (inotify_event*)(sr.ke.ev_buf);
     auto const* const in_ev_tail = (inotify_event*)(sr.ke.ev_buf + read_len);
     unsigned in_ev_c = 0;
+    uint32_t cookie = 0;
     auto dmrm = defer_dm_rm_wd{sr.ke};
     while (in_ev && in_ev < in_ev_tail) {
       auto in_ev_next = peek(in_ev, in_ev_tail);
@@ -1653,14 +1656,17 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        int ec = 0;
-        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &ec);
-        if (msk & IN_ISDIR && msk & IN_CREATE)
+        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie);
+        if (cookie && sr.ke.last_rename_cookie != cookie)
+          sr.ke.last_rename_ev = parsed.ev, sr.ke.last_rename_cookie = cookie;
+        else if (cookie && sr.ke.last_rename_cookie == cookie)
+          cb({sr.ke.last_rename_ev, parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
+        else if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        else if (! ec)
+        else
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }

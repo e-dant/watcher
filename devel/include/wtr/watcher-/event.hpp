@@ -86,17 +86,19 @@ public:
     other,
   };
 
-  std::filesystem::path const path_name{};
+  std::filesystem::path path_name{};
 
-  enum effect_type const effect_type {};
+  enum effect_type effect_type{};
 
-  enum path_type const path_type {};
+  enum path_type path_type{};
 
-  long long const effect_time{std::chrono::duration_cast<Nanos>(
-                                TimePoint{Clock::now()}.time_since_epoch())
-                                .count()};
+  long long effect_time{std::chrono::duration_cast<Nanos>(
+                          TimePoint{Clock::now()}.time_since_epoch())
+                          .count()};
 
-  std::unique_ptr<event> const associated{nullptr};
+  std::unique_ptr<event> associated{nullptr};
+
+  inline event() noexcept = default;
 
   inline event(event const& from) noexcept
       : path_name{from.path_name}
@@ -122,6 +124,18 @@ public:
       , associated{std::make_unique<event>(std::forward<event>(associated))} {};
 
   inline ~event() noexcept = default;
+
+  inline auto operator=(event const& from) noexcept -> event const&
+  {
+    this->path_name = from.path_name;
+    this->effect_type = from.effect_type;
+    this->path_type = from.path_type;
+    this->effect_time = from.effect_time;
+    this->associated = from.associated
+                     ? std::make_unique<event>(*from.associated)
+                     : nullptr;
+    return *this;
+  };
 
   /*  An equality comparison for all the fields in this object.
       Includes the `effect_time`, which might not be wanted,
