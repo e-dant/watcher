@@ -1659,7 +1659,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie);
         if (cookie && sr.ke.last_rename_cookie != cookie)
           sr.ke.last_rename_ev = parsed.ev, sr.ke.last_rename_cookie = cookie;
-        else if (cookie && sr.ke.last_rename_cookie == cookie)
+        else if (cookie)
           cb({sr.ke.last_rename_ev, parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
         else if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
