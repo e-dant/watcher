@@ -10,6 +10,7 @@
 - Fixed C++17 compatibility issues in the portable Warthog adapter, especially for BSDs (#87, #88).
 - Fixed a bug in the inotify backend when associated (rename, move) events were not adjacent in the read(2) event buffer (#89).
 - (C++) Added an (in-place) assignment operator(`=`) to the `event` structure.
+- Updated CodeQL CI to v3, the latest version as of September 2025.
 
 ## 0.13.6
 
