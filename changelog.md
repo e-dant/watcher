@@ -9,6 +9,7 @@
 - Added a version (`-v, --version`) flag to the CLI program `wtr.watcher` (#86).
 - Fixed C++17 compatibility issues in the portable Warthog adapter, especially for BSDs (#87, #88).
 - Fixed a bug in the inotify backend when associated (rename, move) events were not adjacent in the read(2) event buffer (#89).
+- (C++) Added an (in-place) assignment operator(`=`) to the `event` structure.
 
 ## 0.13.6
 
