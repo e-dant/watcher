@@ -34,3 +34,4 @@ jobs:
       - run: cmake -S . -B out -DBUILD_TESTING=ON -DBUILD_SAN=ON
       - run: make -C out -j$(nproc)
       - run: cd out && ctest -V
+      - run: c++ src/wtr/tiny_watcher/main.cpp -Iinclude -std=c++17 -o /dev/null # C++17 Compat check

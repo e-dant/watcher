@@ -8,6 +8,7 @@
 - Added test targets to CMake in the idiomatic way, i.e. `enable_testing()` and `add_test()` (#84).
 - Added a version (`-v, --version`) flag to the CLI program `wtr.watcher` (#86).
 - Fixed C++17 compatibility issues in the portable Warthog adapter, especially for BSDs (#87, #88).
+- Added a C++17 compatibility check to Ubuntu CI jobs (#87, #88).
 - Fixed a bug in the inotify backend when associated (rename, move) events were not adjacent in the read(2) event buffer (#89).
 - (C++) Added an (in-place) assignment operator(`=`) to the `event` structure.
 - Updated CodeQL CI to v3, the latest version as of September 2025.
