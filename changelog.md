@@ -3,6 +3,9 @@
 ## 0.13.8
 
 - Updated the badges in the readme, adding Homebrew, GNU Guix and Nix Packages.
+- **PR#77, @carlocab**
+  fix(build): fix generation of `*.pc` files
+- Newline-terminated version output from `wtr.watcher -v`.
 
 ## 0.13.7
 
