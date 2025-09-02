@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.8
+
+- Updated the badges in the readme, adding Homebrew, GNU Guix and Nix Packages.
+
 ## 0.13.7
 
 - Added `pkg-config` files for `watcher` and `watcher-c` (#82).
