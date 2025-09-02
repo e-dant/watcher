@@ -123,7 +123,7 @@ int main(int argc, char const* const* const argv)
   auto args = Args::try_parse(argc, argv);
   return ! args ? (cerr << Args::help, 1)
        : args->is_help ? (cout << Args::help, 0)
-       : args->is_version ? (cout << Args::version, 0)
+       : args->is_version ? (cout << Args::version << endl, 0)
        : ! args->path ? (cerr << Args::help, 1)
        : [&] { auto w = watch(*args->path, cb);
                if (! args->time) cin.get();
