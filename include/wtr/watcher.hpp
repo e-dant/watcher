@@ -1499,10 +1499,13 @@ inline auto parse_ev = [](
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
   { return known_pathof_wd_or_default(dm, m->wd) / m->name; };
-  auto in_path = pathof(in);
-  auto pt = in->mask & IN_ISDIR ? ev_pt::dir
-          : is_symlink(in_path) ? ev_pt::sym_link
-                                : ev_pt::file;
+  auto calc_pt =
+    [&](uint32_t ev_mask, std::filesystem::path const& ev_path) -> ev_pt
+  {
+    return ev_mask & IN_ISDIR  ? ev_pt::dir
+         : is_symlink(ev_path) ? ev_pt::sym_link
+                               : ev_pt::file;
+  };
   auto et = in->mask & IN_CREATE ? ev_et::create
           : in->mask & IN_DELETE ? ev_et::destroy
           : in->mask & IN_MOVE   ? ev_et::rename
@@ -1513,9 +1516,16 @@ inline auto parse_ev = [](
   auto isfromto = [&](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
   auto one = [&](auto* next) -> parsed
-  { return {ev(in_path, et, pt), next}; };
+  {
+    auto in_path = pathof(in);
+    return {ev(in_path, et, calc_pt(in->mask, in_path)), next};
+  };
   auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
+  {
+    auto b_path = pathof(b);
+    auto pt_b = calc_pt(b->mask, b_path);
+    return {ev(ev(pathof(a), et, pt_b), ev(b_path, et, pt_b)), peek(b, tail)};
+  };
   auto next = peek(in, tail);
   *cookie = et == ev_et::rename && ! isassoc(in, next) ? in->cookie : 0;
   return ! isassoc(in, next) ? one(next)
