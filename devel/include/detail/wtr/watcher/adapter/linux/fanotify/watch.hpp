@@ -10,7 +10,10 @@
 #include "wtr/watcher.hpp"
 #include <errno.h>
 #include <fcntl.h>
+#include <fstream>
 #include <limits.h>
+#include <optional>
+#include <sstream>
 #include <stdio.h>
 #include <string.h>
 #include <string>
@@ -19,6 +22,21 @@
 #include <unistd.h>
 
 namespace detail::wtr::watcher::adapter::fanotify {
+
+#if KERNEL_VERSION(4, 20, 0) <= LINUX_VERSION_CODE
+#define WATCHER_HAVE_FAN_MARK_FILESYSTEM 1
+#else
+#define WATCHER_HAVE_FAN_MARK_FILESYSTEM 0
+#endif
+
+inline auto get_watcher_mode_name() -> const char*
+{
+#if WATCHER_HAVE_FAN_MARK_FILESYSTEM
+  return "FAN_MARK_FILESYSTEM (filesystem-level, requires root)";
+#else
+  return "FAN_MARK_ADD (directory-level recursive)";
+#endif
+}
 
 /*  We request post-event reporting, non-blocking
     IO and unlimited marks for fanotify. We need
@@ -56,6 +74,7 @@ struct ke_fa_ev {
     | FAN_EVENT_ON_CHILD;
 
   int fd = -1;
+  bool using_filesystem_mode = false;
   alignas(fanotify_event_metadata) char buf[buf_len]{0};
 };
 
@@ -66,6 +85,82 @@ struct sysres {
   ke_fa_ev ke{};
   semabin const& il{};
   adapter::ep ep{};
+};
+
+inline auto get_mount_point =
+  [](char const* path) -> std::optional<std::filesystem::path>
+{
+  std::ifstream mounts("/proc/self/mountinfo");
+  if (! mounts) return std::nullopt;
+
+  char real_path[PATH_MAX];
+  if (! realpath(path, real_path)) return std::nullopt;
+
+  std::string line;
+  std::filesystem::path best_mount;
+  size_t best_len = 0;
+
+  while (std::getline(mounts, line)) {
+    std::istringstream iss(line);
+    std::string mount_id, parent_id, dev_id, root, mount_point;
+    iss >> mount_id >> parent_id >> dev_id >> root >> mount_point;
+
+    std::string real_path_str(real_path);
+    if (
+      real_path_str.size() >= mount_point.size()
+      && real_path_str.compare(0, mount_point.size(), mount_point) == 0) {
+      if (mount_point.length() > best_len) {
+        best_mount = mount_point;
+        best_len = mount_point.length();
+      }
+    }
+  }
+
+  return best_len > 0 ? std::optional(best_mount) : std::nullopt;
+};
+
+inline auto do_mark_recursive =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
+{
+  auto e = result::w_sys_not_watched;
+  char real[PATH_MAX];
+  int anonymous_wd =
+    realpath(dirpath, real) && is_dir(real)
+      ? fanotify_mark(fa_fd, FAN_MARK_ADD, ke_fa_ev::recv_flags, AT_FDCWD, real)
+      : -1;
+  if (anonymous_wd == 0)
+    return result::complete;
+  else
+    return send_msg(e, dirpath, cb), e;
+};
+
+inline auto do_mark_filesystem =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
+{
+#if WATCHER_HAVE_FAN_MARK_FILESYSTEM
+  auto e = result::w_sys_not_watched;
+  char real[PATH_MAX];
+
+  if (! realpath(dirpath, real) || ! is_dir(real))
+    return result::w_sys_not_watched;
+
+  int anonymous_wd = fanotify_mark(
+    fa_fd,
+    FAN_MARK_FILESYSTEM | FAN_MARK_ADD,
+    ke_fa_ev::recv_flags,
+    AT_FDCWD,
+    real);
+
+  if (anonymous_wd == 0) return result::complete;
+
+  if (errno == EINVAL || errno == EXDEV) {
+    return do_mark_recursive(dirpath, fa_fd, cb);
+  }
+
+  return send_msg(e, dirpath, cb), e;
+#else
+  return do_mark_recursive(dirpath, fa_fd, cb);
+#endif
 };
 
 inline auto do_mark =
@@ -95,13 +190,19 @@ inline auto make_sysres = [](
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
-  walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+  bool using_fs_mode = false;
+  auto mark_result = do_mark_filesystem(base_path, fa_fd, cb);
+  if (mark_result == result::complete)
+    using_fs_mode = true;
+  else
+    walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+
   auto ep = make_ep(fa_fd, living.fd);
   if (ep.fd < 1)
     return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = living};
   return sysres{
     .ok = result::pending,
-    .ke{.fd = fa_fd},
+    .ke{.fd = fa_fd, .using_filesystem_mode = using_fs_mode},
     .il = living,
     .ep = ep,
   };
@@ -137,8 +238,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto
-pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
+inline auto pathof_dfid_name(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
@@ -168,6 +269,55 @@ pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
     if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
   }
   return {path_buf};
+}
+
+inline auto pathof_fid(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
+{
+  constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
+  constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
+  auto fid_info = (fanotify_event_info_fid*)(mtd + 1);
+  auto fh = (file_handle*)(fid_info->handle);
+  char path_buf[PATH_MAX] = {0};
+  int fd = open_by_handle_at(AT_FDCWD, fh, ofl);
+  if (fd <= 0) {
+    *ec = -errno;
+    return {};
+  }
+  char fs_ev_pidpath[32] = {0};
+  snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
+  ssize_t len = readlink(fs_ev_pidpath, path_buf, path_ulim);
+  close(fd);
+  if (len < 0) {
+    *ec = -errno;
+    return {};
+  }
+  path_buf[len] = 0;
+  return {path_buf};
+}
+
+inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
+{
+  auto info = (fanotify_event_info_header*)(mtd + 1);
+
+  if (! info) {
+    *ec = 1;
+    return {};
+  }
+
+  if (
+    info->info_type == FAN_EVENT_INFO_TYPE_FID
+    || info->info_type == FAN_EVENT_INFO_TYPE_DFID) {
+    return pathof_fid(mtd, ec);
+  }
+  else if (info->info_type == FAN_EVENT_INFO_TYPE_DFID_NAME) {
+    return pathof_dfid_name(mtd, ec);
+  }
+  else {
+    *ec = 1;
+    return {};
+  }
 }
 
 inline auto peek(fanotify_event_metadata const* const m, size_t read_len)

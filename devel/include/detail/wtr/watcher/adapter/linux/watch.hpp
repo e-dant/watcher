@@ -10,9 +10,25 @@
 #endif
 
 #include "wtr/watcher.hpp"
+#include <sys/capability.h>
 #include <unistd.h>
 
 namespace detail::wtr::watcher::adapter {
+
+inline bool has_cap_rights()
+{
+  cap_t caps = cap_get_proc();
+  if (! caps) return false;
+  cap_flag_value_t cap_val;
+  bool has_cap = cap_get_flag(caps, CAP_SYS_ADMIN, CAP_EFFECTIVE, &cap_val) == 0
+              && cap_val == CAP_SET;
+  has_cap =
+    has_cap
+    && cap_get_flag(caps, CAP_DAC_READ_SEARCH, CAP_PERMITTED, &cap_val) == 0
+    && cap_val == CAP_SET;
+  cap_free(caps);
+  return has_cap;
+}
 
 inline auto watch =
   [](auto const& path, auto const& cb, auto const& living) -> bool
@@ -72,7 +88,7 @@ inline auto watch =
   auto try_fanotify = [&]()
   {
 #if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
-    if (geteuid() == 0)
+    if (geteuid() == 0 || has_cap_rights())
       return platform_watch(fanotify::make_sysres, fanotify::do_ev_recv);
 #endif
     return result::e_sys_api_fanotify;
