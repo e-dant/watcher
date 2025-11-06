@@ -96,10 +96,11 @@ auto watch_gather(
     /*  Create Filesystem Events */
     {
       for (auto const& p : watch_path_list)
-        event_sent_list.emplace_back(wtr::event{
-          std::string("s/self/live@").append(p.string()),
-          wtr::event::effect_type::create,
-          wtr::event::path_type::watcher});
+        event_sent_list.emplace_back(
+          wtr::event{
+            std::string("s/self/live@").append(p.string()),
+            wtr::event::effect_type::create,
+            wtr::event::path_type::watcher});
 
       for (auto const& p : watch_path_list)
         mk_events(p, path_count, &event_sent_list);
@@ -115,10 +116,11 @@ auto watch_gather(
       }
 
       for (auto const& p : watch_path_list)
-        event_sent_list.emplace_back(wtr::event{
-          std::string("s/self/die@").append(p.string()),
-          wtr::event::effect_type::destroy,
-          wtr::event::path_type::watcher});
+        event_sent_list.emplace_back(
+          wtr::event{
+            std::string("s/self/die@").append(p.string()),
+            wtr::event::effect_type::destroy,
+            wtr::event::path_type::watcher});
     }
   }
 

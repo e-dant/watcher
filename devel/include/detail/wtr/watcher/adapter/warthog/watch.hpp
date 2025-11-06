@@ -7,7 +7,8 @@
       - Only support the C++ standard library */
 
 #ifndef WATER_WATCHER_USE_WARTHOG
-#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__)  && ! defined(_WIN32)
+#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
+  && ! defined(_WIN32)
 #define WATER_WATCHER_USE_WARTHOG 1
 #else
 #define WATER_WATCHER_USE_WARTHOG 0
@@ -47,15 +48,13 @@ inline bool scan(
   ::wtr::watcher::event::callback const& callback,
   bucket_type& bucket) noexcept
 {
-  auto bucket_contains = [&](std::filesystem::path const& p) {
-    return bucket.find(p) != bucket.end();
-  };
+  auto bucket_contains = [&](std::filesystem::path const& p)
+  { return bucket.find(p) != bucket.end(); };
   /*  - Scans a (single) file for changes.
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the file cannot be scanned. */
-  auto scan_file =
-    [&](std::filesystem::path const& file) -> bool
+  auto scan_file = [&](std::filesystem::path const& file) -> bool
   {
     using namespace ::wtr::watcher;
     using namespace std::filesystem;
@@ -101,8 +100,7 @@ inline bool scan(
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the directory cannot be scanned. */
-  auto const& scan_directory =
-    [&](std::filesystem::path const& dir) -> bool
+  auto const& scan_directory = [&](std::filesystem::path const& dir) -> bool
   {
     using namespace std::filesystem;
     if (is_directory(dir)) {
@@ -118,9 +116,7 @@ inline bool scan(
       return false;
   };
 
-  return scan_directory(path) ? true
-       : scan_file(path)      ? true
-                              : false;
+  return scan_directory(path) ? true : scan_file(path) ? true : false;
 };
 
 /*  If the bucket is empty, try to populate it.
@@ -138,8 +134,7 @@ inline bool tend_bucket(
         there is nothing to do here; we prune later. */
     auto dir_ec = std::error_code{};
     auto lwt_ec = std::error_code{};
-    if (! exists(path))
-      return false;
+    if (! exists(path)) return false;
     if (! is_directory(path))
       bucket[path] = last_write_time(path);
     else {
@@ -176,13 +171,14 @@ inline bool tend_bucket(
             and remove it from our bucket. */
         : [&]()
       {
-        send_event(event{
-          bucket_it->first,
-          event::effect_type::destroy,
-          is_regular_file(path) ? event::path_type::file
-          : is_directory(path)  ? event::path_type::dir
-          : is_symlink(path)    ? event::path_type::sym_link
-                                : event::path_type::other});
+        send_event(
+          event{
+            bucket_it->first,
+            event::effect_type::destroy,
+            is_regular_file(path) ? event::path_type::file
+            : is_directory(path)  ? event::path_type::dir
+            : is_symlink(path)    ? event::path_type::sym_link
+                                  : event::path_type::other});
         /*  bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();

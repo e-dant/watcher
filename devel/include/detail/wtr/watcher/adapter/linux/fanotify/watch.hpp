@@ -370,7 +370,7 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
        : ! n                        ? (*ec = 2, one(m))
        : isfromto(m->mask, n->mask) ? assoc(m, n)
        : isfromto(n->mask, m->mask) ? assoc(n, m)
-       : (*ec = 2, one(m));
+                                    : (*ec = 2, one(m));
 }
 
 inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
@@ -431,10 +431,13 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         auto r = parse_ev(mtd, read_len, &ec);
         if (ec < 0) return result::w_sys_bad_fd;
         if (is_newdir(r.ev))
-          walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
-            do_mark(dir, sr.ke.fd, cb);
-            cb({dir, r.ev.effect_type, r.ev.path_type});
-          });
+          walkdir_do(
+            r.ev.path_name.c_str(),
+            [&](auto dir)
+            {
+              do_mark(dir, sr.ke.fd, cb);
+              cb({dir, r.ev.effect_type, r.ev.path_type});
+            });
         else if (ec == 0)
           cb(r.ev);
         mtd = r.next;

@@ -222,16 +222,15 @@ inline auto parse_ev = [](
   { return b && b->cookie && b->cookie == a->cookie; };
   auto isfromto = [&](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* next) -> parsed
-  { return {ev(in_path, et, pt), next}; };
+  auto one = [&](auto* next) -> parsed { return {ev(in_path, et, pt), next}; };
   auto assoc = [&](auto* a, auto* b) -> parsed
   { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
   *cookie = et == ev_et::rename && ! isassoc(in, next) ? in->cookie : 0;
   return ! isassoc(in, next) ? one(next)
-         : isfromto(in, next) ? assoc(in, next)
-         : isfromto(next, in) ? assoc(next, in)
-         : one(next);
+       : isfromto(in, next)  ? assoc(in, next)
+       : isfromto(next, in)  ? assoc(next, in)
+                             : one(next);
 };
 
 struct defer_dm_rm_wd {
@@ -370,12 +369,17 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         if (cookie && sr.ke.last_rename_cookie != cookie)
           sr.ke.last_rename_ev = parsed.ev, sr.ke.last_rename_cookie = cookie;
         else if (cookie)
-          cb({sr.ke.last_rename_ev, parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
+          cb(
+            {sr.ke.last_rename_ev,
+             parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
         else if (msk & IN_ISDIR && msk & IN_CREATE)
-          walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
-            do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
-            cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
-          });
+          walkdir_do(
+            parsed.ev.path_name.c_str(),
+            [&](auto dir)
+            {
+              do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
+              cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
+            });
         else
           cb(parsed.ev);
         in_ev_next = parsed.next;
