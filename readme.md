@@ -3,6 +3,7 @@
 [![Conan Center](https://img.shields.io/conan/v/watcher)](https://conan.io/center/recipes/watcher)
 [![Rust/Cargo Crate](https://img.shields.io/crates/v/wtr-watcher.svg)](https://crates.io/crates/wtr-watcher)
 [![PyPI/Pip Package](https://badge.fury.io/py/wtr-watcher.svg)](https://badge.fury.io/py/wtr-watcher)
+[![Go Module](https://pkg.go.dev/badge/github.com/e-dant/watcher-go.svg)](https://pkg.go.dev/github.com/e-dant/watcher-go)
 [![Homebrew package](https://repology.org/badge/version-for-repo/homebrew/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
 [![nixpkgs stable 25.05 package](https://repology.org/badge/version-for-repo/nix_stable_25_05/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
 [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
@@ -142,6 +143,31 @@ process.stdin.on('data', () => {
   w.close();
   process.exit();
 });
+```
+</details>
+
+<details>
+<summary>Go</summary>
+
+```go
+package main
+
+import (
+	"fmt"
+	"log/slog"
+
+	"github.com/e-dant/watcher-go"
+)
+
+func main() {
+	w := watcher.NewWatcher("/path/to/dir", func(e *watcher.Event) {
+		slog.Info("filesystem event", "event", e)
+	})
+	defer w.Close()
+
+	// Wait for a new line to exit
+	_, _ = fmt.Scanln()
+}
 ```
 </details>
 
@@ -435,7 +461,7 @@ cd out
 <summary>"Access" events are ignored</summary>
 
 Watchers on all platforms intentionally ignore
-modification events which only change the acess
+modification events which only change the access
 time on a file or directory.
 
 The utility of those events was questionable.

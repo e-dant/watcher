@@ -1,0 +1,38 @@
+name: Test (Go)
+
+on:
+  push:
+    branches: [ release, next ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+      - run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - run: |
+          {
+            echo "DYLD_LIBRARY_PATH=$PWD/../build/"
+            echo CGO_CFLAGS=-I$PWD/../watcher-c/include/"
+            echo CGO_LDFLAGS=-L$PWD/../build/"
+          } >> "${GITHUB_ENV}"
+      - run:  go test -race
+        working-directory: watcher-go
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          working-directory: watcher-go
