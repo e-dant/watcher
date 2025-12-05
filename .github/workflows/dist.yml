@@ -28,7 +28,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - shell: bash
@@ -50,7 +50,7 @@ jobs:
         triple:
           - aarch64-apple-darwin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - shell: bash
@@ -73,7 +73,7 @@ jobs:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - shell: bash
@@ -90,7 +90,7 @@ jobs:
     name: (x86_64|aarch64)-unknown-linux-(gnu|musl)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -109,7 +109,7 @@ jobs:
     name: aarch64-apple-darwin
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pypa/cibuildwheel@v2.19.2
         env:
           MACOSX_DEPLOYMENT_TARGET: 11
@@ -133,7 +133,7 @@ jobs:
       - wheels-apple
       - wheels-linux
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: |
           tool/fetch-release-artifacts --no-zip
           gh release create "$(cat .version)" --notes "$(tool/show-changelog-for-version)"
@@ -152,7 +152,7 @@ jobs:
       url: https://pypi.org/p/wtr-watcher
     permissions: write-all
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ github.token }}
       - run: |
@@ -176,7 +176,7 @@ jobs:
       url: https://crates.io/crates/wtr-watcher
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: cargo publish
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
