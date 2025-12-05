@@ -23,7 +23,7 @@ jobs:
           - ubuntu-22.04
           - ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/cache@v4
