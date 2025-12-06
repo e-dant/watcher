@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0
+
+- Added a Go package (#96, @dunglas)
+- Upgraded the Github Actions checkout action to v6 (#97, @dunglas)
+
 ## 0.13.8
 
 - Updated the badges in the readme, adding Homebrew, GNU Guix and Nix Packages.
