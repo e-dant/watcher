@@ -3,6 +3,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef _WIN32
+#define WTR_WATCHER_C_API __declspec(dllexport)
+#else
+#define WTR_WATCHER_C_API
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,8 +63,10 @@ struct wtr_watcher_event {
     events and will return nothing. */
 typedef void (* wtr_watcher_callback)(struct wtr_watcher_event event, void* context);
 
+WTR_WATCHER_C_API
 void* wtr_watcher_open(char const* const path, wtr_watcher_callback callback, void* context);
 
+WTR_WATCHER_C_API
 bool wtr_watcher_close(void* watcher);
 
 #ifdef __cplusplus
