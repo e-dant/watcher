@@ -2,9 +2,12 @@
 
 ## 0.14.0
 
-- Added a Go package (#96, @dunglas)
+Special thanks to @dunglas for their contributions in this release.
+
+- Added a Go package for the Watcher (#96, @dunglas)
 - Upgraded the Github Actions checkout action to v6 (#97, @dunglas)
-- Made public functions in `watcher-c` DLL-exported on Windows
+- Made public functions in `watcher-c` DLL-exported on Windows (#92)
+- Made our CMake project play nice when added to another project (#93)
 
 ## 0.13.8
 
