@@ -4,6 +4,7 @@
 
 - Added a Go package (#96, @dunglas)
 - Upgraded the Github Actions checkout action to v6 (#97, @dunglas)
+- Made public functions in `watcher-c` DLL-exported on Windows
 
 ## 0.13.8
 
