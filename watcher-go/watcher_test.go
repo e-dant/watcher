@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/e-dant/watcher-go"
+	"github.com/e-dant/watcher/watcher-go"
 )
 
 func Example() {
