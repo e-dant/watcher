@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.1
+
+- Updated development dependencies in the watcher-nodejs project.
+
 ## 0.14.0
 
 Special thanks to @dunglas for their contributions in this release.
