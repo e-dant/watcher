@@ -21,8 +21,8 @@ jobs:
         target-platform:
           - this
         os:
-          - macos-13
           - macos-14
+          - macos-15
     steps:
       - uses: lukka/get-cmake@v3.29.3
       - uses: actions/checkout@v4
