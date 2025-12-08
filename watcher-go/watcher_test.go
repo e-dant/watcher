@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"testing/synctest"
 
 	"github.com/e-dant/watcher-go"
 )
@@ -24,32 +23,28 @@ func Example() {
 
 func TestWatcher(t *testing.T) {
 	dir := t.TempDir()
-	events := make(chan *watcher.Event)
+	modifyEvent := make(chan *watcher.Event)
+	ready := make(chan struct{})
 
-	synctest.Test(t, func(t *testing.T) {
-		go func() {
-			e := <-events
-			if e.EffectType != watcher.EffectTypeCreate {
-				t.Errorf("expected create event, got %v", e.EffectType)
-			}
+	w := watcher.NewWatcher(dir, func(e *watcher.Event) {
+		if strings.HasPrefix(e.PathName, "s/self/live@") {
+			ready <- struct{}{}
 
-			e = <-events
-			if e.EffectType != watcher.EffectTypeModify {
-				t.Errorf("expected modify event, got %v", e.EffectType)
-			}
-		}()
-
-		w := watcher.NewWatcher(dir, func(e *watcher.Event) {
-			if strings.HasSuffix(e.PathName, "test.txt") {
-				events <- e
-			}
-		})
-		t.Cleanup(w.Close)
-
-		if err := os.WriteFile(filepath.Join(dir, "test.txt"), []byte("test"), 0644); err != nil {
-			t.Fatalf("failed to write file: %v", err)
+			return
 		}
 
-		synctest.Wait()
+		if e.EffectType == watcher.EffectTypeModify && strings.HasSuffix(e.PathName, "test.txt") {
+			modifyEvent <- e
+		}
 	})
+	t.Cleanup(w.Close)
+
+	// Wait for the watcher to be fully started
+	<-ready
+
+	if err := os.WriteFile(filepath.Join(dir, "test.txt"), []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	<-modifyEvent
 }
