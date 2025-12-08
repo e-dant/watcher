@@ -120,6 +120,9 @@ else()
       "-framework CoreServices"
     )
   endif()
+  if(UNIX AND NOT APPLE)
+    list(APPEND LINK_LIBRARIES "cap")
+  endif()
 endif()
 
 set(INCLUDE_PATH_DEVEL "devel/include")

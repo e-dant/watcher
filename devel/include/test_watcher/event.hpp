@@ -28,8 +28,9 @@ template<class T>
 inline auto to(::wtr::watcher::event_without_time const& from) noexcept -> T;
 
 template<>
-inline auto to<std::string>(
-  ::wtr::watcher::event_without_time const& from) noexcept -> std::string
+inline auto
+to<std::string>(::wtr::watcher::event_without_time const& from) noexcept
+  -> std::string
 {
   using wtr::to, std::string;
   auto&& fields = "\n  path_name:    " + to<string>(from.path_name)
@@ -42,8 +43,9 @@ inline auto to<std::string>(
 
 template<>
 struct std::hash<wtr::watcher::event_without_time> {
-  inline auto operator()(
-    wtr::watcher::event_without_time const& ev) const noexcept -> std::size_t
+  inline auto
+  operator()(wtr::watcher::event_without_time const& ev) const noexcept
+    -> std::size_t
   {
     return std::hash<decltype(ev.path_name.string())>{}(ev.path_name.string())
 #ifdef _WIN32
@@ -94,26 +96,29 @@ inline auto mk_events(
     std::this_thread::sleep_for(16ms);
     auto const path = base_path / std::to_string(i < 0 ? abs(i) - 1 : abs(i));
     if ((options & mk_events_reverse) ? i >= 0 : i < 0) {
-      event_list->push_back(wtr::event{
-        path,
-        wtr::event::effect_type::create,
-        wtr::event::path_type::file});
+      event_list->push_back(
+        wtr::event{
+          path,
+          wtr::event::effect_type::create,
+          wtr::event::path_type::file});
       auto _ = std::ofstream{path};
     }
     else {
-      event_list->push_back(wtr::event{
-        path,
-        wtr::event::effect_type::destroy,
-        wtr::event::path_type::file});
+      event_list->push_back(
+        wtr::event{
+          path,
+          wtr::event::effect_type::destroy,
+          wtr::event::path_type::file});
       std::filesystem::remove(path);
     }
   }
 
   if (options & mk_events_die_after)
-    event_list->push_back(wtr::event{
-      std::string("s/self/die@").append(base_path.string()),
-      wtr::event::effect_type::destroy,
-      wtr::event::path_type::watcher});
+    event_list->push_back(
+      wtr::event{
+        std::string("s/self/die@").append(base_path.string()),
+        wtr::event::effect_type::destroy,
+        wtr::event::path_type::watcher});
 }
 
 inline auto mk_revents(

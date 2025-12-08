@@ -89,9 +89,9 @@ public:
 
   std::filesystem::path path_name{};
 
-  enum effect_type effect_type{};
+  enum effect_type effect_type {};
 
-  enum path_type path_type{};
+  enum path_type path_type {};
 
   long long effect_time{std::chrono::duration_cast<Nanos>(
                           TimePoint{Clock::now()}.time_since_epoch())
@@ -132,9 +132,8 @@ public:
     this->effect_type = from.effect_type;
     this->path_type = from.path_type;
     this->effect_time = from.effect_time;
-    this->associated = from.associated
-                     ? std::make_unique<event>(*from.associated)
-                     : nullptr;
+    this->associated =
+      from.associated ? std::make_unique<event>(*from.associated) : nullptr;
     return *this;
   };
 
@@ -779,8 +778,8 @@ inline auto wait(semabin const& sb)
     produces a warning. Releasing seems safer than not, so
     we'll do that.
 */
-inline auto
-close_event_stream(FSEventStreamRef stream, ContextData& ctx) -> bool
+inline auto close_event_stream(FSEventStreamRef stream, ContextData& ctx)
+  -> bool
 {
   if (! stream) return false;
   auto _ = std::scoped_lock{*ctx.mtx};
@@ -1003,7 +1002,10 @@ inline auto walkdir_do(char const* const path, Fn const& f) -> void
 
 #include <errno.h>
 #include <fcntl.h>
+#include <fstream>
 #include <limits.h>
+#include <optional>
+#include <sstream>
 #include <stdio.h>
 #include <string.h>
 #include <string>
@@ -1012,6 +1014,21 @@ inline auto walkdir_do(char const* const path, Fn const& f) -> void
 #include <unistd.h>
 
 namespace detail::wtr::watcher::adapter::fanotify {
+
+#if KERNEL_VERSION(4, 20, 0) <= LINUX_VERSION_CODE
+#define WATCHER_HAVE_FAN_MARK_FILESYSTEM 1
+#else
+#define WATCHER_HAVE_FAN_MARK_FILESYSTEM 0
+#endif
+
+inline auto get_watcher_mode_name() -> const char*
+{
+#if WATCHER_HAVE_FAN_MARK_FILESYSTEM
+  return "FAN_MARK_FILESYSTEM (filesystem-level, requires root)";
+#else
+  return "FAN_MARK_ADD (directory-level recursive)";
+#endif
+}
 
 /*  We request post-event reporting, non-blocking
     IO and unlimited marks for fanotify. We need
@@ -1049,6 +1066,7 @@ struct ke_fa_ev {
     | FAN_EVENT_ON_CHILD;
 
   int fd = -1;
+  bool using_filesystem_mode = false;
   alignas(fanotify_event_metadata) char buf[buf_len]{0};
 };
 
@@ -1059,6 +1077,82 @@ struct sysres {
   ke_fa_ev ke{};
   semabin const& il{};
   adapter::ep ep{};
+};
+
+inline auto get_mount_point =
+  [](char const* path) -> std::optional<std::filesystem::path>
+{
+  std::ifstream mounts("/proc/self/mountinfo");
+  if (! mounts) return std::nullopt;
+
+  char real_path[PATH_MAX];
+  if (! realpath(path, real_path)) return std::nullopt;
+
+  std::string line;
+  std::filesystem::path best_mount;
+  size_t best_len = 0;
+
+  while (std::getline(mounts, line)) {
+    std::istringstream iss(line);
+    std::string mount_id, parent_id, dev_id, root, mount_point;
+    iss >> mount_id >> parent_id >> dev_id >> root >> mount_point;
+
+    std::string real_path_str(real_path);
+    if (
+      real_path_str.size() >= mount_point.size()
+      && real_path_str.compare(0, mount_point.size(), mount_point) == 0) {
+      if (mount_point.length() > best_len) {
+        best_mount = mount_point;
+        best_len = mount_point.length();
+      }
+    }
+  }
+
+  return best_len > 0 ? std::optional(best_mount) : std::nullopt;
+};
+
+inline auto do_mark_recursive =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
+{
+  auto e = result::w_sys_not_watched;
+  char real[PATH_MAX];
+  int anonymous_wd =
+    realpath(dirpath, real) && is_dir(real)
+      ? fanotify_mark(fa_fd, FAN_MARK_ADD, ke_fa_ev::recv_flags, AT_FDCWD, real)
+      : -1;
+  if (anonymous_wd == 0)
+    return result::complete;
+  else
+    return send_msg(e, dirpath, cb), e;
+};
+
+inline auto do_mark_filesystem =
+  [](char const* const dirpath, int fa_fd, auto const& cb) -> result
+{
+#if WATCHER_HAVE_FAN_MARK_FILESYSTEM
+  auto e = result::w_sys_not_watched;
+  char real[PATH_MAX];
+
+  if (! realpath(dirpath, real) || ! is_dir(real))
+    return result::w_sys_not_watched;
+
+  int anonymous_wd = fanotify_mark(
+    fa_fd,
+    FAN_MARK_FILESYSTEM | FAN_MARK_ADD,
+    ke_fa_ev::recv_flags,
+    AT_FDCWD,
+    real);
+
+  if (anonymous_wd == 0) return result::complete;
+
+  if (errno == EINVAL || errno == EXDEV) {
+    return do_mark_recursive(dirpath, fa_fd, cb);
+  }
+
+  return send_msg(e, dirpath, cb), e;
+#else
+  return do_mark_recursive(dirpath, fa_fd, cb);
+#endif
 };
 
 inline auto do_mark =
@@ -1088,13 +1182,19 @@ inline auto make_sysres = [](
 {
   int fa_fd = fanotify_init(ke_fa_ev::init_flags, ke_fa_ev::init_io_flags);
   if (fa_fd < 1) return sysres{.ok = result::e_sys_api_fanotify, .il = living};
-  walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+  bool using_fs_mode = false;
+  auto mark_result = do_mark_filesystem(base_path, fa_fd, cb);
+  if (mark_result == result::complete)
+    using_fs_mode = true;
+  else
+    walkdir_do(base_path, [&](auto dir) { do_mark(dir, fa_fd, cb); });
+
   auto ep = make_ep(fa_fd, living.fd);
   if (ep.fd < 1)
     return close(fa_fd), sysres{.ok = result::e_sys_api_epoll, .il = living};
   return sysres{
     .ok = result::pending,
-    .ke{.fd = fa_fd},
+    .ke{.fd = fa_fd, .using_filesystem_mode = using_fs_mode},
     .il = living,
     .ep = ep,
   };
@@ -1130,8 +1230,8 @@ inline auto make_sysres = [](
     character string to the event's directory entry
     after the file handle to the directory.
     Confusing, right? */
-inline auto
-pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
+inline auto pathof_dfid_name(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
 {
   constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
   constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
@@ -1161,6 +1261,55 @@ pathof(fanotify_event_metadata const* const mtd, int* ec) -> std::string
     if (file_name && not_selfdir) snprintf(beg, end, "/%s", file_name);
   }
   return {path_buf};
+}
+
+inline auto pathof_fid(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
+{
+  constexpr size_t path_ulim = PATH_MAX - sizeof('\0');
+  constexpr int ofl = O_RDONLY | O_CLOEXEC | O_PATH;
+  auto fid_info = (fanotify_event_info_fid*)(mtd + 1);
+  auto fh = (file_handle*)(fid_info->handle);
+  char path_buf[PATH_MAX] = {0};
+  int fd = open_by_handle_at(AT_FDCWD, fh, ofl);
+  if (fd <= 0) {
+    *ec = -errno;
+    return {};
+  }
+  char fs_ev_pidpath[32] = {0};
+  snprintf(fs_ev_pidpath, sizeof(fs_ev_pidpath), "/proc/self/fd/%d", fd);
+  ssize_t len = readlink(fs_ev_pidpath, path_buf, path_ulim);
+  close(fd);
+  if (len < 0) {
+    *ec = -errno;
+    return {};
+  }
+  path_buf[len] = 0;
+  return {path_buf};
+}
+
+inline auto pathof(fanotify_event_metadata const* const mtd, int* ec)
+  -> std::string
+{
+  auto info = (fanotify_event_info_header*)(mtd + 1);
+
+  if (! info) {
+    *ec = 1;
+    return {};
+  }
+
+  if (
+    info->info_type == FAN_EVENT_INFO_TYPE_FID
+    || info->info_type == FAN_EVENT_INFO_TYPE_DFID) {
+    return pathof_fid(mtd, ec);
+  }
+  else if (info->info_type == FAN_EVENT_INFO_TYPE_DFID_NAME) {
+    return pathof_dfid_name(mtd, ec);
+  }
+  else {
+    *ec = 1;
+    return {};
+  }
 }
 
 inline auto peek(fanotify_event_metadata const* const m, size_t read_len)
@@ -1213,7 +1362,7 @@ parse_ev(fanotify_event_metadata const* const m, size_t read_len, int* ec)
        : ! n                        ? (*ec = 2, one(m))
        : isfromto(m->mask, n->mask) ? assoc(m, n)
        : isfromto(n->mask, m->mask) ? assoc(n, m)
-       : (*ec = 2, one(m));
+                                    : (*ec = 2, one(m));
 }
 
 inline auto is_newdir = [](::wtr::watcher::event const& ev) -> bool
@@ -1274,10 +1423,13 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         auto r = parse_ev(mtd, read_len, &ec);
         if (ec < 0) return result::w_sys_bad_fd;
         if (is_newdir(r.ev))
-          walkdir_do(r.ev.path_name.c_str(), [&](auto dir) {
-            do_mark(dir, sr.ke.fd, cb);
-            cb({dir, r.ev.effect_type, r.ev.path_type});
-          });
+          walkdir_do(
+            r.ev.path_name.c_str(),
+            [&](auto dir)
+            {
+              do_mark(dir, sr.ke.fd, cb);
+              cb({dir, r.ev.effect_type, r.ev.path_type});
+            });
         else if (ec == 0)
           cb(r.ev);
         mtd = r.next;
@@ -1512,16 +1664,15 @@ inline auto parse_ev = [](
   { return b && b->cookie && b->cookie == a->cookie; };
   auto isfromto = [&](auto* a, auto* b) -> bool
   { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* next) -> parsed
-  { return {ev(in_path, et, pt), next}; };
+  auto one = [&](auto* next) -> parsed { return {ev(in_path, et, pt), next}; };
   auto assoc = [&](auto* a, auto* b) -> parsed
   { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
   *cookie = et == ev_et::rename && ! isassoc(in, next) ? in->cookie : 0;
   return ! isassoc(in, next) ? one(next)
-         : isfromto(in, next) ? assoc(in, next)
-         : isfromto(next, in) ? assoc(next, in)
-         : one(next);
+       : isfromto(in, next)  ? assoc(in, next)
+       : isfromto(next, in)  ? assoc(next, in)
+                             : one(next);
 };
 
 struct defer_dm_rm_wd {
@@ -1660,12 +1811,17 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         if (cookie && sr.ke.last_rename_cookie != cookie)
           sr.ke.last_rename_ev = parsed.ev, sr.ke.last_rename_cookie = cookie;
         else if (cookie)
-          cb({sr.ke.last_rename_ev, parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
+          cb(
+            {sr.ke.last_rename_ev,
+             parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
         else if (msk & IN_ISDIR && msk & IN_CREATE)
-          walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
-            do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
-            cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
-          });
+          walkdir_do(
+            parsed.ev.path_name.c_str(),
+            [&](auto dir)
+            {
+              do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
+              cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
+            });
         else
           cb(parsed.ev);
         in_ev_next = parsed.next;
@@ -1690,9 +1846,25 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
 #error "Define 'WATER_WATCHER_USE_WARTHOG' on kernel versions < 2.7.0"
 #endif
 
+#include <sys/capability.h>
 #include <unistd.h>
 
 namespace detail::wtr::watcher::adapter {
+
+inline bool has_cap_rights()
+{
+  cap_t caps = cap_get_proc();
+  if (! caps) return false;
+  cap_flag_value_t cap_val;
+  bool has_cap = cap_get_flag(caps, CAP_SYS_ADMIN, CAP_EFFECTIVE, &cap_val) == 0
+              && cap_val == CAP_SET;
+  has_cap =
+    has_cap
+    && cap_get_flag(caps, CAP_DAC_READ_SEARCH, CAP_PERMITTED, &cap_val) == 0
+    && cap_val == CAP_SET;
+  cap_free(caps);
+  return has_cap;
+}
 
 inline auto watch =
   [](auto const& path, auto const& cb, auto const& living) -> bool
@@ -1752,7 +1924,7 @@ inline auto watch =
   auto try_fanotify = [&]()
   {
 #if (KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE) && ! __ANDROID_API__
-    if (geteuid() == 0)
+    if (geteuid() == 0 || has_cap_rights())
       return platform_watch(fanotify::make_sysres, fanotify::do_ev_recv);
 #endif
     return result::e_sys_api_fanotify;
@@ -2022,7 +2194,8 @@ inline auto watch(
       - Only support the C++ standard library */
 
 #ifndef WATER_WATCHER_USE_WARTHOG
-#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__)  && ! defined(_WIN32)
+#if ! defined(__linux__) && ! defined(__ANDROID_API__) && ! defined(__APPLE__) \
+  && ! defined(_WIN32)
 #define WATER_WATCHER_USE_WARTHOG 1
 #else
 #define WATER_WATCHER_USE_WARTHOG 0
@@ -2061,15 +2234,13 @@ inline bool scan(
   ::wtr::watcher::event::callback const& callback,
   bucket_type& bucket) noexcept
 {
-  auto bucket_contains = [&](std::filesystem::path const& p) {
-    return bucket.find(p) != bucket.end();
-  };
+  auto bucket_contains = [&](std::filesystem::path const& p)
+  { return bucket.find(p) != bucket.end(); };
   /*  - Scans a (single) file for changes.
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the file cannot be scanned. */
-  auto scan_file =
-    [&](std::filesystem::path const& file) -> bool
+  auto scan_file = [&](std::filesystem::path const& file) -> bool
   {
     using namespace ::wtr::watcher;
     using namespace std::filesystem;
@@ -2115,8 +2286,7 @@ inline bool scan(
       - Updates our bucket to match the changes.
       - Calls `send_event` when changes happen.
       - Returns false if the directory cannot be scanned. */
-  auto const& scan_directory =
-    [&](std::filesystem::path const& dir) -> bool
+  auto const& scan_directory = [&](std::filesystem::path const& dir) -> bool
   {
     using namespace std::filesystem;
     if (is_directory(dir)) {
@@ -2132,9 +2302,7 @@ inline bool scan(
       return false;
   };
 
-  return scan_directory(path) ? true
-       : scan_file(path)      ? true
-                              : false;
+  return scan_directory(path) ? true : scan_file(path) ? true : false;
 };
 
 /*  If the bucket is empty, try to populate it.
@@ -2152,8 +2320,7 @@ inline bool tend_bucket(
         there is nothing to do here; we prune later. */
     auto dir_ec = std::error_code{};
     auto lwt_ec = std::error_code{};
-    if (! exists(path))
-      return false;
+    if (! exists(path)) return false;
     if (! is_directory(path))
       bucket[path] = last_write_time(path);
     else {
@@ -2190,13 +2357,14 @@ inline bool tend_bucket(
             and remove it from our bucket. */
         : [&]()
       {
-        send_event(event{
-          bucket_it->first,
-          event::effect_type::destroy,
-          is_regular_file(path) ? event::path_type::file
-          : is_directory(path)  ? event::path_type::dir
-          : is_symlink(path)    ? event::path_type::sym_link
-                                : event::path_type::other});
+        send_event(
+          event{
+            bucket_it->first,
+            event::effect_type::destroy,
+            is_regular_file(path) ? event::path_type::file
+            : is_directory(path)  ? event::path_type::dir
+            : is_symlink(path)    ? event::path_type::sym_link
+                                  : event::path_type::other});
         /*  bucket, erase it! */
         bucket_it = bucket.erase(bucket_it);
       }();
@@ -2328,8 +2496,8 @@ public:
 
   inline auto close() noexcept -> bool
   {
-    return this->living.release() != sb::state::error
-        && this->watching.valid() && this->watching.get();
+    return this->living.release() != sb::state::error && this->watching.valid()
+        && this->watching.get();
   };
 
   inline ~watch() noexcept { this->close(); }
