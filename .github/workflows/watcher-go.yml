@@ -35,7 +35,7 @@ jobs:
           sudo cmake --install build
       - if: matrix.os == 'ubuntu-latest'
         run: sudo ldconfig
-      - run: go test -race
+      - run: go test -race -v -timeout 30s
         working-directory: watcher-go
       - uses: golangci/golangci-lint-action@v9
         with:
