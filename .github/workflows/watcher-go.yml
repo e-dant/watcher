@@ -3,6 +3,8 @@ name: Test (Go)
 on:
   push:
     branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
 
 permissions:
   contents: read

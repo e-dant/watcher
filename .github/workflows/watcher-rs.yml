@@ -3,6 +3,8 @@ name: Test (Rust)
 on:
   push:
     branches: [ release, next ]
+  pull_request:
+    branches: [ release, next ]
 
 env: 
   CARGO_TERM_COLOR: always
