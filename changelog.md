@@ -2,6 +2,7 @@
 
 ## 0.14.1
 
+- Fixed Watcher-Go module import (#101, @dunglas).
 - Updated development dependencies in the watcher-nodejs project.
 
 ## 0.14.0
