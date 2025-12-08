@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  DYLD_LIBRARY_PATH: /usr/local/lib
+  CGO_CFLAGS: -I/usr/local/include
+  CGO_LDFLAGS: -L/usr/local/lib
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -28,6 +33,8 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build
           sudo cmake --install build
+      - if: matrix.os == 'ubuntu-latest'
+        run: sudo ldconfig
       - run: go test -race
         working-directory: watcher-go
       - uses: golangci/golangci-lint-action@v9
