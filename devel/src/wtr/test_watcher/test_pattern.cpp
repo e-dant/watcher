@@ -1,18 +1,22 @@
-#include "snitch/snitch.hpp"
 #include "detail/wtr/watcher/pattern.hpp"
-#include <string>
+#include "snitch/snitch.hpp"
 #include <filesystem>
+#include <string>
 
 TEST_CASE("Base Directory Extraction", "[pattern][not-perf]")
 {
-  REQUIRE(getBaseDirectoryToWatch("/home/user/src/**/*.cpp") == "/home/user/src");
+  REQUIRE(
+    getBaseDirectoryToWatch("/home/user/src/**/*.cpp") == "/home/user/src");
   REQUIRE(getBaseDirectoryToWatch("/home/user/*.txt") == "/home/user");
   REQUIRE(getBaseDirectoryToWatch("/home/user/file?.txt") == "/home/user");
-  REQUIRE(getBaseDirectoryToWatch("/home/user/{src,lib}/*.cpp") == "/home/user");
+  REQUIRE(
+    getBaseDirectoryToWatch("/home/user/{src,lib}/*.cpp") == "/home/user");
   REQUIRE(getBaseDirectoryToWatch("/home/user/file.txt") == "/home/user");
   REQUIRE(getBaseDirectoryToWatch("/tmp/**/*.log") == "/tmp");
   REQUIRE(getBaseDirectoryToWatch("/tmp") == "/tmp");
-  REQUIRE(getBaseDirectoryToWatch("/home/user/project/src/**/*.{cpp,hpp}") == "/home/user/project/src");
+  REQUIRE(
+    getBaseDirectoryToWatch("/home/user/project/src/**/*.{cpp,hpp}")
+    == "/home/user/project/src");
 }
 
 TEST_CASE("Pattern Matching - Exact Match", "[pattern][not-perf]")
@@ -69,7 +73,8 @@ TEST_CASE("Pattern Matching - Double Star Globstar", "[pattern][not-perf]")
   REQUIRE(matchGlobPattern("dir/**/file.txt", "dir/sub/file.txt"));
   REQUIRE(matchGlobPattern("dir/**/file.txt", "dir/sub/deep/file.txt"));
   REQUIRE(matchGlobPattern("/root/**/*.txt", "/root/dir/file.txt"));
-  REQUIRE(matchGlobPattern("dir/**/dir2/**/file.txt", "dir/sub/dir2/sub2/file.txt"));
+  REQUIRE(
+    matchGlobPattern("dir/**/dir2/**/file.txt", "dir/sub/dir2/sub2/file.txt"));
 
   // Globstar at the beginning
   REQUIRE(matchGlobPattern("**/*.txt", "file.txt"));
@@ -77,9 +82,11 @@ TEST_CASE("Pattern Matching - Double Star Globstar", "[pattern][not-perf]")
   REQUIRE(matchGlobPattern("**/*.txt", "dir/sub/file.txt"));
 
   // Negative cases
-  REQUIRE_FALSE(matchGlobPattern("/false-root/**/dir/test.txt", "dir/test.txt"));
+  REQUIRE_FALSE(
+    matchGlobPattern("/false-root/**/dir/test.txt", "dir/test.txt"));
   REQUIRE_FALSE(matchGlobPattern("**/dir/test.txt", "test.txt"));
-  REQUIRE_FALSE(matchGlobPattern("dir/**/dir2/**/file.txt", "dir/sub/sub2/file.txt"));
+  REQUIRE_FALSE(
+    matchGlobPattern("dir/**/dir2/**/file.txt", "dir/sub/sub2/file.txt"));
 }
 
 TEST_CASE("Pattern Matching - Complex Patterns", "[pattern][not-perf]")
@@ -160,14 +167,20 @@ TEST_CASE("Pattern Matching - Windows Paths", "[pattern][not-perf]")
   REQUIRE(matchGlobPattern("src\\**\\*.{cpp,hpp}", "src\\a\\b\\c\\test.cpp"));
 
   // Windows absolute paths (C:\...)
-  REQUIRE(matchGlobPattern("C:\\Users\\*\\Documents\\*.txt", "C:\\Users\\alex\\Documents\\test.txt"));
-  REQUIRE_FALSE(matchGlobPattern("C:\\Users\\*\\Documents\\*.txt", "C:\\Users\\alex\\Desktop\\test.txt"));
+  REQUIRE(matchGlobPattern(
+    "C:\\Users\\*\\Documents\\*.txt",
+    "C:\\Users\\alex\\Documents\\test.txt"));
+  REQUIRE_FALSE(matchGlobPattern(
+    "C:\\Users\\*\\Documents\\*.txt",
+    "C:\\Users\\alex\\Desktop\\test.txt"));
 
   // Restore original separator
   path_separator = original_sep;
 }
 
-TEST_CASE("Pattern Matching - Windows vs Unix Separators", "[pattern][not-perf]")
+TEST_CASE(
+  "Pattern Matching - Windows vs Unix Separators",
+  "[pattern][not-perf]")
 {
   // Save original separator
   char original_sep = path_separator;
@@ -179,7 +192,8 @@ TEST_CASE("Pattern Matching - Windows vs Unix Separators", "[pattern][not-perf]"
 
   path_separator = '\\';
   REQUIRE(matchGlobPattern("dir\\sub\\*.txt", "dir\\sub\\test.txt"));
-  REQUIRE_FALSE(matchGlobPattern("dir\\sub\\*.txt", "dir\\sub\\deep\\test.txt"));
+  REQUIRE_FALSE(
+    matchGlobPattern("dir\\sub\\*.txt", "dir\\sub\\deep\\test.txt"));
 
   // Restore original separator
   path_separator = original_sep;
