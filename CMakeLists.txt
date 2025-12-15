@@ -448,6 +448,7 @@ set(WTR_TEST_WATCHER_SOURCE_SET
   "devel/src/wtr/test_watcher/test_simple.cpp"
   "devel/src/wtr/test_watcher/test_performance.cpp"
   "devel/src/wtr/test_watcher/test_openclose.cpp"
+  "devel/src/wtr/test_watcher/test_pattern.cpp"
 )
 wtr_add_autosan_test_bin_target(
   "wtr.test_watcher"
