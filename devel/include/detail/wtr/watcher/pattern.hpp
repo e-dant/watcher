@@ -93,21 +93,22 @@ inline bool matchGlobPattern(
         continue;
 
       case '{' :
-        // Shell brace pattern, find closing brace
+        // Shell brace pattern {file1,file2,file3}
         {
           size_t close = pattern.find('}', p + 1);
           if (close == std::string::npos) {
             return false;  // malformed pattern, no closing brace
           }
 
-          // Try each comma-separated alternative
-          for (size_t start = p + 1, i = start; i < close; ++i) {
-            if (pattern[i] != ',' && i != close - 1) { continue; }
-            size_t end = (pattern[i] == ',') ? i : close;
-            std::string alt = pattern.substr(0, p)
-                            + pattern.substr(start, end - start)
-                            + pattern.substr(close + 1);
-            if (matchGlobPattern(alt, filename, 0, 0)) { return true; }
+          // Try each comma-separated alternative by walking through the brace
+          // content
+          size_t start = p + 1;
+          for (size_t i = p + 1; i <= close; ++i) {
+            if (i < close && pattern[i] != ',') { continue; }
+            size_t end = (i < close) ? i : close;
+            std::string alt =
+              pattern.substr(start, end - start) + pattern.substr(close + 1);
+            if (matchGlobPattern(alt, filename, 0, f)) { return true; }
             start = i + 1;
           }
           return false;
@@ -126,6 +127,12 @@ inline bool matchGlobPattern(
 
   // Skip remaining stars in pattern
   while (p < pattern.size() && pattern[p] == '*') { ++p; }
+
+  // special case: braces at end of pattern, add padding char to handle empty
+  // brace alternatives
+  if (p < pattern.size() && pattern[p] == '{') {
+    return matchGlobPattern(pattern + "x", filename + "x", p, f);
+  }
 
   return p == pattern.size();
 }

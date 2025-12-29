@@ -251,3 +251,296 @@ TEST_CASE("Pattern Matching - Path Separator Handling", "[pattern][not-perf]")
   REQUIRE(matchGlobPattern("src/**", "src/dir/main.cpp"));
   REQUIRE(matchGlobPattern("src/**", "src/dir/sub/main.cpp"));
 }
+
+TEST_CASE("Pattern Matching - Consecutive Wildcards", "[pattern][not-perf]")
+{
+  // Multiple consecutive stars
+  REQUIRE(matchGlobPattern("***", "anything"));
+  REQUIRE(matchGlobPattern("***", "dir/file.txt"));
+  REQUIRE(matchGlobPattern("****", "multiple/dir/file.txt"));
+
+  // Multiple consecutive question marks
+  REQUIRE(matchGlobPattern("????", "abcd"));
+  REQUIRE_FALSE(matchGlobPattern("????", "abc"));
+  REQUIRE_FALSE(matchGlobPattern("????", "abcde"));
+
+  // Mixed consecutive wildcards
+  REQUIRE(matchGlobPattern("*?*", "a"));
+  REQUIRE(matchGlobPattern("*?*", "ab"));
+  REQUIRE(matchGlobPattern("?*?", "ab"));
+  REQUIRE_FALSE(matchGlobPattern("?*?", "a"));
+  REQUIRE(matchGlobPattern("**?", "a"));
+  REQUIRE(matchGlobPattern("**?", "dir/a"));
+  REQUIRE(matchGlobPattern("?**", "a"));
+  REQUIRE(matchGlobPattern("?**", "a/dir/file"));
+}
+
+TEST_CASE("Pattern Matching - Globstar Edge Cases", "[pattern][not-perf]")
+{
+  // Globstar at end of pattern
+  REQUIRE(matchGlobPattern("dir/**", "dir/"));
+  REQUIRE(matchGlobPattern("dir/**", "dir/file.txt"));
+  REQUIRE(matchGlobPattern("dir/**", "dir/sub/file.txt"));
+
+  // Multiple globstars in one pattern
+  REQUIRE(matchGlobPattern("**/src/**/test.txt", "src/test.txt"));
+  REQUIRE(matchGlobPattern("**/src/**/test.txt", "project/src/test.txt"));
+  REQUIRE(matchGlobPattern("**/src/**/test.txt", "project/src/lib/test.txt"));
+  REQUIRE(matchGlobPattern("**/src/**/test.txt", "src/lib/test.txt"));
+
+  // Globstar with no separator after
+  REQUIRE(matchGlobPattern("dir/**test.txt", "dir/test.txt"));
+  REQUIRE(matchGlobPattern("dir/**test.txt", "dir/sub/test.txt"));
+
+  // Globstar matching empty path
+  REQUIRE(matchGlobPattern("a/**/b", "a/b"));
+  REQUIRE(matchGlobPattern("a/**/b", "a/x/b"));
+  REQUIRE(matchGlobPattern("a/**/b", "a/x/y/b"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Brace Expansion Edge Cases",
+  "[pattern][not-perf]")
+{
+  // Empty alternative in braces
+  REQUIRE(matchGlobPattern("", ""));
+  REQUIRE(matchGlobPattern("{,test}", ""));
+  REQUIRE(matchGlobPattern("{,test}", "test"));
+  REQUIRE(matchGlobPattern("file{,.txt}", "file"));
+  REQUIRE(matchGlobPattern("file{,.txt}", "file.txt"));
+
+  // Single alternative
+  REQUIRE(matchGlobPattern("{test}", "test"));
+  REQUIRE_FALSE(matchGlobPattern("{test}", "other"));
+
+  // Nested or malformed braces (should fail gracefully)
+  REQUIRE_FALSE(matchGlobPattern("{test", "test"));
+  REQUIRE_FALSE(matchGlobPattern("test}", "test"));
+
+  // Braces with wildcards inside
+  REQUIRE(matchGlobPattern("{*.txt,*.cpp}", "test.txt"));
+  REQUIRE(matchGlobPattern("{*.txt,*.cpp}", "main.cpp"));
+  REQUIRE_FALSE(matchGlobPattern("{*.txt,*.cpp}", "test.hpp"));
+
+  // Multiple brace groups
+  REQUIRE(matchGlobPattern("{a,b}{1,2}", "a1"));
+  REQUIRE(matchGlobPattern("{a,b}{1,2}", "a2"));
+  REQUIRE(matchGlobPattern("{a,b}{1,2}", "b1"));
+  REQUIRE(matchGlobPattern("{a,b}{1,2}", "b2"));
+  REQUIRE_FALSE(matchGlobPattern("{a,b}{1,2}", "a3"));
+}
+
+TEST_CASE("Pattern Matching - Special Characters", "[pattern][not-perf]")
+{
+  // Dots in filenames and patterns
+  REQUIRE(matchGlobPattern("*.tar.gz", "archive.tar.gz"));
+  REQUIRE(matchGlobPattern("file.*.txt", "file.backup.txt"));
+  REQUIRE(matchGlobPattern(".*", ".hidden"));
+  REQUIRE(matchGlobPattern(".*", ".bashrc"));
+  REQUIRE_FALSE(matchGlobPattern(".*", "visible"));
+
+  // Multiple dots
+  REQUIRE(matchGlobPattern("file..txt", "file..txt"));
+  REQUIRE(matchGlobPattern("...", "..."));
+
+  // Question mark matching separator (should it?)
+  // Based on implementation, ? matches any single character including separator
+  REQUIRE(matchGlobPattern("dir?file", "dir/file"));
+
+  // Trailing slashes
+  REQUIRE(matchGlobPattern("dir/", "dir/"));
+  REQUIRE_FALSE(matchGlobPattern("dir/", "dir"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Long Patterns and Filenames",
+  "[pattern][not-perf]")
+{
+  // Very long patterns
+  std::string longPattern = "dir/";
+  for (int i = 0; i < 100; ++i) { longPattern += "sub/"; }
+  longPattern += "file.txt";
+
+  std::string longFilename = "dir/";
+  for (int i = 0; i < 100; ++i) { longFilename += "sub/"; }
+  longFilename += "file.txt";
+
+  REQUIRE(matchGlobPattern(longPattern, longFilename));
+
+  // Long pattern with globstar
+  REQUIRE(matchGlobPattern("dir/**/file.txt", longFilename));
+
+  // Many wildcards
+  std::string manyWildcards;
+  for (int i = 0; i < 50; ++i) { manyWildcards += "*"; }
+  REQUIRE(matchGlobPattern(manyWildcards, "anything"));
+}
+
+TEST_CASE("Pattern Matching - Case Sensitivity", "[pattern][not-perf]")
+{
+  // The implementation is case-sensitive
+  REQUIRE(matchGlobPattern("Test.txt", "Test.txt"));
+  REQUIRE_FALSE(matchGlobPattern("Test.txt", "test.txt"));
+  REQUIRE_FALSE(matchGlobPattern("test.txt", "Test.txt"));
+  REQUIRE_FALSE(matchGlobPattern("TEST.TXT", "test.txt"));
+
+  // Case sensitivity with wildcards
+  REQUIRE(matchGlobPattern("*.TXT", "FILE.TXT"));
+  REQUIRE_FALSE(matchGlobPattern("*.TXT", "file.txt"));
+  REQUIRE(matchGlobPattern("Test*", "TestFile"));
+  REQUIRE_FALSE(matchGlobPattern("Test*", "testFile"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Numeric and Special Filenames",
+  "[pattern][not-perf]")
+{
+  // Numeric filenames
+  REQUIRE(matchGlobPattern("123", "123"));
+  REQUIRE(matchGlobPattern("*123*", "test123file"));
+  REQUIRE(matchGlobPattern("file?.txt", "file1.txt"));
+
+  // Filenames with dashes and underscores
+  REQUIRE(matchGlobPattern("test-file.txt", "test-file.txt"));
+  REQUIRE(matchGlobPattern("test_file.txt", "test_file.txt"));
+  REQUIRE(matchGlobPattern("*-*", "test-file"));
+  REQUIRE(matchGlobPattern("*_*", "test_file"));
+
+  // Filenames with spaces (if supported)
+  REQUIRE(matchGlobPattern("my file.txt", "my file.txt"));
+  REQUIRE(matchGlobPattern("my*.txt", "my file.txt"));
+}
+
+TEST_CASE("Base Directory - Edge Cases", "[pattern][not-perf]")
+{
+  // Pattern with only wildcards
+  REQUIRE(
+    getBaseDirectoryToWatch("*") == std::filesystem::absolute(".").string());
+  REQUIRE(
+    getBaseDirectoryToWatch("**") == std::filesystem::absolute(".").string());
+  REQUIRE(
+    getBaseDirectoryToWatch("?") == std::filesystem::absolute(".").string());
+
+  // Root directory patterns
+  REQUIRE(getBaseDirectoryToWatch("/*.txt") == "/");
+  REQUIRE(getBaseDirectoryToWatch("/**/*.txt") == "/");
+
+  // Multiple consecutive separators
+  REQUIRE(getBaseDirectoryToWatch("/home//user/**/*.txt") == "/home//user");
+
+  // Trailing separator
+  REQUIRE(getBaseDirectoryToWatch("/home/user/") == "/home/user");
+
+  // Question mark in path
+  REQUIRE(getBaseDirectoryToWatch("/home/user?/file.txt") == "/home");
+
+  // Brace in path
+  REQUIRE(getBaseDirectoryToWatch("/home/{a,b}/file.txt") == "/home");
+}
+
+TEST_CASE("Pattern Matching - Star at Pattern End", "[pattern][not-perf]")
+{
+  // Single star at end
+  REQUIRE(matchGlobPattern("test*", "test"));
+  REQUIRE(matchGlobPattern("test*", "test123"));
+  REQUIRE(matchGlobPattern("test*", "testfile"));
+  REQUIRE_FALSE(matchGlobPattern("test*", "test/file"));
+
+  // Globstar at end
+  REQUIRE(matchGlobPattern("test/**", "test/"));
+  REQUIRE(matchGlobPattern("test/**", "test/file"));
+  REQUIRE(matchGlobPattern("test/**", "test/dir/file"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Brace Expansion with Trailing Content",
+  "[pattern][not-perf]")
+{
+  // Brace expansion followed by more pattern
+  REQUIRE(matchGlobPattern("{src,lib}/*.cpp", "src/main.cpp"));
+  REQUIRE(matchGlobPattern("{src,lib}/*.cpp", "lib/util.cpp"));
+  REQUIRE_FALSE(matchGlobPattern("{src,lib}/*.cpp", "bin/test.cpp"));
+
+  // Brace expansion with literal text after
+  REQUIRE(matchGlobPattern("prefix{A,B}suffix", "prefixAsuffix"));
+  REQUIRE(matchGlobPattern("prefix{A,B}suffix", "prefixBsuffix"));
+  REQUIRE_FALSE(matchGlobPattern("prefix{A,B}suffix", "prefixCsuffix"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Empty Filenames and Patterns",
+  "[pattern][not-perf]")
+{
+  // Empty strings
+  REQUIRE(matchGlobPattern("", ""));
+  REQUIRE_FALSE(matchGlobPattern("", "nonempty"));
+  REQUIRE_FALSE(matchGlobPattern("nonempty", ""));
+
+  // Star matching empty string
+  REQUIRE(matchGlobPattern("*", ""));
+  REQUIRE(matchGlobPattern("**", ""));
+  REQUIRE(matchGlobPattern("prefix*", "prefix"));
+  REQUIRE(matchGlobPattern("*suffix", "suffix"));
+}
+
+TEST_CASE("Pattern Matching - Question Mark Edge Cases", "[pattern][not-perf]")
+{
+  // Question mark matching path separator
+  REQUIRE(matchGlobPattern("a?b", "a/b"));
+  REQUIRE(matchGlobPattern("test?file", "test/file"));
+
+  // Question mark at end
+  REQUIRE(matchGlobPattern("test?", "test1"));
+  REQUIRE(matchGlobPattern("test?", "testa"));
+  REQUIRE_FALSE(matchGlobPattern("test?", "test"));
+  REQUIRE_FALSE(matchGlobPattern("test?", "test12"));
+
+  // Question mark at start
+  REQUIRE(matchGlobPattern("?test", "atest"));
+  REQUIRE(matchGlobPattern("?test", "1test"));
+  REQUIRE_FALSE(matchGlobPattern("?test", "test"));
+}
+
+TEST_CASE(
+  "Pattern Matching - Mixed Wildcard Combinations",
+  "[pattern][not-perf]")
+{
+  // Star and question mark together
+  REQUIRE(matchGlobPattern("*?.txt", "a.txt"));
+  REQUIRE(matchGlobPattern("*?.txt", "ab.txt"));
+  REQUIRE_FALSE(matchGlobPattern("*?.txt", ".txt"));
+
+  REQUIRE(matchGlobPattern("?*.txt", "a.txt"));
+  REQUIRE(matchGlobPattern("?*.txt", "ab.txt"));
+  REQUIRE_FALSE(matchGlobPattern("?*.txt", ".txt"));
+
+  // Globstar and star together
+  REQUIRE(matchGlobPattern("**/*.txt", "file.txt"));
+  REQUIRE(matchGlobPattern("**/*.txt", "dir/file.txt"));
+  REQUIRE(matchGlobPattern("**/*/*.txt", "dir/file.txt"));
+  REQUIRE(matchGlobPattern("**/*/*.txt", "a/b/c/file.txt"));
+
+  // All three wildcard types
+  REQUIRE(matchGlobPattern("**/src/?*.{cpp,hpp}", "src/a.cpp"));
+  REQUIRE(matchGlobPattern("**/src/?*.{cpp,hpp}", "project/src/ab.hpp"));
+  REQUIRE_FALSE(matchGlobPattern("**/src/?*.{cpp,hpp}", "src/.cpp"));
+}
+
+TEST_CASE("Pattern Matching - Backtracking Scenarios", "[pattern][not-perf]")
+{
+  // Patterns that require backtracking to match correctly
+  REQUIRE(matchGlobPattern("a*a*a*a*b", "aaaaaaaaab"));
+  REQUIRE(matchGlobPattern("a*a*a*a*b", "aaaaaaaab"));
+  REQUIRE_FALSE(matchGlobPattern("a*a*a*a*b", "aaaaaaaaa"));
+
+  // Complex backtracking with multiple wildcards
+  REQUIRE(matchGlobPattern("*test*file*", "prefix_test_middle_file_suffix"));
+  REQUIRE(matchGlobPattern("*a*b*c*", "xaxbxcx"));
+  REQUIRE_FALSE(matchGlobPattern("*a*b*c*", "xaxbx"));
+
+  // Globstar backtracking
+  REQUIRE(matchGlobPattern("**/a/**/b", "a/b"));
+  REQUIRE(matchGlobPattern("**/a/**/b", "x/a/y/b"));
+  REQUIRE(matchGlobPattern("**/a/**/b", "x/y/a/b"));
+  REQUIRE(matchGlobPattern("**/a/**/b", "a/x/y/b"));
+}
