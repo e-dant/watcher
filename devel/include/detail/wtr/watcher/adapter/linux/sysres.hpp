@@ -34,6 +34,7 @@ enum class result : unsigned short {
   w_sys_bad_fd,
   w_sys_bad_meta,
   w_sys_q_overflow,
+  w_self_q_overflow,
   complete,
   e,
   e_sys_api_inotify,
@@ -82,6 +83,7 @@ inline constexpr auto to_str(result r)
     case result::w_sys_bad_fd:                       return "w/sys/bad_fd@";
     case result::w_sys_bad_meta:                     return "w/sys/bad_meta@";
     case result::w_sys_q_overflow:                   return "w/sys/q_overflow@";
+    case result::w_self_q_overflow:                  return "w/self/q_overflow@";
     case result::complete:                           return "complete@";
     case result::e:                                  return "e@";
     case result::e_sys_api_inotify:                  return "e/sys/api/inotify@";

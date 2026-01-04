@@ -19,6 +19,17 @@
 
 namespace detail::wtr::watcher::adapter::inotify {
 
+struct fae {
+  static constexpr int idx_ulim = 16;
+
+  struct {
+    ::wtr::watcher::event ev{};
+    uint32_t cookie = 0;
+  } evs[idx_ulim]{};
+
+  int idx_rm = 0;
+};
+
 // clang-format off
 struct ke_in_ev {
   /*  The maximum length of an inotify
@@ -87,8 +98,7 @@ struct ke_in_ev {
     | IN_MOVED_TO;
 
   int fd = -1;
-  ::wtr::watcher::event last_rename_ev{};
-  uint32_t last_rename_cookie = 0;
+  struct fae fae{};
   using paths = std::unordered_map<int, std::filesystem::path>;
   paths dm{};
   alignas(inotify_event) char ev_buf[buf_len]{0};
@@ -182,8 +192,11 @@ inline auto peek = [](
 };
 
 struct parsed {
-  ::wtr::watcher::event ev;
+  static constexpr uint16_t err_pending = 1 << 0;
+  static constexpr uint16_t err_overflow = 1 << 1;
+  ::wtr::watcher::event ev{};
   inotify_event* next = nullptr;
+  uint16_t err = 0;
 };
 
 /* Constructs a `parsed` event from an read(2)-populated inotify event buffer.
@@ -191,47 +204,51 @@ struct parsed {
    along with the `watcher::event`. This can be used to update the caller's
    position in the buffer.
 
-   If the event is a rename event, and there is no associated event immediately
-   following the the current event, then `cookie` is set to a unique value
-   which can be used to associate this event with a future event by the caller.
-   The cookie is otherwise set to zero, and the event is fully parsed.
    Generally, rename events are a pair of adjacent `MOVED_FROM`/`TO` events in
-   the same buffer. In some rare cases (see issue #89), they are not adjacent,
+   the same buffer. In some rare cases (see #89, #105), they are not adjacent,
    or not in the same buffer. */
 inline auto parse_ev = [](
-                         ke_in_ev::paths const& dm,
+                         ke_in_ev& ke,
                          inotify_event const* const in,
-                         inotify_event const* const tail,
-                         uint32_t* cookie) -> parsed
+                         inotify_event const* const tail) -> parsed
 {
   using ev = ::wtr::watcher::event;
   using ev_pt = enum ev::path_type;
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
-  { return known_pathof_wd_or_default(dm, m->wd) / m->name; };
-  auto in_path = pathof(in);
+  { return known_pathof_wd_or_default(ke.dm, m->wd) / m->name; };
+  auto path = pathof(in);
   auto pt = in->mask & IN_ISDIR ? ev_pt::dir
-          : is_symlink(in_path) ? ev_pt::sym_link
+          : is_symlink(path)    ? ev_pt::sym_link
                                 : ev_pt::file;
   auto et = in->mask & IN_CREATE ? ev_et::create
           : in->mask & IN_DELETE ? ev_et::destroy
           : in->mask & IN_MOVE   ? ev_et::rename
           : in->mask & IN_MODIFY ? ev_et::modify
                                  : ev_et::other;
-  auto isassoc = [&](auto* a, auto* b) -> bool
-  { return b && b->cookie && b->cookie == a->cookie; };
-  auto isfromto = [&](auto* a, auto* b) -> bool
-  { return (a->mask & IN_MOVED_FROM) && (b->mask & IN_MOVED_TO); };
-  auto one = [&](auto* next) -> parsed
-  { return {ev(in_path, et, pt), next}; };
-  auto assoc = [&](auto* a, auto* b) -> parsed
-  { return {ev(ev(pathof(a), et, pt), ev(pathof(b), et, pt)), peek(b, tail)}; };
   auto next = peek(in, tail);
-  *cookie = et == ev_et::rename && ! isassoc(in, next) ? in->cookie : 0;
-  return ! isassoc(in, next) ? one(next)
-         : isfromto(in, next) ? assoc(in, next)
-         : isfromto(next, in) ? assoc(next, in)
-         : one(next);
+  /* Non-associated events require no special handling */
+  if (! in->cookie)
+    return parsed{{path, et, pt}, next};
+  /* Fast path for adjacent rename events */
+  if ((in->mask & IN_MOVED_FROM) && next && (next->mask & IN_MOVED_TO))
+    return parsed{{{path, et, pt}, {pathof(next), et, pt}}, peek(next, tail)};
+  /* Try to *take* an associated event from `fae` */
+  for (int i = 0; i < fae::idx_ulim; i++) {
+    if (ke.fae.evs[i].cookie == in->cookie) {
+      ke.fae.idx_rm = i;
+      ke.fae.evs[i].cookie = 0;
+      return {{ke.fae.evs[i].ev, {path, et, pt}}, next};
+    }
+  }
+  /* Otherwise, save the current event for later */
+  auto err = ke.fae.evs[ke.fae.idx_rm].cookie != 0
+           ? parsed::err_overflow
+           : parsed::err_pending;
+  auto last_ev = ke.fae.evs[ke.fae.idx_rm].ev;
+  ke.fae.evs[ke.fae.idx_rm] = {{path, et, pt}, in->cookie};
+  ke.fae.idx_rm = (ke.fae.idx_rm + 1) % fae::idx_ulim;
+  return {last_ev, next, err};
 };
 
 struct defer_dm_rm_wd {
@@ -354,7 +371,6 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
     auto const* in_ev = (inotify_event*)(sr.ke.ev_buf);
     auto const* const in_ev_tail = (inotify_event*)(sr.ke.ev_buf + read_len);
     unsigned in_ev_c = 0;
-    uint32_t cookie = 0;
     auto dmrm = defer_dm_rm_wd{sr.ke};
     while (in_ev && in_ev < in_ev_tail) {
       auto in_ev_next = peek(in_ev, in_ev_tail);
@@ -366,17 +382,15 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
       else if (msk & IN_Q_OVERFLOW)
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
-        auto parsed = parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie);
-        if (cookie && sr.ke.last_rename_cookie != cookie)
-          sr.ke.last_rename_ev = parsed.ev, sr.ke.last_rename_cookie = cookie;
-        else if (cookie)
-          cb({sr.ke.last_rename_ev, parse_ev(sr.ke.dm, in_ev, in_ev_tail, &cookie).ev});
-        else if (msk & IN_ISDIR && msk & IN_CREATE)
+        auto parsed = parse_ev(sr.ke, in_ev, in_ev_tail);
+        if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        else
+        if (parsed.err & parsed::err_overflow)
+          send_msg(result::w_self_q_overflow, parsed.ev.path_name.c_str(), cb);
+        if (! (parsed.err & parsed::err_pending))
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }
