@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.4
+
+- Fixed a rare misreporting error in the darwin/fsevents adapter where a rename event very quickly after a creation event on the same path could cause the creation event to be duplicated alongside the rename event.
+
 ## 0.14.3
 
 - Fixed duplicate creation events being reported on Linux in the inotify adapter when the event matched both the special directory creation path and the non-pending parse result path.

@@ -135,20 +135,21 @@ inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
         rename events, see this directory's
         notes (in the `notes.md` file).
     */
-    auto at = ctx.seen_created_paths->find(path);
-    if (at != ctx.seen_created_paths->end())
-      ctx.seen_created_paths->erase(at);
     auto lr_path = *ctx.last_rename_path;
     auto differs = ! lr_path.empty() && lr_path != path;
     auto missing = access(lr_path.c_str(), F_OK) == -1;
-    if (differs && missing)
+    if (differs && missing) {
       ctx.callback({
         {lr_path, ety::rename, pt},
         {   path, ety::rename, pt}
-      }),
-        ctx.last_rename_path->clear();
-    else
+      });
+      ctx.last_rename_path->clear();
+    } else {
       *ctx.last_rename_path = path;
+      auto at = ctx.seen_created_paths->find(path);
+      if (at != ctx.seen_created_paths->end())
+        ctx.seen_created_paths->erase(at);
+    }
   }
 }
 
