@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.2
+
+- Fixed rename event reporting in the inotify adapter when the associated event is still pending (#105, thanks to @scoueille and @Gautrot for reporting; introduced with fixes for #89).
+- Prevented de-duplication of creation events from interfering with other types of events in the darwin/fsevents adapter (#106, thanks to @hkhk368 for reporting).
+
 ## 0.14.1
 
 - Fixed Watcher-Go module import (#101, @dunglas).
