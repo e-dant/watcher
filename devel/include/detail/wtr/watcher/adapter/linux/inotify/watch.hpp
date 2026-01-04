@@ -383,14 +383,14 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         send_msg(result::w_sys_q_overflow, "", cb);
       else if (is_real_event(msk)) {
         auto parsed = parse_ev(sr.ke, in_ev, in_ev_tail);
+        if (parsed.err & parsed::err_overflow)
+          send_msg(result::w_self_q_overflow, parsed.ev.path_name.c_str(), cb);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
-        if (parsed.err & parsed::err_overflow)
-          send_msg(result::w_self_q_overflow, parsed.ev.path_name.c_str(), cb);
-        if (! (parsed.err & parsed::err_pending))
+        else if (! (parsed.err & parsed::err_pending))
           cb(parsed.ev);
         in_ev_next = parsed.next;
       }

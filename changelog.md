@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.3
+
+- Fixed duplicate creation events being reported on Linux in the inotify adapter when the event matched both the special directory creation path and the non-pending parse result path.
+
 ## 0.14.2
 
 - Fixed rename event reporting in the inotify adapter when the associated event is still pending (#105, thanks to @scoueille and @Gautrot for reporting; introduced with fixes for #89).
