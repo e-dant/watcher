@@ -1,6 +1,6 @@
 [package]
 name = "wtr-watcher"
-version = "0.14.2" # hook: tool/release
+version = "0.14.3" # hook: tool/release
 edition = "2021"
 build = "watcher-rs/build.rs"
 authors = ["Will <edant.io@protonmail.com>"]
