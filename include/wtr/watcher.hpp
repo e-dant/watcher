@@ -582,10 +582,9 @@ inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
   }
   if (flags & fsev_flag_effect_remove) {
     auto at = ctx.seen_created_paths->find(path);
-    if (at != ctx.seen_created_paths->end()) {
+    if (at != ctx.seen_created_paths->end())
       ctx.seen_created_paths->erase(at);
-      ctx.callback({path, ety::destroy, pt});
-    }
+    ctx.callback({path, ety::destroy, pt});
   }
   if (flags & fsev_flag_effect_modify) {
     ctx.callback({path, ety::modify, pt});
@@ -616,6 +615,9 @@ inline auto event_recv_one(ContextData& ctx, char const* path, unsigned flags)
         rename events, see this directory's
         notes (in the `notes.md` file).
     */
+    auto at = ctx.seen_created_paths->find(path);
+    if (at != ctx.seen_created_paths->end())
+      ctx.seen_created_paths->erase(at);
     auto lr_path = *ctx.last_rename_path;
     auto differs = ! lr_path.empty() && lr_path != path;
     auto missing = access(lr_path.c_str(), F_OK) == -1;
