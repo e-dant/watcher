@@ -3,7 +3,7 @@
 [![Conan Center](https://img.shields.io/conan/v/watcher)](https://conan.io/center/recipes/watcher)
 [![Rust/Cargo Crate](https://img.shields.io/crates/v/wtr-watcher.svg)](https://crates.io/crates/wtr-watcher)
 [![PyPI/Pip Package](https://badge.fury.io/py/wtr-watcher.svg)](https://badge.fury.io/py/wtr-watcher)
-[![Go Module](https://pkg.go.dev/badge/github.com/e-dant/watcher-go.svg)](https://pkg.go.dev/github.com/e-dant/watcher-go)
+[![Go Module](https://pkg.go.dev/badge/github.com/e-dant/watcher/watcher-go.svg)](https://pkg.go.dev/github.com/e-dant/watcher/watcher-go)
 [![Homebrew package](https://repology.org/badge/version-for-repo/homebrew/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
 [![nixpkgs stable 25.05 package](https://repology.org/badge/version-for-repo/nix_stable_25_05/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
 [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/wtr-watcher.svg)](https://repology.org/project/wtr-watcher/versions)
@@ -156,7 +156,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/e-dant/watcher-go"
+	"github.com/e-dant/watcher/watcher-go"
 )
 
 func main() {
