@@ -124,8 +124,9 @@ polybuild() {
     build "$triple" "out/$triple/watcher" src/wtr/watcher/main.cpp -DWTR_WATCHER_VERSION_S=\""$(cat .version)"\"
     build "$triple" "out/$triple/tw" src/wtr/tiny_watcher/main.cpp
     [ -e "out/$triple/libwatcher-c.$so.$version" ] || cp "out/$triple/libwatcher-c.$so" "out/$triple/libwatcher-c.$so.$version"
-    [ -f "out/$triple/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/watcher.hpp"
-    [ -f "out/$triple/watcher-c.h" ] || cp watcher-c/include/wtr/watcher-c.h "out/$triple/watcher-c.h"
+    [ -d "out/$triple/wtr" ] || mkdir -p "out/$triple/wtr"
+    [ -f "out/$triple/wtr/watcher.hpp" ] || cp include/wtr/watcher.hpp "out/$triple/wtr/watcher.hpp"
+    [ -f "out/$triple/wtr/watcher-c.h" ] || cp watcher-c/include/wtr/watcher-c.h "out/$triple/wtr/watcher-c.h"
     python3 tool/shasum.py "out/$triple" mk
     [ -e "out/$triple.tar" ] || (cd out && tar -cf "$triple.tar" "$triple")
     python3 tool/shasum.py "out/$triple.tar" mk
