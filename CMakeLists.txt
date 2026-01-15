@@ -9,6 +9,11 @@ cmake_policy(SET CMP0048 NEW) # For VERSION in project()
 cmake_policy(SET CMP0069 NEW) # For better IPO support
 cmake_minimum_required(VERSION 3.9)
 
+set(WTR_WATCHER_MAIN_PROJECT ON)
+if(DEFINED PROJECT_SOURCE_DIR)
+  set(WTR_WATCHER_MAIN_PROJECT OFF)
+endif()
+
 project(
   wtr.watcher
   VERSION 0.14.3 # hook: tool/release
@@ -231,7 +236,7 @@ function(wtr_add_bin_target
     endif()
     add_test(NAME "${NAME}" COMMAND "${NAME}")
   endif()
-  if(BIN_COMPONENT_NAME)
+  if(WTR_WATCHER_MAIN_PROJECT AND BIN_COMPONENT_NAME)
     install(
       TARGETS "${NAME}"
       DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
@@ -265,11 +270,13 @@ function(wtr_add_lib_target NAME OUTPUT_NAME SRC_SET INC_SET LIB_TYPE)
     set_property(TARGET "${NAME}" PROPERTY INSTALL_RPATH "/usr/local/lib")
     set_property(TARGET "${NAME}" PROPERTY BUILD_RPATH "/usr/local/lib")
   endif()
-  install(
-    TARGETS "${NAME}"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    COMPONENT "lib"
-  )
+  if(WTR_WATCHER_MAIN_PROJECT)
+    install(
+      TARGETS "${NAME}"
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+      COMPONENT "lib"
+    )
+  endif()
 endfunction()
 
 function(wtr_add_hdr_target NAME HDR_SET)
@@ -280,7 +287,9 @@ function(wtr_add_hdr_target NAME HDR_SET)
   message(STATUS "${NAME}: Added (BUILD_HDR=${BUILD_HDR})")
   add_library("${NAME}" INTERFACE "${HDR_SET}")
   target_include_directories("${NAME}" INTERFACE "${INCLPATH}")
-  install(FILES "${HDR_SET}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr" COMPONENT "include")
+  if(WTR_WATCHER_MAIN_PROJECT)
+    install(FILES "${HDR_SET}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wtr" COMPONENT "include")
+  endif()
 endfunction()
 
 function(wtr_add_rel_bin_target NAME SRC_SET)
@@ -393,7 +402,9 @@ function(wtr_add_pkg_config_target NAME SRC)
   if(BUILD_PKG_CONFIG)
     message(STATUS "${NAME}: Added (BUILD_PKG_CONFIG=${BUILD_PKG_CONFIG})")
     configure_file("${SRC}" "${CMAKE_BINARY_DIR}/${NAME}" @ONLY)
-    install(FILES "${CMAKE_BINARY_DIR}/${NAME}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT pkgconfig)
+    if(WTR_WATCHER_MAIN_PROJECT)
+      install(FILES "${CMAKE_BINARY_DIR}/${NAME}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT pkgconfig)
+    endif()
   else()
     message(STATUS "${NAME}: Skipped (BUILD_PKG_CONFIG=${BUILD_PKG_CONFIG})")
   endif()
