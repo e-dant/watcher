@@ -194,6 +194,7 @@ inline auto peek = [](
 struct parsed {
   static constexpr uint16_t err_pending = 1 << 0;
   static constexpr uint16_t err_overflow = 1 << 1;
+  static constexpr uint16_t err_partial = 1 << 2;
   ::wtr::watcher::event ev{};
   inotify_event* next = nullptr;
   uint16_t err = 0;
@@ -241,7 +242,12 @@ inline auto parse_ev = [](
       return {{ke.fae.evs[i].ev, {path, et, pt}}, next};
     }
   }
-  /* Otherwise, save the current event for later */
+  /* Partial rename events are inferred if the MOVED_FROM
+     half of the event is not adjacent nor previously seen
+     in the associated event buffer. */
+  if (in->mask & IN_MOVED_TO)
+    return {{{"", et, pt}, {path, et, pt}}, next, parsed::err_partial};
+  /* Otherwise, save the current event (MOVED_FROM) for later */
   auto err = ke.fae.evs[ke.fae.idx_rm].cookie != 0
            ? parsed::err_overflow
            : parsed::err_pending;
@@ -385,6 +391,8 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
         auto parsed = parse_ev(sr.ke, in_ev, in_ev_tail);
         if (parsed.err & parsed::err_overflow)
           send_msg(result::w_self_q_overflow, parsed.ev.path_name.c_str(), cb);
+        if (parsed.err & parsed::err_partial)
+          send_msg(result::w_sys_partial, parsed.ev.associated->path_name.c_str(), cb);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
             do_mark(dir, sr.ke.fd, sr.ke.dm, cb);

@@ -2,6 +2,8 @@
 
 ## 0.14.4
 
+- Fixed rename event reporting in the inotify adapter when there is no "moved-from" half of the event provided (#105, thanks to @scoueille and @Gautrot for reporting; introduced with fixes for #89).
+- Addsd a regression test for issue #105.
 - Fixed a rare misreporting error in the darwin/fsevents adapter where a rename event very quickly after a creation event on the same path could cause the creation event to be duplicated alongside the rename event.
 - Only add CMake install rules if we are the main project, to be good neighbors when added as a submodule (#111, thanks to @unravel-dev)
 * Fix Windows distribution archive structure to place headers in wtr/ dir (#108, thanks to @dunglas)
