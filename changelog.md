@@ -6,7 +6,8 @@
 - Addsd a regression test for issue #105.
 - Fixed a rare misreporting error in the darwin/fsevents adapter where a rename event very quickly after a creation event on the same path could cause the creation event to be duplicated alongside the rename event.
 - Only add CMake install rules if we are the main project, to be good neighbors when added as a submodule (#111, thanks to @unravel-dev)
-* Fix Windows distribution archive structure to place headers in wtr/ dir (#108, thanks to @dunglas)
+- Fix Windows distribution archive structure to place headers in wtr/ dir (#108, thanks to @dunglas)
+- Bumped the minor CMake version from 3.9 to 3.11, as versions less than 3.11 are becoming deprecated.
 
 ## 0.14.3
 
