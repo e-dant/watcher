@@ -28,7 +28,7 @@ auto main() -> int {
   auto watcher = watch(".", show);
 
   // Do some work. (We'll just wait for a newline.)
-  getchar();
+  (void)getchar();
 
   // The watcher would close itself around here,
   // though we can check and close it ourselves:
