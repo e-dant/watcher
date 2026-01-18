@@ -8,6 +8,7 @@
 - Only add CMake install rules if we are the main project, to be good neighbors when added as a submodule (#111, thanks to @unravel-dev)
 - Fix Windows distribution archive structure to place headers in wtr/ dir (#108, thanks to @dunglas)
 - Bumped the minor CMake version from 3.9 to 3.11, as versions less than 3.11 are becoming deprecated.
+- Updated dependencies in the watcher-nodejs project.
 
 ## 0.14.3
 
