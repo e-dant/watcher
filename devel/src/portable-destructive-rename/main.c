@@ -2,7 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 void phelp(FILE* file)
 {
@@ -37,7 +41,15 @@ int main(int argc, char* argv[])
   if (strcmp(a, "--help") == 0 && argc == 2)
     return (phelp(stdout), 0);
 
-  else if (rename(a, b) == 0)
+#ifdef _WIN32
+  if (MoveFileExA(a, b, MOVEFILE_REPLACE_EXISTING))
+    return 0;
+  else {
+    fprintf(stderr, "MoveFileExA failed: %lu\n", GetLastError());
+    return 1;
+  }
+#else
+  if (rename(a, b) == 0)
     return 0;
 
   else if (errno == EXDEV)
@@ -50,4 +62,5 @@ int main(int argc, char* argv[])
 
   else
     return (perror("rename"), 1);
+#endif
 }
