@@ -16,7 +16,7 @@ endif()
 
 project(
   wtr.watcher
-  VERSION 0.14.3 # hook: tool/release
+  VERSION 0.14.4 # hook: tool/release
   DESCRIPTION "watcher: a filesystem watcher"
   HOMEPAGE_URL "github.com/e-dant/watcher"
   LANGUAGES
