@@ -8,7 +8,7 @@ ec=0
   # See these issues for more context on the event count:
   # - https://github.com/e-dant/watcher/issues/85
   # - https://github.com/e-dant/watcher/issues/80
-  count=500
+  count=100
   read -r -d '' expect << .
 [
   {

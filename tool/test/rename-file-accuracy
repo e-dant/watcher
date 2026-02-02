@@ -53,6 +53,13 @@ ec=$((ec + $?))
 
 (
   desc='Create and rename a file, overwriting an existing file'
+
+  # It is impossible to implement destructive rename events in Windows
+  if [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
+    echo "$desc ... [Skipped on Windows]"
+    exit 0
+  fi
+
   read -r -d '' expect << .
 [
   {
