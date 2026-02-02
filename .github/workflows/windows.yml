@@ -17,8 +17,6 @@ jobs:
       matrix:
         target-double:
           - uwp-windows-msvc
-        target-platform:
-          - this
         os:
           - windows-2022
           - windows-2025
@@ -49,13 +47,13 @@ jobs:
           bash -c 'ls -hal tiny.exe'
       - shell: bash
         run: |
-          cmake -S . -B out/${{matrix.target-platform}} -DBUILD_LIB=ON -DBUILD_BIN=ON -DBUILD_HDR=ON -DBUILD_TESTING=ON -DBUILD_SAN=ON
-          cmake --build out/${{matrix.target-platform}} --target wtr.test_watcher --config Debug
-          cmake --build out/${{matrix.target-platform}} --target wtr.test_watcher --config Release
+          cmake -S . -B out/this -DBUILD_LIB=ON -DBUILD_BIN=ON -DBUILD_HDR=ON -DBUILD_TESTING=ON -DBUILD_SAN=ON
+          cmake --build out/this --target wtr.test_watcher --config Debug
+          cmake --build out/this --target wtr.test_watcher --config Release
       - shell: bash
         env:
           VERBOSE: 1
         run: |
-          out/${{matrix.target-double}}/Debug/wtr.test_watcher.exe || echo f windows
-          out/${{matrix.target-double}}/Release/wtr.test_watcher.exe || echo f windows
-      - run: echo windows is an abomination
+          out/this/Debug/wtr.test_watcher.exe || true
+          out/this/Release/wtr.test_watcher.exe || true
+          WATCHER=$PWD/out/this/Debug/wtr.watcher.exe tool/test/all || true
