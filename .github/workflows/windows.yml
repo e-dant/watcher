@@ -48,7 +48,7 @@ jobs:
       - shell: bash
         run: |
           cmake -S . -B out/this -DBUILD_LIB=ON -DBUILD_BIN=ON -DBUILD_HDR=ON -DBUILD_TESTING=ON -DBUILD_SAN=ON
-          cmake --build out/this --target wtr.test_watcher --config Release
+          cmake --build out/this --config Release
       - shell: bash
         env:
           VERBOSE: 1
