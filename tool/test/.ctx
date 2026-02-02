@@ -25,14 +25,7 @@ cd "$testdir" || exit 1
 
 strip-tmpdir() {
   # Darwin prepends /private to tmp dirs
-  # Convert CRLF to LF for Windows compatibility
-  # On Windows with Git Bash, mktemp gives /tmp/... but native exe gives C:/Users/.../Temp/...
-  local tmpdir_unix="$1"
-  local tmpdir_win=""
-  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-    tmpdir_win=$(cygpath -w "$tmpdir_unix" 2>/dev/null | sed 's;\\;/;g')
-  fi
-  sed -E "s;\r$;;g" "$2" | sed -E "s;$tmpdir_unix|/private$tmpdir_unix|$tmpdir_win;d;g"
+  sed -E "s;$1|/private$1;d;g" "$2"
 }
 
 watch-async() {
@@ -76,9 +69,8 @@ check-result() {
   [[ -z "$1" || -z "$2" ]] && return 1
   expect=$1
   actual=$2
-  # Normalize line endings (CRLF -> LF) for Windows compatibility
-  lhs() { echo "$expect" | jq -S | sed 's/\r$//'; }
-  rhs() { echo "$actual" | jq -S | sed '/"associated": null,/d' | sed 's/\r$//'; }
+  lhs() { echo "$expect" | jq -S; }
+  rhs() { echo "$actual" | jq -S | sed '/"associated": null,/d'; }
   if diff <(lhs) <(rhs) &> /dev/null
   then echo ':) ok'
   else echo 'oops :(' && diff --side-by-side <(lhs) <(rhs)
