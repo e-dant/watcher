@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <windows.h>
 
 namespace detail::wtr::watcher::adapter {
@@ -31,13 +32,19 @@ public:
   OVERLAPPED event_overlap = {};
   FILE_NOTIFY_INFORMATION event_buf[event_buf_len_max] = {0};
   DWORD event_buf_len_ready = 0;
+  /*  Cache path types for destroy events, since the path no longer
+      exists when we receive the destroy notification. */
+  std::unordered_map<std::string, enum ::wtr::watcher::event::path_type> path_type_cache;
 
   watch_event_proxy(std::filesystem::path const& path) noexcept
       : path{path}
   {
-    memcpy(path_name, path.c_str(), path.string().size());
+    auto path_wstr = path.wstring();
+    auto copy_len = (std::min)(path_wstr.size(), size_t{255});
+    memcpy(this->path_name, path_wstr.c_str(), copy_len * sizeof(wchar_t));
+    this->path_name[copy_len] = L'\0';
     this->path_handle = CreateFileW(
-      path.c_str(),
+      path_wstr.c_str(),
       FILE_LIST_DIRECTORY,
       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
       nullptr,
@@ -81,9 +88,13 @@ inline auto do_event_recv(
     w.event_buf,
     w.event_buf_len_max,
     true,
-    FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_CREATION
-      | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE
-      | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_DIR_NAME
+    /*  We ignore "access-only"/timestamp-only changes, and so the flag
+        FILE_NOTIFY_CHANGE_LAST_WRITE is intentionally excluded. */
+    FILE_NOTIFY_CHANGE_SECURITY
+      | FILE_NOTIFY_CHANGE_CREATION
+      | FILE_NOTIFY_CHANGE_SIZE
+      | FILE_NOTIFY_CHANGE_ATTRIBUTES
+      | FILE_NOTIFY_CHANGE_DIR_NAME
       | FILE_NOTIFY_CHANGE_FILE_NAME,
     &bytes_returned,
     &w.event_overlap,
@@ -92,23 +103,15 @@ inline auto do_event_recv(
     w.event_buf_len_ready = bytes_returned > 0 ? bytes_returned : 0;
     return true;
   }
+  else if (GetLastError() == ERROR_IO_PENDING) {
+    w.event_buf_len_ready = 0;
+    return true;
+  }
   else {
-    switch (GetLastError()) {
-      case ERROR_IO_PENDING :
-        w.event_buf_len_ready = 0;
-        w.is_valid = false;
-        callback(
-          {"e/sys/read/pending",
-           ::wtr::event::effect_type::other,
-           ::wtr::event::path_type::watcher});
-        break;
-      default :
-        callback(
-          {"e/sys/read",
-           ::wtr::event::effect_type::other,
-           ::wtr::event::path_type::watcher});
-        break;
-    }
+    callback({
+      "e/sys/read",
+      ::wtr::event::effect_type::other,
+      ::wtr::event::path_type::watcher});
     return false;
   }
 }
@@ -137,10 +140,13 @@ inline auto do_event_send(
   RenameEventTracker new_tracker;
   auto const trigger_rename_callback = [&]()
   {
+    /*  Use the path type from the new name, since the old path no longer
+        exists at its original location. The new path exists on the filesystem
+        and we can reliably determine its type. */
     auto renamed_from = event{
       old_tracker.path_name,
       old_tracker.effect_type,
-      old_tracker.path_type};
+      new_tracker.path_type};
     auto renamed_to = event{
       new_tracker.path_name,
       new_tracker.effect_type,
@@ -152,7 +158,7 @@ inline auto do_event_send(
   };
 
   if (! w.is_valid) return false;
-  while (buf + sizeof(FILE_NOTIFY_INFORMATION) <= buf + w.event_buf_len_ready) {
+  while ((uint8_t*)buf < (uint8_t*)w.event_buf + w.event_buf_len_ready) {
     if (buf->FileNameLength % 2 == 0) {
       auto path_name =
         w.path / std::wstring{buf->FileName, buf->FileNameLength / 2};
@@ -169,12 +175,30 @@ inline auto do_event_send(
         }
       }();
 
-      auto path_type = [&path_name]()
+      auto path_key = path_name.generic_string();
+      auto path_type = [&]()
       {
+        /*  For destroy events and rename-old events, the path no longer exists
+            at its original location, so we look up the type from our cache
+            (populated on create/modify events). */
+        if (buf->Action == FILE_ACTION_REMOVED || buf->Action == FILE_ACTION_RENAMED_OLD_NAME) {
+          auto it = w.path_type_cache.find(path_key);
+          if (it != w.path_type_cache.end()) {
+            auto cached_type = it->second;
+            w.path_type_cache.erase(it);
+            return cached_type;
+          }
+        }
+        /*  For existing paths, check the filesystem and cache the result. */
         try {
-          return std::filesystem::is_directory(path_name)
-                 ? event::path_type::dir
-                 : event::path_type::file;
+          auto type = std::filesystem::is_directory(path_name)
+                      ? event::path_type::dir
+                      : event::path_type::file;
+          if (buf->Action == FILE_ACTION_ADDED || buf->Action == FILE_ACTION_MODIFIED
+              || buf->Action == FILE_ACTION_RENAMED_NEW_NAME) {
+            w.path_type_cache[path_key] = type;
+          }
+          return type;
         } catch (...) {
           return event::path_type::other;
         }
