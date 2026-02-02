@@ -9,6 +9,8 @@
 - Fix Windows distribution archive structure to place headers in wtr/ dir (#108, thanks to @dunglas)
 - Bumped the minor CMake version from 3.9 to 3.11, as versions less than 3.11 are becoming deprecated.
 - Updated dependencies in the watcher-nodejs project.
+- Fixed Windows old/new rename event path handling
+- Fixed event loop IO failure condition handling on Windows (pending IO is not an error)
 
 ## 0.14.3
 
