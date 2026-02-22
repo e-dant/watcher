@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.5
+
+- Fixed cross-directory path name caching and reporting in the inotify/Linux adapter (#109, thanks to @unravel-dev for reporting).
+
 ## 0.14.4
 
 - Fixed rename event reporting in the inotify adapter when there is no "moved-from" half of the event provided (#105, thanks to @scoueille and @Gautrot for reporting; introduced with fixes for #89).
