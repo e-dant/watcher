@@ -1396,8 +1396,8 @@ struct ke_in_ev {
 
   int fd = -1;
   struct fae fae{};
-  using paths = std::unordered_map<int, std::filesystem::path>;
-  paths dm{};
+  std::unordered_map<int, std::filesystem::path> wd_to_p;
+  std::unordered_map<std::string, int> p_to_wd;
   alignas(inotify_event) char ev_buf[buf_len]{0};
   int rm_wd_buf[buf_len]{0};
 
@@ -1413,24 +1413,38 @@ struct sysres {
   adapter::ep ep{};
 };
 
-inline auto known_pathof_wd_or_default =
-  [](ke_in_ev::paths const& dm, int wd) -> std::filesystem::path
+inline auto wd_to_p_or_default =
+  [](auto const& wd_to_p, int wd) -> std::filesystem::path
 {
-  auto dmhit = dm.find(wd);
-  return dmhit != dm.end() ? dmhit->second : "";
+  auto at = wd_to_p.find(wd);
+  return at != wd_to_p.end() ? at->second : "";
+};
+
+inline auto update_path_maps_on_rename =
+  [](ke_in_ev& ke, auto const& from, auto const& to) -> void
+{
+  auto wd_at = ke.p_to_wd.find(from);
+  if (wd_at != ke.p_to_wd.end()) {
+    auto wd = wd_at->second;
+    ke.p_to_wd.erase(wd_at);
+    ke.p_to_wd[to] = wd;
+    ke.wd_to_p[wd] = to;
+  }
 };
 
 inline auto do_mark =
-  [](char const* const dirpath, int dirfd, auto& dm, auto const& cb) -> result
+  [](char const* const dirpath, int dirfd, auto& wd_to_p, auto& p_to_wd, auto const& cb) -> result
 {
   auto e = result::w_sys_not_watched;
   char real[PATH_MAX];
   int wd = realpath(dirpath, real) && is_dir(real)
            ? inotify_add_watch(dirfd, real, ke_in_ev::recv_mask)
            : -1;
-  if (wd > 0)
-    return dm.emplace(wd, real), result::complete;
-  else
+  if (wd > 0) {
+    wd_to_p.emplace(wd, real);
+    p_to_wd.emplace(real, wd);
+    return result::complete;
+  } else
     return send_msg(e, dirpath, cb), e;
 };
 
@@ -1447,13 +1461,14 @@ inline auto make_sysres = [](
     return in_fd;
   };
 
-  auto make_dm = [&](result* ok, int in_fd) -> ke_in_ev::paths
+  auto make_path_maps = [&](result* ok, int in_fd) -> std::tuple<std::unordered_map<int, std::filesystem::path>, std::unordered_map<std::string, int>>
   {
-    auto dm = ke_in_ev::paths{};
-    if (*ok >= result::e) return dm;
-    walkdir_do(base_path, [&](auto dir) { do_mark(dir, in_fd, dm, cb); });
-    if (dm.empty()) *ok = result::e_self_noent;
-    return dm;
+    auto wd_to_p = std::unordered_map<int, std::filesystem::path>{};
+    auto p_to_wd = std::unordered_map<std::string, int>{};
+    if (*ok >= result::e) return {wd_to_p, p_to_wd};
+    walkdir_do(base_path, [&](auto dir) { do_mark(dir, in_fd, wd_to_p, p_to_wd, cb); });
+    if (wd_to_p.empty() || p_to_wd.empty()) *ok = result::e_self_noent;
+    return {std::move(wd_to_p), std::move(p_to_wd)};
   };
 
   auto make_ep = [&](result* ok, int in_fd, int il_fd) -> ep
@@ -1466,13 +1481,14 @@ inline auto make_sysres = [](
 
   auto ok = result::pending;
   auto in_fd = make_inotify(&ok);
-  auto dm = make_dm(&ok, in_fd);
+  auto [wd_to_p, p_to_wd] = make_path_maps(&ok, in_fd);
   auto ep = make_ep(&ok, in_fd, living.fd);
   return sysres{
     .ok = ok,
     .ke{
         .fd = in_fd,
-        .dm = std::move(dm),
+        .wd_to_p = std::move(wd_to_p),
+        .p_to_wd = std::move(p_to_wd),
         },
     .il = living,
     .ep = ep,
@@ -1514,7 +1530,7 @@ inline auto parse_ev = [](
   using ev_pt = enum ev::path_type;
   using ev_et = enum ev::effect_type;
   auto pathof = [&](inotify_event const* const m)
-  { return known_pathof_wd_or_default(ke.dm, m->wd) / m->name; };
+  { return wd_to_p_or_default(ke.wd_to_p, m->wd) / m->name; };
   auto path = pathof(in);
   auto pt = in->mask & IN_ISDIR ? ev_pt::dir
           : is_symlink(path)    ? ev_pt::sym_link
@@ -1529,13 +1545,16 @@ inline auto parse_ev = [](
   if (! in->cookie)
     return parsed{{path, et, pt}, next};
   /* Fast path for adjacent rename events */
-  if ((in->mask & IN_MOVED_FROM) && next && (next->mask & IN_MOVED_TO))
+  if ((in->mask & IN_MOVED_FROM) && next && (next->mask & IN_MOVED_TO)) {
+    update_path_maps_on_rename(ke, path, pathof(next));
     return parsed{{{path, et, pt}, {pathof(next), et, pt}}, peek(next, tail)};
+  }
   /* Try to *take* an associated event from `fae` */
   for (int i = 0; i < fae::idx_ulim; i++) {
     if (ke.fae.evs[i].cookie == in->cookie) {
       ke.fae.idx_rm = i;
       ke.fae.evs[i].cookie = 0;
+      update_path_maps_on_rename(ke, ke.fae.evs[i].ev.path_name, path);
       return {{ke.fae.evs[i].ev, {path, et, pt}}, next};
     }
   }
@@ -1578,8 +1597,12 @@ struct defer_dm_rm_wd {
   {
     for (size_t i = 0; i < back_idx; ++i) {
       auto wd = ke.rm_wd_buf[i];
-      auto at = ke.dm.find(wd);
-      if (at != ke.dm.end()) ke.dm.erase(at);
+      auto p_at = ke.wd_to_p.find(wd);
+      if (p_at != ke.wd_to_p.end()) {
+        ke.wd_to_p.erase(p_at);
+        auto wd_at = ke.p_to_wd.find(p_at->second);
+        if (wd_at != ke.p_to_wd.end()) ke.p_to_wd.erase(wd_at);
+      }
     }
   };
 };
@@ -1692,7 +1715,7 @@ inline auto do_ev_recv = [](auto const& cb, sysres& sr) -> result
           send_msg(result::w_sys_partial, parsed.ev.associated->path_name.c_str(), cb);
         if (msk & IN_ISDIR && msk & IN_CREATE)
           walkdir_do(parsed.ev.path_name.c_str(), [&](auto dir) {
-            do_mark(dir, sr.ke.fd, sr.ke.dm, cb);
+            do_mark(dir, sr.ke.fd, sr.ke.wd_to_p, sr.ke.p_to_wd, cb);
             cb({dir, parsed.ev.effect_type, parsed.ev.path_type});
           });
         else if (! (parsed.err & parsed::err_pending))
