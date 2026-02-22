@@ -3,6 +3,7 @@
 ## 0.14.5
 
 - Fixed cross-directory path name caching and reporting in the inotify/Linux adapter (#109, thanks to @unravel-dev for reporting).
+- Updated the development (test) dependencies in the watcher-nodejs project.
 
 ## 0.14.4
 
