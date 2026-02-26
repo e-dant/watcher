@@ -15,6 +15,16 @@
 [![Android Compilation Tests](https://github.com/e-dant/watcher/actions/workflows/android.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/android.yml)
 [![Windows Tests](https://github.com/e-dant/watcher/actions/workflows/windows.yml/badge.svg)](https://github.com/e-dant/watcher/actions/workflows/windows.yml)
 
+## Install
+
+Follow these instructions to compile and install the C++ library, the C library and the binary:
+
+```console
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cmake --install build
+```
+
 ## Quick Start
 
 <details>
