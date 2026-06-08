@@ -40,7 +40,7 @@ inline namespace watcher {
 
     The `watcher` type is special.
     Events with this type will include messages from
-    the watcher. You may recieve error messages or
+    the watcher. You may receive error messages or
     important status updates.
 
     The first event always has a `create` value for the
