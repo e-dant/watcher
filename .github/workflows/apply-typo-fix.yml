@@ -1,0 +1,34 @@
+name: Apply spelling corrections
+on:
+  push:
+    branches: [docs/fix-receive-typos]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct spelling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files = [
+              Path('readme.md'),
+              Path('include/wtr/watcher.hpp'),
+              Path('devel/include/wtr/watcher-/event.hpp'),
+              Path('devel/include/detail/wtr/watcher/adapter/windows/watch.hpp'),
+          ]
+          for path in files:
+              text = path.read_text()
+              if 'recieve' not in text:
+                  raise SystemExit(f'Expected typo not found in {path}')
+              path.write_text(text.replace('recieve', 'receive'))
+          PY
+          rm .github/workflows/apply-typo-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add readme.md include/wtr/watcher.hpp devel/include/wtr/watcher-/event.hpp devel/include/detail/wtr/watcher/adapter/windows/watch.hpp .github/workflows/apply-typo-fix.yml
+          git commit -m "docs: fix receive spelling"
+          git push
