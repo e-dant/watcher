@@ -313,7 +313,7 @@ The `event` object will contain:
 The `watcher` type is special.
 
 Events with this type will include messages from
-the watcher. You may recieve error messages or
+the watcher. You may receive error messages or
 important status updates.
 
 This format was chosen to support asynchronous messages

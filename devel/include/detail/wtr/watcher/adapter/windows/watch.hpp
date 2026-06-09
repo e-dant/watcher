@@ -13,7 +13,7 @@
 namespace detail::wtr::watcher::adapter {
 namespace {
 
-/*  Hold resources necessary to recieve and send filesystem events. */
+/*  Hold resources necessary to receive and send filesystem events. */
 class watch_event_proxy {
 public:
   /*  Timeout for the completion port to wait for events,

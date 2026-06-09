@@ -41,7 +41,7 @@ inline namespace watcher {
 
     The `watcher` type is special.
     Events with this type will include messages from
-    the watcher. You may recieve error messages or
+    the watcher. You may receive error messages or
     important status updates.
 
     The first event always has a `create` value for the
@@ -1835,7 +1835,7 @@ inline auto watch =
 namespace detail::wtr::watcher::adapter {
 namespace {
 
-/*  Hold resources necessary to recieve and send filesystem events. */
+/*  Hold resources necessary to receive and send filesystem events. */
 class watch_event_proxy {
 public:
   /*  Timeout for the completion port to wait for events,
