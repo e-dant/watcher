@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.6
+
+- Fixed a `dispatch_semaphore_t` leak in the Darwin binary semaphore utility.
+
 ## 0.14.5
 
 - Fixed cross-directory path name caching and reporting in the inotify/Linux adapter (#109, thanks to @unravel-dev for reporting).
