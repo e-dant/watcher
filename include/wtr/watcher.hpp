@@ -468,7 +468,10 @@ public:
     return this->is.load(std::memory_order_acquire);
   }
 
-  inline ~semabin() noexcept { this->release(); }
+  inline ~semabin() noexcept {
+    this->release();
+    dispatch_release(this->sem);
+  }
 
 #else
 
