@@ -47,11 +47,13 @@ jobs:
           bash -c 'ls -hal tiny.exe'
       - shell: bash
         run: |
-          cmake -S . -B out/this -DBUILD_LIB=ON -DBUILD_BIN=ON -DBUILD_HDR=ON -DBUILD_TESTING=ON -DBUILD_SAN=ON
-          cmake --build out/this --config Release
+          cmake -S . -B out/this/{Debug,Release} -DBUILD_LIB=ON -DBUILD_BIN=ON -DBUILD_HDR=ON -DBUILD_TESTING=ON -DBUILD_SAN=ON
+          cmake --build out/this/Debug --target {wtr.watcher.asan.exe,wtr.test_watcher.asan.exe} --config Debug
+          cmake --build out/this/Release --target wtr.test_watcher.exe --config Release
       - shell: bash
         env:
           VERBOSE: 1
         run: |
-          out/this/Release/wtr.test_watcher.asan.exe
-          WATCHER=$PWD/out/this/Release/wtr.watcher.asan.exe tool/test/all || true
+          out/this/Debug/wtr.test_watcher.asan.exe
+          out/this/Release/wtr.test_watcher.exe
+          WATCHER=$PWD/out/this/Debug/wtr.watcher.asan.exe tool/test/all || true
