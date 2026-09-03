@@ -115,10 +115,7 @@ if(ANDROID)
   set(LINK_LIBRARIES "${LINK_LIBRARIES}")
 else()
   find_package(Threads REQUIRED)
-  set(LINK_LIBRARIES
-    "${LINK_LIBRARIES}"
-    "Threads::Threads"
-  )
+  list(APPEND LINK_LIBRARIES "Threads::Threads")
   if(APPLE)
     list(APPEND LINK_LIBRARIES
       "-framework CoreFoundation"
@@ -483,14 +480,15 @@ wtr_add_bin_target(
   ""
   ""
 )
-
-set(PC_WATCHER_LIBS_PRIVATE "${LINK_LIBRARIES}")
+set(PC_WATCHER_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(PC_WATCHER_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(PC_WATCHER_LIBS_PRIVATE "${LINK_LIBRARIES}")
 set(PC_WATCHER_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
 wtr_add_pkg_config_target("watcher.pc" "watcher.pc.in")
 
-set(PC_LIBWATCHER_C_LIBS_PRIVATE "${LINK_LIBRARIES}")
+set(PC_LIBWATCHER_C_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(PC_LIBWATCHER_C_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(PC_LIBWATCHER_C_LIBS_PRIVATE "${LINK_LIBRARIES}")
 set(PC_LIBWATCHER_C_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/wtr")
 wtr_add_pkg_config_target("watcher-c.pc" "watcher-c/watcher-c.pc.in")
 
